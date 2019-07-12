@@ -1,0 +1,566 @@
+<!--
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.apache</groupId>
+    <artifactId>apache</artifactId>
+    <version>18</version>
+  </parent>
+
+  <groupId>io.streamnative.connectors</groupId>
+  <artifactId>pulsar-flink-connector_${scala.binary.version}</artifactId>
+  <version>1.9-SNAPSHOT</version>
+  <name>StreamNative :: Pulsar Flink Connector</name>
+  <url>http://pulsar.apache.org</url>
+  <inceptionYear>2019</inceptionYear>
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <scm>
+    <connection>scm:git:https://github.com/streamnative/pulsar-flink.git</connection>
+    <developerConnection>scm:git:https://github.com/streamnative/pulsar-flink.git</developerConnection>
+    <url>https://github.com/streamnative/pulsar-flink</url>
+    <tag>branch-1.9</tag>
+  </scm>
+  <issueManagement>
+    <system>Github</system>
+    <url>https://github.com/streamnative/pulsar-flink/issues</url>
+  </issueManagement>
+  <developers>
+    <developer>
+      <organization>StreamNative developers</organization>
+      <organizationUrl>https://github.com/streamnative/pulsar-flink</organizationUrl>
+    </developer>
+  </developers>
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <project.scm.id>snbot-github</project.scm.id>
+    <javac.target>1.8</javac.target>
+    <redirectTestOutputToFile>true</redirectTestOutputToFile>
+    <testRetryCount>2</testRetryCount>
+
+    <scala.version>2.11.12</scala.version>
+    <scala.binary.version>2.11</scala.binary.version>
+
+    <!-- dependencies -->
+    <!-- latest version from apache pulsar master -->
+    <pulsar.version>2.5.0-cc022f169</pulsar.version>
+    <flink.version>1.9-SNAPSHOT</flink.version>
+    <streamnative-tests.version>0.0.13</streamnative-tests.version>
+    <testcontainers.version>1.10.6</testcontainers.version>
+    <!-- Need to use a user property here because the surefire
+       forkCount is not exposed as a property. With this we can set
+       it on the "mvn" commandline in travis. -->
+    <flink.forkCount>1C</flink.forkCount>
+    <!-- Allow overriding the fork behaviour for the expensive tests in flink-tests
+       to avoid process kills due to container limits on TravisCI -->
+    <flink.forkCountTestPackage>${flink.forkCount}</flink.forkCountTestPackage>
+    <flink.reuseForks>true</flink.reuseForks>
+    <log4j.configuration>log4j-test.properties</log4j.configuration>
+
+    <jackson.version>2.9.8</jackson.version>
+    <flink.shaded.version>7.0</flink.shaded.version>
+    <avro.version>1.8.2</avro.version>
+    <testng.version>6.14.3</testng.version>
+
+    <!-- plugin dependencies -->
+    <maven.version>3.5.4</maven.version>
+    <license-maven-plugin.version>3.0.rc1</license-maven-plugin.version>
+    <maven-compiler-plugin.version>3.7.0</maven-compiler-plugin.version>
+    <maven-dependency-plugin.version>3.1.1</maven-dependency-plugin.version>
+    <maven-shade-plugin.version>3.1.0</maven-shade-plugin.version>
+    <maven-source-plugin.version>2.2.1</maven-source-plugin.version>
+    <maven-surefire-plugin.version>2.21.0</maven-surefire-plugin.version>
+    <maven-checkstyle-plugin.version>3.0.0</maven-checkstyle-plugin.version>
+    <maven-spotbugs-plugin.version>3.0.6</maven-spotbugs-plugin.version>
+    <puppycrawl.checkstyle.version>6.19</puppycrawl.checkstyle.version>
+  </properties>
+
+  <!-- dependencies for all modules -->
+  <dependencies>
+    <!-- pulsar dependency -->
+    <dependency>
+      <groupId>org.apache.pulsar</groupId>
+      <artifactId>pulsar-client-all</artifactId>
+      <version>${pulsar.version}</version>
+    </dependency>
+
+    <!-- flink dependency -->
+
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-shaded-jackson</artifactId>
+      <version>${jackson.version}-${flink.shaded.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-streaming-java_${scala.binary.version}</artifactId>
+      <version>${flink.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- Table ecosystem -->
+    <!-- Projects depending on this project won't depend on flink-table-*. -->
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-table-api-java-bridge_${scala.binary.version}</artifactId>
+      <version>${flink.version}</version>
+      <scope>provided</scope>
+      <optional>true</optional>
+    </dependency>
+    <!-- A planner dependency won't be necessary once FLIP-32 has been completed. -->
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-table-planner_${scala.binary.version}</artifactId>
+      <version>${flink.version}</version>
+      <scope>provided</scope>
+      <optional>true</optional>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-json</artifactId>
+      <version>${flink.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-avro</artifactId>
+      <version>${flink.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-csv</artifactId>
+      <version>1.6</version>
+      <scope>compile</scope>
+    </dependency>
+
+    <!-- test dependencies -->
+
+    <dependency>
+      <groupId>org.testng</groupId>
+      <artifactId>testng</artifactId>
+      <version>${testng.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-metrics-jmx_${scala.binary.version}</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-streaming-java_${scala.binary.version}</artifactId>
+      <version>${flink.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-test-utils_${scala.binary.version}</artifactId>
+      <version>${flink.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-tests_${scala.binary.version}</artifactId>
+      <version>${flink.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-runtime_${scala.binary.version}</artifactId>
+      <version>${flink.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-core</artifactId>
+      <version>${flink.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-table-planner_${scala.binary.version}</artifactId>
+      <version>${flink.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- Pulsar table descriptor testing -->
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-table-common</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>io.streamnative.tests</groupId>
+      <artifactId>framework-common</artifactId>
+      <version>${streamnative-tests.version}</version>
+      <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>io.netty</groupId>
+          <artifactId>netty-common</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>io.streamnative.tests</groupId>
+      <artifactId>framework-pulsar</artifactId>
+      <version>${streamnative-tests.version}</version>
+      <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.pulsar</groupId>
+          <artifactId>pulsar-client-original</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.pulsar</groupId>
+          <artifactId>pulsar-client-admin-original</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>${maven-compiler-plugin.version}</version>
+        <configuration>
+          <source>${javac.target}</source>
+          <target>${javac.target}</target>
+          <compilerArgs>
+            <!-- <compilerArg>-Werror</compilerArg> -->
+            <compilerArg>-Xlint:deprecation</compilerArg>
+            <compilerArg>-Xlint:unchecked</compilerArg>
+            <!-- https://issues.apache.org/jira/browse/MCOMPILER-205 -->
+            <compilerArg>-Xpkginfo:always</compilerArg>
+          </compilerArgs>
+        </configuration>
+      </plugin>
+
+      <!--surefire for unit tests and integration tests-->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.22.1</version>
+        <configuration>
+          <forkCount>${flink.forkCount}</forkCount>
+          <reuseForks>${flink.reuseForks}</reuseForks>
+          <systemPropertyVariables>
+            <forkNumber>0${surefire.forkNumber}</forkNumber>
+            <log4j.configuration>${log4j.configuration}</log4j.configuration>
+          </systemPropertyVariables>
+          <argLine>-Xms256m -Xmx2048m -Dmvn.forkNumber=${surefire.forkNumber} -XX:+UseG1GC</argLine>
+        </configuration>
+        <executions>
+          <!--execute all the unit tests-->
+          <execution>
+            <id>default-test</id>
+            <phase>test</phase>
+            <goals>
+              <goal>test</goal>
+            </goals>
+            <configuration>
+              <includes>
+                <include>**/*Test.*</include>
+              </includes>
+            </configuration>
+          </execution>
+          <!--execute all the integration tests-->
+          <execution>
+            <id>integration-tests</id>
+            <phase>integration-test</phase>
+            <goals>
+              <goal>test</goal>
+            </goals>
+            <configuration>
+              <includes>
+                <include>**/*ITCase.*</include>
+              </includes>
+              <reuseForks>false</reuseForks>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <version>${maven-checkstyle-plugin.version}</version>
+        <dependencies>
+          <dependency>
+            <groupId>com.puppycrawl.tools</groupId>
+            <artifactId>checkstyle</artifactId>
+            <version>${puppycrawl.checkstyle.version}</version>
+          </dependency>
+        </dependencies>
+        <configuration>
+          <configLocation>tools/maven/checkstyle.xml</configLocation>
+          <suppressionsLocation>tools/maven/suppressions.xml</suppressionsLocation>
+          <encoding>UTF-8</encoding>
+          <consoleOutput>true</consoleOutput>
+          <failOnViolation>true</failOnViolation>
+          <includeResources>false</includeResources>
+          <includeTestSourceDirectory>true</includeTestSourceDirectory>
+        </configuration>
+        <executions>
+          <execution>
+            <id>checkstyle</id>
+            <phase>validate</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>com.mycila</groupId>
+        <artifactId>license-maven-plugin</artifactId>
+        <version>${license-maven-plugin.version}</version>
+        <configuration>
+          <header>tools/maven/license.template</header>
+
+          <excludes>
+            <exclude>LICENSE</exclude>
+            <exclude>NOTICE</exclude>
+            <exclude>src/resources/license.template</exclude>
+            <exclude>**/build/**</exclude>
+            <exclude>**/ahc.properties</exclude>
+          </excludes>
+          <mapping>
+            <proto>JAVADOC_STYLE</proto>
+            <go>DOUBLESLASH_STYLE</go>
+            <conf>SCRIPT_STYLE</conf>
+            <ini>SCRIPT_STYLE</ini>
+            <yaml>SCRIPT_STYLE</yaml>
+            <tf>SCRIPT_STYLE</tf>
+            <cfg>SCRIPT_STYLE</cfg>
+            <Makefile>SCRIPT_STYLE</Makefile>
+            <service>SCRIPT_STYLE</service>
+            <cc>JAVADOC_STYLE</cc>
+            <md>XML_STYLE</md>
+            <txt>SCRIPT_STYLE</txt>
+            <scss>JAVADOC_STYLE</scss>
+            <Doxyfile>SCRIPT_STYLE</Doxyfile>
+            <tfvars>SCRIPT_STYLE</tfvars>
+          </mapping>
+        </configuration>
+      </plugin>
+      <plugin>
+        <!-- Shade all the dependencies to avoid conflicts -->
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>${maven-shade-plugin.version}</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <createDependencyReducedPom>true</createDependencyReducedPom>
+              <promoteTransitiveDependencies>true</promoteTransitiveDependencies>
+              <minimizeJar>false</minimizeJar>
+
+              <artifactSet>
+                <includes>
+                  <include>com.github.luben:*</include>
+                  <include>javax.*:*</include>
+                  <include>org.apache.pulsar*:*</include>
+                  <include>org.bouncycastle*:*</include>
+                  <include>org.lz4*:*</include>
+                </includes>
+              </artifactSet>
+              <filters>
+                <filter>
+                  <artifact>io.streamnative.connectors:pulsar-flink-connector</artifact>
+                  <includes>
+                    <include>**</include>
+                  </includes>
+                </filter>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+              <relocations>
+                <relocation>
+                  <pattern>com.google</pattern>
+                  <shadedPattern>org.apache.pulsar.shade.com.google</shadedPattern>
+                </relocation>
+                <relocation>
+                  <pattern>org.apache.commons</pattern>
+                  <shadedPattern>org.apache.pulsar.shade.org.apache.commons</shadedPattern>
+                </relocation>
+              </relocations>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+                <transformer implementation="org.apache.maven.plugins.shade.resource.PluginXmlResourceTransformer" />
+              </transformers>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Generate Test class from avro schema -->
+      <plugin>
+        <groupId>org.apache.avro</groupId>
+        <artifactId>avro-maven-plugin</artifactId>
+        <version>${avro.version}</version>
+        <executions>
+          <execution>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>schema</goal>
+            </goals>
+            <configuration>
+              <testSourceDirectory>${project.basedir}/src/test/resources/avro</testSourceDirectory>
+              <testOutputDirectory>${project.basedir}/src/test/java/</testOutputDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+  <profiles>
+    <profile>
+      <id>spotbugs</id>
+      <activation>
+        <property>
+          <name>spotbugs</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>com.github.hazendaz.spotbugs</groupId>
+            <artifactId>spotbugs-maven-plugin</artifactId>
+            <version>${maven-spotbugs-plugin.version}</version>
+
+            <executions>
+              <execution>
+                <id>findbugs-run</id>
+                <phase>compile</phase>
+                <goals>
+                  <goal>check</goal>
+                </goals>
+              </execution>
+            </executions>
+
+            <configuration>
+              <xmlOutput>true</xmlOutput>
+              <threshold>Low</threshold>
+              <effort>default</effort>
+              <findbugsXmlOutputDirectory>${project.build.directory}/spotbugs</findbugsXmlOutputDirectory>
+              <excludeFilterFile>tools/maven/spotbugs-exclude.xml</excludeFilterFile>
+              <failOnError>true</failOnError>
+            </configuration>
+          </plugin>
+
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>xml-maven-plugin</artifactId>
+            <version>1.0.1</version>
+            <executions>
+              <execution>
+                <phase>verify</phase>
+                <goals>
+                  <goal>transform</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <transformationSets>
+                <transformationSet>
+                  <dir>${project.build.directory}/spotbugs</dir>
+                  <outputDir>${project.build.directory}/spotbugs</outputDir>
+                  <!-- A list of available stylesheets can be found here: https://github.com/findbugsproject/findbugs/tree/master/findbugs/src/xsl -->
+                  <stylesheet>plain.xsl</stylesheet>
+
+                  <fileMappers>
+                    <fileMapper
+                        implementation="org.codehaus.plexus.components.io.filemappers.FileExtensionMapper">
+                      <targetExtension>.html</targetExtension>
+                    </fileMapper>
+                  </fileMappers>
+                </transformationSet>
+              </transformationSets>
+            </configuration>
+            <dependencies>
+              <dependency>
+                <groupId>com.github.hazendaz.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+                <version>3.0.6</version>
+              </dependency>
+            </dependencies>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+  <repositories>
+    <repository>
+      <id>central</id>
+      <layout>default</layout>
+      <url>https://repo1.maven.org/maven2</url>
+    </repository>
+    <repository>
+      <id>bintray-streamnative-maven</id>
+      <name>bintray</name>
+      <url>https://dl.bintray.com/streamnative/maven</url>
+    </repository>
+  </repositories>
+  <distributionManagement>
+    <repository>
+      <id>streamnative</id>
+      <url>https://api.bintray.com/maven/streamnative/maven/io.streamnative.pulsar-flink/;publish=1</url>
+    </repository>
+  </distributionManagement>
+</project>

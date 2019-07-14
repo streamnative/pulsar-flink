@@ -64,7 +64,7 @@
 
     <!-- dependencies -->
     <!-- latest version from apache pulsar master -->
-    <pulsar.version>2.5.0-cc022f169</pulsar.version>
+    <pulsar.version>2.5.0-6ff1bbae0</pulsar.version>
     <flink.version>1.9-SNAPSHOT</flink.version>
     <streamnative-tests.version>0.0.13</streamnative-tests.version>
     <testcontainers.version>1.10.6</testcontainers.version>

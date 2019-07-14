@@ -16,7 +16,6 @@ package org.apache.flink.streaming.connectors.pulsar;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.formats.json.JsonRowSerializationSchema;
-import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.types.Row;
 import org.apache.pulsar.client.api.Authentication;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
@@ -61,9 +60,5 @@ public class PulsarJsonTableSink extends PulsarTableSink {
                 clientConfigurationData,
                 producerConfigurationData,
                 routingKeyFieldName);
-    }
-
-    @Override
-    public void emitDataStream(DataStream<Row> dataStream) {
     }
 }

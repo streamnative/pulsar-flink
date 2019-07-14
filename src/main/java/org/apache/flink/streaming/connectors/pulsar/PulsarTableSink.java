@@ -24,7 +24,6 @@ import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.streaming.api.datastream.DataStreamSink;
 import org.apache.flink.streaming.connectors.pulsar.partitioner.PulsarKeyExtractor;
 import org.apache.flink.table.sinks.AppendStreamTableSink;
 import org.apache.flink.table.sinks.TableSink;
@@ -95,14 +94,14 @@ public abstract class PulsarTableSink implements AppendStreamTableSink<Row> {
     }
 
     @Override
-    public DataStreamSink<?> consumeDataStream(DataStream<Row> dataStream) {
+    public void emitDataStream(DataStream<Row> dataStream) {
         checkState(fieldNames != null, "Table sink is not configured");
         checkState(fieldTypes != null, "Table sink is not configured");
         checkState(serializationSchema != null, "Table sink is not configured");
         checkState(keyExtractor != null, "Table sink is not configured");
 
         FlinkPulsarProducer<Row> producer = createFlinkPulsarProducer();
-        return dataStream.addSink(producer);
+        dataStream.addSink(producer);
     }
 
     @Override

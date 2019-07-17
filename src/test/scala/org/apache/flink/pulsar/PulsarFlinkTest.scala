@@ -48,9 +48,11 @@ trait PulsarFlinkTest extends PulsarTest {
         .setNumberSlotsPerTaskManager(8).build())
 
     flinkClient = flink.getClusterClient
-    waitUntilNoJobIsRunning(flinkClient)
   }
 
+  override def beforeEach(): Unit = {
+    waitUntilNoJobIsRunning(flinkClient)
+  }
 
   def waitUntilJobIsRunning(client: ClusterClient[_]): Unit = {
     while (getRunningJobs(client).isEmpty) {

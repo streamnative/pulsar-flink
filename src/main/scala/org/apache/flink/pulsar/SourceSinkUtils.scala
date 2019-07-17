@@ -199,6 +199,10 @@ object SourceSinkUtils extends Logging {
     parameters.getOrElse(FLUSH_ON_CHECKPOINT, "true").toBoolean
   }
 
+  def clientCacheSize(parameters: Map[String, String]): Int = {
+    parameters.getOrElse(CLIENT_CACHE_SIZE, "5").toInt
+  }
+
   def failOnWrite(caseInsensitiveParams: Map[String, String]): Boolean =
     caseInsensitiveParams.getOrElse(FAIL_ON_WRITE, "false").toBoolean
 

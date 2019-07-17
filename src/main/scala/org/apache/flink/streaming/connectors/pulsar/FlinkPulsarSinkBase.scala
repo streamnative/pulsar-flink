@@ -28,7 +28,7 @@ import org.apache.flink.configuration.Configuration
 import org.apache.flink.pulsar.{CachedPulsarClient, Logging, SchemaUtils}
 import org.apache.flink.runtime.state.{FunctionInitializationContext, FunctionSnapshotContext}
 import org.apache.flink.streaming.api.checkpoint.CheckpointedFunction
-import org.apache.flink.streaming.api.functions.sink.{RichSinkFunction, SinkFunction}
+import org.apache.flink.streaming.api.functions.sink.RichSinkFunction
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext
 import org.apache.flink.types.Row
 import org.apache.flink.util.SerializableObject
@@ -64,6 +64,8 @@ abstract class FlinkPulsarSinkBase[T](
 
   // fail on write failure or just log them and went on
   val doFailOnWrite: Boolean = failOnWrite(caseInsensitiveParams)
+
+  CachedPulsarClient.setCacheSize(clientCacheSize(caseInsensitiveParams))
 
   // Number of unacknowledged records
   var pendingRecords: Long = 0L

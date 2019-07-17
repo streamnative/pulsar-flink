@@ -26,6 +26,7 @@ import org.apache.flink.api.common.functions.{FlatMapFunction, MapFunction, Rich
 import org.apache.flink.api.common.restartstrategy.RestartStrategies
 import org.apache.flink.api.common.typeinfo.{BasicTypeInfo, TypeHint, TypeInformation}
 import org.apache.flink.api.dag.Transformation
+import org.apache.flink.configuration.Configuration
 import org.apache.flink.pulsar.{CachedPulsarClient, JsonUtils, PulsarFlinkTest, PulsarFunSuite, SourceSinkUtils}
 import org.apache.flink.runtime.client.JobCancellationException
 import org.apache.flink.runtime.jobgraph.JobStatus
@@ -145,6 +146,26 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
     sinkProp.setProperty("pulsar.producer.maxPendingMessagesAcrossPartitions", "5000000")
     sinkProp.setProperty("pulsar.producer.sendTimeoutMs", "30000")
     produceIntoPulsar(stream, intRowWithTopicType(), sinkProp)
+    see.execute("write with topics")
+  }
+
+  test("assure client cache parameters passed to tasks") {
+    val numTopic = 5
+    val numElements = 20
+
+    val see = StreamExecutionEnvironment.getExecutionEnvironment
+    see.getConfig.disableSysoutLogging()
+    see.setParallelism(3)
+
+    implicit val tpe = intRowWithTopicTypeInfo()
+
+    val topics = (0 until numTopic).map(_ => newTopic())
+    val stream = see.addSource(new MutiTopicSource(topics, numElements))
+
+    val sinkProp = sinkProperties()
+    sinkProp.setProperty(FLUSH_ON_CHECKPOINT, "true")
+    sinkProp.setProperty(CLIENT_CACHE_SIZE, "7")
+    stream.addSink(new AssertSink(7, intRowWithTopicType(), sinkProp))
     see.execute("write with topics")
   }
 
@@ -794,6 +815,14 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
     }
 
     def getError: Throwable = this.error
+  }
+}
+
+class AssertSink(cacheSize: Int, schema: DataType, props: Properties)
+    extends FlinkPulsarRowSink(schema, props) {
+  override def open(parameters: Configuration): Unit = {
+    super.open(parameters)
+    assert(CachedPulsarClient.getCacheSize() == cacheSize)
   }
 }
 

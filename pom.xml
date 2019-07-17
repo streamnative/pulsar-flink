@@ -39,7 +39,7 @@
     <connection>scm:git:https://github.com/streamnative/pulsar-flink.git</connection>
     <developerConnection>scm:git:https://github.com/streamnative/pulsar-flink.git</developerConnection>
     <url>https://github.com/streamnative/pulsar-flink</url>
-    <tag>branch-1.9</tag>
+    <tag>branch-2.4.0</tag>
   </scm>
   <issueManagement>
     <system>Github</system>
@@ -59,30 +59,17 @@
     <redirectTestOutputToFile>true</redirectTestOutputToFile>
     <testRetryCount>2</testRetryCount>
 
-    <scala.version>2.11.12</scala.version>
-    <scala.binary.version>2.11</scala.binary.version>
+    <!-- flink deps -->
+    <flink.version>1.9-SNAPSHOT</flink.version>
 
     <!-- dependencies -->
     <!-- latest version from apache pulsar master -->
-    <pulsar.version>2.5.0-6ff1bbae0</pulsar.version>
-    <flink.version>1.9-SNAPSHOT</flink.version>
-    <streamnative-tests.version>0.0.13</streamnative-tests.version>
+    <pulsar.version>2.5.0-f6ed0377f</pulsar.version>
+    <scala.version>2.11.12</scala.version>
+    <scala.binary.version>2.11</scala.binary.version>
+    <scalatest.version>3.0.3</scalatest.version>
+    <streamnative-tests.version>0.0.15</streamnative-tests.version>
     <testcontainers.version>1.10.6</testcontainers.version>
-    <!-- Need to use a user property here because the surefire
-       forkCount is not exposed as a property. With this we can set
-       it on the "mvn" commandline in travis. -->
-    <flink.forkCount>1C</flink.forkCount>
-    <!-- Allow overriding the fork behaviour for the expensive tests in flink-tests
-       to avoid process kills due to container limits on TravisCI -->
-    <flink.forkCountTestPackage>${flink.forkCount}</flink.forkCountTestPackage>
-    <flink.reuseForks>true</flink.reuseForks>
-    <log4j.configuration>log4j-test.properties</log4j.configuration>
-
-    <jackson.version>2.9.8</jackson.version>
-    <flink.shaded.version>7.0</flink.shaded.version>
-    <avro.version>1.8.2</avro.version>
-    <testng.version>6.14.3</testng.version>
-
     <!-- plugin dependencies -->
     <maven.version>3.5.4</maven.version>
     <license-maven-plugin.version>3.0.rc1</license-maven-plugin.version>
@@ -91,9 +78,8 @@
     <maven-shade-plugin.version>3.1.0</maven-shade-plugin.version>
     <maven-source-plugin.version>2.2.1</maven-source-plugin.version>
     <maven-surefire-plugin.version>2.21.0</maven-surefire-plugin.version>
-    <maven-checkstyle-plugin.version>3.0.0</maven-checkstyle-plugin.version>
-    <maven-spotbugs-plugin.version>3.0.6</maven-spotbugs-plugin.version>
-    <puppycrawl.checkstyle.version>6.19</puppycrawl.checkstyle.version>
+    <scala-maven-plugin.version>4.0.2</scala-maven-plugin.version>
+    <scalatest-maven-plugin.version>2.0.0</scalatest-maven-plugin.version>
   </properties>
 
   <!-- dependencies for all modules -->
@@ -105,18 +91,16 @@
       <version>${pulsar.version}</version>
     </dependency>
 
-    <!-- flink dependency -->
-
     <dependency>
-      <groupId>org.apache.flink</groupId>
-      <artifactId>flink-shaded-jackson</artifactId>
-      <version>${jackson.version}-${flink.shaded.version}</version>
-      <scope>provided</scope>
+      <groupId>org.json4s</groupId>
+      <artifactId>json4s-jackson_2.11</artifactId>
+      <version>3.6.7</version>
     </dependency>
 
+    <!-- flink dependency -->
     <dependency>
       <groupId>org.apache.flink</groupId>
-      <artifactId>flink-streaming-java_${scala.binary.version}</artifactId>
+      <artifactId>flink-streaming-scala_${scala.binary.version}</artifactId>
       <version>${flink.version}</version>
       <scope>provided</scope>
     </dependency>
@@ -125,11 +109,18 @@
     <!-- Projects depending on this project won't depend on flink-table-*. -->
     <dependency>
       <groupId>org.apache.flink</groupId>
-      <artifactId>flink-table-api-java-bridge_${scala.binary.version}</artifactId>
+      <artifactId>flink-table-api-scala-bridge_${scala.binary.version}</artifactId>
       <version>${flink.version}</version>
       <scope>provided</scope>
-      <optional>true</optional>
     </dependency>
+
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-table-runtime-blink_${scala.binary.version}</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
     <!-- A planner dependency won't be necessary once FLIP-32 has been completed. -->
     <dependency>
       <groupId>org.apache.flink</groupId>
@@ -139,40 +130,20 @@
       <optional>true</optional>
     </dependency>
 
-    <dependency>
-      <groupId>org.apache.flink</groupId>
-      <artifactId>flink-json</artifactId>
-      <version>${flink.version}</version>
-      <scope>provided</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.apache.flink</groupId>
-      <artifactId>flink-avro</artifactId>
-      <version>${flink.version}</version>
-      <scope>provided</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-csv</artifactId>
-      <version>1.6</version>
-      <scope>compile</scope>
-    </dependency>
-
     <!-- test dependencies -->
-
-    <dependency>
-      <groupId>org.testng</groupId>
-      <artifactId>testng</artifactId>
-      <version>${testng.version}</version>
-      <scope>test</scope>
-    </dependency>
 
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-metrics-jmx_${scala.binary.version}</artifactId>
       <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-streaming-scala_${scala.binary.version}</artifactId>
+      <version>${flink.version}</version>
+      <type>test-jar</type>
       <scope>test</scope>
     </dependency>
 
@@ -233,6 +204,13 @@
     </dependency>
 
     <dependency>
+      <groupId>org.scalatest</groupId>
+      <artifactId>scalatest_${scala.binary.version}</artifactId>
+      <version>${scalatest.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
       <groupId>io.streamnative.tests</groupId>
       <artifactId>framework-common</artifactId>
       <version>${streamnative-tests.version}</version>
@@ -271,7 +249,7 @@
           <source>${javac.target}</source>
           <target>${javac.target}</target>
           <compilerArgs>
-            <!-- <compilerArg>-Werror</compilerArg> -->
+            <compilerArg>-Werror</compilerArg>
             <compilerArg>-Xlint:deprecation</compilerArg>
             <compilerArg>-Xlint:unchecked</compilerArg>
             <!-- https://issues.apache.org/jira/browse/MCOMPILER-205 -->
@@ -279,83 +257,6 @@
           </compilerArgs>
         </configuration>
       </plugin>
-
-      <!--surefire for unit tests and integration tests-->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.22.1</version>
-        <configuration>
-          <forkCount>${flink.forkCount}</forkCount>
-          <reuseForks>${flink.reuseForks}</reuseForks>
-          <systemPropertyVariables>
-            <forkNumber>0${surefire.forkNumber}</forkNumber>
-            <log4j.configuration>${log4j.configuration}</log4j.configuration>
-          </systemPropertyVariables>
-          <argLine>-Xms256m -Xmx2048m -Dmvn.forkNumber=${surefire.forkNumber} -XX:+UseG1GC</argLine>
-        </configuration>
-        <executions>
-          <!--execute all the unit tests-->
-          <execution>
-            <id>default-test</id>
-            <phase>test</phase>
-            <goals>
-              <goal>test</goal>
-            </goals>
-            <configuration>
-              <includes>
-                <include>**/*Test.*</include>
-              </includes>
-            </configuration>
-          </execution>
-          <!--execute all the integration tests-->
-          <execution>
-            <id>integration-tests</id>
-            <phase>integration-test</phase>
-            <goals>
-              <goal>test</goal>
-            </goals>
-            <configuration>
-              <includes>
-                <include>**/*ITCase.*</include>
-              </includes>
-              <reuseForks>false</reuseForks>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-checkstyle-plugin</artifactId>
-        <version>${maven-checkstyle-plugin.version}</version>
-        <dependencies>
-          <dependency>
-            <groupId>com.puppycrawl.tools</groupId>
-            <artifactId>checkstyle</artifactId>
-            <version>${puppycrawl.checkstyle.version}</version>
-          </dependency>
-        </dependencies>
-        <configuration>
-          <configLocation>tools/maven/checkstyle.xml</configLocation>
-          <suppressionsLocation>tools/maven/suppressions.xml</suppressionsLocation>
-          <encoding>UTF-8</encoding>
-          <consoleOutput>true</consoleOutput>
-          <failOnViolation>true</failOnViolation>
-          <includeResources>false</includeResources>
-          <includeTestSourceDirectory>true</includeTestSourceDirectory>
-        </configuration>
-        <executions>
-          <execution>
-            <id>checkstyle</id>
-            <phase>validate</phase>
-            <goals>
-              <goal>check</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-
       <plugin>
         <groupId>com.mycila</groupId>
         <artifactId>license-maven-plugin</artifactId>
@@ -389,6 +290,75 @@
           </mapping>
         </configuration>
       </plugin>
+      <!-- scala plugins -->
+      <plugin>
+        <groupId>net.alchim31.maven</groupId>
+        <artifactId>scala-maven-plugin</artifactId>
+        <version>${scala-maven-plugin.version}</version>
+        <executions>
+          <execution>
+            <id>eclipse-add-source</id>
+            <goals>
+              <goal>add-source</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>scala-compile-first</id>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>scala-test-compile-first</id>
+            <goals>
+              <goal>testCompile</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <scalaVersion>${scala.version}</scalaVersion>
+          <args>
+            <arg>-target:jvm-1.8</arg>
+            <arg>-unchecked</arg>
+            <arg>-deprecation</arg>
+            <arg>-feature</arg>
+            <arg>-explaintypes</arg>
+            <arg>-Yno-adapted-args</arg>
+          </args>
+          <jvmArgs>
+            <jvmArg>-Xms1024m</jvmArg>
+            <jvmArg>-Xmx1024m</jvmArg>
+          </jvmArgs>
+          <javacArgs>
+            <javacArg>-source</javacArg>
+            <javacArg>${javac.target}</javacArg>
+            <javacArg>-target</javacArg>
+            <javacArg>${javac.target}</javacArg>
+            <javacArg>-Xlint:all,-serial,-path,-try</javacArg>
+          </javacArgs>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.scalatest</groupId>
+        <artifactId>scalatest-maven-plugin</artifactId>
+        <version>${scalatest-maven-plugin.version}</version>
+        <configuration>
+          <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
+          <junitxml>.</junitxml>
+          <filereports>ConnectorTestSuite.txt</filereports>
+          <systemProperties>
+            <log4j.configuration>file:src/test/resources/log4j.properties</log4j.configuration>
+          </systemProperties>
+        </configuration>
+        <executions>
+          <execution>
+            <id>test</id>
+            <goals>
+              <goal>test</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <!-- Shade all the dependencies to avoid conflicts -->
         <groupId>org.apache.maven.plugins</groupId>
@@ -416,7 +386,7 @@
               </artifactSet>
               <filters>
                 <filter>
-                  <artifact>io.streamnative.connectors:pulsar-flink-connector</artifact>
+                  <artifact>io.streamnative.connectors:pulsar-flink-connector_${scala.binary.version}</artifact>
                   <includes>
                     <include>**</include>
                   </includes>
@@ -448,103 +418,33 @@
           </execution>
         </executions>
       </plugin>
-
-      <!-- Generate Test class from avro schema -->
       <plugin>
-        <groupId>org.apache.avro</groupId>
-        <artifactId>avro-maven-plugin</artifactId>
-        <version>${avro.version}</version>
+        <groupId>org.scalastyle</groupId>
+        <artifactId>scalastyle-maven-plugin</artifactId>
+        <version>1.0.0</version>
+        <configuration>
+          <verbose>false</verbose>
+          <failOnViolation>true</failOnViolation>
+          <includeTestSourceDirectory>false</includeTestSourceDirectory>
+          <failOnWarning>false</failOnWarning>
+          <sourceDirectory>${basedir}/src/main/scala</sourceDirectory>
+          <testSourceDirectory>${basedir}/src/test/scala</testSourceDirectory>
+          <configLocation>${basedir}/tools/maven/scalastyle-config.xml</configLocation>
+          <outputFile>${basedir}/target/scalastyle-output.xml</outputFile>
+          <inputEncoding>${project.build.sourceEncoding}</inputEncoding>
+          <outputEncoding>${project.reporting.outputEncoding}</outputEncoding>
+        </configuration>
         <executions>
           <execution>
-            <phase>generate-sources</phase>
             <goals>
-              <goal>schema</goal>
+              <goal>check</goal>
             </goals>
-            <configuration>
-              <testSourceDirectory>${project.basedir}/src/test/resources/avro</testSourceDirectory>
-              <testOutputDirectory>${project.basedir}/src/test/java/</testOutputDirectory>
-            </configuration>
           </execution>
         </executions>
       </plugin>
     </plugins>
   </build>
-  <profiles>
-    <profile>
-      <id>spotbugs</id>
-      <activation>
-        <property>
-          <name>spotbugs</name>
-        </property>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>com.github.hazendaz.spotbugs</groupId>
-            <artifactId>spotbugs-maven-plugin</artifactId>
-            <version>${maven-spotbugs-plugin.version}</version>
 
-            <executions>
-              <execution>
-                <id>findbugs-run</id>
-                <phase>compile</phase>
-                <goals>
-                  <goal>check</goal>
-                </goals>
-              </execution>
-            </executions>
-
-            <configuration>
-              <xmlOutput>true</xmlOutput>
-              <threshold>Low</threshold>
-              <effort>default</effort>
-              <findbugsXmlOutputDirectory>${project.build.directory}/spotbugs</findbugsXmlOutputDirectory>
-              <excludeFilterFile>tools/maven/spotbugs-exclude.xml</excludeFilterFile>
-              <failOnError>true</failOnError>
-            </configuration>
-          </plugin>
-
-          <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>xml-maven-plugin</artifactId>
-            <version>1.0.1</version>
-            <executions>
-              <execution>
-                <phase>verify</phase>
-                <goals>
-                  <goal>transform</goal>
-                </goals>
-              </execution>
-            </executions>
-            <configuration>
-              <transformationSets>
-                <transformationSet>
-                  <dir>${project.build.directory}/spotbugs</dir>
-                  <outputDir>${project.build.directory}/spotbugs</outputDir>
-                  <!-- A list of available stylesheets can be found here: https://github.com/findbugsproject/findbugs/tree/master/findbugs/src/xsl -->
-                  <stylesheet>plain.xsl</stylesheet>
-
-                  <fileMappers>
-                    <fileMapper
-                        implementation="org.codehaus.plexus.components.io.filemappers.FileExtensionMapper">
-                      <targetExtension>.html</targetExtension>
-                    </fileMapper>
-                  </fileMappers>
-                </transformationSet>
-              </transformationSets>
-            </configuration>
-            <dependencies>
-              <dependency>
-                <groupId>com.github.hazendaz.spotbugs</groupId>
-                <artifactId>spotbugs-maven-plugin</artifactId>
-                <version>3.0.6</version>
-              </dependency>
-            </dependencies>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-  </profiles>
   <repositories>
     <repository>
       <id>central</id>

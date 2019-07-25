@@ -28,7 +28,7 @@ import org.apache.pulsar.common.naming.TopicName
 import org.apache.pulsar.common.protocol.schema.PostSchemaPayload
 import org.apache.pulsar.common.schema.{SchemaInfo, SchemaType}
 import org.scalatest.concurrent.Eventually.{eventually, timeout}
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, FunSuite}
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 
 /**
  * A trait to clean cached Pulsar producers in `afterAll`

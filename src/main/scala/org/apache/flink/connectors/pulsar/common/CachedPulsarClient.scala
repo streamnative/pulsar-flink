@@ -22,7 +22,7 @@ import scala.util.control.NonFatal
 import org.apache.pulsar.shade.com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache, RemovalListener, RemovalNotification}
 import org.apache.pulsar.shade.com.google.common.util.concurrent.{ExecutionError, UncheckedExecutionException}
 
-private[pulsar] object CachedPulsarClient extends Logging {
+object CachedPulsarClient extends Logging {
 
   private type Client = org.apache.pulsar.client.api.PulsarClient
 
@@ -94,7 +94,7 @@ private[pulsar] object CachedPulsarClient extends Logging {
    * exist, a new PulsarProducer will be created. PulsarProducer is thread safe, it is best to keep
    * one instance per specified pulsarParams.
    */
-  private[pulsar] def getOrCreate(pulsarParams: ju.Map[String, Object]): Client = {
+  def getOrCreate(pulsarParams: ju.Map[String, Object]): Client = {
     val paramsSeq: Seq[(String, Object)] = paramsToSeq(pulsarParams)
     try {
       guavaCache.get(paramsSeq)
@@ -111,7 +111,7 @@ private[pulsar] object CachedPulsarClient extends Logging {
   }
 
   /** For explicitly closing pulsar producer */
-  private[pulsar] def close(pulsarParams: ju.Map[String, Object]): Unit = {
+  def close(pulsarParams: ju.Map[String, Object]): Unit = {
     val paramsSeq = paramsToSeq(pulsarParams)
     guavaCache.invalidate(paramsSeq)
   }
@@ -126,7 +126,7 @@ private[pulsar] object CachedPulsarClient extends Logging {
     }
   }
 
-  private[pulsar] def clear(): Unit = {
+  def clear(): Unit = {
     logInfo("Cleaning up guava cache.")
     guavaCache.invalidateAll()
   }

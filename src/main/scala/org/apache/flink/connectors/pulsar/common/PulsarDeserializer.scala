@@ -13,13 +13,11 @@
  */
 package org.apache.flink.connectors.pulsar.common
 
-import org.apache.pulsar.client.api.MessageId
+import org.apache.flink.table.dataformat.BinaryRow
+import org.apache.pulsar.client.api.Message
 
-sealed trait PulsarOffset
+class PulsarDeserializer {
 
-case object EarliestOffset extends PulsarOffset
+  def deserialize(message: Message[_]): BinaryRow = ???
 
-case object LatestOffset extends PulsarOffset
-
-case class SpecificPulsarOffset(topicOffsets: Map[String, MessageId])
-    extends PulsarOffset
+}

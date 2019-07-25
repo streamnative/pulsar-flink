@@ -16,7 +16,7 @@ package org.apache.flink.connectors.pulsar.common
 import org.apache.pulsar.common.naming.TopicName
 
 // All options should be lowercase to simplify parameter matching
-private[pulsar] object PulsarOptions {
+object PulsarOptions {
 
   // option key prefix for different modules
   val PULSAR_CLIENT_OPTION_KEY_PREFIX = "pulsar.client."
@@ -42,6 +42,9 @@ private[pulsar] object PulsarOptions {
   val ADMIN_URL_OPTION_KEY = "admin.url"
   val STARTING_OFFSETS_OPTION_KEY = "startingoffsets"
   val ENDING_OFFSETS_OPTION_KEY = "endingoffsets"
+
+  val PARTITION_DISCOVERY_INTERVAL_MS = "partitiondiscoveryintervalmillis"
+  val USE_METRICS_OPTION_KEY = "usemetrics"
 
   val POLL_TIMEOUT_MS = "polltimeoutms"
 

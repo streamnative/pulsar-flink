@@ -46,6 +46,9 @@ object PulsarOptions {
   val PARTITION_DISCOVERY_INTERVAL_MS = "partitiondiscoveryintervalmillis"
   val USE_METRICS_OPTION_KEY = "usemetrics"
 
+  val FLUSH_ON_CHECKPOINT = "flushoncheckpoint"
+  val FAIL_ON_WRITE = "failonwrite"
+
   val POLL_TIMEOUT_MS = "polltimeoutms"
 
   // TODO: Will flink lose data? how does it happen?

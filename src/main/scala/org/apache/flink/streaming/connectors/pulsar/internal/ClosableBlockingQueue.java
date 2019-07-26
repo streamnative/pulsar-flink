@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.connectors.pulsar;
+package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import org.apache.flink.annotation.Internal;
 

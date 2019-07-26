@@ -11,30 +11,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.connectors.pulsar
+package org.apache.flink.streaming.connectors.pulsar.internal
 
 import java.util.concurrent.atomic.AtomicReference
 
 /**
-  * Creates an exception proxy that interrupts the given thread upon
-  * report of an exception. The thread to interrupt may be null.
-  *
-  * @param toInterrupt The thread to interrupt upon an exception. May be null.
-  */
+ * Creates an exception proxy that interrupts the given thread upon
+ * report of an exception. The thread to interrupt may be null.
+ *
+ * @param toInterrupt The thread to interrupt upon an exception. May be null.
+ */
 class ExceptionProxy(toInterrupt: Thread) {
 
   /** The exception to throw. */
   private val exception: AtomicReference[Throwable] = new AtomicReference[Throwable]
 
   /**
-    * Sets the exception and interrupts the target thread,
-    * if no other exception has occurred so far.
-    *
-    * <p>The exception is only set (and the interruption is only triggered),
-    * if no other exception was set before.
-    *
-    * @param t The exception that occurred
-    */
+   * Sets the exception and interrupts the target thread,
+   * if no other exception has occurred so far.
+   *
+   * <p>The exception is only set (and the interruption is only triggered),
+   * if no other exception was set before.
+   *
+   * @param t The exception that occurred
+   */
   def reportError(t: Throwable): Unit = {
     // set the exception, if it is the first (and the exception is non null)
     if (t != null && exception.compareAndSet(null, t) && toInterrupt != null) {
@@ -43,11 +43,11 @@ class ExceptionProxy(toInterrupt: Thread) {
   }
 
   /**
-    * Checks whether an exception has been set via {@link #reportError(Throwable)}.
-    * If yes, that exception if re-thrown by this method.
-    *
-    * @throws Exception This method re-throws the exception, if set.
-    */
+   * Checks whether an exception has been set via {@link #reportError(Throwable)}.
+   * If yes, that exception if re-thrown by this method.
+   *
+   * @throws Exception This method re-throws the exception, if set.
+   */
   @throws[Exception]
   def checkAndThrowException(): Unit = {
     val e = exception.get()

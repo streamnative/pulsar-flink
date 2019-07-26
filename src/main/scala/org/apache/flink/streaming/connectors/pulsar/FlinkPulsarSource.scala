@@ -14,11 +14,13 @@
 package org.apache.flink.streaming.connectors.pulsar
 
 import java.util.Properties
+import java.util.UUID
 import java.util.concurrent.atomic.AtomicReference
 
-import scala.collection.immutable.TreeMap
 import scala.collection.JavaConverters._
+import scala.collection.immutable.TreeMap
 import scala.collection.mutable
+
 import org.apache.commons.collections.map.LinkedMap
 import org.apache.flink.api.common.ExecutionConfig
 import org.apache.flink.api.common.state.{ListState, ListStateDescriptor}
@@ -34,14 +36,17 @@ import org.apache.flink.streaming.api.checkpoint.CheckpointedFunction
 import org.apache.flink.streaming.api.functions.{AssignerWithPeriodicWatermarks, AssignerWithPunctuatedWatermarks}
 import org.apache.flink.streaming.api.functions.source.{RichParallelSourceFunction, SourceFunction}
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext
-import org.apache.flink.table.dataformat.BinaryRow
-import org.apache.flink.util.Preconditions.checkNotNull
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarFetcher
+import org.apache.flink.table.dataformat.GenericRow
+import org.apache.flink.table.types.utils.LegacyTypeInfoDataTypeConverter
 import org.apache.flink.util.{ExceptionUtils, SerializedValue}
+import org.apache.flink.util.Preconditions.checkNotNull
+
 import org.apache.pulsar.client.api.MessageId
 
 class FlinkPulsarSource(val parameters: Properties)
-  extends RichParallelSourceFunction[BinaryRow]
-  with ResultTypeQueryable[BinaryRow]
+  extends RichParallelSourceFunction[GenericRow]
+  with ResultTypeQueryable[GenericRow]
   with CheckpointListener
   with CheckpointedFunction
   with Logging {
@@ -70,10 +75,10 @@ class FlinkPulsarSource(val parameters: Properties)
   var ownedTopicStarts: mutable.HashMap[String, MessageId] = null
 
   var periodicWatermarkAssigner:
-    SerializedValue[AssignerWithPeriodicWatermarks[BinaryRow]] = null
+    SerializedValue[AssignerWithPeriodicWatermarks[GenericRow]] = null
 
   var punctuatedWatermarkAssigner:
-    SerializedValue[AssignerWithPunctuatedWatermarks[BinaryRow]] = null
+    SerializedValue[AssignerWithPunctuatedWatermarks[GenericRow]] = null
 
   // ------------------------------------------------------------------------
   //  runtime state (used individually by each parallel subtask)
@@ -89,7 +94,7 @@ class FlinkPulsarSource(val parameters: Properties)
   /** Fetcher implements Pulsar reads. */
   @transient @volatile private var pulsarFetcher: PulsarFetcher = null
 
-  @transient @volatile private var topicDiscoverer: TopicDiscoverer = null
+  @transient @volatile private var topicDiscoverer: PulsarMetadataReader = null
 
   /**
    * The offsets to restore to, if the reader restores state from a checkpoint.
@@ -120,32 +125,37 @@ class FlinkPulsarSource(val parameters: Properties)
   // ------------------------------------------------------------------------
 
   /**
-    * Specifies an {@link AssignerWithPunctuatedWatermarks} to emit watermarks in a punctuated manner.
-    * The watermark extractor will run per Pulsar partition, watermarks will be merged across partitions
-    * in the same way as in the Flink runtime, when streams are merged.
-    *
-    * <p>When a subtask of a FlinkPulsarSource source reads multiple Pulsar partitions,
-    * the streams from the partitions are unioned in a "first come first serve" fashion. Per-partition
-    * characteristics are usually lost that way. For example, if the timestamps are strictly ascending
-    * per Pulsar partition, they will not be strictly ascending in the resulting Flink DataStream, if the
-    * parallel source subtask reads more that one partition.
-    *
-    * <p>Running timestamp extractors / watermark generators directly inside the Pulsar source, per Pulsar
-    * partition, allows users to let them exploit the per-partition characteristics.
-    *
-    * <p>Note: One can use either an {@link AssignerWithPunctuatedWatermarks} or an
-    * {@link AssignerWithPeriodicWatermarks}, not both at the same time.
-    *
-    * @param assigner The timestamp assigner / watermark generator to use.
-    * @return The reader object, to allow function chaining.
-    */
+   * Specifies an {@link AssignerWithPunctuatedWatermarks} to emit watermarks
+   * in a punctuated manner. The watermark extractor will run per Pulsar partition,
+   * watermarks will be merged across partitions in the same way as in the Flink runtime,
+   * when streams are merged.
+   *
+   * <p>When a subtask of a FlinkPulsarSource source reads multiple Pulsar partitions,
+   * the streams from the partitions are unioned in a "first come first serve" fashion.
+   * Per-partition characteristics are usually lost that way.
+   * For example, if the timestamps are strictly ascending per Pulsar partition,
+   * they will not be strictly ascending in the resulting Flink DataStream, if the
+   * parallel source subtask reads more that one partition.
+   *
+   * <p>Running timestamp extractors / watermark generators directly inside the Pulsar source,
+   * per Pulsar partition, allows users to let them exploit the per-partition characteristics.
+   *
+   * <p>Note: One can use either an {@link AssignerWithPunctuatedWatermarks} or an
+   * {@link AssignerWithPeriodicWatermarks}, not both at the same time.
+   *
+   * @param assigner The timestamp assigner / watermark generator to use.
+   * @return The reader object, to allow function chaining.
+   */
   def assignTimestampsAndWatermarks(
-      assigner: AssignerWithPunctuatedWatermarks[BinaryRow]): FlinkPulsarSource = {
+      assigner: AssignerWithPunctuatedWatermarks[GenericRow]): FlinkPulsarSource = {
     checkNotNull(assigner)
-    if (this.periodicWatermarkAssigner != null) throw new IllegalStateException("A periodic watermark emitter has already been set.")
+    if (this.periodicWatermarkAssigner != null) {
+      throw new IllegalStateException("A periodic watermark emitter has already been set.")
+    }
     try {
       ClosureCleaner.clean(assigner, ExecutionConfig.ClosureCleanerLevel.RECURSIVE, true)
-      this.punctuatedWatermarkAssigner = new SerializedValue[AssignerWithPunctuatedWatermarks[BinaryRow]](assigner)
+      this.punctuatedWatermarkAssigner =
+        new SerializedValue[AssignerWithPunctuatedWatermarks[GenericRow]](assigner)
       return this
     } catch {
       case e: Exception =>
@@ -154,33 +164,38 @@ class FlinkPulsarSource(val parameters: Properties)
   }
 
   /**
-    * Specifies an {@link AssignerWithPunctuatedWatermarks} to emit watermarks in a punctuated manner.
-    * The watermark extractor will run per Pulsar partition, watermarks will be merged across partitions
-    * in the same way as in the Flink runtime, when streams are merged.
-    *
-    * <p>When a subtask of a FlinkPulsarSource source reads multiple Pulsar partitions,
-    * the streams from the partitions are unioned in a "first come first serve" fashion. Per-partition
-    * characteristics are usually lost that way. For example, if the timestamps are strictly ascending
-    * per Pulsar partition, they will not be strictly ascending in the resulting Flink DataStream, if the
-    * parallel source subtask reads more that one partition.
-    *
-    * <p>Running timestamp extractors / watermark generators directly inside the Pulsar source, per Pulsar
-    * partition, allows users to let them exploit the per-partition characteristics.
-    *
-    * <p>Note: One can use either an {@link AssignerWithPunctuatedWatermarks} or an
-    * {@link AssignerWithPeriodicWatermarks}, not both at the same time.
-    *
-    * @param assigner The timestamp assigner / watermark generator to use.
-    * @return The reader object, to allow function chaining.
-    */
+   * Specifies an {@link AssignerWithPunctuatedWatermarks} to emit watermarks
+   * in a punctuated manner. The watermark extractor will run per Pulsar partition,
+   * watermarks will be merged across partitions in the same way as in the Flink runtime,
+   * when streams are merged.
+   *
+   * <p>When a subtask of a FlinkPulsarSource source reads multiple Pulsar partitions,
+   * the streams from the partitions are unioned in a "first come first serve" fashion.
+   * Per-partition characteristics are usually lost that way.
+   * For example, if the timestamps are strictly ascending per Pulsar partition,
+   * they will not be strictly ascending in the resulting Flink DataStream,
+   * if the parallel source subtask reads more that one partition.
+   *
+   * <p>Running timestamp extractors / watermark generators directly inside the Pulsar source,
+   * per Pulsar partition, allows users to let them exploit the per-partition characteristics.
+   *
+   * <p>Note: One can use either an {@link AssignerWithPunctuatedWatermarks} or an
+   * {@link AssignerWithPeriodicWatermarks}, not both at the same time.
+   *
+   * @param assigner The timestamp assigner / watermark generator to use.
+   * @return The reader object, to allow function chaining.
+   */
   def assignTimestampsAndWatermarks(
-      assigner: AssignerWithPeriodicWatermarks[BinaryRow]): FlinkPulsarSource = {
+      assigner: AssignerWithPeriodicWatermarks[GenericRow]): FlinkPulsarSource = {
     checkNotNull(assigner)
-    if (this.punctuatedWatermarkAssigner != null) throw new IllegalStateException("A punctuated watermark emitter has already been set.")
+    if (this.punctuatedWatermarkAssigner != null) {
+      throw new IllegalStateException("A punctuated watermark emitter has already been set.")
+    }
     try {
       ClosureCleaner.clean(assigner, ExecutionConfig.ClosureCleanerLevel.RECURSIVE, true)
-      this.periodicWatermarkAssigner = new SerializedValue[AssignerWithPeriodicWatermarks[BinaryRow]](assigner)
-      return this
+      this.periodicWatermarkAssigner =
+        new SerializedValue[AssignerWithPeriodicWatermarks[GenericRow]](assigner)
+      this
     } catch {
       case e: Exception =>
         throw new IllegalArgumentException("The given assigner is not serializable", e)
@@ -193,9 +208,10 @@ class FlinkPulsarSource(val parameters: Properties)
   // ------------------------------------------------------------------------
 
   override def open(parameters: Configuration): Unit = {
-    this.topicDiscoverer = new TopicDiscoverer(
+    this.topicDiscoverer = new PulsarMetadataReader(
       adminUrl,
       clientConf,
+      s"flink-pulsar-${UUID.randomUUID()}",
       caseInsensitiveParams,
       taskIndex,
       numParallelTasks)
@@ -246,9 +262,19 @@ class FlinkPulsarSource(val parameters: Properties)
 
   }
 
-  override def getProducedType: TypeInformation[BinaryRow] = ???
+  override def getProducedType: TypeInformation[GenericRow] = {
+    val inferredSchema = Utils.tryWithResource(
+      new PulsarMetadataReader(adminUrl, clientConf, "", caseInsensitiveParams)) { reader =>
+        val topics = reader.getTopics()
+        reader.getSchema(topics)
+    }
 
-  override def run(sourceContext: SourceFunction.SourceContext[BinaryRow]): Unit = {
+    LegacyTypeInfoDataTypeConverter
+      .toLegacyTypeInfo(inferredSchema)
+      .asInstanceOf[TypeInformation[GenericRow]]
+  }
+
+  override def run(sourceContext: SourceFunction.SourceContext[GenericRow]): Unit = {
 
     if (ownedTopicStarts.isEmpty) {
       sourceContext.markAsTemporarilyIdle()
@@ -276,7 +302,9 @@ class FlinkPulsarSource(val parameters: Properties)
       adminUrl,
       clientConf,
       readerConf,
-      pollTimeoutMs(caseInsensitiveParams))
+      topicDiscoverer,
+      pollTimeoutMs(caseInsensitiveParams),
+      SourceSinkUtils.jsonOptions)
 
     if (!running) {
       return
@@ -307,8 +335,7 @@ class FlinkPulsarSource(val parameters: Properties)
 
             while (running) {
 
-              val (added, gone) = topicDiscoverer.discoverTopicsChange()
-              // TODO: shall we stop running when topics are gone?
+              val (added, _) = topicDiscoverer.discoverTopicsChange()
 
               if (running && !added.isEmpty) {
                 pulsarFetcher.addDiscoveredTopics(added)

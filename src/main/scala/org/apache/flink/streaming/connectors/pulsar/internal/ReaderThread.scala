@@ -11,22 +11,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.connectors.pulsar
+package org.apache.flink.streaming.connectors.pulsar.internal
 
 import java.{util => ju}
 import java.util.concurrent.TimeUnit
 
+import org.apache.flink.connectors.pulsar.common._
 import org.apache.flink.connectors.pulsar.common.PulsarOptions.INSTRUCTION_FOR_FAIL_ON_DATA_LOSS_TRUE
-import org.apache.flink.connectors.pulsar.common.{CachedPulsarClient, Logging, PulsarDeserializer, PulsarTopicState}
-import org.apache.pulsar.client.api.{Message, MessageId, Reader}
+
+import org.apache.pulsar.client.api.{Message, MessageId, Reader, Schema}
 import org.apache.pulsar.client.impl.{BatchMessageIdImpl, MessageIdImpl}
+import org.apache.pulsar.common.schema.SchemaInfo
 
 class ReaderThread(
     owner: PulsarFetcher,
     state: PulsarTopicState,
+    pulsarSchema: SchemaInfo,
     clientConf: ju.Map[String, Object],
     readerConf: ju.Map[String, Object],
     pollTimeoutMs: Int,
+    jsonOptions: JSONOptionsInRead,
     exceptionProxy: ExceptionProxy)
     extends Thread with Logging {
 
@@ -37,18 +41,18 @@ class ReaderThread(
 
   @volatile private var running: Boolean = true
 
-  @volatile private var reader: Reader[Array[Byte]] = null
+  @volatile private var reader: Reader[_] = null
 
-  private val deserilizer = new PulsarDeserializer()
+  private val deserializer = new PulsarDeserializer(pulsarSchema, jsonOptions)
+  private val schema: Schema[_] = SchemaUtils.getPSchema(pulsarSchema)
 
   override def run(): Unit = {
     logInfo(s"Starting to fetch from $topic at $startingOffsets")
 
     try {
-
       reader = CachedPulsarClient
         .getOrCreate(clientConf)
-        .newReader()
+        .newReader(schema)
         .topic(topic)
         .startMessageId(startingOffsets)
         .startMessageIdInclusive()
@@ -94,7 +98,7 @@ class ReaderThread(
         val message = reader.readNext(pollTimeoutMs, TimeUnit.MILLISECONDS)
         if (message != null) {
           val messageId = message.getMessageId
-          val record = deserilizer.deserialize(message)
+          val record = deserializer.deserialize(message)
           owner.emitRecord(record, state, messageId)
         }
       }

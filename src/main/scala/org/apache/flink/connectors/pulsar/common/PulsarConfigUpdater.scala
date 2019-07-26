@@ -20,7 +20,7 @@ import scala.collection.JavaConverters._
 /**
  * Class to conveniently update pulsar config params, while logging the changes.
  */
-private[pulsar] case class PulsarConfigUpdater(
+case class PulsarConfigUpdater(
     module: String,
     pulsarParams: Map[String, Object],
     blacklistedKeys: Set[String] = Set())

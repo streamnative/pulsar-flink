@@ -13,7 +13,7 @@
  */
 package org.apache.flink.connectors.pulsar.common.metrics
 
-private[pulsar] object PulsarReaderMetricConstants {
+object PulsarReaderMetricConstants {
 
   val PULSAR_READER_METRICS_GROUP = "PulsarReader"
 

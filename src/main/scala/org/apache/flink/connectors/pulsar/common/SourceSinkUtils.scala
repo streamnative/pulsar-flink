@@ -17,6 +17,8 @@ import java.{util => ju}
 import java.util.Locale
 
 import org.apache.flink.connectors.pulsar.common.PulsarOptions._
+import org.apache.flink.table.api.TableConfig
+
 import org.apache.pulsar.client.api.MessageId
 import org.apache.pulsar.client.impl.{BatchMessageIdImpl, MessageIdImpl, TopicMessageIdImpl}
 import org.apache.pulsar.common.naming.TopicName
@@ -24,9 +26,9 @@ import org.apache.pulsar.common.naming.TopicName
 object SourceSinkUtils extends Logging {
 
   /**
-    * Returns the index of the target subtask that a specific Pulsar partition should be
-    * assigned to.
-    */
+   * Returns the index of the target subtask that a specific Pulsar partition should be
+   * assigned to.
+   */
   def belongsTo(topic: String, numParallelSubtasks: Int, index: Int): Boolean = {
     ((topic.hashCode * 31) & 0x7FFFFFFF) % numParallelSubtasks == index
   }
@@ -192,6 +194,13 @@ object SourceSinkUtils extends Logging {
     parameters.getOrElse(USE_METRICS_OPTION_KEY, "true").toBoolean
   }
 
+  def flushOnCheckpoint(parameters: Map[String, String]): Boolean = {
+    parameters.getOrElse(FLUSH_ON_CHECKPOINT, "true").toBoolean
+  }
+
+  def failOnWrite(caseInsensitiveParams: Map[String, String]): Boolean =
+    caseInsensitiveParams.getOrElse(FAIL_ON_WRITE, "false").toBoolean
+
   def prepareConfForReader(parameters: Map[String, String])
     : (ju.Map[String, Object], ju.Map[String, Object], String, String) = {
 
@@ -280,9 +289,9 @@ object SourceSinkUtils extends Logging {
   }
 
   /**
-    * If `failOnDataLoss` is true, this method will throw an `IllegalStateException`.
-    * Otherwise, just log a warning.
-    */
+   * If `failOnDataLoss` is true, this method will throw an `IllegalStateException`.
+   * Otherwise, just log a warning.
+   */
   def reportDataLossFunc(failOnDataLoss: Boolean): (String) => Unit = { (message: String) =>
     if (failOnDataLoss) {
       throw new IllegalStateException(message + s". $INSTRUCTION_FOR_FAIL_ON_DATA_LOSS_TRUE")
@@ -337,5 +346,12 @@ object SourceSinkUtils extends Logging {
         }.toMap
         SpecificPulsarOffset(specified ++ nonSpecified)
     }
+  }
+
+  def jsonOptions: JSONOptionsInRead = {
+    new JSONOptionsInRead(
+      Map.empty,
+      TableConfig.getDefault.getLocalTimeZone.toString,
+      "-corrupt")
   }
 }

@@ -16,8 +16,8 @@ package org.apache.flink.streaming.connectors.pulsar.internal
 import java.{util => ju}
 import java.util.concurrent.TimeUnit
 
-import org.apache.flink.connectors.pulsar.common._
-import org.apache.flink.connectors.pulsar.common.PulsarOptions.INSTRUCTION_FOR_FAIL_ON_DATA_LOSS_TRUE
+import org.apache.flink.pulsar.{CachedPulsarClient, JSONOptionsInRead, Logging, PulsarDeserializer, SchemaUtils}
+import org.apache.flink.pulsar.PulsarOptions.INSTRUCTION_FOR_FAIL_ON_DATA_LOSS_TRUE
 
 import org.apache.pulsar.client.api.{Message, MessageId, Reader, Schema}
 import org.apache.pulsar.client.impl.{BatchMessageIdImpl, MessageIdImpl}
@@ -34,7 +34,7 @@ class ReaderThread(
     exceptionProxy: ExceptionProxy)
     extends Thread with Logging {
 
-  import org.apache.flink.connectors.pulsar.common.SourceSinkUtils._
+  import org.apache.flink.pulsar.SourceSinkUtils._
 
   val topic = state.topic
   val startingOffsets = state.offset

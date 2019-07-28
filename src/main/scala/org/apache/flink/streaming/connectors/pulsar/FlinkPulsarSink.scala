@@ -24,7 +24,7 @@ import scala.collection.mutable
 import scala.reflect.ClassTag
 
 import org.apache.flink.configuration.Configuration
-import org.apache.flink.connectors.pulsar.common.{CachedPulsarClient, Logging, PulsarOptions, SchemaUtils, SourceSinkUtils}
+import org.apache.flink.pulsar.{CachedPulsarClient, Logging, SchemaUtils}
 import org.apache.flink.runtime.state.{FunctionInitializationContext, FunctionSnapshotContext}
 import org.apache.flink.streaming.api.checkpoint.CheckpointedFunction
 import org.apache.flink.streaming.api.functions.sink.{RichSinkFunction, SinkFunction}
@@ -50,8 +50,8 @@ class FlinkPulsarSink[T](
   with CheckpointedFunction
   with Logging {
 
-  import SourceSinkUtils._
-  import PulsarOptions._
+  import org.apache.flink.pulsar.SourceSinkUtils._
+  import org.apache.flink.pulsar.PulsarOptions._
 
   val caseInsensitiveParams = validateSinkOptions(parameters.asScala.toMap)
 

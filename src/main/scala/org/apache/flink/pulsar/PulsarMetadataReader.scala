@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.connectors.pulsar.common
+package org.apache.flink.pulsar
 
 import java.{util => ju}
 import java.io.Closeable
@@ -20,7 +20,7 @@ import java.util.regex.Pattern
 
 import scala.collection.JavaConverters._
 
-import org.apache.flink.connectors.pulsar.common.PulsarOptions.TOPIC_OPTION_KEYS
+import PulsarOptions.TOPIC_OPTION_KEYS
 import org.apache.flink.table.types.{DataType, FieldsDataType}
 
 import org.apache.pulsar.client.admin.{PulsarAdmin, PulsarAdminException}

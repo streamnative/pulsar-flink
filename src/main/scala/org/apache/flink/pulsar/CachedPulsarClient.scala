@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.connectors.pulsar.common
+package org.apache.flink.pulsar
 
 import java.{util => ju}
 import java.util.concurrent.{ConcurrentMap, ExecutionException, TimeUnit}

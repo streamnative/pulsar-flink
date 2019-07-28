@@ -20,12 +20,13 @@ import java.util.function.Predicate
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
-import org.apache.flink.connectors.pulsar.common._
+import org.apache.flink.pulsar.{JSONOptionsInRead, Logging, PulsarMetadataReader}
 import org.apache.flink.streaming.api.functions.{AssignerWithPeriodicWatermarks, AssignerWithPunctuatedWatermarks}
 import org.apache.flink.streaming.api.functions.source.SourceFunction
 import org.apache.flink.streaming.api.functions.source.SourceFunction.SourceContext
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext
 import org.apache.flink.streaming.api.watermark.Watermark
+import org.apache.flink.streaming.connectors.pulsar.PulsarTopicStateWithPunctuatedWatermarks
 import org.apache.flink.streaming.runtime.tasks.{ProcessingTimeCallback, ProcessingTimeService}
 import org.apache.flink.table.dataformat.GenericRow
 import org.apache.flink.util.SerializedValue

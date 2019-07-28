@@ -492,7 +492,7 @@ class PulsarDeserializer(schemaInfo: SchemaInfo, parsedOptions: JSONOptions) {
       case LTR.BIGINT => new GenericArray(new Array[Long](length), length, true)
       case LTR.FLOAT => new GenericArray(new Array[Float](length), length, true)
       case LTR.DOUBLE => new GenericArray(new Array[Double](length), length, true)
-      case _ => new GenericArray(new Array[Any](length))
+      case _ => new GenericArray(new Array[Any](length), length, false)
     }
   }
 

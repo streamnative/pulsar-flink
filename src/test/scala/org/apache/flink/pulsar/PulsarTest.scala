@@ -20,20 +20,24 @@ import java.util.{Map => JMap}
 
 import scala.collection.JavaConverters._
 import scala.reflect.ClassTag
+
 import com.google.common.collect.Sets
 import io.streamnative.tests.pulsar.service.{PulsarService, PulsarServiceFactory, PulsarServiceSpec}
+import org.scalatest.concurrent.Eventually.{eventually, timeout}
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+
 import org.apache.pulsar.client.admin.{PulsarAdmin, PulsarAdminException}
 import org.apache.pulsar.client.api.{MessageId, Producer, PulsarClient, Schema}
 import org.apache.pulsar.common.naming.TopicName
 import org.apache.pulsar.common.protocol.schema.PostSchemaPayload
 import org.apache.pulsar.common.schema.{SchemaInfo, SchemaType}
-import org.scalatest.concurrent.Eventually.{eventually, timeout}
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 
 /**
  * A trait to clean cached Pulsar producers in `afterAll`
  */
 trait PulsarTest extends PulsarFunSuite with BeforeAndAfterAll with BeforeAndAfterEach with Logging {
+
+  import PulsarOptions._
 
   var pulsarService: PulsarService = _
   var serviceUrl: String = _
@@ -91,7 +95,7 @@ trait PulsarTest extends PulsarFunSuite with BeforeAndAfterAll with BeforeAndAft
     Utils.tryWithResource(PulsarAdmin.builder().serviceHttpUrl(adminUrl).build()) { admin =>
       val tps = admin.namespaces().getTopics("public/default").asScala
       tps.map { tp =>
-        (tp, PulsarSourceUtils.seekableLatestMid(admin.topics().getLastMessageId(tp)))
+        (tp, SourceSinkUtils.seekableLatestMid(admin.topics().getLastMessageId(tp)))
       }
     }
   }
@@ -223,11 +227,11 @@ trait PulsarTest extends PulsarFunSuite with BeforeAndAfterAll with BeforeAndAft
           (0 until partNum).map { pn =>
             (
               s"$tp$PARTITION_SUFFIX$pn",
-              PulsarSourceUtils.seekableLatestMid(
+              SourceSinkUtils.seekableLatestMid(
                 admin.topics().getLastMessageId(s"$tp$PARTITION_SUFFIX$pn")))
           }
         } else {
-          (tp, PulsarSourceUtils.seekableLatestMid(admin.topics().getLastMessageId(tp))) :: Nil
+          (tp, SourceSinkUtils.seekableLatestMid(admin.topics().getLastMessageId(tp))) :: Nil
         }
       }.toMap
     }

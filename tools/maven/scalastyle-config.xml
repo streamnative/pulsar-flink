@@ -244,12 +244,12 @@ This file is divided into 3 sections:
 
   <check level="error" class="org.scalastyle.scalariform.ImportOrderChecker" enabled="true">
     <parameters>
-      <parameter name="groups">java,scala,3rdParty,pulsar,spark</parameter>
+      <parameter name="groups">java,scala,3rdParty,flink,pulsar</parameter>
       <parameter name="group.java">javax?\..*</parameter>
       <parameter name="group.scala">scala\..*</parameter>
-      <parameter name="group.3rdParty">(?!org\.apache\.(spark|pulsar)\.).*</parameter>
+      <parameter name="group.3rdParty">(?!org\.apache\.(flink|pulsar)\.).*</parameter>
+      <parameter name="group.flink">org\.apache\.flink\..*</parameter>
       <parameter name="group.pulsar">org\.apache\.pulsar\..*</parameter>
-      <parameter name="group.spark">org\.apache\.spark\..*</parameter>
     </parameters>
   </check>
 

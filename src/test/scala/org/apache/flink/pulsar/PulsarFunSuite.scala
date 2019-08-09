@@ -30,7 +30,7 @@ abstract class PulsarFunSuite
   final protected override def withFixture(test: NoArgTest): Outcome = {
     val testName = test.text
     val suiteName = this.getClass.getName
-    val shortSuiteName = suiteName.replaceAll("org.apache.spark", "o.a.s")
+    val shortSuiteName = suiteName.replaceAll("org.apache.flink", "o.a.f")
     try {
       logInfo(s"\n\n===== TEST OUTPUT FOR $shortSuiteName: '$testName' =====\n")
       test()

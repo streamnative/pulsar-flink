@@ -17,6 +17,7 @@ import java.{util => ju}
 import java.util.Locale
 
 import PulsarOptions._
+
 import org.apache.flink.table.api.TableConfig
 
 import org.apache.pulsar.client.api.MessageId

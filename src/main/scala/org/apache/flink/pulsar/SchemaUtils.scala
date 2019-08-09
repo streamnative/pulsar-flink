@@ -233,7 +233,7 @@ object SchemaUtils {
       case RECORD =>
         if (existingRecordNames.contains(avroSchema.getFullName)) {
           throw new IncompatibleSchemaException(s"""
-            |Found recursive reference in Avro schema, which can not be processed by Spark:
+            |Found recursive reference in Avro schema, which can not be processed by Flink:
             |${avroSchema.toString(true)}
           """.stripMargin)
         }

@@ -22,7 +22,7 @@ import com.fasterxml.jackson.core.{JsonFactory, JsonParser}
 import org.apache.commons.lang3.time.FastDateFormat
 
 /**
- * Options for parsing JSON data into Spark SQL rows.
+ * Options for parsing JSON data into Flink Rows.
  *
  * Most of these map directly to Jackson's internal options, specified in [[JsonParser.Feature]].
  */

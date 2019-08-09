@@ -21,6 +21,7 @@ import java.util.regex.Pattern
 import scala.collection.JavaConverters._
 
 import PulsarOptions.TOPIC_OPTION_KEYS
+
 import org.apache.flink.table.types.{DataType, FieldsDataType}
 
 import org.apache.pulsar.client.admin.{PulsarAdmin, PulsarAdminException}

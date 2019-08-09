@@ -27,7 +27,7 @@ import scala.util.Try
 
 import com.fasterxml.jackson.core._
 import javax.xml.bind.DatatypeConverter
-import org.apache.flink.table.dataformat.Decimal
+
 import org.apache.flink.table.types.{CollectionDataType, DataType, FieldsDataType, KeyValueDataType}
 import org.apache.flink.table.types.logical.{DecimalType, LogicalTypeRoot => LTR, RowType}
 import org.apache.flink.types.Row
@@ -165,7 +165,6 @@ class JacksonRecordParser(schema: DataType, val options: JSONOptions) extends Lo
             case VALUE_STRING =>
               val stringValue = parser.getText
               // This one will lose microseconds parts.
-              // See https://issues.apache.org/jira/browse/SPARK-10681.
               DateTimeUtils.toJavaTimestamp(Long.box {
                 Try(options.timestampFormat.parse(stringValue).getTime * 1000L)
                   .getOrElse {
@@ -185,17 +184,12 @@ class JacksonRecordParser(schema: DataType, val options: JSONOptions) extends Lo
             case VALUE_STRING =>
               val stringValue = parser.getText
               // This one will lose microseconds parts.
-              // See https://issues.apache.org/jira/browse/SPARK-10681.x
               DateTimeUtils.toJavaDate(Int.box {
                 Try(DateTimeUtils.millisToDays(options.dateFormat.parse(stringValue).getTime))
                   .orElse {
-                    // If it fails to parse, then tries the way used in 2.0 and 1.x for backwards
-                    // compatibility.
                     Try(DateTimeUtils.millisToDays(DateTimeUtils.stringToTime(stringValue).getTime))
                   }
                   .getOrElse {
-                    // In Spark 1.5.0, we store the data as number of days since epoch in string.
-                    // So, we just convert it to Int.
                     stringValue.toInt
                   }
               })
@@ -454,8 +448,6 @@ object DateTimeUtils {
   }
 
   def millisToDays(millisUtc: Long, timeZone: TimeZone): Int = {
-    // SPARK-6785: use Math.floor so negative number of days (dates before 1970)
-    // will correctly work as input for function toJavaDate(Int)
     val millisLocal = millisUtc + timeZone.getOffset(millisUtc)
     Math.floor(millisLocal.toDouble / MILLIS_PER_DAY).toInt
   }
@@ -538,7 +530,7 @@ object DateTimeUtils {
   /**
    * Lookup the offset for given millis seconds since 1970-01-01 00:00:00 in given timezone.
    * TODO: Improve handling of normalization differences.
-   * TODO: Replace with JSR-310 or similar system - see SPARK-16788
+   * TODO: Replace with JSR-310 or similar system
    */
   private def getOffsetFromLocalMillis(millisLocal: Long, tz: TimeZone): Long = {
     var guess = tz.getRawOffset

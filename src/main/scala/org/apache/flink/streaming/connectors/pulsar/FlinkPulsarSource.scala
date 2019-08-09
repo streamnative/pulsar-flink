@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicReference
 import scala.collection.JavaConverters._
 import scala.collection.immutable.TreeMap
 import scala.collection.mutable
+
 import org.apache.commons.collections.map.LinkedMap
 import org.apache.flink.api.common.ExecutionConfig
 import org.apache.flink.api.common.state.{ListState, ListStateDescriptor}
@@ -41,6 +42,7 @@ import org.apache.flink.table.types.utils.LegacyTypeInfoDataTypeConverter
 import org.apache.flink.types.Row
 import org.apache.flink.util.{ExceptionUtils, SerializedValue}
 import org.apache.flink.util.Preconditions.checkNotNull
+
 import org.apache.pulsar.client.api.MessageId
 
 class FlinkPulsarSource(val parameters: Properties)
@@ -559,7 +561,7 @@ class FlinkPulsarSource(val parameters: Properties)
       numParallelTasks)
   }
 
-  def getPendingOffsetsToCommit() = {
+  def getPendingOffsetsToCommit(): LinkedMap = {
     pendingOffsetsToCommit
   }
 }

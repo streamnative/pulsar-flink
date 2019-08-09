@@ -57,7 +57,7 @@ abstract class FlinkPulsarSinkBase[T](
   val caseInsensitiveParams = validateSinkOptions(parameters.asScala.toMap)
 
   val (clientConf, producerConf, topicConf, adminUrl) =
-    prepareConfForProducer(caseInsensitiveParams)
+    prepareConfForProducer(parameters.asScala.toMap)
 
   var doFlushOnCheckpoint: Boolean = flushOnCheckpoint(caseInsensitiveParams)
 

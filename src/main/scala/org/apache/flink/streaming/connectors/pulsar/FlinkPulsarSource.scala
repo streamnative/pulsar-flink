@@ -64,7 +64,7 @@ class FlinkPulsarSource(val parameters: Properties)
     validateStreamSourceOptions(parameters.asScala.toMap)
 
   val (clientConf, readerConf, serviceUrl, adminUrl) =
-    prepareConfForReader(caseInsensitiveParams)
+    prepareConfForReader(parameters.asScala.toMap)
 
   val discoveryIntervalMs =
     getPartitionDiscoveryIntervalInMillis(caseInsensitiveParams)

@@ -60,6 +60,11 @@ class JSONOptions(
   // Whether to ignore column of all null values or empty array/struct during schema inference
   val dropFieldIfAllNull = parameters.get("dropFieldIfAllNull").map(_.toBoolean).getOrElse(false)
 
+  private val computedTimeZones = new ConcurrentHashMap[String, TimeZone]()
+  private val computeTimeZone = new JFunction[String, TimeZone] {
+    override def apply(timeZoneId: String): TimeZone = TimeZone.getTimeZone(timeZoneId)
+  }
+
   val timeZone: TimeZone = getTimeZone(parameters.getOrElse("timezone", defaultTimeZoneId))
 
   // Uses `FastDateFormat` which can be direct replacement for `SimpleDateFormat` and thread-safe.
@@ -68,7 +73,7 @@ class JSONOptions(
 
   val timestampFormat: FastDateFormat =
     FastDateFormat.getInstance(
-      parameters.getOrElse("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSXXX"), timeZone, Locale.US)
+      parameters.getOrElse("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSS"), timeZone, Locale.US)
 
   val multiLine = parameters.get("multiLine").map(_.toBoolean).getOrElse(false)
 
@@ -106,11 +111,6 @@ class JSONOptions(
     factory.configure(JsonParser.Feature.ALLOW_BACKSLASH_ESCAPING_ANY_CHARACTER,
       allowBackslashEscapingAnyCharacter)
     factory.configure(JsonParser.Feature.ALLOW_UNQUOTED_CONTROL_CHARS, allowUnquotedControlChars)
-  }
-
-  private val computedTimeZones = new ConcurrentHashMap[String, TimeZone]
-  private val computeTimeZone = new JFunction[String, TimeZone] {
-    override def apply(timeZoneId: String): TimeZone = TimeZone.getTimeZone(timeZoneId)
   }
 
   def getTimeZone(timeZoneId: String): TimeZone = {

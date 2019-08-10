@@ -304,6 +304,7 @@ object SourceSinkUtils extends Logging {
   // used to check whether starting position and current message we got actually are equal
   // we neglect the potential batchIdx deliberately while seeking to MessageIdImpl for batch entry
   def messageIdRoughEquals(l: MessageId, r: MessageId): Boolean = {
+    if (l == null || r == null) return false
     (l, r) match {
       case (lb: BatchMessageIdImpl, rb: BatchMessageIdImpl) => lb.equals(rb)
       case (lm: MessageIdImpl, rb: BatchMessageIdImpl) =>

@@ -15,6 +15,12 @@ package org.apache.flink.streaming.connectors.pulsar
 
 import org.apache.flink.pulsar.{PulsarFlinkTest, PulsarFunSuite}
 
-class PulsarSinkITest extends PulsarFunSuite with PulsarFlinkTest  {
+class PulsarSinkITest extends PulsarFunSuite with PulsarFlinkTest {
+
+
+
+
+
+
 
 }

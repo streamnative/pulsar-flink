@@ -20,14 +20,13 @@ import java.util.{Map => JMap}
 
 import scala.collection.JavaConverters._
 import scala.reflect.ClassTag
-
 import com.google.common.collect.Sets
 import io.streamnative.tests.pulsar.service.{PulsarService, PulsarServiceFactory, PulsarServiceSpec}
 import org.scalatest.concurrent.Eventually.{eventually, timeout}
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
-
 import org.apache.pulsar.client.admin.{PulsarAdmin, PulsarAdminException}
 import org.apache.pulsar.client.api.{MessageId, Producer, PulsarClient, Schema}
+import org.apache.pulsar.client.impl.MessageIdImpl
 import org.apache.pulsar.common.naming.TopicName
 import org.apache.pulsar.common.protocol.schema.PostSchemaPayload
 import org.apache.pulsar.common.schema.{SchemaInfo, SchemaType}
@@ -233,6 +232,27 @@ trait PulsarTest extends BeforeAndAfterAll with BeforeAndAfterEach with Logging 
         } else {
           (tp, SourceSinkUtils.seekableLatestMid(admin.topics().getLastMessageId(tp))) :: Nil
         }
+      }.toMap
+    }
+  }
+
+  def getCommittedOffsets(topics: Set[String], prefix: String): Map[String, MessageId] = {
+    Utils.tryWithResource(PulsarAdmin.builder().serviceHttpUrl(adminUrl).build()) { admin =>
+      topics.map { tp =>
+        val subName = s"flink-pulsar-$prefix"
+        val partitionIdx = TopicName.get(tp).getPartitionIndex
+        val mid = try {
+          val cursor = admin.topics().getInternalStats(tp).cursors.get(subName)
+          if (cursor != null) {
+            val le = cursor.readPosition.split(":")
+            val ledgerId = le(0).toLong
+            val entryId = le(1).toLong
+            new MessageIdImpl(ledgerId, entryId, partitionIdx)
+          } else null
+        } catch {
+          case e: Throwable => null
+        }
+        tp -> mid
       }.toMap
     }
   }

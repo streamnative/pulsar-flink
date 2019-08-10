@@ -108,7 +108,7 @@ class FlinkPulsarSource(val parameters: Properties)
    * <p>Using a sorted map as the ordering is important when using restored state
    * to seed the partition discoverer.
    */
-  @transient @volatile private var restoredState: TreeMap[String, MessageId] = TreeMap.empty
+  @transient @volatile private var restoredState: TreeMap[String, MessageId] = null
 
   /** Accessor for state in the operator state backend. */
   @transient private var unionOffsetStates: ListState[Tuple2[String, MessageId]] = null
@@ -228,7 +228,7 @@ class FlinkPulsarSource(val parameters: Properties)
     ownedTopicStarts = new mutable.HashMap[String, MessageId]()
     val allTopics = topicDiscoverer.discoverTopicsChange()
 
-    if (!restoredState.isEmpty) {
+    if (restoredState != null) {
       allTopics.filter(!restoredState.contains(_)).foreach { tp =>
         restoredState += (tp -> MessageId.earliest)
       }
@@ -443,6 +443,7 @@ class FlinkPulsarSource(val parameters: Properties)
         TypeInformation.of(new TypeHint[Tuple2[String, MessageId]]{})))
 
     if (context.isRestored) {
+      restoredState = TreeMap.empty[String, MessageId]
       unionOffsetStates.get().asScala.foreach { t2 =>
         restoredState += (t2.f0 -> t2.f1)
       }
@@ -552,11 +553,13 @@ class FlinkPulsarSource(val parameters: Properties)
       SourceSinkUtils.jsonOptions)
   }
 
+  @transient lazy val subscriptionPrefix: String = s"flink-pulsar-${UUID.randomUUID()}"
+
   protected def createTopicDiscoverer() = {
     new PulsarMetadataReader(
       adminUrl,
       clientConf,
-      s"flink-pulsar-${UUID.randomUUID()}",
+      subscriptionPrefix,
       caseInsensitiveParams,
       taskIndex,
       numParallelTasks)

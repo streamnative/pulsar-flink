@@ -63,7 +63,7 @@ class ReaderThread(
       var currentId: MessageId = null
 
       // skip the first message since it has been processed already
-      if (startingOffsets != MessageId.earliest) {
+      if (startingOffsets != MessageId.earliest && startingOffsets != MessageId.latest) {
         currentMessage = reader.readNext(pollTimeoutMs, TimeUnit.MILLISECONDS)
         if (currentMessage == null) {
           reportDataLoss(s"Cannot read data at offset $startingOffsets from topic: $topic")
@@ -88,8 +88,6 @@ class ReaderThread(
             // current entry is a non-batch entry, we can read next directly later
           }
         }
-      } else {
-        currentId = MessageId.earliest
       }
 
       logInfo(s"Starting to read $topic with reader thread $getName")

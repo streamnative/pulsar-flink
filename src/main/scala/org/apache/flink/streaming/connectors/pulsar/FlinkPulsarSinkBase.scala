@@ -30,6 +30,7 @@ import org.apache.flink.runtime.state.{FunctionInitializationContext, FunctionSn
 import org.apache.flink.streaming.api.checkpoint.CheckpointedFunction
 import org.apache.flink.streaming.api.functions.sink.{RichSinkFunction, SinkFunction}
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext
+import org.apache.flink.types.Row
 import org.apache.flink.util.SerializableObject
 
 import org.apache.pulsar.client.admin.PulsarAdmin
@@ -98,12 +99,13 @@ abstract class FlinkPulsarSinkBase[T](
     adminUsed = true
     createProducer(clientConf, producerConf, topicName, pulsarSchema)
   } else null
-  @transient protected val topic2Producer: mutable.Map[String, Producer[_]] = mutable.Map.empty
+  @transient protected lazy val topic2Producer: mutable.Map[String, Producer[_]] =
+    mutable.Map.empty
 
   // used to synchronize with Pulsar callbacks
   @transient @volatile protected var failedWrite: Throwable = _
 
-  @transient protected val sendCallback: BiConsumer[MessageId, Throwable] = {
+  @transient protected lazy val sendCallback: BiConsumer[MessageId, Throwable] = {
     if (doFailOnWrite) {
       new BiConsumer[MessageId, Throwable]() {
         override def accept(t: MessageId, u: Throwable): Unit = {
@@ -250,4 +252,9 @@ abstract class FlinkPulsarSinkBase[T](
 trait TopicKeyExtractor[T] extends Serializable {
   def serializeKey(element: T) : Array[Byte]
   def getTopic(element: T): String
+}
+
+object DummyTopicKeyExtractor extends TopicKeyExtractor[Row] {
+  override def serializeKey(element: Row): Array[Byte] = null
+  override def getTopic(element: Row): String = null
 }

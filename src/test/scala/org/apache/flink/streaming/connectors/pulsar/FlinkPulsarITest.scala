@@ -16,7 +16,6 @@ package org.apache.flink.streaming.connectors.pulsar
 import java.util.{Properties, Random, UUID}
 import java.util.concurrent.atomic.{AtomicInteger, AtomicReference}
 
-import javafx.print.PrinterJob.JobStatus
 import org.apache.flink.api.common.JobExecutionResult
 import org.apache.flink.streaming.api.environment.{StreamExecutionEnvironment => JavaEnv}
 import org.apache.flink.streaming.api.datastream.{DataStream => JavaStream}
@@ -29,6 +28,7 @@ import org.apache.flink.api.common.typeinfo.{BasicTypeInfo, TypeHint, TypeInform
 import org.apache.flink.api.dag.Transformation
 import org.apache.flink.pulsar.{CachedPulsarClient, JsonUtils, PulsarFlinkTest, PulsarFunSuite, SourceSinkUtils}
 import org.apache.flink.runtime.client.JobCancellationException
+import org.apache.flink.runtime.jobgraph.JobStatus
 import org.apache.flink.shaded.guava18.com.google.common.collect.Iterables
 import org.apache.flink.streaming.api.functions.sink.DiscardingSink
 import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment}
@@ -225,7 +225,7 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
       override def run(): Unit = {
         try {
           flinkClient.setDetached(false)
-          flinkClient.submitJob(jobGraph, classOf[PulsarSourceITest].getClassLoader)
+          flinkClient.submitJob(jobGraph, classOf[FlinkPulsarITest].getClassLoader)
         } catch {
           case t: Throwable =>
             if (!ExceptionUtils.findThrowable(t, classOf[JobCancellationException]).isPresent) error.set(t)
@@ -851,8 +851,6 @@ class PartitionValidatorMapper(numPartitions: Int, maxPartitions: Int)
     t
   }
 }
-
-
 
 class MockTransformation extends Transformation[String](
     "MockTransformation", BasicTypeInfo.STRING_TYPE_INFO, 1) {

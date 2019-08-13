@@ -76,20 +76,6 @@ trait PulsarTest extends BeforeAndAfterAll with BeforeAndAfterEach with Logging 
     }
   }
 
-  protected override def afterEach(): Unit = {
-    super.afterEach()
-
-    Utils.tryWithResource(PulsarAdmin.builder().serviceHttpUrl(adminUrl).build()) { admin =>
-      admin.topics().getPartitionedTopicList("public/default").asScala.foreach { tp =>
-        admin.topics().deletePartitionedTopic(tp, true)
-      }
-
-      admin.topics().getList("public/default").asScala.foreach { tp =>
-        admin.topics().delete(tp, true)
-      }
-    }
-  }
-
   def getAllTopicsSize(): Seq[(String, MessageId)] = {
     Utils.tryWithResource(PulsarAdmin.builder().serviceHttpUrl(adminUrl).build()) { admin =>
       val tps = admin.namespaces().getTopics("public/default").asScala

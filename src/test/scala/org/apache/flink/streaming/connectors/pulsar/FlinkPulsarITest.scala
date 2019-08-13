@@ -48,7 +48,7 @@ import org.apache.pulsar.client.api.{MessageId, PulsarClient, Schema}
 import org.apache.pulsar.common.naming.TopicName
 import org.apache.pulsar.common.schema.SchemaType
 
-class PulsarSourceITest extends PulsarFunSuite with PulsarFlinkTest {
+class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
 
   import org.apache.flink.pulsar.PulsarOptions._
 

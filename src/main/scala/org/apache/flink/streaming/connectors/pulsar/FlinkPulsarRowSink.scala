@@ -28,7 +28,7 @@ import org.apache.flink.types.Row
 class FlinkPulsarRowSink(
     schema: DataType,
     parameters: Properties)
-  extends FlinkPulsarSinkBase[Row](parameters, null) {
+  extends FlinkPulsarSinkBase[Row](parameters, DummyTopicKeyExtractor) {
 
   val (valueSchema, metaProj, valueProj, valIsStruct) = createProjection
 

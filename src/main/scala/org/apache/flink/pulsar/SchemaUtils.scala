@@ -61,7 +61,7 @@ class SchemaInfoSerializable(var si: SchemaInfo) extends Externalizable {
     val len = in.readInt()
     if (len > 0) {
       val ba = new Array[Byte](len)
-      in.read(ba)
+      in.readFully(ba)
       si.setSchema(ba)
     } else {
       si.setSchema(new Array[Byte](0))

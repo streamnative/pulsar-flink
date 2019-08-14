@@ -28,6 +28,7 @@ trait PulsarFlinkTest extends PulsarTest {
 
   val streamingTimeout = 60.seconds
 
+  var flink: MiniClusterWithClientResource = _
   var flinkClient: ClusterClient[_] = _
 
   override def beforeAll(): Unit = {
@@ -41,16 +42,24 @@ trait PulsarFlinkTest extends PulsarTest {
     fConfig.setString(ConfigConstants.METRICS_REPORTER_PREFIX + "my_reporter." +
       ConfigConstants.METRICS_REPORTER_CLASS_SUFFIX, classOf[JMXReporter].getName)
 
-    val flink = new MiniClusterWithClientResource(
+    flink = new MiniClusterWithClientResource(
       new MiniClusterResourceConfiguration.Builder()
         .setConfiguration(fConfig)
         .setNumberTaskManagers(1)
         .setNumberSlotsPerTaskManager(8).build())
 
+    flink.before()
     flinkClient = flink.getClusterClient
-    waitUntilNoJobIsRunning(flinkClient)
   }
 
+  override def afterAll(): Unit = {
+    flink.after()
+    super.afterAll()
+  }
+
+  override def beforeEach(): Unit = {
+    waitUntilNoJobIsRunning(flinkClient)
+  }
 
   def waitUntilJobIsRunning(client: ClusterClient[_]): Unit = {
     while (getRunningJobs(client).isEmpty) {

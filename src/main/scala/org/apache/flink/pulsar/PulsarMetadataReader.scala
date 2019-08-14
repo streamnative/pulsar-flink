@@ -20,8 +20,6 @@ import java.util.regex.Pattern
 
 import scala.collection.JavaConverters._
 
-import PulsarOptions.TOPIC_OPTION_KEYS
-
 import org.apache.flink.table.types.{DataType, FieldsDataType}
 
 import org.apache.pulsar.client.admin.{PulsarAdmin, PulsarAdminException}
@@ -76,7 +74,7 @@ case class PulsarMetadataReader(
     offset.foreach {
       case (tp, mid) =>
         try {
-          admin.topics().createSubscription(tp, s"$driverGroupIdPrefix-$tp", mid)
+          admin.topics().createSubscription(tp, driverGroupIdPrefix, mid)
         } catch {
           case e: Throwable =>
             throw new RuntimeException(
@@ -90,7 +88,7 @@ case class PulsarMetadataReader(
     offset.foreach {
       case (tp, mid) =>
         try {
-          admin.topics().resetCursor(tp, s"$driverGroupIdPrefix-$tp", mid)
+          admin.topics().resetCursor(tp, driverGroupIdPrefix, mid)
         } catch {
           case e: PulsarAdminException if e.getStatusCode == 404 || e.getStatusCode == 412 =>
             logInfo(
@@ -106,7 +104,7 @@ case class PulsarMetadataReader(
   def removeCursor(topics: Seq[String]): Unit = {
     topics.foreach { tp =>
       try {
-        admin.topics().deleteSubscription(tp, s"$driverGroupIdPrefix-$tp")
+        admin.topics().deleteSubscriptionAsync(tp, driverGroupIdPrefix)
       } catch {
         case e: PulsarAdminException if e.getStatusCode == 404 =>
           logInfo(s"Cannot remove cursor since the topic $tp has been deleted during execution.")
@@ -189,7 +187,7 @@ case class PulsarMetadataReader(
   }
 
   def getTopics(): Seq[String] = {
-    caseInsensitiveParams.find(x => TOPIC_OPTION_KEYS.contains(x._1)).get match {
+    caseInsensitiveParams.find(x => PulsarOptions.TOPIC_OPTION_KEYS.contains(x._1)).get match {
       case ("topic", value) =>
         TopicName.get(value).toString :: Nil
       case ("topics", value) =>

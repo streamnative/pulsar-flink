@@ -71,6 +71,83 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
       ex, "authority component is missing"))
   }
 
+  test("case sensitive reader conf") {
+
+    val tp = newTopic()
+    val messages = (0 until 50)
+    sendTypedMessages[Int](tp, SchemaType.INT32, messages, None)
+
+    val sourceProps = sourceProperties()
+    sourceProps.setProperty("pulsar.reader.receiverQueueSize", "1000000")
+    sourceProps.setProperty(TOPIC_SINGLE, tp)
+
+    val see = StreamExecutionEnvironment.getExecutionEnvironment
+    see.getConfig.disableSysoutLogging()
+    implicit val tpe = intRowTypeInfo()
+
+    val stream = see.addSource(new FlinkPulsarSource(sourceProps))
+    stream.addSink(new DiscardingSink[Row]())
+
+    // launch a consumer asynchronously
+    val jobError = new AtomicReference[Throwable]()
+
+    val jobGraph = StreamingJobGraphGenerator.createJobGraph(see.getStreamGraph)
+    val jobId = jobGraph.getJobID
+
+    val jobRunner = new Runnable {
+      override def run(): Unit = {
+        try {
+          flinkClient.setDetached(false)
+          flinkClient.submitJob(jobGraph, getClass.getClassLoader)
+        } catch {
+          case e: Throwable =>
+            jobError.set(e)
+        }
+      }
+    }
+
+    val runnerThread = new Thread(jobRunner, "program runner thread")
+    runnerThread.start()
+
+    Thread.sleep(2000)
+    val failureCause = jobError.get()
+
+    if (failureCause != null) {
+      failureCause.printStackTrace()
+      fail("Test failed prematurely with: " + failureCause.getMessage)
+    }
+
+    // cancel
+    flinkClient.cancel(jobId)
+
+    // wait for the program to be done and validate that we failed with the right exception
+    runnerThread.join()
+
+    assert(flinkClient.getJobStatus(jobId).get().toString == JobStatus.CANCELED.toString)
+  }
+
+  test("case sensitive producer conf") {
+    val numTopic = 5
+    val numElements = 20
+
+    val see = StreamExecutionEnvironment.getExecutionEnvironment
+    see.getConfig.disableSysoutLogging()
+    see.setParallelism(1)
+
+    implicit val tpe = intRowWithTopicTypeInfo()
+
+    val topics = (0 until numTopic).map(_ => newTopic())
+    val stream = see.addSource(new MutiTopicSource(topics, numElements))
+
+    val sinkProp = sinkProperties()
+    sinkProp.setProperty("pulsar.producer.blockIfQueueFull", "true")
+    sinkProp.setProperty("pulsar.producer.maxPendingMessages", "100000")
+    sinkProp.setProperty("pulsar.producer.maxPendingMessagesAcrossPartitions", "5000000")
+    sinkProp.setProperty("pulsar.producer.sendTimeoutMs", "30000")
+    produceIntoPulsar(stream, intRowWithTopicType(), sinkProp)
+    see.execute("write with topics")
+  }
+
   test("produce consume multiple topics") {
     val numTopic = 5
     val numElements = 20

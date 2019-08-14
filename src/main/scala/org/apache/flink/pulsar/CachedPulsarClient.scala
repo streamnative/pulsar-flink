@@ -14,7 +14,7 @@
 package org.apache.flink.pulsar
 
 import java.{util => ju}
-import java.util.concurrent.{ConcurrentMap, ExecutionException, TimeUnit}
+import java.util.concurrent.{ConcurrentMap, ExecutionException}
 
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
@@ -26,14 +26,13 @@ object CachedPulsarClient extends Logging {
 
   private type Client = org.apache.pulsar.client.api.PulsarClient
 
-  private val defaultCacheExpireTimeout = TimeUnit.MINUTES.toMillis(10)
+  private var cacheSize = 5
 
-  private lazy val cacheExpireTimeout: Long = defaultCacheExpireTimeout
-    // TODO: how to get current context with settings in Flink
-    //    Option(SparkEnv.get)
-    //      .map(_.conf
-    //        .getTimeAsMs("spark.pulsar.client.cache.timeout", s"${defaultCacheExpireTimeout}ms"))
-    //      .getOrElse(defaultCacheExpireTimeout)
+  def setCacheSize(size: Int): Unit = {
+    cacheSize = size
+  }
+
+  def getCacheSize(): Int = cacheSize
 
   private val cacheLoader = new CacheLoader[Seq[(String, Object)], Client] {
     override def load(config: Seq[(String, Object)]): Client = {
@@ -56,7 +55,7 @@ object CachedPulsarClient extends Logging {
   private lazy val guavaCache: LoadingCache[Seq[(String, Object)], Client] =
     CacheBuilder
       .newBuilder()
-      .expireAfterAccess(cacheExpireTimeout, TimeUnit.MILLISECONDS)
+      .maximumSize(cacheSize)
       .removalListener(removalListener)
       .build[Seq[(String, Object)], Client](cacheLoader)
 
@@ -68,13 +67,13 @@ object CachedPulsarClient extends Logging {
       pulsarConf.asScala.toMap,
       PulsarOptions.FILTERED_KEYS
     ).rebuild()
-    logInfo(s"Client Conf = ${clientConf}")
+    logInfo(s"Client Conf = $clientConf")
     try {
       val pulsarClient: Client = org.apache.pulsar.client.api.PulsarClient
         .builder()
         .serviceUrl(pulsarServiceUrl)
         .loadConf(clientConf)
-        .build();
+        .build()
       logDebug(
         s"Created a new instance of PulsarClient for serviceUrl = $pulsarServiceUrl,"
           + s" clientConf = $clientConf.")
@@ -82,8 +81,8 @@ object CachedPulsarClient extends Logging {
     } catch {
       case e: Throwable =>
         logError(
-          s"Failed to create PulsarClient to serviceUrl ${pulsarServiceUrl}"
-            + s" using client conf ${clientConf}",
+          s"Failed to create PulsarClient to serviceUrl $pulsarServiceUrl"
+            + s" using client conf $clientConf",
           e)
         throw e
     }

@@ -31,7 +31,7 @@ import org.apache.flink.api.java.tuple.Tuple2
 import org.apache.flink.api.java.typeutils.ResultTypeQueryable
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.metrics.Counter
-import org.apache.flink.pulsar.{ClosedException, LatestOffset, Logging, PulsarMetadataReader, SourceSinkUtils, Utils}
+import org.apache.flink.pulsar.{CachedPulsarClient, ClosedException, LatestOffset, Logging, PulsarMetadataReader, SourceSinkUtils, Utils}
 import org.apache.flink.runtime.state.{CheckpointListener, FunctionInitializationContext, FunctionSnapshotContext}
 import org.apache.flink.streaming.api.checkpoint.CheckpointedFunction
 import org.apache.flink.streaming.api.functions.{AssignerWithPeriodicWatermarks, AssignerWithPunctuatedWatermarks}
@@ -68,6 +68,8 @@ class FlinkPulsarSource(val parameters: Properties)
 
   val discoveryIntervalMs =
     getPartitionDiscoveryIntervalInMillis(caseInsensitiveParams)
+
+  CachedPulsarClient.setCacheSize(clientCacheSize(caseInsensitiveParams))
 
   /**
    * Flag indicating whether or not metrics should be exposed.

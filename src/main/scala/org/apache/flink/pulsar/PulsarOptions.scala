@@ -46,6 +46,8 @@ object PulsarOptions {
   val PARTITION_DISCOVERY_INTERVAL_MS = "partitiondiscoveryintervalmillis"
   val USE_METRICS_OPTION_KEY = "usemetrics"
 
+  val CLIENT_CACHE_SIZE = "clientcachesize"
+
   val FLUSH_ON_CHECKPOINT = "flushoncheckpoint"
   val FAIL_ON_WRITE = "failonwrite"
 

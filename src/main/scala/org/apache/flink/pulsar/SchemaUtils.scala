@@ -22,7 +22,7 @@ import scala.collection.mutable.ListBuffer
 
 import org.apache.flink.table.api.DataTypes
 import org.apache.flink.table.types.{AtomicDataType, CollectionDataType, DataType, FieldsDataType, KeyValueDataType}
-import org.apache.flink.table.types.logical.{DecimalType, LogicalTypeRoot}
+import org.apache.flink.table.types.logical.{DecimalType, LogicalTypeRoot, RowType}
 
 import org.apache.pulsar.client.admin.{PulsarAdmin, PulsarAdminException}
 import org.apache.pulsar.client.api.{Schema => PSchema}
@@ -166,8 +166,9 @@ object SchemaUtils {
     val typeNullable = si2SqlType(si)
     typeNullable match {
       case st: FieldsDataType =>
-        val fields = st.getFieldDataTypes.asScala.map { case (name, tpe) =>
-          DataTypes.FIELD(name, tpe)
+        val rt = st.getLogicalType.asInstanceOf[RowType]
+        val fields = rt.getFieldNames.asScala.map { case name =>
+          DataTypes.FIELD(name, st.getFieldDataTypes.get(name))
         }
         mainSchema ++= fields
       case t =>
@@ -177,21 +178,24 @@ object SchemaUtils {
     DataTypes.ROW(mainSchema: _*).asInstanceOf[FieldsDataType]
   }
 
+  // TODO: Flink type system could not handle nullability correctly.
+  // it would convert DataType from/to TypeInformation
+  // TypeInformation could not tell nullability
   def si2SqlType(si: SchemaInfo): DataType = {
     si.getType match {
-      case SchemaType.NONE => DataTypes.BYTES().notNull()
-      case SchemaType.BOOLEAN => DataTypes.BOOLEAN().notNull()
-      case SchemaType.BYTES => DataTypes.BYTES().notNull()
-      case SchemaType.DATE => DataTypes.DATE().notNull()
-      case SchemaType.STRING => DataTypes.STRING().notNull()
+      case SchemaType.NONE => DataTypes.BYTES()// .notNull()
+      case SchemaType.BOOLEAN => DataTypes.BOOLEAN()// .notNull()
+      case SchemaType.BYTES => DataTypes.BYTES()// .notNull()
+      case SchemaType.DATE => DataTypes.DATE()// .notNull()
+      case SchemaType.STRING => DataTypes.STRING()// .notNull()
       case SchemaType.TIMESTAMP =>
-        DataTypes.TIMESTAMP(3).bridgedTo(classOf[java.sql.Timestamp]).notNull()
-      case SchemaType.INT8 => DataTypes.TINYINT().notNull()
-      case SchemaType.DOUBLE => DataTypes.DOUBLE().notNull()
-      case SchemaType.FLOAT => DataTypes.FLOAT().notNull()
-      case SchemaType.INT32 => DataTypes.INT().notNull()
-      case SchemaType.INT64 => DataTypes.BIGINT().notNull()
-      case SchemaType.INT16 => DataTypes.SMALLINT().notNull()
+        DataTypes.TIMESTAMP(3).bridgedTo(classOf[java.sql.Timestamp])// .notNull()
+      case SchemaType.INT8 => DataTypes.TINYINT()// .notNull()
+      case SchemaType.DOUBLE => DataTypes.DOUBLE()// .notNull()
+      case SchemaType.FLOAT => DataTypes.FLOAT()// .notNull()
+      case SchemaType.INT32 => DataTypes.INT()// .notNull()
+      case SchemaType.INT64 => DataTypes.BIGINT()// .notNull()
+      case SchemaType.INT16 => DataTypes.SMALLINT()// .notNull()
       case SchemaType.AVRO | SchemaType.JSON =>
         val avroSchema: ASchema =
           new ASchema.Parser().parse(new String(si.getSchema, StandardCharsets.UTF_8))
@@ -205,30 +209,30 @@ object SchemaUtils {
     avroSchema.getType match {
       case INT =>
         avroSchema.getLogicalType match {
-          case _: Date => DataTypes.DATE().notNull()
-          case _ => DataTypes.INT().notNull()
+          case _: Date => DataTypes.DATE()// .notNull()
+          case _ => DataTypes.INT()// .notNull()
         }
-      case STRING => DataTypes.STRING().notNull()
-      case BOOLEAN => DataTypes.BOOLEAN().notNull()
+      case STRING => DataTypes.STRING()// .notNull()
+      case BOOLEAN => DataTypes.BOOLEAN()// .notNull()
       case BYTES | FIXED =>
         avroSchema.getLogicalType match {
           // For FIXED type, if the precision requires more bytes than fixed size, the logical
           // type will be null, which is handled by Avro library.
           case d: Decimal =>
-            DataTypes.DECIMAL(d.getPrecision, d.getScale).notNull()
-          case _ => DataTypes.BYTES().notNull()
+            DataTypes.DECIMAL(d.getPrecision, d.getScale)// .notNull()
+          case _ => DataTypes.BYTES()// .notNull()
         }
 
-      case DOUBLE => DataTypes.DOUBLE().notNull()
-      case FLOAT => DataTypes.FLOAT().notNull()
+      case DOUBLE => DataTypes.DOUBLE()// .notNull()
+      case FLOAT => DataTypes.FLOAT()// .notNull()
       case LONG =>
         avroSchema.getLogicalType match {
           case _: TimestampMillis | _: TimestampMicros =>
-            DataTypes.TIMESTAMP(3).bridgedTo(classOf[java.sql.Timestamp]).notNull()
-          case _ => DataTypes.BIGINT().notNull()
+            DataTypes.TIMESTAMP(3).bridgedTo(classOf[java.sql.Timestamp])// .notNull()
+          case _ => DataTypes.BIGINT()// .notNull()
         }
 
-      case ENUM => DataTypes.STRING().notNull()
+      case ENUM => DataTypes.STRING()// .notNull()
 
       case RECORD =>
         if (existingRecordNames.contains(avroSchema.getFullName)) {
@@ -242,15 +246,15 @@ object SchemaUtils {
           val typeNullable = avro2SqlType(f.schema(), newRecordNames)
           DataTypes.FIELD(f.name, typeNullable)
         }
-        DataTypes.ROW(fields: _*).notNull()
+        DataTypes.ROW(fields: _*)// .notNull()
 
       case ARRAY =>
         val typeNullable: DataType = avro2SqlType(avroSchema.getElementType, existingRecordNames)
-        DataTypes.ARRAY(typeNullable).notNull()
+        DataTypes.ARRAY(typeNullable)// .notNull()
 
       case MAP =>
         val typeNullable = avro2SqlType(avroSchema.getValueType, existingRecordNames)
-        DataTypes.MAP(DataTypes.STRING(), typeNullable).notNull()
+        DataTypes.MAP(DataTypes.STRING(), typeNullable)// .notNull()
 
       case UNION =>
         if (avroSchema.getTypes.asScala.exists(_.getType == NULL)) {
@@ -267,9 +271,9 @@ object SchemaUtils {
             case Seq(t1) =>
               avro2SqlType(avroSchema.getTypes.get(0), existingRecordNames)
             case Seq(t1, t2) if Set(t1, t2) == Set(INT, LONG) =>
-              DataTypes.BIGINT().notNull()
+              DataTypes.BIGINT()// .notNull()
             case Seq(t1, t2) if Set(t1, t2) == Set(FLOAT, DOUBLE) =>
-              DataTypes.DOUBLE().notNull()
+              DataTypes.DOUBLE()// .notNull()
             case _ =>
               // Convert complex unions to struct types where field names are member0, member1, etc.
               // This is consistent with the behavior when converting between Avro and Parquet.

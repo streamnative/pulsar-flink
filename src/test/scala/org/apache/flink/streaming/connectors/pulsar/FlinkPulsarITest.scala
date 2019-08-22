@@ -60,10 +60,9 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
 
     val see = StreamExecutionEnvironment.getExecutionEnvironment
     see.getConfig.disableSysoutLogging()
-    implicit val tpe = intRowTypeInfo()
 
-    val source = new FlinkPulsarSource(props)
-    val stream = see.addSource(source)
+    // Sink FlinkPulsarSource is ResultTypeQueryable, we don't need to provide an extra TypeInfo
+    val stream = see.addSource(new FlinkPulsarSource(props))(null)
     stream.print()
     val ex = intercept[Throwable] {
       see.execute("wrong service url test")
@@ -84,9 +83,10 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
 
     val see = StreamExecutionEnvironment.getExecutionEnvironment
     see.getConfig.disableSysoutLogging()
-    implicit val tpe = intRowTypeInfo()
 
-    val stream = see.addSource(new FlinkPulsarSource(sourceProps))
+    val source = new FlinkPulsarSource(sourceProps)
+
+    val stream = see.addSource(source)(null)
     stream.addSink(new DiscardingSink[Row]())
 
     // launch a consumer asynchronously
@@ -213,12 +213,13 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
     see.setParallelism(3)
     see.enableCheckpointing(200)
 
-    implicit val tpe = intRowTypeInfo()
     val subName = UUID.randomUUID().toString
 
     val sourceProps = sourceProperties()
     sourceProps.setProperty(TOPIC_MULTI, topics.mkString(","))
-    val stream = see.addSource(new FlinkPulsarSourceSub(sourceProps, subName))
+
+    // Sink FlinkPulsarSource is ResultTypeQueryable, we don't need to provide an extra TypeInfo
+    val stream = see.addSource(new FlinkPulsarSourceSub(sourceProps, subName))(null)
 
     stream.addSink(new DiscardingSink[Row]())
 
@@ -271,15 +272,14 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
     see.getConfig.disableSysoutLogging()
     see.setParallelism(3)
 
-    implicit val tpe = intRowTypeInfo()
-
     val sourceProps = sourceProperties()
     sourceProps.setProperty(TOPIC_MULTI, topics.mkString(","))
 
     val source = new FlinkPulsarSource(sourceProps)
-    val stream = see.addSource(source)
+    val stream = see.addSource(source)(null)
 
-    val x = stream.flatMap(new CheckAllMessageIdExist(expectedData, 150))
+    // we pass in an arbitrary TypeInfo since it collects nothing
+    val x = stream.flatMap(new CheckAllMessageIdExist(expectedData, 150))(intRowTypeInfo())
     x.setParallelism(1)
 
     TestUtils.tryExecute(see.getJavaEnv, "start from earliest")
@@ -298,20 +298,20 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
     see.getConfig.disableSysoutLogging()
     see.setParallelism(3)
 
-    implicit val tpe = intRowTypeInfo()
-
     val sourceProps = sourceProperties()
     sourceProps.setProperty(TOPIC_MULTI, topics.mkString(","))
     sourceProps.setProperty(STARTING_OFFSETS_OPTION_KEY, "latest")
 
     val source = new FlinkPulsarSource(sourceProps)
-    val stream = see.addSource(source)
+
+    val stream = see.addSource(source)(null)
 
     val expectedData = topics.map { tp =>
       tp -> newMessages.toSet
     }.toMap
 
-    val x = stream.flatMap(new CheckAllMessageIdExist(expectedData, 30))
+    // we pass in an arbitrary TypeInfo since it collects nothing
+    val x = stream.flatMap(new CheckAllMessageIdExist(expectedData, 30))(intRowTypeInfo())
     x.setParallelism(1)
     x.addSink(new DiscardingSink[Row])
 
@@ -369,16 +369,14 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
     see.getConfig.disableSysoutLogging()
     see.setParallelism(1)
 
-    implicit val tpe = intRowTypeInfo()
-
     val sourceProps = sourceProperties()
     sourceProps.setProperty(TOPIC_SINGLE, topic)
     sourceProps.setProperty(STARTING_OFFSETS_OPTION_KEY, s1)
 
     val source = new FlinkPulsarSource(sourceProps)
-    val stream = see.addSource(source)
+    val stream = see.addSource(source)(null)
 
-    val x = stream.flatMap(new CheckAllMessageIdExist(expectedData, 5))
+    val x = stream.flatMap(new CheckAllMessageIdExist(expectedData, 5))(intRowTypeInfo())
     x.setParallelism(1)
 
     TestUtils.tryExecute(see.getJavaEnv, "start from specific")
@@ -411,9 +409,8 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
     val sourceProps = sourceProperties()
     sourceProps.setProperty(TOPIC_MULTI, allTopicNames.mkString(","))
 
-    implicit val tpe = intPulsarRow()
-
     val source = new FlinkPulsarSource(sourceProps)
+    implicit val tpe = source.getProducedType
     env.addSource(source)
       .map(new PartitionValidatorMapper(parallelism, 1))
       .map(new FailingIdentityMapper[Row](failAfterElements))
@@ -452,9 +449,8 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
     val sourceProps = sourceProperties()
     sourceProps.setProperty(TOPIC_SINGLE, topic)
 
-    implicit val tpe = intPulsarRow()
-
     val source = new FlinkPulsarSource(sourceProps)
+    implicit val tpe = source.getProducedType
     env.addSource(source)
       .map(new PartitionValidatorMapper(numPartitions, 3))
       .map(new FailingIdentityMapper[Row](failAfterElements))
@@ -494,9 +490,8 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
     val sourceProps = sourceProperties()
     sourceProps.setProperty(TOPIC_MULTI, allTopicNames.mkString(","))
 
-    implicit val tpe = intPulsarRow()
-
     val source = new FlinkPulsarSource(sourceProps)
+    implicit val tpe = source.getProducedType
     env.addSource(source)
       .map(new PartitionValidatorMapper(numPartitions, 1))
       .map(new FailingIdentityMapper[Row](failAfterElements))
@@ -527,7 +522,7 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
     val source = new FlinkPulsarSource(prop)
 
 
-    env.addSource(source)(intPulsarRow()).addSink(new DiscardingSink[Row]())
+    env.addSource(source)(null).addSink(new DiscardingSink[Row]())
 
     val jobGraph = StreamingJobGraphGenerator.createJobGraph(env.getStreamGraph)
     val jobId = jobGraph.getJobID
@@ -593,8 +588,7 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
     prop.setProperty(TOPIC_SINGLE, tp)
     val source = new FlinkPulsarSource(prop)
 
-
-    env.addSource(source)(intPulsarRow()).addSink(new DiscardingSink[Row]())
+    env.addSource(source)(null).addSink(new DiscardingSink[Row]())
 
     val jobGraph = StreamingJobGraphGenerator.createJobGraph(env.getStreamGraph)
     val jobId = jobGraph.getJobID

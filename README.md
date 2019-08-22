@@ -262,7 +262,7 @@ You can use `org.apache.flink.pulsar.JsonUtils.topicOffsets(Map[String, MessageI
 </table>
 
 #### Schema of Pulsar source
-* For topics without schema or with primitive schema in Pulsar, messages' payload
+* For topics without schema or with primitive schema in Pulsar, messages payload
 is loaded to a `value` column with the corresponding type with Pulsar schema.
 
 * For topics with Avro or JSON schema, their field names and field types are kept in the result rows.
@@ -406,7 +406,7 @@ The following configurations are optional.
 <tr>
   <td>`topic`</td>
   <td>A topic name string</td>
-  <td></td>
+  <td>None</td>
   <td>The topic to be write to. If this option is not set, DataStreams or tables write to Pulsar must contain a TopicKeyExtractor that return nonNull topics or `__topic` field.</td>
 </tr>
 

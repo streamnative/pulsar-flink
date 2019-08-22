@@ -35,6 +35,12 @@ class FlinkPulsarTableITest extends PulsarFunSuite with PulsarFlinkTest {
   import org.apache.flink.table.api._
   import org.apache.flink.table.api.scala._
 
+  override def afterEach(): Unit = {
+    super.afterEach()
+    StreamITCase.testResults.clear()
+    FailingIdentityMapper.failedBefore = false
+  }
+
   test("basic functioning") {
 
     val see = StreamExecutionEnvironment.getExecutionEnvironment

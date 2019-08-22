@@ -471,8 +471,10 @@ If you want to build a Pulsar Flink connector reading data from Pulsar and writi
     $ cd pulsar-flink
     ```
 2. Install Docker.
+
     Pulsar-flink connector is using [Testcontainers](https://www.testcontainers.org/) for integration tests. In order to run the integration tests, make sure you have installed [Docker](https://docs.docker.com/docker-for-mac/install/).
 3. Set a Scala version.
+
     Change `scala.version` and `scala.binary.version` in `pom.xml`.
     > #### Note
     > Scala version should be consistent with the Scala version of flink you use.

@@ -465,34 +465,23 @@ For possible Pulsar parameters, see
 
 ## Build Pulsar Flink Connector
 If you want to build a Pulsar Flink connector reading data from Pulsar and writing results to Pulsar, follow the steps below.
-
 1. Check out the source code.
-
-```bash
-$ git clone https://github.com/streamnative/pulsar-flink.git
-$ cd pulsar-flink
-```
-
+    ```bash
+    $ git clone https://github.com/streamnative/pulsar-flink.git
+    $ cd pulsar-flink
+    ```
 2. Install Docker.
-
-Pulsar-flink connector is using [Testcontainers](https://www.testcontainers.org/) for
-integration tests. In order to run the integration tests, make sure you
-have installed [Docker](https://docs.docker.com/docker-for-mac/install/).
-
+    Pulsar-flink connector is using [Testcontainers](https://www.testcontainers.org/) for integration tests. In order to run the integration tests, make sure you have installed [Docker](https://docs.docker.com/docker-for-mac/install/).
 3. Set a Scala version.
-Change `scala.version` and `scala.binary.version` in `pom.xml`.
-> #### Note
-> Scala version should be consistent with the Scala version of flink you use.
-
+    Change `scala.version` and `scala.binary.version` in `pom.xml`.
+    > #### Note
+    > Scala version should be consistent with the Scala version of flink you use.
 4. Build the project.
-
-```bash
-$ mvn clean install -DskipTests
-```
-
+    ```bash
+    $ mvn clean install -DskipTests
+    ```
 5. Run the tests.
-
-```bash
-$ mvn clean install
-```
+    ```bash
+    $ mvn clean install
+    ```
 Once the installation is finished, there is a fat jar generated under both local maven repo and `target` directory.

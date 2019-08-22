@@ -35,8 +35,8 @@ class FlinkPulsarTableITest extends PulsarFunSuite with PulsarFlinkTest {
   import org.apache.flink.table.api._
   import org.apache.flink.table.api.scala._
 
-  override def afterEach(): Unit = {
-    super.afterEach()
+  override def beforeEach(): Unit = {
+    super.beforeEach()
     StreamITCase.testResults.clear()
     FailingIdentityMapper.failedBefore = false
   }

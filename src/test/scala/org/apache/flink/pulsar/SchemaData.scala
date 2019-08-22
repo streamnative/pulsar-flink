@@ -46,8 +46,12 @@ object SchemaData {
   val int64Seq = 1.to(5).map(_.toLong)
   val int16Seq = 1.to(5).map(_.toShort)
 
-  case class Foo(@BeanProperty i: Int, @BeanProperty f: Float, @BeanProperty bar: Bar)
-  case class Bar(@BeanProperty b: Boolean, @BeanProperty s: String)
+  case class Foo(@BeanProperty i: Int, @BeanProperty f: Float, @BeanProperty bar: Bar) {
+    override def toString: String = productIterator.mkString(",")
+  }
+  case class Bar(@BeanProperty b: Boolean, @BeanProperty s: String) {
+    override def toString: String = productIterator.mkString(",")
+  }
 
   case class F1(@BeanProperty baz: Baz)
 
@@ -58,7 +62,7 @@ object SchemaData {
       @BeanProperty arr: Array[Bar])
 
   val fooSeq: Seq[Foo] =
-    Foo(1, 1.0.toFloat, Bar(true, "a")) :: Foo(2, 2.0.toFloat, Bar(false, "b")) :: Foo(3, 0, null) :: Nil
+    Foo(1, 1.0.toFloat, Bar(true, "a")) :: Foo(2, 2.0.toFloat, Bar(false, "b")) :: Foo(3, 0, null) :: Foo(0, 0, null) :: Nil
 
   val f1Seq: Seq[F1] =
     F1(

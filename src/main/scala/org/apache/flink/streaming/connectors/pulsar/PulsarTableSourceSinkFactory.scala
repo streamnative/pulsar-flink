@@ -46,8 +46,7 @@ class PulsarTableSourceSinkFactory
     PulsarTableSource(
       getPulsarProperties(dp),
       SchemaValidator.deriveProctimeAttribute(dp).asScala,
-      SchemaValidator.deriveRowtimeAttributes(dp).asScala,
-      Some(SchemaValidator.deriveFieldMapping(dp, Optional.empty()).asScala.toMap))
+      SchemaValidator.deriveRowtimeAttributes(dp).asScala)
   }
 
   override def createStreamTableSink(
@@ -91,7 +90,7 @@ class PulsarTableSourceSinkFactory
     val descriptorProperties: DescriptorProperties = new DescriptorProperties(true)
     descriptorProperties.putProperties(properties)
     // TODO allow Pulsar timestamps to be used, watermarks can not be received from source
-    new SchemaValidator(true, true, false).validate(descriptorProperties)
+    PulsarSchemaValidator(true, true, false).validate(descriptorProperties)
     new PulsarValidator().validate(descriptorProperties)
     descriptorProperties
   }

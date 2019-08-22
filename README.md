@@ -1,5 +1,5 @@
 # pulsar-flink
-Elastic data processing with [Apache Pulsar](https://pulsar.apache.org) and [Apache Flink](https://flink.apache.org).
+Pulsar Flink connector is an elastic data processing with [Apache Pulsar](https://pulsar.apache.org) and [Apache Flink](https://flink.apache.org).
 
 ## Prerequisites
 
@@ -93,7 +93,7 @@ As with any Flink applications, `./bin/flink run` is used to compile and launch 
 If you have already built a fat jar using the shade maven plugin above, your jar can be added to `flink run` using `--classpath`.
 
 > #### Note
-> the paths must specify a protocol (e.g., file://) and be accessible on all nodes.
+> The format of a path must be a protocol (for example, `file://`) and the path should be accessible on all nodes.
 
 Example
 
@@ -218,9 +218,7 @@ The following configurations are optional.
     """ {"topic-1":[8,11,16,101,24,1,32,1],"topic-5":[8,15,16,105,24,5,32,5]} """
   </td>
 
-  <td>
-
-   *  "latest"</td>
+  <td>"latest"</td>
 
 
   <td>
@@ -255,9 +253,9 @@ You can use `org.apache.flink.pulsar.JsonUtils.topicOffsets(Map[String, MessageI
   <td>
 
   `partitionDiscoveryIntervalMillis` option controls whether the source discovers newly added topics or partitions match the topic options
-  while executing the streaming job. <br>
+  while executing the streaming job.
   A positive long `l` would trigger the discoverer run every `l` milliseconds,
-  and negative values would turn-off topic or partition discoverer. <br>
+  and negative values would turn off a topic or a partition discoverer. <br>
 
 </tr>
 
@@ -294,15 +292,20 @@ Besides, each row in the source has the following metadata fields as well.
 </tr>
 </table>
 
-** Example**
+**Example**
 
-The topic of AVRO schema _s_ in Pulsar is as below:
+The Pulsar topic of AVRO schema s (example 1) converted to a Flink table has the following schema (example 2).
+
+Example 1
+
 ```scala
   case class Foo(i: Int, f: Float, bar: Bar)
   case class Bar(b: Boolean, s: String)
   val s = Schema.AVRO(Foo.getClass)
 ```
-has the following schema in Flink:
+
+Example 2
+
 ```
 root
  |-- i: integer (nullable = false)
@@ -317,7 +320,7 @@ root
  |-- __eventTime: timestamp (nullable = true)
  ```
 
- For Pulsar topic with `Schema.DOUBLE`, it's schema is:
+ The following is the schema of a Pulsar topic with `Schema.DOUBLE`:
  ```
  root
  |-- value: double (nullable = false)
@@ -330,7 +333,7 @@ root
 
 ### Write data to Pulsar
 
-The DataStream written to Pulsar can have arbitrary Type.
+The DataStream written to Pulsar can have an arbitrary type.
 
 For DataStream[Row], `__topic` field is used to identify the topic this message will be sent to, `__key` is encoded as metadata of Pulsar message, and all the other fields are grouped and encoded using AVRO and put in `value()`:
 
@@ -356,7 +359,7 @@ stream.addSink(new FlinkPulsarSink(prop, DummyTopicKeyExtractor))
 env.execute()
 ```
 
-#### Write streaming table to Pulsar
+#### Write a streaming table to Pulsar
 The following examples are in Scala.
 ```scala
 val env = StreamExecutionEnvironment.getExecutionEnvironment
@@ -379,7 +382,7 @@ tEnv.sqlUpdate(sql)
 env.execute()
 ```
 
-The following options must be set for the Pulsar sink.
+The following options must be set for a Pulsar sink.
 
 <table class="table">
 <tr><th>Option</th><th>Value</th><th>Description</th></tr>
@@ -404,7 +407,7 @@ The following configurations are optional.
   <td>`topic`</td>
   <td>A topic name string</td>
   <td></td>
-  <td>The topic to be write to. If this option is not set, DataStreams or tables write to Pulsar must contain a TopicKeyExtractor that return nonNull topics or `__topic` field</td>
+  <td>The topic to be write to. If this option is not set, DataStreams or tables write to Pulsar must contain a TopicKeyExtractor that return nonNull topics or `__topic` field.</td>
 </tr>
 
 <tr>
@@ -435,6 +438,7 @@ The following configurations are optional.
   <td>false</td>
 
   <td>
+  None
   </td>
 
 </tr>
@@ -449,13 +453,18 @@ We would provide exactly-once sink semantic when Pulsar has transaction supports
 
 ### Pulsar specific configurations
 
-Client/producer/consumer configurations of Pulsar can be set in Properties
-with `pulsar.client.`/`pulsar.producer.`/`pulsar.consumer.` prefix, e.g,
-`prop.setProperty("pulsar.consumer.ackTimeoutMillis", "10000")`. For possible Pulsar parameters, check docs at
+Client/producer/consumer configurations of Pulsar can be set in properties
+with `pulsar.client.`/`pulsar.producer.`/`pulsar.consumer.` prefix.
+
+Example
+
+`prop.setProperty("pulsar.consumer.ackTimeoutMillis", "10000")`
+
+For possible Pulsar parameters, see
 [Pulsar client libraries](https://pulsar.apache.org/docs/en/client-libraries/).
 
 ## Build Pulsar Flink Connector
-If you want to build a Flink-Pulsar connector reading data from Pulsar and writing results to Pulsar, follow the steps below.
+If you want to build a Pulsar Flink connector reading data from Pulsar and writing results to Pulsar, follow the steps below.
 
 1. Check out the source code.
 
@@ -466,12 +475,12 @@ $ cd pulsar-flink
 
 2. Install Docker.
 
-> Pulsar-flink connector is using [Testcontainers](https://www.testcontainers.org/) for
-> integration tests. In order to run the integration tests, make sure you
-> have installed [Docker](https://docs.docker.com/docker-for-mac/install/).
+Pulsar-flink connector is using [Testcontainers](https://www.testcontainers.org/) for
+integration tests. In order to run the integration tests, make sure you
+have installed [Docker](https://docs.docker.com/docker-for-mac/install/).
 
 3. Set a Scala version.
-> Change `scala.version` and `scala.binary.version` in `pom.xml`.
+Change `scala.version` and `scala.binary.version` in `pom.xml`.
 > #### Note
 > Scala version should be consistent with the Scala version of flink you use.
 

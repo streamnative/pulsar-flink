@@ -29,9 +29,9 @@ class Pulsar extends ConnectorDescriptor(CONNECTOR_TYPE_VALUE_PULSAR, 1, false) 
   var sinkExtractorClass: Class[_ <: TopicKeyExtractor[_]] = _
 
   /**
-   * Sets the configuration properties for the Kafka consumer. Resets previously set properties.
+   * Sets the configuration properties for the Pulsar consumer. Resets previously set properties.
    *
-   * @param properties The configuration properties for the Kafka consumer.
+   * @param properties The configuration properties for the Pulsar consumer.
    */
   def properties(properties: Properties): Pulsar = {
     Preconditions.checkNotNull(properties)
@@ -46,10 +46,10 @@ class Pulsar extends ConnectorDescriptor(CONNECTOR_TYPE_VALUE_PULSAR, 1, false) 
   }
 
   /**
-   * Adds a configuration properties for the Kafka consumer.
+   * Adds a configuration properties for the Pulsar consumer.
    *
-   * @param key   property key for the Kafka consumer
-   * @param value property value for the Kafka consumer
+   * @param key   property key for the Pulsar consumer
+   * @param value property value for the Pulsar consumer
    */
   def property(key: String, value: String): Pulsar = {
     Preconditions.checkNotNull(key)

@@ -121,10 +121,10 @@ class FlinkPulsarSource(val parameters: Properties)
   /** Flag indicating whether the reader is still running. */
   @volatile private var running: Boolean = true
 
-  /** Counter for successful Kafka offset commits. */
+  /** Counter for successful Pulsar offset commits. */
   @transient var successfulCommits: Counter = null
 
-  /** Counter for failed Kafka offset commits. */
+  /** Counter for failed Pulsar offset commits. */
   @transient var failedCommits: Counter = null
 
   /** Callback interface that will be invoked upon async pulsar commit completion. */

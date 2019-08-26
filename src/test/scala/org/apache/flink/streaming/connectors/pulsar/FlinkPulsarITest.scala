@@ -765,7 +765,7 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
     @volatile var error: Throwable = null
 
     override def run(): Unit = {
-      // we manually feed data into the Kafka sink
+      // we manually feed data into the Pulsar sink
 
       try {
         val prop = sinkProperties()

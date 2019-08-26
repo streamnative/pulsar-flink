@@ -43,7 +43,7 @@ import org.apache.pulsar.client.api.{MessageId, Producer, Schema}
  * checkpoints are enabled and setFlushOnCheckpoint(true) is set.
  * Otherwise, the producer doesn't provide any reliability guarantees.
  *
- * @tparam T Type of the messages to write into Kafka.
+ * @tparam T Type of the messages to write into Pulsar.
  */
 abstract class FlinkPulsarSinkBase[T](
     val parameters: Properties,

@@ -27,7 +27,7 @@ class FlinkPulsarSink[T: ClassTag](
   topicKeyExtractor: TopicKeyExtractor[T])
   extends FlinkPulsarSinkBase[T](parameters, topicKeyExtractor) {
 
-  @transient val pulsarSchema: Schema[_] = Schema.AVRO(implicitly[ClassTag[T]].runtimeClass)
+  @transient lazy val pulsarSchema: Schema[_] = Schema.AVRO(implicitly[ClassTag[T]].runtimeClass)
 
   /**
    * Writes the given value to the sink. This function is called for every record.

@@ -17,13 +17,14 @@ import java.util.Properties
 import java.util.concurrent.atomic.AtomicInteger
 
 import scala.collection.mutable
-
+import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.pulsar.{PulsarFlinkTest, PulsarFunSuite}
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper
 import org.apache.flink.table.descriptors.Pulsar
 import org.apache.flink.table.runtime.utils.StreamITCase
+import org.apache.flink.test.util.TestUtils
 import org.apache.flink.types.Row
 
 import org.apache.pulsar.common.naming.TopicName
@@ -75,6 +76,52 @@ class FlinkPulsarTableITest extends PulsarFunSuite with PulsarFlinkTest {
     assert(StreamITCase.testResults == booleanSeq.map(_.toString))
   }
 
+  test("write then read") {
+    val tp = newTopic()
+
+    val see = StreamExecutionEnvironment.getExecutionEnvironment
+    see.getConfig.disableSysoutLogging()
+    see.setParallelism(1)
+
+    val ds = see.fromCollection(fooSeq)(TypeInformation.of(classOf[Foo]))
+    val sinkProp = sinkProperties()
+    sinkProp.setProperty(TOPIC_SINGLE, tp)
+
+    ds.addSink(new FlinkPulsarSink[Foo](sinkProp, new TopicKeyExtractor[Foo] {
+      override def serializeKey(element: Foo): Array[Byte] = null
+      override def getTopic(element: Foo): String = null
+    }))
+    see.execute("write first")
+
+    val env = StreamExecutionEnvironment.getExecutionEnvironment
+    env.getConfig.disableSysoutLogging()
+    env.setParallelism(1)
+
+    val sourceProps = sourceProperties()
+    sourceProps.setProperty(TOPIC_SINGLE, tp)
+
+    val tEnv = StreamTableEnvironment.create(env)
+
+    tEnv
+      .connect(new Pulsar().properties(sourceProps))
+      .inAppendMode()
+      .registerTableSource(tp)
+
+    val t0 = tEnv.scan(tp)
+    val t = t0.select("i, f, bar")
+    implicit val ti = t.getSchema.toRowType
+    val as = t.toAppendStream[Row]
+    as.map(new FailingIdentityMapper[Row](fooSeq.length))
+
+    as.addSink(new StreamITCase.StringSink[Row]).setParallelism(1)
+
+
+    intercept[Throwable] {
+      TestUtils.tryExecute(env.getJavaEnv, "count elements from topics")
+    }
+    assert(StreamITCase.testResults == fooSeq.init.map(_.toString))
+  }
+
   test("test struct types in avro") {
 
     val see = StreamExecutionEnvironment.getExecutionEnvironment
@@ -114,6 +161,15 @@ class FlinkPulsarTableITest extends PulsarFunSuite with PulsarFlinkTest {
     prop.setProperty(ADMIN_URL_OPTION_KEY, adminUrl)
     prop.setProperty(PARTITION_DISCOVERY_INTERVAL_MS, "5000")
     prop.setProperty(STARTING_OFFSETS_OPTION_KEY, "earliest")
+    prop
+  }
+
+  def sinkProperties(): Properties = {
+    val prop = new Properties()
+    prop.setProperty(SERVICE_URL_OPTION_KEY, serviceUrl)
+    prop.setProperty(ADMIN_URL_OPTION_KEY, adminUrl)
+    prop.setProperty(FLUSH_ON_CHECKPOINT, "true")
+    prop.setProperty(FAIL_ON_WRITE, "true")
     prop
   }
 

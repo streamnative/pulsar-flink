@@ -99,6 +99,12 @@
       <version>3.6.7</version>
     </dependency>
 
+    <dependency>
+      <groupId>commons-collections</groupId>
+      <artifactId>commons-collections</artifactId>
+      <version>3.2.2</version>
+    </dependency>
+
     <!-- flink dependency -->
     <dependency>
       <groupId>org.apache.flink</groupId>
@@ -384,6 +390,7 @@
                   <include>org.apache.pulsar*:*</include>
                   <include>org.bouncycastle*:*</include>
                   <include>org.lz4*:*</include>
+                  <include>commons-collections:commons-collections</include>
                 </includes>
               </artifactSet>
               <filters>

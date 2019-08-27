@@ -60,11 +60,6 @@ you can use the following shade plugin definition template:
             <include>io.streamnative.connectors:*</include>
             <!-- more libs to include here -->
           </includes>
-          <excludes>
-            <exclude>com.google.code.findbugs:jsr305</exclude>
-            <exclude>org.slf4j:*</exclude>
-            <exclude>log4j:*</exclude>
-          </excludes>
         </artifactSet>
         <filters>
           <filter>
@@ -99,8 +94,7 @@ Example
 
 ```
 $ ./bin/flink run
-  -c com.example.entry.point.ClassName
-  --classpath file://path/to/jars/your_fat_jar.jar
+  -c com.example.entry.point.ClassName file://path/to/jars/your_fat_jar.jar
   ...
 ```
 
@@ -272,7 +266,7 @@ Besides, each row in the source has the following metadata fields as well.
 <tr><th>Column</th><th>Type</th></tr>
 <tr>
   <td>`__key`</td>
-  <td>Binary</td>
+  <td>Bytes</td>
 </tr>
 <tr>
   <td>`__topic`</td>
@@ -280,7 +274,7 @@ Besides, each row in the source has the following metadata fields as well.
 </tr>
 <tr>
   <td>`__messageId`</td>
-  <td>Binary</td>
+  <td>Bytes</td>
 </tr>
 <tr>
   <td>`__publishTime`</td>
@@ -299,8 +293,8 @@ The Pulsar topic of AVRO schema s (example 1) converted to a Flink table has the
 Example 1
 
 ```scala
-  case class Foo(i: Int, f: Float, bar: Bar)
-  case class Bar(b: Boolean, s: String)
+  case class Foo(@BeanProperty i: Int, @BeanProperty f: Float, @BeanProperty bar: Bar)
+  case class Bar(@BeanProperty b: Boolean, @BeanProperty s: String)
   val s = Schema.AVRO(Foo.getClass)
 ```
 
@@ -308,27 +302,25 @@ Example 2
 
 ```
 root
- |-- i: integer (nullable = false)
- |-- f: float (nullable = false)
- |-- bar: struct (nullable = true)
- |    |-- b: boolean (nullable = false)
- |    |-- s: string (nullable = true)
- |-- __key: binary (nullable = true)
- |-- __topic: string (nullable = true)
- |-- __messageId: binary (nullable = true)
- |-- __publishTime: timestamp (nullable = true)
- |-- __eventTime: timestamp (nullable = true)
+ |-- i: INT
+ |-- f: FLOAT
+ |-- bar: ROW<`b` BOOLEAN, `s` STRING>
+ |-- __key: BYTES
+ |-- __topic: STRING
+ |-- __messageId: BYTES
+ |-- __publishTime: TIMESTAMP(3)
+ |-- __eventTime: TIMESTAMP(3)
  ```
 
  The following is the schema of a Pulsar topic with `Schema.DOUBLE`:
  ```
  root
- |-- value: double (nullable = false)
- |-- __key: binary (nullable = true)
- |-- __topic: string (nullable = true)
- |-- __messageId: binary (nullable = true)
- |-- __publishTime: timestamp (nullable = true)
- |-- __eventTime: timestamp (nullable = true)
+ |-- value: DOUBLE
+ |-- __key: BYTES
+ |-- __topic: STRING
+ |-- __messageId: BYTES
+ |-- __publishTime: TIMESTAMP(3)
+ |-- __eventTime: TIMESTAMP(3)
  ```
 
 ### Write data to Pulsar

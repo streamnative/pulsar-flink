@@ -391,6 +391,7 @@
                   <include>org.bouncycastle*:*</include>
                   <include>org.lz4*:*</include>
                   <include>commons-collections:commons-collections</include>
+                  <include>org.slf4j:jul-to-slf4j</include>
                 </includes>
               </artifactSet>
               <filters>

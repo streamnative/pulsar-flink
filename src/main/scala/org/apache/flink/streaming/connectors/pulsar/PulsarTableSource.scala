@@ -20,14 +20,13 @@ import scala.collection.JavaConverters._
 import scala.compat.java8.OptionConverters._
 
 import org.apache.flink.api.common.typeinfo.TypeInformation
-import org.apache.flink.pulsar.{Logging, PulsarMetadataReader, Utils}
+import org.apache.flink.pulsar.{Logging, PulsarMetadataReader, SchemaUtils, Utils}
 import org.apache.flink.pulsar.SourceSinkUtils.prepareConfForReader
 import org.apache.flink.streaming.api.datastream.DataStream
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment
 import org.apache.flink.table.api.{TableSchema, Types, ValidationException}
 import org.apache.flink.table.sources.{DefinedProctimeAttribute, DefinedRowtimeAttributes, RowtimeAttributeDescriptor, StreamTableSource}
-import org.apache.flink.table.types.{DataType, FieldsDataType}
-import org.apache.flink.table.types.logical.RowType
+import org.apache.flink.table.types.DataType
 import org.apache.flink.table.types.utils.LegacyTypeInfoDataTypeConverter
 import org.apache.flink.table.utils.TableConnectorUtils
 import org.apache.flink.types.Row
@@ -54,13 +53,7 @@ case class PulsarTableSource(
     reader.getSchema(topics)
   }
 
-  lazy val schema = {
-    val rt = inferredSchema.getLogicalType.asInstanceOf[RowType]
-    val fieldTypes = rt.getFieldNames.asScala.map(inferredSchema.getFieldDataTypes.get(_))
-
-    TableSchema.builder.fields(
-      rt.getFieldNames.toArray(new Array[String](0)), fieldTypes.toArray).build()
-  }
+  lazy val schema = SchemaUtils.toTableSchema(inferredSchema)
 
   lazy val returnType: TypeInformation[Row] =
     LegacyTypeInfoDataTypeConverter

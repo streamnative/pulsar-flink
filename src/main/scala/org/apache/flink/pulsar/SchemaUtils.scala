@@ -20,7 +20,7 @@ import java.nio.charset.StandardCharsets.UTF_8
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 
-import org.apache.flink.table.api.DataTypes
+import org.apache.flink.table.api.{DataTypes, TableSchema}
 import org.apache.flink.table.types.{AtomicDataType, CollectionDataType, DataType, FieldsDataType, KeyValueDataType}
 import org.apache.flink.table.types.logical.{DecimalType, LogicalTypeRoot, RowType}
 
@@ -75,6 +75,14 @@ class SchemaInfoSerializable(var si: SchemaInfo) extends Externalizable {
 object SchemaUtils {
 
   private lazy val nullSchema = ASchema.create(ASchema.Type.NULL)
+
+  def toTableSchema(schema: FieldsDataType): TableSchema = {
+    val rt = schema.getLogicalType.asInstanceOf[RowType]
+    val fieldTypes = rt.getFieldNames.asScala.map(schema.getFieldDataTypes.get(_))
+
+    TableSchema.builder.fields(
+      rt.getFieldNames.toArray(new Array[String](0)), fieldTypes.toArray).build()
+  }
 
   def uploadPulsarSchema(admin: PulsarAdmin, topic: String, schemaInfo: SchemaInfo): Unit = {
     assert(schemaInfo != null, "schemaInfo shouldn't be null")

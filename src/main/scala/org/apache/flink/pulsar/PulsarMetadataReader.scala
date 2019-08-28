@@ -20,12 +20,15 @@ import java.util.regex.Pattern
 
 import scala.collection.JavaConverters._
 
+import org.apache.flink.table.api.TableSchema
+import org.apache.flink.table.catalog.ObjectPath
 import org.apache.flink.table.types.{DataType, FieldsDataType}
 
 import org.apache.pulsar.client.admin.{PulsarAdmin, PulsarAdminException}
+import org.apache.pulsar.client.admin.PulsarAdminException.NotFoundException
 import org.apache.pulsar.client.api.{MessageId, PulsarClient}
 import org.apache.pulsar.client.impl.schema.BytesSchema
-import org.apache.pulsar.common.naming.TopicName
+import org.apache.pulsar.common.naming.{NamespaceName, TopicDomain, TopicName}
 import org.apache.pulsar.common.schema.SchemaInfo
 
 /**
@@ -70,6 +73,116 @@ case class PulsarMetadataReader(
     }
   }
 
+  def listNamespaces(): Seq[String] = {
+    try {
+      val tenants = admin.tenants().getTenants.asScala
+      tenants.flatMap { case tn =>
+        admin.namespaces().getNamespaces(tn).asScala
+      }
+    } catch {
+      case e: Throwable =>
+        throw new RuntimeException(s"Failed to list namespaces", e)
+    }
+  }
+
+  def namespaceExists(ns: String): Boolean = {
+    try {
+      admin.namespaces().getTopics(ns)
+    } catch {
+      case e: Throwable =>
+        return false
+    }
+    true
+  }
+
+  def createNamespace(ns: String): Unit = {
+    val nsName = NamespaceName.get(ns).toString
+    try {
+      admin.namespaces().createNamespace(nsName)
+    } catch {
+      case e: Throwable =>
+        throw new RuntimeException(
+          s"Failed to create namespace $ns in Pulsar (equivalence to DB)", e)
+    }
+  }
+
+  def deleteNamespace(ns: String, ignoreIfNotExists: Boolean): Unit = {
+    val nsName = NamespaceName.get(ns).toString
+    try {
+      admin.namespaces().deleteNamespace(nsName)
+    } catch {
+      case _: NotFoundException if ignoreIfNotExists => // suppress exception
+      case e: Throwable =>
+        throw new RuntimeException(
+          s"Failed to delete namespace $ns in Pulsar (equivalence to DB)", e)
+    }
+  }
+
+  def getTopics(namespace: String): ju.List[String] = {
+    try {
+      admin.namespaces().getTopics(namespace)
+    } catch {
+      case e: Throwable =>
+        throw new RuntimeException(
+          s"Failed to fetch topics in $namespace in Pulsar (equivalence to table)", e)
+    }
+  }
+
+  def getSchema(objectPath: ObjectPath): TableSchema = {
+    val tp = objectPath2TopicName(objectPath)
+    val fieldsDataType = getSchema(tp :: Nil)
+    SchemaUtils.toTableSchema(fieldsDataType)
+  }
+
+  def topicExists(objectPath: ObjectPath): Boolean = {
+    val tp = objectPath2TopicName(objectPath)
+    try {
+      admin.topics().getStats(tp)
+    } catch {
+      case e: Throwable =>
+        return false
+    }
+    true
+  }
+
+  def deleteTopic(objectPath: ObjectPath): Unit = {
+    val topic = objectPath2TopicName(objectPath)
+    try {
+      val partitions = admin.topics().getPartitionedTopicMetadata(topic).partitions
+      if (partitions > 0) {
+        admin.topics().deletePartitionedTopic(topic, true)
+      } else {
+        admin.topics().delete(topic, true)
+      }
+    } catch {
+      case e: Throwable =>
+        throw new RuntimeException(
+          s"Failed to delete topic $topic in Pulsar (equivalence to table)", e)
+    }
+  }
+
+  def createTopic(objectPath: ObjectPath, defaultPartitions: Int, ignoreIfExists: Boolean): Unit = {
+    val topic = objectPath2TopicName(objectPath)
+    try {
+      admin.topics().createPartitionedTopic(topic, defaultPartitions)
+    } catch {
+      case e: PulsarAdminException =>
+        // TODO ignore logic should goes here
+        throw e
+      case e: Throwable =>
+        throw new RuntimeException(
+          s"Failed to create topic $topic in Pulsar (equivalence to table)", e)
+    }
+  }
+
+
+  private def objectPath2TopicName(objectPath: ObjectPath): String = {
+    val ns = NamespaceName.get(objectPath.getDatabaseName)
+    val tp = objectPath.getObjectName
+    val fullName = TopicName.get(TopicDomain.persistent.toString, ns, tp)
+    fullName.toString
+  }
+
   def setupCursor(offset: Map[String, MessageId]): Unit = {
     offset.foreach {
       case (tp, mid) =>
@@ -78,8 +191,7 @@ case class PulsarMetadataReader(
         } catch {
           case e: Throwable =>
             throw new RuntimeException(
-              s"Failed to create schema for ${TopicName.get(tp).toString}",
-              e)
+              s"Failed to create schema for ${TopicName.get(tp).toString}", e)
         }
     }
   }

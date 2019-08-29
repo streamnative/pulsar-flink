@@ -25,8 +25,8 @@ class PulsarCatalogValidator extends CatalogDescriptorValidator {
     super.validate(properties)
     properties.validateValue(CATALOG_TYPE, CATALOG_TYPE_VALUE_PULSAR, false)
     properties.validateString(CATALOG_PULSAR_VERSION, true, 1)
-    properties.validateString(CATALOG_SERVICE_URL, false, "pulsar://0.0.0.0:0".length)
-    properties.validateString(CATALOG_ADMIN_URL, false, "http://0.0.0.0:0".length)
+    properties.validateString(CATALOG_SERVICE_URL, false, 1)
+    properties.validateString(CATALOG_ADMIN_URL, false, 1)
     validateStartingOffsets(properties)
   }
 

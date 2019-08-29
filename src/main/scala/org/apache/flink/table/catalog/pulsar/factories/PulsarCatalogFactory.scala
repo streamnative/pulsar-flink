@@ -47,6 +47,9 @@ class PulsarCatalogFactory extends CatalogFactory {
     val props = new ju.ArrayList[String]()
     props.add(CATALOG_DEFAULT_DATABASE)
     props.add(CATALOG_PULSAR_VERSION)
+    props.add(CATALOG_SERVICE_URL)
+    props.add(CATALOG_ADMIN_URL)
+    props.add(CATALOG_STARTING_POS)
     props
   }
 

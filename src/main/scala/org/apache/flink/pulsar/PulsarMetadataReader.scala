@@ -120,7 +120,10 @@ case class PulsarMetadataReader(
 
   def getTopics(namespace: String): ju.List[String] = {
     try {
-      admin.namespaces().getTopics(namespace)
+      val tps = admin.topics().getList(namespace)
+      val partitionedTps = admin.topics().getPartitionedTopicList(namespace)
+      val allTopics = (tps.asScala ++ partitionedTps.asScala)
+      allTopics.map(tp => TopicName.get(tp).getLocalName).asJava
     } catch {
       case e: Throwable =>
         throw new RuntimeException(
@@ -191,7 +194,7 @@ case class PulsarMetadataReader(
         } catch {
           case e: Throwable =>
             throw new RuntimeException(
-              s"Failed to create schema for ${TopicName.get(tp).toString}", e)
+              s"Failed to set up cursor for ${TopicName.get(tp).toString}", e)
         }
     }
   }
@@ -305,11 +308,11 @@ case class PulsarMetadataReader(
       case ("topics", value) =>
         value.split(",").map(_.trim).filter(_.nonEmpty).map(TopicName.get(_).toString)
       case ("topicspattern", value) =>
-        getTopics(value)
+        getTopicsWithPattern(value)
     }
   }
 
-  private def getTopics(topicsPattern: String): Seq[String] = {
+  private def getTopicsWithPattern(topicsPattern: String): Seq[String] = {
     val dest = TopicName.get(topicsPattern)
     val allNonPartitionedTopics: ju.List[String] =
       admin

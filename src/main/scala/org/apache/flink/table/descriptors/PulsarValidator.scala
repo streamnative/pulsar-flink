@@ -26,9 +26,9 @@ class PulsarValidator extends ConnectorDescriptorValidator {
   import ConnectorDescriptorValidator._
 
   override def validate(properties: DescriptorProperties): Unit = {
-    super.validate(properties)
-
-    properties.validateValue(CONNECTOR_TYPE, CONNECTOR_TYPE_VALUE_PULSAR, false)
+//    super.validate(properties)
+//
+//    properties.validateValue(CONNECTOR_TYPE, CONNECTOR_TYPE_VALUE_PULSAR, false)
 
     validatePulsarProperties(properties)
 

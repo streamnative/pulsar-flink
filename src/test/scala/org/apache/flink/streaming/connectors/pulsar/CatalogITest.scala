@@ -16,21 +16,33 @@ package org.apache.flink.streaming.connectors.pulsar
 import java.{util => ju}
 import java.io.File
 import java.net.URL
+import java.util.concurrent.atomic.AtomicInteger
 
 import scala.collection.JavaConverters._
-
 import com.google.common.collect.Sets
 import org.apache.commons.cli.Options
+import org.apache.flink.api.common.typeinfo.{TypeHint, TypeInformation}
 import org.apache.flink.client.cli.DefaultCLI
 import org.apache.flink.configuration.Configuration
-import org.apache.flink.pulsar.{PulsarFlinkTest, PulsarFunSuite, Utils}
+import org.apache.flink.pulsar.SchemaData.fooSeq
+import org.apache.flink.pulsar.{PulsarFlinkTest, PulsarFunSuite, SchemaUtils, Utils}
+import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper
+import org.apache.flink.table.api.internal.TableImpl
+import org.apache.flink.table.api.java.StreamTableEnvironment
 import org.apache.flink.table.catalog.pulsar.PulsarCatalog
 import org.apache.flink.table.client.config.Environment
 import org.apache.flink.table.client.gateway.SessionContext
 import org.apache.flink.table.client.gateway.local.ExecutionContext
+import org.apache.flink.table.runtime.utils.StreamITCase
+import org.apache.flink.test.util.TestUtils
+import org.apache.flink.types.Row
 import org.apache.flink.util.FileUtils
 import org.apache.pulsar.client.admin.PulsarAdmin
+import org.apache.pulsar.common.naming.TopicName
 import org.apache.pulsar.common.policies.data.TenantInfo
+import org.json4s.TypeHints
+
+import scala.collection.immutable
 
 class CatalogITest extends PulsarFunSuite with PulsarFlinkTest {
 
@@ -59,7 +71,6 @@ class CatalogITest extends PulsarFunSuite with PulsarFlinkTest {
     tableEnv.useCatalog(pulsarCatalog2)
     assert(tableEnv.getCurrentDatabase === "tn/ns")
   }
-
 
   test("test databases") {
     val pulsarCatalog1 = "pulsarcatalog1"
@@ -106,9 +117,37 @@ class CatalogITest extends PulsarFunSuite with PulsarFlinkTest {
   }
 
   test("test tables") {
+    import org.apache.flink.pulsar.SchemaData._
 
+    val pulsarCatalog1 = "pulsarcatalog1"
 
+    val tableName = newTopic()
+
+    val context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE)
+    val tableEnv = context.createEnvironmentInstance.getTableEnvironment()
+
+    tableEnv.useCatalog(pulsarCatalog1)
+
+    sendMessages(tableName, stringSeq.toArray, None)
+
+    val t = tableEnv.scan(TopicName.get(tableName).getLocalName).select("value")
+
+    val tpe = t.getSchema.toRowType
+
+    val stream = t.asInstanceOf[TableImpl].getTableEnvironment.asInstanceOf[StreamTableEnvironment].toAppendStream(t, tpe)
+    stream.map(new FailingIdentityMapper[Row](stringSeq.length))
+
+    stream.addSink(new StreamITCase.StringSink[Row]).setParallelism(1)
+
+    intercept[Throwable] {
+      tableEnv.execute("abc")
+    }
+    assert(StreamITCase.testResults == stringSeq.init)
   }
+
+  private val topicId = new AtomicInteger(0)
+
+  private def newTopic(): String = TopicName.get(s"topic-${topicId.getAndIncrement()}").toString
 
   private def createExecutionContext[T](file: String): ExecutionContext[T] = {
     val replaceVars = new ju.HashMap[String, String]

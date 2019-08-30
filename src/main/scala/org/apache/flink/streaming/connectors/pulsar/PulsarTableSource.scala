@@ -18,8 +18,8 @@ import java.util.Properties
 
 import scala.collection.JavaConverters._
 import scala.compat.java8.OptionConverters._
-
 import org.apache.flink.api.common.typeinfo.TypeInformation
+import org.apache.flink.api.java.typeutils.RowTypeInfo
 import org.apache.flink.pulsar.{Logging, PulsarMetadataReader, SchemaUtils, Utils}
 import org.apache.flink.pulsar.SourceSinkUtils.prepareConfForReader
 import org.apache.flink.streaming.api.datastream.DataStream
@@ -27,15 +27,14 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment
 import org.apache.flink.table.api.{TableSchema, Types, ValidationException}
 import org.apache.flink.table.sources.{DefinedProctimeAttribute, DefinedRowtimeAttributes, RowtimeAttributeDescriptor, StreamTableSource}
 import org.apache.flink.table.types.DataType
-import org.apache.flink.table.types.utils.LegacyTypeInfoDataTypeConverter
-import org.apache.flink.table.utils.TableConnectorUtils
 import org.apache.flink.types.Row
 import org.apache.flink.util.Preconditions
 
 case class PulsarTableSource(
     properties: Properties,
     proctimeAttribute: Option[String],
-    rowtimeAttributeDescriptors: Seq[RowtimeAttributeDescriptor])
+    rowtimeAttributeDescriptors: Seq[RowtimeAttributeDescriptor],
+    providedSchema: Option[TableSchema])
     extends StreamTableSource[Row]
     with DefinedProctimeAttribute
     with DefinedRowtimeAttributes
@@ -54,11 +53,11 @@ case class PulsarTableSource(
   }
 
   lazy val schema = SchemaUtils.toTableSchema(inferredSchema)
-
-  lazy val returnType: TypeInformation[Row] =
-    LegacyTypeInfoDataTypeConverter
-      .toLegacyTypeInfo(inferredSchema)
-      .asInstanceOf[TypeInformation[Row]]
+//
+//  lazy val returnType: TypeInformation[Row] =
+//    LegacyTypeInfoDataTypeConverter
+//      .toLegacyTypeInfo(inferredSchema)
+//      .asInstanceOf[TypeInformation[Row]]
 
   override def getDataStream(env: StreamExecutionEnvironment): DataStream[Row] = {
     val source = new FlinkPulsarSource(properties)
@@ -70,14 +69,14 @@ case class PulsarTableSource(
   override def getRowtimeAttributeDescriptors: ju.List[RowtimeAttributeDescriptor] =
     rowtimeAttributeDescriptors.asJava
 
-  override def getTableSchema: TableSchema = schema
+  override def getTableSchema: TableSchema = if (providedSchema.isDefined) {
+    providedSchema.get
+  } else schema
 
-  override def getReturnType: TypeInformation[Row] = returnType
-
-  override def getProducedDataType: DataType = inferredSchema
-
-  override def explainSource: String =
-    TableConnectorUtils.generateRuntimeName(this.getClass, schema.getFieldNames)
+  override def getProducedDataType: DataType = getTableSchema().toRowDataType
+//
+//  override def explainSource: String =
+//    TableConnectorUtils.generateRuntimeName(this.getClass, schema.getFieldNames)
 
   /**
    * Validates a field of the schema to be the processing time attribute.

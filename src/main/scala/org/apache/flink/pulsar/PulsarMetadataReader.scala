@@ -120,7 +120,7 @@ case class PulsarMetadataReader(
 
   def getTopics(namespace: String): ju.List[String] = {
     try {
-      val tps = admin.topics().getList(namespace)
+      val tps = getNonPartitionedTopics(admin, namespace)
       val partitionedTps = admin.topics().getPartitionedTopicList(namespace)
       val allTopics = (tps.asScala ++ partitionedTps.asScala)
       allTopics.map(tp => TopicName.get(tp).getLocalName).asJava
@@ -315,18 +315,22 @@ case class PulsarMetadataReader(
   private def getTopicsWithPattern(topicsPattern: String): Seq[String] = {
     val dest = TopicName.get(topicsPattern)
     val allNonPartitionedTopics: ju.List[String] =
-      admin
-        .topics()
-        .getList(dest.getNamespace)
-        .asScala
-        .filter(t => !TopicName.get(t).isPartitioned)
-        .asJava
+      getNonPartitionedTopics(admin, dest.getNamespace)
     val nonPartitionedMatch = topicsPatternFilter(allNonPartitionedTopics, dest.toString)
 
     val allPartitionedTopics: ju.List[String] =
       admin.topics().getPartitionedTopicList(dest.getNamespace)
     val partitionedMatch = topicsPatternFilter(allPartitionedTopics, dest.toString)
     nonPartitionedMatch ++ partitionedMatch
+  }
+
+  def getNonPartitionedTopics(admin: PulsarAdmin, namespace: String): ju.List[String] = {
+    admin
+      .topics()
+      .getList(namespace)
+      .asScala
+      .filter(t => !TopicName.get(t).isPartitioned)
+      .asJava
   }
 
   private def topicsPatternFilter(

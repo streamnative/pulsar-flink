@@ -85,22 +85,6 @@ trait PulsarTest extends BeforeAndAfterAll with BeforeAndAfterEach with Logging 
     }
   }
 
-  /** Java-friendly function for sending messages to the Pulsar */
-  def sendMessages(topic: String, messageToFreq: JMap[String, JInt]): Unit = {
-    sendMessages(topic, Map(messageToFreq.asScala.mapValues(_.intValue()).toSeq: _*))
-  }
-
-  /** Send the messages to the Pulsar */
-  def sendMessages(topic: String, messageToFreq: Map[String, Int]): Unit = {
-    val messages = messageToFreq.flatMap { case (s, freq) => Seq.fill(freq)(s) }.toArray
-    sendMessages(topic, messages)
-  }
-
-  /** Send the array of messages to the Pulsar */
-  def sendMessages(topic: String, messages: Array[String]): Seq[(String, MessageId)] = {
-    sendMessages(topic, messages, None)
-  }
-
   /** Send the array of messages to the Pulsar using specified partition */
   def sendMessages(
       topic: String,

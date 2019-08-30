@@ -42,11 +42,14 @@ class PulsarTableSourceSinkFactory
     properties: ju.Map[String, String]): StreamTableSource[Row] = {
 
     val dp = getValidatedProperties(properties)
+    val prop = new Properties()
+    prop.putAll(properties)
 
     PulsarTableSource(
-      getPulsarProperties(dp),
+      prop,
       SchemaValidator.deriveProctimeAttribute(dp).asScala,
-      SchemaValidator.deriveRowtimeAttributes(dp).asScala)
+      SchemaValidator.deriveRowtimeAttributes(dp).asScala,
+      Some(dp.getTableSchema(SCHEMA)))
   }
 
   override def createStreamTableSink(

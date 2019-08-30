@@ -18,8 +18,7 @@ import java.util.Properties
 
 import scala.collection.JavaConverters._
 import scala.compat.java8.OptionConverters._
-import org.apache.flink.api.common.typeinfo.TypeInformation
-import org.apache.flink.api.java.typeutils.RowTypeInfo
+
 import org.apache.flink.pulsar.{Logging, PulsarMetadataReader, SchemaUtils, Utils}
 import org.apache.flink.pulsar.SourceSinkUtils.prepareConfForReader
 import org.apache.flink.streaming.api.datastream.DataStream

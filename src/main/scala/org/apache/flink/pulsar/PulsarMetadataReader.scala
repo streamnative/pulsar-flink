@@ -132,13 +132,13 @@ case class PulsarMetadataReader(
   }
 
   def getSchema(objectPath: ObjectPath): TableSchema = {
-    val tp = objectPath2TopicName(objectPath)
+    val tp = Utils.objectPath2TopicName(objectPath)
     val fieldsDataType = getSchema(tp :: Nil)
     SchemaUtils.toTableSchema(fieldsDataType)
   }
 
   def topicExists(objectPath: ObjectPath): Boolean = {
-    val tp = objectPath2TopicName(objectPath)
+    val tp = Utils.objectPath2TopicName(objectPath)
     try {
       admin.topics().getStats(tp)
     } catch {
@@ -149,7 +149,7 @@ case class PulsarMetadataReader(
   }
 
   def deleteTopic(objectPath: ObjectPath): Unit = {
-    val topic = objectPath2TopicName(objectPath)
+    val topic = Utils.objectPath2TopicName(objectPath)
     try {
       val partitions = admin.topics().getPartitionedTopicMetadata(topic).partitions
       if (partitions > 0) {
@@ -165,7 +165,7 @@ case class PulsarMetadataReader(
   }
 
   def createTopic(objectPath: ObjectPath, defaultPartitions: Int, ignoreIfExists: Boolean): Unit = {
-    val topic = objectPath2TopicName(objectPath)
+    val topic = Utils.objectPath2TopicName(objectPath)
     try {
       admin.topics().createPartitionedTopic(topic, defaultPartitions)
     } catch {
@@ -176,14 +176,6 @@ case class PulsarMetadataReader(
         throw new RuntimeException(
           s"Failed to create topic $topic in Pulsar (equivalence to table)", e)
     }
-  }
-
-
-  private def objectPath2TopicName(objectPath: ObjectPath): String = {
-    val ns = NamespaceName.get(objectPath.getDatabaseName)
-    val tp = objectPath.getObjectName
-    val fullName = TopicName.get(TopicDomain.persistent.toString, ns, tp)
-    fullName.toString
   }
 
   def setupCursor(offset: Map[String, MessageId]): Unit = {

@@ -20,14 +20,16 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.compat.java8.OptionConverters._
 
+import org.apache.flink.pulsar.{PulsarOptions, Utils}
 import org.apache.flink.table.api.{TableException, TableSchema}
+import org.apache.flink.table.catalog.{CatalogTable, ObjectPath}
 import org.apache.flink.table.descriptors.{DescriptorProperties, PulsarValidator, SchemaValidator}
 import org.apache.flink.table.descriptors.FormatDescriptorValidator.FORMAT
 import org.apache.flink.table.descriptors.Rowtime.{ROWTIME_TIMESTAMPS_CLASS, ROWTIME_TIMESTAMPS_FROM, ROWTIME_TIMESTAMPS_SERIALIZED, ROWTIME_TIMESTAMPS_TYPE, ROWTIME_WATERMARKS_CLASS, ROWTIME_WATERMARKS_DELAY, ROWTIME_WATERMARKS_SERIALIZED, ROWTIME_WATERMARKS_TYPE}
 import org.apache.flink.table.descriptors.Schema.{SCHEMA, SCHEMA_FROM, SCHEMA_NAME, SCHEMA_PROCTIME, SCHEMA_TYPE}
 import org.apache.flink.table.factories.{StreamTableSinkFactory, StreamTableSourceFactory}
-import org.apache.flink.table.sinks.StreamTableSink
-import org.apache.flink.table.sources.StreamTableSource
+import org.apache.flink.table.sinks.{StreamTableSink, TableSink}
+import org.apache.flink.table.sources.{StreamTableSource, TableSource}
 import org.apache.flink.types.Row
 
 class PulsarTableSourceSinkFactory
@@ -50,6 +52,31 @@ class PulsarTableSourceSinkFactory
       SchemaValidator.deriveProctimeAttribute(dp).asScala,
       SchemaValidator.deriveRowtimeAttributes(dp).asScala,
       Some(dp.getTableSchema(SCHEMA)))
+  }
+
+  override def createTableSource(
+    tablePath: ObjectPath,
+    table: CatalogTable): TableSource[Row] = {
+
+    val topicName = Utils.objectPath2TopicName(tablePath)
+
+    val props = new ju.HashMap[String, String]()
+    props.putAll(table.toProperties)
+    props.put(PulsarOptions.TOPIC_SINGLE, topicName)
+
+    createStreamTableSource(props)
+  }
+
+  override def createTableSink(
+    tablePath: ObjectPath,
+    table: CatalogTable): TableSink[Row] = {
+    val topicName = Utils.objectPath2TopicName(tablePath)
+
+    val props = new ju.HashMap[String, String]()
+    props.putAll(table.toProperties)
+    props.put(PulsarOptions.TOPIC_SINGLE, topicName)
+
+    createStreamTableSink(props)
   }
 
   override def createStreamTableSink(

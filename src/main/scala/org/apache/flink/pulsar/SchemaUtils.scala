@@ -17,8 +17,6 @@ import java.io.{Externalizable, ObjectInput, ObjectOutput}
 import java.nio.charset.StandardCharsets
 import java.nio.charset.StandardCharsets.UTF_8
 
-import org.apache.flink.api.common.typeinfo.TypeInformation
-
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 
@@ -34,7 +32,7 @@ import org.apache.pulsar.client.impl.schema.generic.GenericSchemaImpl
 import org.apache.pulsar.common.naming.TopicName
 import org.apache.pulsar.common.protocol.schema.PostSchemaPayload
 import org.apache.pulsar.common.schema.{SchemaInfo, SchemaType}
-import org.apache.pulsar.shade.org.apache.avro.{LogicalTypes, SchemaBuilder, Schema => ASchema}
+import org.apache.pulsar.shade.org.apache.avro.{LogicalTypes, Schema => ASchema, SchemaBuilder}
 import org.apache.pulsar.shade.org.apache.avro.LogicalTypes.{Date, Decimal, TimestampMicros, TimestampMillis}
 import org.apache.pulsar.shade.org.apache.avro.Schema.Type._
 

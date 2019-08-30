@@ -116,19 +116,19 @@ class CatalogITest extends PulsarFunSuite with PulsarFlinkTest {
     }
   }
 
-  test("test tables") {
+  test("test tables read") {
     import org.apache.flink.pulsar.SchemaData._
 
     val pulsarCatalog1 = "pulsarcatalog1"
 
     val tableName = newTopic()
 
+    sendMessages(tableName, stringSeq.toArray, None)
+
     val context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE)
     val tableEnv = context.createEnvironmentInstance.getTableEnvironment()
 
     tableEnv.useCatalog(pulsarCatalog1)
-
-    sendMessages(tableName, stringSeq.toArray, None)
 
     val t = tableEnv.scan(TopicName.get(tableName).getLocalName).select("value")
 
@@ -142,6 +142,9 @@ class CatalogITest extends PulsarFunSuite with PulsarFlinkTest {
     intercept[Throwable] {
       tableEnv.execute("abc")
     }
+
+    sendMessages(tableName, stringSeq.toArray, None)
+
     assert(StreamITCase.testResults == stringSeq.init)
   }
 

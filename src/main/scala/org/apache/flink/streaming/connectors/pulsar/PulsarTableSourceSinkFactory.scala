@@ -48,7 +48,7 @@ class PulsarTableSourceSinkFactory
     prop.putAll(properties)
 
     PulsarTableSource(
-      prop,
+      prop, // TODO
       SchemaValidator.deriveProctimeAttribute(dp).asScala,
       SchemaValidator.deriveRowtimeAttributes(dp).asScala,
       Some(dp.getTableSchema(SCHEMA)))
@@ -97,9 +97,10 @@ class PulsarTableSourceSinkFactory
 
     PulsarTableSink(
       schema,
-      getPulsarProperties(dp))
+      getPulsarProperties(dp)) // TODO
   }
 
+  // TODO admin.url, service.url is not supported
   private def getPulsarProperties(descriptorProperties: DescriptorProperties) = {
     val pulsarProperties = new Properties
     val propsList = descriptorProperties.getFixedIndexedProperties(

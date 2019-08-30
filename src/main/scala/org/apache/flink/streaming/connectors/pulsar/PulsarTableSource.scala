@@ -52,11 +52,6 @@ case class PulsarTableSource(
   }
 
   lazy val schema = SchemaUtils.toTableSchema(inferredSchema)
-//
-//  lazy val returnType: TypeInformation[Row] =
-//    LegacyTypeInfoDataTypeConverter
-//      .toLegacyTypeInfo(inferredSchema)
-//      .asInstanceOf[TypeInformation[Row]]
 
   override def getDataStream(env: StreamExecutionEnvironment): DataStream[Row] = {
     val source = new FlinkPulsarSource(properties)
@@ -73,9 +68,6 @@ case class PulsarTableSource(
   } else schema
 
   override def getProducedDataType: DataType = getTableSchema().toRowDataType
-//
-//  override def explainSource: String =
-//    TableConnectorUtils.generateRuntimeName(this.getClass, schema.getFieldNames)
 
   /**
    * Validates a field of the schema to be the processing time attribute.

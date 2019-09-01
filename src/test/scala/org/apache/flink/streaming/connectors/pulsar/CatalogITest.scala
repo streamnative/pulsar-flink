@@ -22,7 +22,7 @@ import com.google.common.collect.Sets
 import org.apache.commons.cli.Options
 import org.apache.flink.client.cli.DefaultCLI
 import org.apache.flink.configuration.Configuration
-import org.apache.flink.pulsar.{PulsarFlinkTest, PulsarFunSuite, SchemaUtils, Utils}
+import org.apache.flink.pulsar.{PulsarFlinkTest, PulsarFunSuite, Utils}
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper
 import org.apache.flink.table.api.internal.TableImpl
 import org.apache.flink.table.api.java.StreamTableEnvironment
@@ -200,6 +200,67 @@ class CatalogITest extends PulsarFunSuite with PulsarFlinkTest {
     assert(StreamITCase.testResults === int32Seq.init.map(_.toString))
   }
 
+  test("test table sink") {
+    import org.apache.flink.pulsar.SchemaData._
+
+    val tp = newTopic()
+    val tableName = TopicName.get(tp).getLocalName
+
+    sendTypedMessages[Int](tp, SchemaType.INT32, int32Seq.toArray, None)
+
+    val conf = streamingConfs()
+    conf.put("$VAR_STARTING", "earliest")
+    val context = createExecutionContext(conf, CATALOGS_ENVIRONMENT_FILE_START)
+    val tableEnv = context.createEnvironmentInstance().getTableEnvironment
+
+    tableEnv.useCatalog("pulsarcatalog1")
+
+    val sinkDDL = "create table tableSink(v int)"
+    val insertQ = s"INSERT INTO tableSink SELECT `value` FROM `$tableName`"
+
+    tableEnv.sqlUpdate(sinkDDL)
+    tableEnv.sqlUpdate(insertQ)
+
+    val runner = new Thread("write to table") {
+      override def run(): Unit = {
+        try {
+          tableEnv.execute("write to table")
+        } catch {
+          case t: Throwable => // do nothing
+        }
+      }
+    }
+    runner.start()
+
+
+    val conf1 = streamingConfs()
+    conf1.put("$VAR_STARTING", "earliest")
+    val context1 = createExecutionContext(conf1, CATALOGS_ENVIRONMENT_FILE_START)
+    val tableEnv1 = context1.createEnvironmentInstance().getTableEnvironment
+
+    val t = tableEnv1.scan("tableSink").select("v")
+
+    val tpe = t.getSchema.toRowType
+
+    val stream = t.asInstanceOf[TableImpl].getTableEnvironment.asInstanceOf[StreamTableEnvironment].toAppendStream(t, tpe)
+    stream.map(new FailingIdentityMapper[Row](int32Seq.length))
+
+    stream.addSink(new StreamITCase.StringSink[Row]).setParallelism(1)
+
+    val reader = new Thread("runner") {
+      override def run(): Unit = {
+        try {
+          tableEnv1.execute("read from ealiest")
+        } catch {
+          case t: Throwable => // do nothing
+        }
+      }
+    }
+    runner.start()
+
+    Thread.sleep(2000)
+    assert(StreamITCase.testResults === int32Seq.init.map(_.toString))
+  }
 
   private val topicId = new AtomicInteger(0)
 

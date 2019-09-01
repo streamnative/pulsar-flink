@@ -50,6 +50,7 @@ class PulsarCatalogFactory extends CatalogFactory {
     props.add(CATALOG_SERVICE_URL)
     props.add(CATALOG_ADMIN_URL)
     props.add(CATALOG_STARTING_POS)
+    props.add(CATALOG_DEFAULT_PARTITIONS)
     props
   }
 

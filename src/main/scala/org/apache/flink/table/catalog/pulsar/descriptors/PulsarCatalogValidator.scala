@@ -27,6 +27,7 @@ class PulsarCatalogValidator extends CatalogDescriptorValidator {
     properties.validateString(CATALOG_PULSAR_VERSION, true, 1)
     properties.validateString(CATALOG_SERVICE_URL, false, 1)
     properties.validateString(CATALOG_ADMIN_URL, false, 1)
+    properties.validateInt(CATALOG_DEFAULT_PARTITIONS, true, 1)
     validateStartingOffsets(properties)
   }
 
@@ -47,4 +48,5 @@ object PulsarCatalogValidator {
   val CATALOG_SERVICE_URL = PulsarOptions.SERVICE_URL_OPTION_KEY
   val CATALOG_ADMIN_URL = PulsarOptions.ADMIN_URL_OPTION_KEY
   val CATALOG_STARTING_POS = PulsarOptions.STARTING_OFFSETS_OPTION_KEY
+  val CATALOG_DEFAULT_PARTITIONS = PulsarOptions.NUM_PARTITIONS
 }

@@ -53,7 +53,7 @@ object PulsarOptions {
 
   val POLL_TIMEOUT_MS = "polltimeoutms"
 
-  val NUM_PARTITIONS = "numpartitions"
+  val NUM_PARTITIONS = "table.partitions"
 
   // TODO: Will flink lose data? how does it happen?
   val FAIL_ON_DATA_LOSS_OPTION_KEY = "failondataloss"

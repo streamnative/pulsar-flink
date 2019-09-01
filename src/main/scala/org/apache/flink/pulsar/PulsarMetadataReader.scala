@@ -21,14 +21,14 @@ import java.util.regex.Pattern
 import scala.collection.JavaConverters._
 
 import org.apache.flink.table.api.TableSchema
-import org.apache.flink.table.catalog.ObjectPath
+import org.apache.flink.table.catalog.{CatalogBaseTable, ObjectPath}
 import org.apache.flink.table.types.{DataType, FieldsDataType}
 
 import org.apache.pulsar.client.admin.{PulsarAdmin, PulsarAdminException}
 import org.apache.pulsar.client.admin.PulsarAdminException.NotFoundException
 import org.apache.pulsar.client.api.{MessageId, PulsarClient}
 import org.apache.pulsar.client.impl.schema.BytesSchema
-import org.apache.pulsar.common.naming.{NamespaceName, TopicDomain, TopicName}
+import org.apache.pulsar.common.naming.{NamespaceName, TopicName}
 import org.apache.pulsar.common.schema.SchemaInfo
 
 /**
@@ -176,6 +176,12 @@ case class PulsarMetadataReader(
         throw new RuntimeException(
           s"Failed to create topic $topic in Pulsar (equivalence to table)", e)
     }
+  }
+
+  def putSchema(objectPath: ObjectPath, table: CatalogBaseTable): Unit = {
+    val topic = Utils.objectPath2TopicName(objectPath)
+    val si = SchemaUtils.sqlType2PSchema(table.getSchema.toRowDataType).getSchemaInfo
+    SchemaUtils.uploadPulsarSchema(admin, topic, si)
   }
 
   def setupCursor(offset: Map[String, MessageId]): Unit = {

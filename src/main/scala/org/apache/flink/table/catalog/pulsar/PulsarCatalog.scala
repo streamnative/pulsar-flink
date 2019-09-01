@@ -95,10 +95,10 @@ class PulsarCatalog(
     table: CatalogBaseTable,
     ignoreIfExists: Boolean): Unit = {
 
-    val defaultNumPartitions = table.getProperties.get(PulsarOptions.NUM_PARTITIONS).toInt
-    val defaultNumPartitions2 = properties.get(PulsarOptions.NUM_PARTITIONS).toInt
+    val defaultNumPartitions = properties.getOrDefault(PulsarOptions.NUM_PARTITIONS, "5").toInt
 
     metadataReader.createTopic(tablePath, defaultNumPartitions, ignoreIfExists)
+    metadataReader.putSchema(tablePath, table)
   }
 
   // ------------------------------------------------------------------------

@@ -35,11 +35,13 @@ catalogs:
     type: pulsar
     service.url: "$VAR_SERVICEURL"
     admin.url: "$VAR_ADMINURL"
+    startingOffsets: "$VAR_STARTING"
   - name: pulsarcatalog2
     type: pulsar
     default-database: tn/ns
     service.url: "$VAR_SERVICEURL"
     admin.url: "$VAR_ADMINURL"
+    startingOffsets: "$VAR_STARTING"
   - name: inmemorycatalog
     type: generic_in_memory
     default-database: mydatabase

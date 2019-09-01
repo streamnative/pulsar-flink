@@ -18,13 +18,10 @@ import java.io.File
 import java.net.URL
 import java.util.concurrent.atomic.AtomicInteger
 
-import scala.collection.JavaConverters._
 import com.google.common.collect.Sets
 import org.apache.commons.cli.Options
-import org.apache.flink.api.common.typeinfo.{TypeHint, TypeInformation}
 import org.apache.flink.client.cli.DefaultCLI
 import org.apache.flink.configuration.Configuration
-import org.apache.flink.pulsar.SchemaData.fooSeq
 import org.apache.flink.pulsar.{PulsarFlinkTest, PulsarFunSuite, SchemaUtils, Utils}
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper
 import org.apache.flink.table.api.internal.TableImpl
@@ -34,26 +31,30 @@ import org.apache.flink.table.client.config.Environment
 import org.apache.flink.table.client.gateway.SessionContext
 import org.apache.flink.table.client.gateway.local.ExecutionContext
 import org.apache.flink.table.runtime.utils.StreamITCase
-import org.apache.flink.test.util.TestUtils
 import org.apache.flink.types.Row
 import org.apache.flink.util.FileUtils
 import org.apache.pulsar.client.admin.PulsarAdmin
 import org.apache.pulsar.common.naming.TopicName
 import org.apache.pulsar.common.policies.data.TenantInfo
-import org.json4s.TypeHints
-
-import scala.collection.immutable
+import org.apache.pulsar.common.schema.SchemaType
 
 class CatalogITest extends PulsarFunSuite with PulsarFlinkTest {
 
   val CATALOGS_ENVIRONMENT_FILE = "test-sql-client-pulsar-catalog.yaml"
+  val CATALOGS_ENVIRONMENT_FILE_START = "test-sql-client-pulsar-start-catalog.yaml"
+
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    StreamITCase.testResults.clear()
+    FailingIdentityMapper.failedBefore = false
+  }
 
   test("test catalogs") {
     val inmemoryCatalog = "inmemorycatalog"
     val pulsarCatalog1 = "pulsarcatalog1"
     val pulsarCatalog2 = "pulsarcatalog2"
 
-    val context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE)
+    val context = createExecutionContext(streamingConfs, CATALOGS_ENVIRONMENT_FILE)
     val tableEnv = context.createEnvironmentInstance.getTableEnvironment()
 
     assert(tableEnv.getCurrentCatalog === inmemoryCatalog)
@@ -80,7 +81,7 @@ class CatalogITest extends PulsarFunSuite with PulsarFlinkTest {
     val partitionedTopics = "ptp1" :: "ptp2" :: Nil
     val partitionedTopicsFullName = partitionedTopics.map(a => s"tn1/ns1/$a")
 
-    val context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE)
+    val context = createExecutionContext(streamingConfs, CATALOGS_ENVIRONMENT_FILE)
     val tableEnv = context.createEnvironmentInstance.getTableEnvironment()
 
     tableEnv.useCatalog(pulsarCatalog1)
@@ -116,16 +117,16 @@ class CatalogITest extends PulsarFunSuite with PulsarFlinkTest {
     }
   }
 
-  test("test tables read") {
+  test("test tables read - start from latest by default") {
     import org.apache.flink.pulsar.SchemaData._
 
     val pulsarCatalog1 = "pulsarcatalog1"
 
     val tableName = newTopic()
 
-    sendMessages(tableName, stringSeq.toArray, None)
+    sendTypedMessages[Int](tableName, SchemaType.INT32, int32Seq.toArray, None)
 
-    val context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE)
+    val context = createExecutionContext(streamingConfs, CATALOGS_ENVIRONMENT_FILE)
     val tableEnv = context.createEnvironmentInstance.getTableEnvironment()
 
     tableEnv.useCatalog(pulsarCatalog1)
@@ -135,31 +136,76 @@ class CatalogITest extends PulsarFunSuite with PulsarFlinkTest {
     val tpe = t.getSchema.toRowType
 
     val stream = t.asInstanceOf[TableImpl].getTableEnvironment.asInstanceOf[StreamTableEnvironment].toAppendStream(t, tpe)
-    stream.map(new FailingIdentityMapper[Row](stringSeq.length))
+    stream.map(new FailingIdentityMapper[Row](int32Seq.length))
 
     stream.addSink(new StreamITCase.StringSink[Row]).setParallelism(1)
 
-    intercept[Throwable] {
-      tableEnv.execute("abc")
+    val runner = new Thread("runner") {
+      override def run(): Unit = {
+        try {
+          tableEnv.execute("read from latest")
+        } catch {
+          case t: Throwable => // do nothing
+        }
+      }
     }
+    runner.start()
 
-    sendMessages(tableName, stringSeq.toArray, None)
+    // wait a little while for flink job start and send messages
+    Thread.sleep(2000)
+    sendTypedMessages[Int](tableName, SchemaType.INT32, int32Seq.toArray, None)
 
-    assert(StreamITCase.testResults == stringSeq.init)
+    Thread.sleep(2000)
+    assert(StreamITCase.testResults === int32Seq.init.map(_.toString))
   }
+
+  test("test tables read - start from earliest by conf") {
+    import org.apache.flink.pulsar.SchemaData._
+
+    val pulsarCatalog1 = "pulsarcatalog1"
+
+    val tableName = newTopic()
+
+    sendTypedMessages[Int](tableName, SchemaType.INT32, int32Seq.toArray, None)
+
+    val conf = streamingConfs()
+    conf.put("$VAR_STARTING", "earliest")
+
+    val context = createExecutionContext(conf, CATALOGS_ENVIRONMENT_FILE_START)
+    val tableEnv = context.createEnvironmentInstance.getTableEnvironment()
+
+    tableEnv.useCatalog(pulsarCatalog1)
+
+    val t = tableEnv.scan(TopicName.get(tableName).getLocalName).select("value")
+
+    val tpe = t.getSchema.toRowType
+
+    val stream = t.asInstanceOf[TableImpl].getTableEnvironment.asInstanceOf[StreamTableEnvironment].toAppendStream(t, tpe)
+    stream.map(new FailingIdentityMapper[Row](int32Seq.length))
+
+    stream.addSink(new StreamITCase.StringSink[Row]).setParallelism(1)
+
+    val runner = new Thread("runner") {
+      override def run(): Unit = {
+        try {
+          tableEnv.execute("read from ealiest")
+        } catch {
+          case t: Throwable => // do nothing
+        }
+      }
+    }
+    runner.start()
+
+    Thread.sleep(2000)
+    assert(StreamITCase.testResults === int32Seq.init.map(_.toString))
+  }
+
 
   private val topicId = new AtomicInteger(0)
 
   private def newTopic(): String = TopicName.get(s"topic-${topicId.getAndIncrement()}").toString
 
-  private def createExecutionContext[T](file: String): ExecutionContext[T] = {
-    val replaceVars = new ju.HashMap[String, String]
-    replaceVars.put("$VAR_EXECUTION_TYPE", "streaming")
-    replaceVars.put("$VAR_RESULT_MODE", "changelog")
-    replaceVars.put("$VAR_UPDATE_MODE", "update-mode: append")
-    replaceVars.put("$VAR_MAX_ROWS", "100")
-    replaceVars.put("$VAR_SERVICEURL", serviceUrl)
-    replaceVars.put("$VAR_ADMINURL", adminUrl)
+  private def createExecutionContext[T](replaceVars: ju.HashMap[String, String], file: String): ExecutionContext[T] = {
     val env = EnvironmentFileUtil.parseModified(file, replaceVars)
 
     val session = new SessionContext("test-session", new Environment)
@@ -171,6 +217,17 @@ class CatalogITest extends PulsarFunSuite with PulsarFlinkTest {
       flinkConfig,
       new Options(),
       ju.Collections.singletonList(new DefaultCLI(flinkConfig)))
+  }
+
+  private def streamingConfs(): ju.HashMap[String, String]  = {
+    val replaceVars = new ju.HashMap[String, String]
+    replaceVars.put("$VAR_EXECUTION_TYPE", "streaming")
+    replaceVars.put("$VAR_RESULT_MODE", "changelog")
+    replaceVars.put("$VAR_UPDATE_MODE", "update-mode: append")
+    replaceVars.put("$VAR_MAX_ROWS", "100")
+    replaceVars.put("$VAR_SERVICEURL", serviceUrl)
+    replaceVars.put("$VAR_ADMINURL", adminUrl)
+    replaceVars
   }
 }
 

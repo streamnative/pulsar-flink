@@ -20,9 +20,9 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import com.google.common.collect.Sets
 import org.apache.commons.cli.Options
+
 import org.apache.flink.client.cli.DefaultCLI
 import org.apache.flink.configuration.Configuration
-import org.apache.flink.pulsar.PulsarFunSuite
 import org.apache.flink.streaming.connectors.pulsar.internal.Utils
 import org.apache.flink.streaming.connectors.pulsar.internals.{PulsarFlinkTest, PulsarFunSuite}
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper

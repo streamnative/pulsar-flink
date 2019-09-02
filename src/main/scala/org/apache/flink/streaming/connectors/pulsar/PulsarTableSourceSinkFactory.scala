@@ -47,10 +47,14 @@ case class PulsarTableSourceSinkFactory(catalogProperties: Properties)
 
     val dp = getValidatedProperties(properties)
 
-    val sourceProperties = new Properties()
-    sourceProperties.putAll(catalogProperties)
-    sourceProperties.put(
-      PulsarOptions.TOPIC_SINGLE, properties.get(PulsarOptions.TOPIC_SINGLE))
+    val sourceProperties = if (isInPulsarCatalog) {
+      val prop = new Properties()
+      prop.putAll(catalogProperties)
+      prop.put(PulsarOptions.TOPIC_SINGLE, properties.get(PulsarOptions.TOPIC_SINGLE))
+      prop
+    } else {
+      getPulsarProperties(dp)
+    }
 
     PulsarTableSource(
       sourceProperties,
@@ -100,18 +104,21 @@ case class PulsarTableSourceSinkFactory(catalogProperties: Properties)
      throw new TableException("Time attributes and custom field mappings are not supported yet.")
     }
 
-    val sinkProperties = new Properties()
-    sinkProperties.putAll(catalogProperties)
-    sinkProperties.put(
-      PulsarOptions.TOPIC_SINGLE, properties.get(PulsarOptions.TOPIC_SINGLE))
+    val sinkProperties = if (isInPulsarCatalog) {
+      val prop = new Properties()
+      prop.putAll(catalogProperties)
+      prop.put(PulsarOptions.TOPIC_SINGLE, properties.get(PulsarOptions.TOPIC_SINGLE))
+      prop
+    } else {
+      getPulsarProperties(dp)
+    }
 
     PulsarTableSink(
       schema,
       sinkProperties)
   }
 
-  // TODO admin.url, service.url is not supported
-  private def getPulsarProperties(descriptorProperties: DescriptorProperties) = {
+  private def getPulsarProperties(descriptorProperties: DescriptorProperties): Properties = {
     val pulsarProperties = new Properties
     val propsList = descriptorProperties.getFixedIndexedProperties(
       CONNECTOR_PROPERTIES,
@@ -182,4 +189,6 @@ case class PulsarTableSourceSinkFactory(catalogProperties: Properties)
     fieldMapping.size != schema.getFieldNames.length ||
       !fieldMapping.asScala.filterNot { case (k, v) => k == v }.isEmpty
   }
+
+  private val isInPulsarCatalog: Boolean = catalogProperties.size() != 0
 }

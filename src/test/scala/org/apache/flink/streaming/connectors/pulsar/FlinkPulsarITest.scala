@@ -18,7 +18,6 @@ import java.util.concurrent.atomic.{AtomicInteger, AtomicReference}
 
 import org.apache.flink.api.common.JobExecutionResult
 import org.apache.flink.streaming.api.environment.{StreamExecutionEnvironment => JavaEnv}
-import org.apache.flink.streaming.api.datastream.{DataStream => JavaStream}
 
 import scala.collection.mutable
 import scala.collection.JavaConverters._
@@ -27,7 +26,6 @@ import org.apache.flink.api.common.restartstrategy.RestartStrategies
 import org.apache.flink.api.common.typeinfo.{BasicTypeInfo, TypeHint, TypeInformation}
 import org.apache.flink.api.dag.Transformation
 import org.apache.flink.configuration.Configuration
-import org.apache.flink.pulsar.{JsonUtils, PulsarFunSuite, SourceSinkUtils}
 import org.apache.flink.runtime.client.JobCancellationException
 import org.apache.flink.runtime.jobgraph.JobStatus
 import org.apache.flink.shaded.guava18.com.google.common.collect.Iterables

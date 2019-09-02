@@ -18,7 +18,6 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import scala.collection.mutable
 import org.apache.flink.api.common.typeinfo.TypeInformation
-import org.apache.flink.pulsar.PulsarFunSuite
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.flink.streaming.connectors.pulsar.internals.{PulsarFlinkTest, PulsarFunSuite}

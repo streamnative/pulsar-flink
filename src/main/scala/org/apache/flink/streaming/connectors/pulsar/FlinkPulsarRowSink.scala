@@ -155,9 +155,10 @@ class FlinkPulsarRowSink(
       if (values.size == 1) {
         valuesNameAndType(0)._2
       } else {
-        rowFields.filterNot(f => PulsarOptions)
-
-        val fields = valuesNameAndType.map { case (n, t) => DataTypes.FIELD(n, t) }
+        val fields = rowFields.filterNot(f => META_FIELD_NAMES.contains(f.getName)).map { case f =>
+          val fieldName = f.getName
+          DataTypes.FIELD(fieldName, fdtm.get(fieldName))
+        }
         DataTypes.ROW(fields: _*)
       }
 

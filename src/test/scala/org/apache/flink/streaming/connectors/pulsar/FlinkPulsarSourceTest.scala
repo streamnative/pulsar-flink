@@ -22,7 +22,6 @@ import org.apache.flink.api.common.state.{ListState, ListStateDescriptor, MapSta
 import org.apache.flink.api.java.tuple.{Tuple, Tuple2}
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.core.testutils.{CheckedThread, OneShotLatch}
-import org.apache.flink.pulsar.ClosedException
 import org.apache.flink.runtime.checkpoint.OperatorSubtaskState
 import org.apache.flink.runtime.state.{FunctionInitializationContext, StateSnapshotContextSynchronousImpl}
 import org.apache.flink.streaming.api.TimeCharacteristic

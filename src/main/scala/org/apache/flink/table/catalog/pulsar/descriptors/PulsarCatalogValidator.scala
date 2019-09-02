@@ -13,7 +13,7 @@
  */
 package org.apache.flink.table.catalog.pulsar.descriptors
 
-import org.apache.flink.pulsar.PulsarOptions
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions
 import org.apache.flink.table.api.ValidationException
 import org.apache.flink.table.descriptors.{CatalogDescriptorValidator, DescriptorProperties}
 

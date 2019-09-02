@@ -11,10 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.pulsar
-
-import scala.collection.JavaConverters._
-import org.scalatest.time.SpanSugar._
+package org.apache.flink.streaming.connectors.pulsar.internals
 
 import org.apache.flink.api.common.JobID
 import org.apache.flink.client.program.ClusterClient
@@ -22,6 +19,9 @@ import org.apache.flink.configuration.{AkkaOptions, ConfigConstants, Configurati
 import org.apache.flink.metrics.jmx.JMXReporter
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration
 import org.apache.flink.test.util.MiniClusterWithClientResource
+import org.scalatest.time.SpanSugar._
+
+import scala.collection.JavaConverters._
 
 trait PulsarFlinkTest extends PulsarTest {
   self: PulsarFunSuite =>

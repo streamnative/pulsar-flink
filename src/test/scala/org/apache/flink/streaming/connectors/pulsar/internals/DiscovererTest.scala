@@ -13,7 +13,7 @@
  */
 package org.apache.flink.streaming.connectors.pulsar.internals
 
-import org.apache.flink.pulsar.{PulsarFunSuite, PulsarMetadataReader}
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader
 import org.scalatest.mockito.MockitoSugar
 import org.mockito.Mockito._
 import org.mockito.ArgumentMatchers._

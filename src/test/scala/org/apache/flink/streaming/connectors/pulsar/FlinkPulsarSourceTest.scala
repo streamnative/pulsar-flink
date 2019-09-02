@@ -22,7 +22,7 @@ import org.apache.flink.api.common.state.{ListState, ListStateDescriptor, MapSta
 import org.apache.flink.api.java.tuple.{Tuple, Tuple2}
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.core.testutils.{CheckedThread, OneShotLatch}
-import org.apache.flink.pulsar.{ClosedException, PulsarFunSuite, PulsarMetadataReader}
+import org.apache.flink.pulsar.ClosedException
 import org.apache.flink.runtime.checkpoint.OperatorSubtaskState
 import org.apache.flink.runtime.state.{FunctionInitializationContext, StateSnapshotContextSynchronousImpl}
 import org.apache.flink.streaming.api.TimeCharacteristic
@@ -30,8 +30,8 @@ import org.apache.flink.streaming.api.functions.source.SourceFunction
 import org.apache.flink.streaming.api.functions.source.SourceFunction.SourceContext
 import org.apache.flink.streaming.api.functions.{AssignerWithPeriodicWatermarks, AssignerWithPunctuatedWatermarks}
 import org.apache.flink.streaming.api.operators.{StreamSource, StreamingRuntimeContext}
-import org.apache.flink.streaming.connectors.pulsar.internal.{PulsarCommitCallback, PulsarFetcher}
-import org.apache.flink.streaming.connectors.pulsar.internals.TestMetadataReader
+import org.apache.flink.streaming.connectors.pulsar.internal.{ClosedException, PulsarCommitCallback, PulsarFetcher, PulsarMetadataReader}
+import org.apache.flink.streaming.connectors.pulsar.internals.{PulsarFunSuite, TestMetadataReader}
 import org.apache.flink.streaming.connectors.pulsar.testutils.TestSourceContext
 import org.apache.flink.streaming.runtime.tasks.{ProcessingTimeService, TestProcessingTimeService}
 import org.apache.flink.streaming.util.{AbstractStreamOperatorTestHarness, MockStreamingRuntimeContext}

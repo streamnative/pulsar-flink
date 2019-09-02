@@ -31,13 +31,12 @@ import org.apache.flink.api.java.tuple.Tuple2
 import org.apache.flink.api.java.typeutils.ResultTypeQueryable
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.metrics.Counter
-import org.apache.flink.pulsar.{CachedPulsarClient, ClosedException, LatestOffset, Logging, PulsarMetadataReader, SourceSinkUtils, Utils}
 import org.apache.flink.runtime.state.{CheckpointListener, FunctionInitializationContext, FunctionSnapshotContext}
 import org.apache.flink.streaming.api.checkpoint.CheckpointedFunction
 import org.apache.flink.streaming.api.functions.{AssignerWithPeriodicWatermarks, AssignerWithPunctuatedWatermarks}
 import org.apache.flink.streaming.api.functions.source.{RichParallelSourceFunction, SourceFunction}
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext
-import org.apache.flink.streaming.connectors.pulsar.internal.{PulsarCommitCallback, PulsarFetcher}
+import org.apache.flink.streaming.connectors.pulsar.internal.{CachedPulsarClient, ClosedException, LatestOffset, Logging, PulsarCommitCallback, PulsarFetcher, PulsarMetadataReader, SourceSinkUtils, Utils}
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService
 import org.apache.flink.table.types.utils.LegacyTypeInfoDataTypeConverter
 import org.apache.flink.types.Row
@@ -53,8 +52,8 @@ class FlinkPulsarSource(val parameters: Properties)
   with CheckpointedFunction
   with Logging {
 
-  import org.apache.flink.pulsar.SourceSinkUtils._
-  import org.apache.flink.pulsar.PulsarOptions._
+  import org.apache.flink.streaming.connectors.pulsar.internal.SourceSinkUtils._
+  import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions._
   import org.apache.flink.streaming.connectors.pulsar.internal.metrics.PulsarSourceMetrics._
 
   // ------------------------------------------------------------------------

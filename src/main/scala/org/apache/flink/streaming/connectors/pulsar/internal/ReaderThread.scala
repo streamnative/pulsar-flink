@@ -16,9 +16,6 @@ package org.apache.flink.streaming.connectors.pulsar.internal
 import java.{util => ju}
 import java.util.concurrent.TimeUnit
 
-import org.apache.flink.pulsar.{CachedPulsarClient, JSONOptionsInRead, Logging, PulsarDeserializer, SchemaUtils}
-import org.apache.flink.pulsar.PulsarOptions.INSTRUCTION_FOR_FAIL_ON_DATA_LOSS_TRUE
-
 import org.apache.pulsar.client.api.{Message, MessageId, Reader, Schema}
 import org.apache.pulsar.client.impl.{BatchMessageIdImpl, MessageIdImpl}
 import org.apache.pulsar.common.schema.SchemaInfo
@@ -34,7 +31,7 @@ class ReaderThread(
     exceptionProxy: ExceptionProxy)
     extends Thread with Logging {
 
-  import org.apache.flink.pulsar.SourceSinkUtils._
+  import SourceSinkUtils._
 
   val topic = state.topic
   val startingOffsets = state.offset
@@ -131,6 +128,7 @@ class ReaderThread(
   def reportDataLoss(message: String): Unit = {
     running = false
     exceptionProxy.reportError(
-      new IllegalStateException(message + s". $INSTRUCTION_FOR_FAIL_ON_DATA_LOSS_TRUE"))
+      new IllegalStateException(
+        s"$message. ${PulsarOptions.INSTRUCTION_FOR_FAIL_ON_DATA_LOSS_TRUE}"))
   }
 }

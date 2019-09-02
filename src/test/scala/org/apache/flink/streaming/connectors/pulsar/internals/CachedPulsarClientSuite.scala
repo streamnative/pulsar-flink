@@ -11,17 +11,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.pulsar
+package org.apache.flink.streaming.connectors.pulsar.internals
 
-import java.{util => ju}
 import java.util.concurrent.ConcurrentMap
+import java.{util => ju}
 
+import org.apache.flink.streaming.connectors.pulsar.internal.CachedPulsarClient
 import org.apache.pulsar.client.api.PulsarClient
 import org.scalatest.PrivateMethodTester
 
 class CachedPulsarClientSuite extends PulsarFunSuite with PrivateMethodTester with PulsarTest {
 
-  import PulsarOptions._
+  import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions._
 
   type KP = PulsarClient
 

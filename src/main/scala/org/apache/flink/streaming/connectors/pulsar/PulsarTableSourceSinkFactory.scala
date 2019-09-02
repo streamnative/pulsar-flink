@@ -20,7 +20,7 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.compat.java8.OptionConverters._
 
-import org.apache.flink.pulsar.{PulsarOptions, Utils}
+import org.apache.flink.streaming.connectors.pulsar.internal.{PulsarOptions, Utils}
 import org.apache.flink.table.api.{TableException, TableSchema}
 import org.apache.flink.table.catalog.{CatalogTable, ObjectPath}
 import org.apache.flink.table.descriptors.{DescriptorProperties, PulsarValidator, SchemaValidator}
@@ -32,7 +32,7 @@ import org.apache.flink.table.sinks.{StreamTableSink, TableSink}
 import org.apache.flink.table.sources.{StreamTableSource, TableSource}
 import org.apache.flink.types.Row
 
-class PulsarTableSourceSinkFactory
+case class PulsarTableSourceSinkFactory(catalogProperties: Properties)
     extends StreamTableSourceFactory[Row]
     with StreamTableSinkFactory[Row] {
 
@@ -40,15 +40,20 @@ class PulsarTableSourceSinkFactory
   import org.apache.flink.table.descriptors.StreamTableDescriptorValidator._
   import org.apache.flink.table.descriptors.ConnectorDescriptorValidator._
 
+  def this() = this(new Properties())
+
   override def createStreamTableSource(
     properties: ju.Map[String, String]): StreamTableSource[Row] = {
 
     val dp = getValidatedProperties(properties)
-    val prop = new Properties()
-    prop.putAll(properties)
+
+    val sourceProperties = new Properties()
+    sourceProperties.putAll(catalogProperties)
+    sourceProperties.put(
+      PulsarOptions.TOPIC_SINGLE, properties.get(PulsarOptions.TOPIC_SINGLE))
 
     PulsarTableSource(
-      prop, // TODO
+      sourceProperties,
       SchemaValidator.deriveProctimeAttribute(dp).asScala,
       SchemaValidator.deriveRowtimeAttributes(dp).asScala,
       Some(dp.getTableSchema(SCHEMA)))
@@ -95,9 +100,14 @@ class PulsarTableSourceSinkFactory
      throw new TableException("Time attributes and custom field mappings are not supported yet.")
     }
 
+    val sinkProperties = new Properties()
+    sinkProperties.putAll(catalogProperties)
+    sinkProperties.put(
+      PulsarOptions.TOPIC_SINGLE, properties.get(PulsarOptions.TOPIC_SINGLE))
+
     PulsarTableSink(
       schema,
-      getPulsarProperties(dp)) // TODO
+      sinkProperties)
   }
 
   // TODO admin.url, service.url is not supported

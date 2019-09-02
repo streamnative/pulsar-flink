@@ -14,12 +14,12 @@
 package org.apache.flink.table.catalog.pulsar
 
 import java.{util => ju}
-import java.util.Optional
+import java.util.{Optional, Properties}
 
 import scala.collection.JavaConverters._
 
-import org.apache.flink.pulsar.{PulsarMetadataReader, PulsarOptions}
 import org.apache.flink.streaming.connectors.pulsar.PulsarTableSourceSinkFactory
+import org.apache.flink.streaming.connectors.pulsar.internal.{PulsarMetadataReader, PulsarOptions}
 import org.apache.flink.table.catalog.{AbstractCatalog, CatalogBaseTable, CatalogDatabase, CatalogDatabaseImpl, CatalogFunction, CatalogPartition, CatalogPartitionSpec, CatalogTableImpl, ObjectPath}
 import org.apache.flink.table.catalog.stats.{CatalogColumnStatistics, CatalogTableStatistics}
 import org.apache.flink.table.factories.TableFactory
@@ -32,7 +32,9 @@ class PulsarCatalog(
   extends AbstractCatalog(catalogName, defaultDatabase) {
 
   override def getTableFactory: Optional[TableFactory] = {
-    Optional.of(new PulsarTableSourceSinkFactory)
+    val props = new Properties()
+    props.putAll(properties)
+    Optional.of(new PulsarTableSourceSinkFactory(props))
   }
 
   private var metadataReader: PulsarMetadataReader = null

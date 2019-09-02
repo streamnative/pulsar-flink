@@ -11,9 +11,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.pulsar
+package org.apache.flink.streaming.connectors.pulsar.internal
 
-import java.math.BigDecimal
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
 import java.sql.Timestamp
@@ -22,7 +21,6 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
 
 import org.apache.flink.table.api.DataTypes
-import org.apache.flink.table.dataformat.Decimal
 import org.apache.flink.table.types.{CollectionDataType, DataType, FieldsDataType, KeyValueDataType}
 import org.apache.flink.table.types.logical.{DecimalType, LogicalTypeRoot => LTR, RowType}
 import org.apache.flink.types.Row

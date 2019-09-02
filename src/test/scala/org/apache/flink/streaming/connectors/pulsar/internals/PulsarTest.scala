@@ -11,32 +11,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.pulsar
+package org.apache.flink.streaming.connectors.pulsar.internals
 
-import java.lang.{Integer => JInt}
 import java.nio.charset.StandardCharsets
 import java.nio.charset.StandardCharsets.UTF_8
-import java.util.{Map => JMap}
 
-import scala.collection.JavaConverters._
-import scala.reflect.ClassTag
 import com.google.common.collect.Sets
 import io.streamnative.tests.pulsar.service.{PulsarService, PulsarServiceFactory, PulsarServiceSpec}
-import org.scalatest.concurrent.Eventually.{eventually, timeout}
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+import org.apache.flink.streaming.connectors.pulsar.internal.{CachedPulsarClient, Logging, SourceSinkUtils, Utils}
 import org.apache.pulsar.client.admin.{PulsarAdmin, PulsarAdminException}
 import org.apache.pulsar.client.api.{MessageId, Producer, PulsarClient, Schema}
 import org.apache.pulsar.client.impl.MessageIdImpl
 import org.apache.pulsar.common.naming.TopicName
 import org.apache.pulsar.common.protocol.schema.PostSchemaPayload
 import org.apache.pulsar.common.schema.{SchemaInfo, SchemaType}
+import org.scalatest.concurrent.Eventually.{eventually, timeout}
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+
+import scala.collection.JavaConverters._
+import scala.reflect.ClassTag
 
 /**
  * A trait to clean cached Pulsar producers in `afterAll`
  */
 trait PulsarTest extends BeforeAndAfterAll with BeforeAndAfterEach with Logging {
   self: PulsarFunSuite =>
-  import PulsarOptions._
+  import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions._
 
   var pulsarService: PulsarService = _
   var serviceUrl: String = _

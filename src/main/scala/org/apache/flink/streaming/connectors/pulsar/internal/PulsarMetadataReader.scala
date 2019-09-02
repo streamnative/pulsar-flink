@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.pulsar
+package org.apache.flink.streaming.connectors.pulsar.internal
 
 import java.{util => ju}
 import java.io.Closeable
@@ -140,7 +140,9 @@ case class PulsarMetadataReader(
   def topicExists(objectPath: ObjectPath): Boolean = {
     val tp = Utils.objectPath2TopicName(objectPath)
     try {
-      admin.topics().getStats(tp)
+      val partition = admin.topics().getPartitionedTopicMetadata(tp).partitions
+      if (partition > 1) return true
+      else admin.topics().getStats(tp)
     } catch {
       case e: Throwable =>
         return false

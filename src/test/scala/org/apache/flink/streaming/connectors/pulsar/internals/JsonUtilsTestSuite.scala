@@ -11,12 +11,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.pulsar
+package org.apache.flink.streaming.connectors.pulsar.internals
 
-import org.scalatest.BeforeAndAfterEach
-
+import org.apache.flink.streaming.connectors.pulsar.internal.JsonUtils
 import org.apache.pulsar.client.api.MessageId
 import org.apache.pulsar.client.impl.{BatchMessageIdImpl, MessageIdImpl}
+import org.scalatest.BeforeAndAfterEach
 
 class JsonUtilsTestSuite extends PulsarFunSuite with BeforeAndAfterEach {
 

@@ -19,10 +19,10 @@ import java.util.Properties
 import scala.collection.JavaConverters._
 import scala.compat.java8.OptionConverters._
 
-import org.apache.flink.pulsar.{Logging, PulsarMetadataReader, SchemaUtils, Utils}
-import org.apache.flink.pulsar.SourceSinkUtils.prepareConfForReader
 import org.apache.flink.streaming.api.datastream.DataStream
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment
+import org.apache.flink.streaming.connectors.pulsar.internal.{Logging, PulsarMetadataReader, SchemaUtils, Utils}
+import org.apache.flink.streaming.connectors.pulsar.internal.SourceSinkUtils.prepareConfForReader
 import org.apache.flink.table.api.{TableSchema, Types, ValidationException}
 import org.apache.flink.table.sources.{DefinedProctimeAttribute, DefinedRowtimeAttributes, RowtimeAttributeDescriptor, StreamTableSource}
 import org.apache.flink.table.types.DataType

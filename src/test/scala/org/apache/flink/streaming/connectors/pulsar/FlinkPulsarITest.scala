@@ -27,7 +27,7 @@ import org.apache.flink.api.common.restartstrategy.RestartStrategies
 import org.apache.flink.api.common.typeinfo.{BasicTypeInfo, TypeHint, TypeInformation}
 import org.apache.flink.api.dag.Transformation
 import org.apache.flink.configuration.Configuration
-import org.apache.flink.pulsar.{CachedPulsarClient, JsonUtils, PulsarFlinkTest, PulsarFunSuite, SourceSinkUtils}
+import org.apache.flink.pulsar.{JsonUtils, PulsarFunSuite, SourceSinkUtils}
 import org.apache.flink.runtime.client.JobCancellationException
 import org.apache.flink.runtime.jobgraph.JobStatus
 import org.apache.flink.shaded.guava18.com.google.common.collect.Iterables
@@ -36,6 +36,8 @@ import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironm
 import org.apache.flink.streaming.api.functions.source.{RichParallelSourceFunction, SourceFunction}
 import org.apache.flink.streaming.api.graph.{StreamGraph, StreamingJobGraphGenerator}
 import org.apache.flink.streaming.api.operators.StreamSink
+import org.apache.flink.streaming.connectors.pulsar.internal.{CachedPulsarClient, JsonUtils, SourceSinkUtils}
+import org.apache.flink.streaming.connectors.pulsar.internals.{PulsarFlinkTest, PulsarFunSuite}
 import org.apache.flink.streaming.connectors.pulsar.testutils.{FailingIdentityMapper, ValidatingExactlyOnceSink}
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord
 import org.apache.flink.streaming.util.OneInputStreamOperatorTestHarness
@@ -51,7 +53,7 @@ import org.apache.pulsar.common.schema.SchemaType
 
 class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
 
-  import org.apache.flink.pulsar.PulsarOptions._
+  import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions._
 
   test("run failed on wrong service url") {
     val props = sourceProperties()

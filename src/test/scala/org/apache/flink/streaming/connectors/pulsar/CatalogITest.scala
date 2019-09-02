@@ -22,7 +22,9 @@ import com.google.common.collect.Sets
 import org.apache.commons.cli.Options
 import org.apache.flink.client.cli.DefaultCLI
 import org.apache.flink.configuration.Configuration
-import org.apache.flink.pulsar.{PulsarFlinkTest, PulsarFunSuite, Utils}
+import org.apache.flink.pulsar.PulsarFunSuite
+import org.apache.flink.streaming.connectors.pulsar.internal.Utils
+import org.apache.flink.streaming.connectors.pulsar.internals.{PulsarFlinkTest, PulsarFunSuite}
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper
 import org.apache.flink.table.api.internal.TableImpl
 import org.apache.flink.table.api.java.StreamTableEnvironment
@@ -118,7 +120,7 @@ class CatalogITest extends PulsarFunSuite with PulsarFlinkTest {
   }
 
   test("test tables read - start from latest by default") {
-    import org.apache.flink.pulsar.SchemaData._
+    import org.apache.flink.streaming.connectors.pulsar.internals.SchemaData._
 
     val pulsarCatalog1 = "pulsarcatalog1"
 
@@ -160,7 +162,7 @@ class CatalogITest extends PulsarFunSuite with PulsarFlinkTest {
   }
 
   test("test tables read - start from earliest by conf") {
-    import org.apache.flink.pulsar.SchemaData._
+    import org.apache.flink.streaming.connectors.pulsar.internals.SchemaData._
 
     val pulsarCatalog1 = "pulsarcatalog1"
 
@@ -201,7 +203,7 @@ class CatalogITest extends PulsarFunSuite with PulsarFlinkTest {
   }
 
   test("test table sink") {
-    import org.apache.flink.pulsar.SchemaData._
+    import org.apache.flink.streaming.connectors.pulsar.internals.SchemaData._
 
     val tp = newTopic()
     val tableName = TopicName.get(tp).getLocalName
@@ -216,7 +218,7 @@ class CatalogITest extends PulsarFunSuite with PulsarFlinkTest {
     tableEnv.useCatalog("pulsarcatalog1")
 
     val sinkDDL = "create table tableSink(v int)"
-    val insertQ = s"INSERT INTO tableSink SELECT `value` FROM `$tableName`"
+    val insertQ = s"INSERT INTO tableSink SELECT * FROM `$tableName`"
 
     tableEnv.sqlUpdate(sinkDDL)
     tableEnv.sqlUpdate(insertQ)
@@ -232,11 +234,12 @@ class CatalogITest extends PulsarFunSuite with PulsarFlinkTest {
     }
     runner.start()
 
-
     val conf1 = streamingConfs()
     conf1.put("$VAR_STARTING", "earliest")
     val context1 = createExecutionContext(conf1, CATALOGS_ENVIRONMENT_FILE_START)
     val tableEnv1 = context1.createEnvironmentInstance().getTableEnvironment
+
+    tableEnv1.useCatalog("pulsarcatalog1")
 
     val t = tableEnv1.scan("tableSink").select("v")
 
@@ -256,9 +259,9 @@ class CatalogITest extends PulsarFunSuite with PulsarFlinkTest {
         }
       }
     }
-    runner.start()
+    reader.start()
 
-    Thread.sleep(2000)
+    reader.join()
     assert(StreamITCase.testResults === int32Seq.init.map(_.toString))
   }
 

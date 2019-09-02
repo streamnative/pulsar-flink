@@ -56,11 +56,13 @@ case class PulsarTableSourceSinkFactory(catalogProperties: Properties)
       getPulsarProperties(dp)
     }
 
+    val schema = if (isInPulsarCatalog) Some(dp.getTableSchema(SCHEMA)) else None
+
     PulsarTableSource(
       sourceProperties,
       SchemaValidator.deriveProctimeAttribute(dp).asScala,
       SchemaValidator.deriveRowtimeAttributes(dp).asScala,
-      Some(dp.getTableSchema(SCHEMA)))
+      schema)
   }
 
   override def createTableSource(

@@ -15,6 +15,7 @@ package org.apache.flink.streaming.connectors.pulsar.internals
 
 import java.nio.charset.StandardCharsets
 import java.nio.charset.StandardCharsets.UTF_8
+import java.util.UUID
 
 import com.google.common.collect.Sets
 import io.streamnative.tests.pulsar.service.{PulsarService, PulsarServiceFactory, PulsarServiceSpec}
@@ -45,7 +46,7 @@ trait PulsarTest extends BeforeAndAfterAll with BeforeAndAfterEach with Logging 
   override def beforeAll(): Unit = {
     val spec: PulsarServiceSpec = PulsarServiceSpec
       .builder()
-      .clusterName("standalone")
+      .clusterName(s"standalone-${UUID.randomUUID()}")
       .enableContainerLogging(false)
       .build()
 

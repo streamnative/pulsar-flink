@@ -109,6 +109,25 @@ $ ./bin/start-scala-shell.sh remote <hostname> <portnumber>
 ```
 For more information about **submitting applications with CLI**, see [Command-Line Interface](https://ci.apache.org/projects/flink/flink-docs-release-1.9/ops/cli.html).
 
+
+#### SQL Client
+For playing with [SQL Client Beta](https://ci.apache.org/projects/flink/flink-docs-release-1.9/dev/table/sqlClient.html) and write queries in the SQL language to manipulate data in Pulsar, you can use `--jar` to add `pulsar-flink-connector_{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar` directly.
+
+Example
+```
+$ ./bin/sql-client.sh embedded --jar pulsar-flink-connector_{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar
+```
+By default, the SQL Client will read its configuration from the environment file located in `./conf/sql-client-defaults.yaml`, in order to use Pulsar catalog in SQL Client and get it registered automatically on startup, you should add Pulsar catalog in YAML `catalogs` section:
+
+```yaml
+catalogs:
+- name: pulsarcatalog
+    type: pulsar
+    default-database: tn/ns
+    service.url: "pulsar://localhost:6650"
+    admin.url: "http://localhost:8080"
+```
+
 ## Usage
 
 ### Read data from Pulsar
@@ -454,6 +473,23 @@ Example
 
 For possible Pulsar parameters, see
 [Pulsar client libraries](https://pulsar.apache.org/docs/en/client-libraries/).
+
+### Use Pulsar Catalog
+
+Flink will always search for tables, views, and UDF’s in the current catalog and database. To use Pulsar catalog and treat topics in Pulsar as tables in Flink, you should use `pulsarcatalog` we have defined in `./conf/sql-client-defaults.yaml`.
+
+```scala
+tableEnv.useCatalog("pulsarcatalog")
+tableEnv.useDatabase("public/default")
+tableEnv.scan("topic0")
+```
+
+```SQL
+Flink SQL> USE CATALOG pulsarcatalog;
+Flink SQL> USE `public/default`;
+Flink SQL> select * from topic0;
+```
+
 
 ## Build Pulsar Flink Connector
 If you want to build a Pulsar Flink connector reading data from Pulsar and writing results to Pulsar, follow the steps below.

@@ -14,7 +14,6 @@
 package org.apache.flink.streaming.connectors.pulsar.internals
 
 import org.apache.flink.core.testutils.{CheckedThread, OneShotLatch}
-import org.apache.flink.pulsar.PulsarFunSuite
 import org.apache.flink.streaming.api.functions.source.SourceFunction.SourceContext
 import org.apache.flink.streaming.api.functions.{AssignerWithPeriodicWatermarks, AssignerWithPunctuatedWatermarks}
 import org.apache.flink.streaming.api.watermark.Watermark

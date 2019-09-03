@@ -17,9 +17,9 @@ import java.util.Properties
 
 import scala.collection.JavaConverters._
 
-import org.apache.flink.pulsar.{DateTimeUtils, PulsarSerializer, SchemaUtils}
-import org.apache.flink.pulsar.PulsarOptions._
 import org.apache.flink.streaming.api.functions.sink.SinkFunction
+import org.apache.flink.streaming.connectors.pulsar.internal.{DateTimeUtils, PulsarSerializer, SchemaUtils}
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions._
 import org.apache.flink.table.api.DataTypes
 import org.apache.flink.table.types.{DataType, FieldsDataType}
 import org.apache.flink.table.types.logical.{LogicalTypeRoot => LTR, RowType}
@@ -123,7 +123,7 @@ class FlinkPulsarRowSink(
     // key
     name2tpe.get(KEY_ATTRIBUTE_NAME) match {
       case Some(t) =>
-        if (t._1 == LTR.VARCHAR) {
+        if (t._1 == LTR.VARBINARY) {
           metas(1) = t._2
         } else {
           throw new IllegalStateException(
@@ -155,7 +155,10 @@ class FlinkPulsarRowSink(
       if (values.size == 1) {
         valuesNameAndType(0)._2
       } else {
-        val fields = valuesNameAndType.map { case (n, t) => DataTypes.FIELD(n, t) }
+        val fields = rowFields.filterNot(f => META_FIELD_NAMES.contains(f.getName)).map { case f =>
+          val fieldName = f.getName
+          DataTypes.FIELD(fieldName, fdtm.get(fieldName))
+        }
         DataTypes.ROW(fields: _*)
       }
 

@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.pulsar
+package org.apache.flink.streaming.connectors.pulsar.internal
 
 import java.io.{Externalizable, ObjectInput, ObjectOutput}
 import java.nio.charset.StandardCharsets
@@ -20,7 +20,7 @@ import java.nio.charset.StandardCharsets.UTF_8
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 
-import org.apache.flink.table.api.DataTypes
+import org.apache.flink.table.api.{DataTypes, TableSchema}
 import org.apache.flink.table.types.{AtomicDataType, CollectionDataType, DataType, FieldsDataType, KeyValueDataType}
 import org.apache.flink.table.types.logical.{DecimalType, LogicalTypeRoot, RowType}
 
@@ -75,6 +75,14 @@ class SchemaInfoSerializable(var si: SchemaInfo) extends Externalizable {
 object SchemaUtils {
 
   private lazy val nullSchema = ASchema.create(ASchema.Type.NULL)
+
+  def toTableSchema(schema: FieldsDataType): TableSchema = {
+    val rt = schema.getLogicalType.asInstanceOf[RowType]
+    val fieldTypes = rt.getFieldNames.asScala.map(schema.getFieldDataTypes.get(_))
+
+    TableSchema.builder.fields(
+      rt.getFieldNames.toArray(new Array[String](0)), fieldTypes.toArray).build()
+  }
 
   def uploadPulsarSchema(admin: PulsarAdmin, topic: String, schemaInfo: SchemaInfo): Unit = {
     assert(schemaInfo != null, "schemaInfo shouldn't be null")
@@ -349,6 +357,7 @@ object SchemaUtils {
           case LogicalTypeRoot.DOUBLE => builder.doubleType()
           case LogicalTypeRoot.VARCHAR => builder.stringType()
           case LogicalTypeRoot.BINARY => builder.bytesType()
+          case LogicalTypeRoot.VARBINARY => builder.bytesType()
 
           case LogicalTypeRoot.DECIMAL =>
             val dt = flinkType.asInstanceOf[DecimalType]
@@ -387,13 +396,16 @@ object SchemaUtils {
       case fsdt: FieldsDataType =>
         val childNameSpace = if (nameSpace != "") s"$nameSpace.$recordName" else recordName
         val fieldsAssembler = builder.record(recordName).namespace(nameSpace).fields()
-        fsdt.getFieldDataTypes.asScala.foreach { case (name, tpe) =>
+
+        val rt = fsdt.getLogicalType.asInstanceOf[RowType]
+        rt.getFieldNames.asScala.map { case name =>
+          val tpe = fsdt.getFieldDataTypes.get(name)
           val fieldAvroType =
             sqlType2ASchema(tpe, tpe.getLogicalType.isNullable, name, childNameSpace)
+
           fieldsAssembler.name(name).`type`(fieldAvroType).noDefault()
         }
         fieldsAssembler.endRecord()
-
 
       // This should never happen.
       case other => throw new IncompatibleSchemaException(s"Unexpected type $other.")

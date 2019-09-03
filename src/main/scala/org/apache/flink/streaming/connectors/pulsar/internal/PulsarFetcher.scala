@@ -20,7 +20,6 @@ import java.util.function.Predicate
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
-import org.apache.flink.pulsar.{JSONOptionsInRead, Logging, PulsarMetadataReader}
 import org.apache.flink.streaming.api.functions.{AssignerWithPeriodicWatermarks, AssignerWithPunctuatedWatermarks}
 import org.apache.flink.streaming.api.functions.source.SourceFunction
 import org.apache.flink.streaming.api.functions.source.SourceFunction.SourceContext

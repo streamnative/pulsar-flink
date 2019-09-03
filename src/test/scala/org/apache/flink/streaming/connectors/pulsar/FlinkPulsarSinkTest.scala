@@ -18,9 +18,9 @@ import java.util.concurrent.CompletableFuture
 import java.util.function.BiConsumer
 
 import org.apache.flink.core.testutils.{CheckedThread, MultiShotLatch}
-import org.apache.flink.pulsar.PulsarFunSuite
 import org.apache.flink.runtime.state.FunctionSnapshotContext
 import org.apache.flink.streaming.api.operators.StreamSink
+import org.apache.flink.streaming.connectors.pulsar.internals.PulsarFunSuite
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord
 import org.apache.flink.streaming.util.OneInputStreamOperatorTestHarness
 import org.apache.flink.table.api.DataTypes
@@ -33,7 +33,6 @@ import org.mockito.Mockito.{mock, times, verify, when}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.invocation.InvocationOnMock
 import org.mockito.stubbing.Answer
-
 import org.scalatest.time.SpanSugar._
 import org.scalatest.concurrent.TimeLimits
 

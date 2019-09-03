@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.pulsar
+package org.apache.flink.streaming.connectors.pulsar.internal
 
 import java.{util => ju}
 import java.io.Closeable
@@ -20,12 +20,15 @@ import java.util.regex.Pattern
 
 import scala.collection.JavaConverters._
 
+import org.apache.flink.table.api.TableSchema
+import org.apache.flink.table.catalog.{CatalogBaseTable, ObjectPath}
 import org.apache.flink.table.types.{DataType, FieldsDataType}
 
 import org.apache.pulsar.client.admin.{PulsarAdmin, PulsarAdminException}
+import org.apache.pulsar.client.admin.PulsarAdminException.NotFoundException
 import org.apache.pulsar.client.api.{MessageId, PulsarClient}
 import org.apache.pulsar.client.impl.schema.BytesSchema
-import org.apache.pulsar.common.naming.TopicName
+import org.apache.pulsar.common.naming.{NamespaceName, TopicName}
 import org.apache.pulsar.common.schema.SchemaInfo
 
 /**
@@ -70,6 +73,119 @@ case class PulsarMetadataReader(
     }
   }
 
+  def listNamespaces(): Seq[String] = {
+    try {
+      val tenants = admin.tenants().getTenants.asScala
+      tenants.flatMap { case tn =>
+        admin.namespaces().getNamespaces(tn).asScala
+      }
+    } catch {
+      case e: Throwable =>
+        throw new RuntimeException(s"Failed to list namespaces", e)
+    }
+  }
+
+  def namespaceExists(ns: String): Boolean = {
+    try {
+      admin.namespaces().getTopics(ns)
+    } catch {
+      case e: Throwable =>
+        return false
+    }
+    true
+  }
+
+  def createNamespace(ns: String): Unit = {
+    val nsName = NamespaceName.get(ns).toString
+    try {
+      admin.namespaces().createNamespace(nsName)
+    } catch {
+      case e: Throwable =>
+        throw new RuntimeException(
+          s"Failed to create namespace $ns in Pulsar (equivalence to DB)", e)
+    }
+  }
+
+  def deleteNamespace(ns: String, ignoreIfNotExists: Boolean): Unit = {
+    val nsName = NamespaceName.get(ns).toString
+    try {
+      admin.namespaces().deleteNamespace(nsName)
+    } catch {
+      case _: NotFoundException if ignoreIfNotExists => // suppress exception
+      case e: Throwable =>
+        throw new RuntimeException(
+          s"Failed to delete namespace $ns in Pulsar (equivalence to DB)", e)
+    }
+  }
+
+  def getTopics(namespace: String): ju.List[String] = {
+    try {
+      val tps = getNonPartitionedTopics(admin, namespace)
+      val partitionedTps = admin.topics().getPartitionedTopicList(namespace)
+      val allTopics = (tps.asScala ++ partitionedTps.asScala)
+      allTopics.map(tp => TopicName.get(tp).getLocalName).asJava
+    } catch {
+      case e: Throwable =>
+        throw new RuntimeException(
+          s"Failed to fetch topics in $namespace in Pulsar (equivalence to table)", e)
+    }
+  }
+
+  def getSchema(objectPath: ObjectPath): TableSchema = {
+    val tp = Utils.objectPath2TopicName(objectPath)
+    val fieldsDataType = getSchema(tp :: Nil)
+    SchemaUtils.toTableSchema(fieldsDataType)
+  }
+
+  def topicExists(objectPath: ObjectPath): Boolean = {
+    val tp = Utils.objectPath2TopicName(objectPath)
+    try {
+      val partition = admin.topics().getPartitionedTopicMetadata(tp).partitions
+      if (partition > 1) return true
+      else admin.topics().getStats(tp)
+    } catch {
+      case e: Throwable =>
+        return false
+    }
+    true
+  }
+
+  def deleteTopic(objectPath: ObjectPath): Unit = {
+    val topic = Utils.objectPath2TopicName(objectPath)
+    try {
+      val partitions = admin.topics().getPartitionedTopicMetadata(topic).partitions
+      if (partitions > 0) {
+        admin.topics().deletePartitionedTopic(topic, true)
+      } else {
+        admin.topics().delete(topic, true)
+      }
+    } catch {
+      case e: Throwable =>
+        throw new RuntimeException(
+          s"Failed to delete topic $topic in Pulsar (equivalence to table)", e)
+    }
+  }
+
+  def createTopic(objectPath: ObjectPath, defaultPartitions: Int, ignoreIfExists: Boolean): Unit = {
+    val topic = Utils.objectPath2TopicName(objectPath)
+    try {
+      admin.topics().createPartitionedTopic(topic, defaultPartitions)
+    } catch {
+      case e: PulsarAdminException =>
+        // TODO ignore logic should goes here
+        throw e
+      case e: Throwable =>
+        throw new RuntimeException(
+          s"Failed to create topic $topic in Pulsar (equivalence to table)", e)
+    }
+  }
+
+  def putSchema(objectPath: ObjectPath, table: CatalogBaseTable): Unit = {
+    val topic = Utils.objectPath2TopicName(objectPath)
+    val si = SchemaUtils.sqlType2PSchema(table.getSchema.toRowDataType).getSchemaInfo
+    SchemaUtils.uploadPulsarSchema(admin, topic, si)
+  }
+
   def setupCursor(offset: Map[String, MessageId]): Unit = {
     offset.foreach {
       case (tp, mid) =>
@@ -78,8 +194,7 @@ case class PulsarMetadataReader(
         } catch {
           case e: Throwable =>
             throw new RuntimeException(
-              s"Failed to create schema for ${TopicName.get(tp).toString}",
-              e)
+              s"Failed to set up cursor for ${TopicName.get(tp).toString}", e)
         }
     }
   }
@@ -193,25 +308,29 @@ case class PulsarMetadataReader(
       case ("topics", value) =>
         value.split(",").map(_.trim).filter(_.nonEmpty).map(TopicName.get(_).toString)
       case ("topicspattern", value) =>
-        getTopics(value)
+        getTopicsWithPattern(value)
     }
   }
 
-  private def getTopics(topicsPattern: String): Seq[String] = {
+  private def getTopicsWithPattern(topicsPattern: String): Seq[String] = {
     val dest = TopicName.get(topicsPattern)
     val allNonPartitionedTopics: ju.List[String] =
-      admin
-        .topics()
-        .getList(dest.getNamespace)
-        .asScala
-        .filter(t => !TopicName.get(t).isPartitioned)
-        .asJava
+      getNonPartitionedTopics(admin, dest.getNamespace)
     val nonPartitionedMatch = topicsPatternFilter(allNonPartitionedTopics, dest.toString)
 
     val allPartitionedTopics: ju.List[String] =
       admin.topics().getPartitionedTopicList(dest.getNamespace)
     val partitionedMatch = topicsPatternFilter(allPartitionedTopics, dest.toString)
     nonPartitionedMatch ++ partitionedMatch
+  }
+
+  def getNonPartitionedTopics(admin: PulsarAdmin, namespace: String): ju.List[String] = {
+    admin
+      .topics()
+      .getList(namespace)
+      .asScala
+      .filter(t => !TopicName.get(t).isPartitioned)
+      .asJava
   }
 
   private def topicsPatternFilter(

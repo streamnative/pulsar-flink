@@ -18,21 +18,20 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import scala.collection.mutable
 import org.apache.flink.api.common.typeinfo.TypeInformation
-import org.apache.flink.pulsar.{PulsarFlinkTest, PulsarFunSuite}
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
+import org.apache.flink.streaming.connectors.pulsar.internals.{PulsarFlinkTest, PulsarFunSuite}
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper
 import org.apache.flink.table.descriptors.Pulsar
 import org.apache.flink.table.runtime.utils.StreamITCase
 import org.apache.flink.test.util.TestUtils
 import org.apache.flink.types.Row
-
 import org.apache.pulsar.common.naming.TopicName
 import org.apache.pulsar.common.schema.SchemaType
 
 class FlinkPulsarTableITest extends PulsarFunSuite with PulsarFlinkTest {
-  import org.apache.flink.pulsar.SchemaData._
-  import org.apache.flink.pulsar.PulsarOptions._
+  import org.apache.flink.streaming.connectors.pulsar.internals.SchemaData._
+  import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions._
   import org.apache.flink.table.api._
   import org.apache.flink.table.api.scala._
 

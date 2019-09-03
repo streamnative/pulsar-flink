@@ -17,8 +17,8 @@ import java.util.Properties
 
 import scala.reflect.ClassTag
 
-import org.apache.flink.pulsar.PulsarOptions.TOPIC_SINGLE
 import org.apache.flink.streaming.api.functions.sink.SinkFunction
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.TOPIC_SINGLE
 
 import org.apache.pulsar.client.api.Schema
 

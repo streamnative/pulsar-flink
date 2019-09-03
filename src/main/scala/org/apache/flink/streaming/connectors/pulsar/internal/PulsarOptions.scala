@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.pulsar
+package org.apache.flink.streaming.connectors.pulsar.internal
 
 import org.apache.pulsar.common.naming.TopicName
 
@@ -52,6 +52,8 @@ object PulsarOptions {
   val FAIL_ON_WRITE = "failonwrite"
 
   val POLL_TIMEOUT_MS = "polltimeoutms"
+
+  val NUM_PARTITIONS = "table.partitions"
 
   // TODO: Will flink lose data? how does it happen?
   val FAIL_ON_DATA_LOSS_OPTION_KEY = "failondataloss"

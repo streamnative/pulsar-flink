@@ -11,32 +11,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.pulsar
+package org.apache.flink.streaming.connectors.pulsar.internals
 
-import java.lang.{Integer => JInt}
 import java.nio.charset.StandardCharsets
 import java.nio.charset.StandardCharsets.UTF_8
-import java.util.{Map => JMap}
+import java.util.UUID
 
-import scala.collection.JavaConverters._
-import scala.reflect.ClassTag
 import com.google.common.collect.Sets
 import io.streamnative.tests.pulsar.service.{PulsarService, PulsarServiceFactory, PulsarServiceSpec}
-import org.scalatest.concurrent.Eventually.{eventually, timeout}
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+import org.apache.flink.streaming.connectors.pulsar.internal.{CachedPulsarClient, Logging, SourceSinkUtils, Utils}
 import org.apache.pulsar.client.admin.{PulsarAdmin, PulsarAdminException}
 import org.apache.pulsar.client.api.{MessageId, Producer, PulsarClient, Schema}
 import org.apache.pulsar.client.impl.MessageIdImpl
 import org.apache.pulsar.common.naming.TopicName
 import org.apache.pulsar.common.protocol.schema.PostSchemaPayload
 import org.apache.pulsar.common.schema.{SchemaInfo, SchemaType}
+import org.scalatest.concurrent.Eventually.{eventually, timeout}
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+
+import scala.collection.JavaConverters._
+import scala.reflect.ClassTag
 
 /**
  * A trait to clean cached Pulsar producers in `afterAll`
  */
 trait PulsarTest extends BeforeAndAfterAll with BeforeAndAfterEach with Logging {
   self: PulsarFunSuite =>
-  import PulsarOptions._
+  import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions._
 
   var pulsarService: PulsarService = _
   var serviceUrl: String = _
@@ -45,7 +46,7 @@ trait PulsarTest extends BeforeAndAfterAll with BeforeAndAfterEach with Logging 
   override def beforeAll(): Unit = {
     val spec: PulsarServiceSpec = PulsarServiceSpec
       .builder()
-      .clusterName("standalone")
+      .clusterName(s"standalone-${UUID.randomUUID()}")
       .enableContainerLogging(false)
       .build()
 
@@ -83,22 +84,6 @@ trait PulsarTest extends BeforeAndAfterAll with BeforeAndAfterEach with Logging 
         (tp, SourceSinkUtils.seekableLatestMid(admin.topics().getLastMessageId(tp)))
       }
     }
-  }
-
-  /** Java-friendly function for sending messages to the Pulsar */
-  def sendMessages(topic: String, messageToFreq: JMap[String, JInt]): Unit = {
-    sendMessages(topic, Map(messageToFreq.asScala.mapValues(_.intValue()).toSeq: _*))
-  }
-
-  /** Send the messages to the Pulsar */
-  def sendMessages(topic: String, messageToFreq: Map[String, Int]): Unit = {
-    val messages = messageToFreq.flatMap { case (s, freq) => Seq.fill(freq)(s) }.toArray
-    sendMessages(topic, messages)
-  }
-
-  /** Send the array of messages to the Pulsar */
-  def sendMessages(topic: String, messages: Array[String]): Seq[(String, MessageId)] = {
-    sendMessages(topic, messages, None)
   }
 
   /** Send the array of messages to the Pulsar using specified partition */

@@ -11,8 +11,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.pulsar
+package org.apache.flink.streaming.connectors.pulsar.internals
 
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarConfigUpdater
 import org.scalatest.BeforeAndAfterEach
 
 class PulsarConfigUpdaterSuite extends PulsarFunSuite with BeforeAndAfterEach {

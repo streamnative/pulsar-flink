@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.pulsar
+package org.apache.flink.streaming.connectors.pulsar.internal
 
 import java.nio.ByteBuffer
 import java.util
@@ -177,6 +177,10 @@ class PulsarSerializer(flinkType: DataType, nullable: Boolean) {
           throw new IncompatibleSchemaException(
             s"Cannot convert flink decimal type to Avro logical type")
         }
+
+      case (LTR.VARBINARY, BYTES) =>
+        (getter, ordinal) =>
+          getter.getField(ordinal).asInstanceOf[Array[Byte]]
 
       case (LTR.BINARY, BYTES) =>
         (getter, ordinal) =>

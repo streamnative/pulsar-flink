@@ -13,7 +13,7 @@
  */
 package org.apache.flink.streaming.connectors.pulsar
 
-import org.apache.flink.pulsar.PulsarFunSuite
+import org.apache.flink.streaming.connectors.pulsar.internals.PulsarFunSuite
 
 class PulsarTableSourceSinkFactoryTest extends PulsarFunSuite {
 

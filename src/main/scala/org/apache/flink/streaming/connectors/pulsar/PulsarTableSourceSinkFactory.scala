@@ -20,17 +20,19 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.compat.java8.OptionConverters._
 
+import org.apache.flink.streaming.connectors.pulsar.internal.{PulsarOptions, Utils}
 import org.apache.flink.table.api.{TableException, TableSchema}
+import org.apache.flink.table.catalog.{CatalogTable, ObjectPath}
 import org.apache.flink.table.descriptors.{DescriptorProperties, PulsarValidator, SchemaValidator}
 import org.apache.flink.table.descriptors.FormatDescriptorValidator.FORMAT
 import org.apache.flink.table.descriptors.Rowtime.{ROWTIME_TIMESTAMPS_CLASS, ROWTIME_TIMESTAMPS_FROM, ROWTIME_TIMESTAMPS_SERIALIZED, ROWTIME_TIMESTAMPS_TYPE, ROWTIME_WATERMARKS_CLASS, ROWTIME_WATERMARKS_DELAY, ROWTIME_WATERMARKS_SERIALIZED, ROWTIME_WATERMARKS_TYPE}
 import org.apache.flink.table.descriptors.Schema.{SCHEMA, SCHEMA_FROM, SCHEMA_NAME, SCHEMA_PROCTIME, SCHEMA_TYPE}
 import org.apache.flink.table.factories.{StreamTableSinkFactory, StreamTableSourceFactory}
-import org.apache.flink.table.sinks.StreamTableSink
-import org.apache.flink.table.sources.StreamTableSource
+import org.apache.flink.table.sinks.{StreamTableSink, TableSink}
+import org.apache.flink.table.sources.{StreamTableSource, TableSource}
 import org.apache.flink.types.Row
 
-class PulsarTableSourceSinkFactory
+case class PulsarTableSourceSinkFactory(catalogProperties: Properties)
     extends StreamTableSourceFactory[Row]
     with StreamTableSinkFactory[Row] {
 
@@ -38,15 +40,54 @@ class PulsarTableSourceSinkFactory
   import org.apache.flink.table.descriptors.StreamTableDescriptorValidator._
   import org.apache.flink.table.descriptors.ConnectorDescriptorValidator._
 
+  def this() = this(new Properties())
+
   override def createStreamTableSource(
     properties: ju.Map[String, String]): StreamTableSource[Row] = {
 
     val dp = getValidatedProperties(properties)
 
+    val sourceProperties = if (isInPulsarCatalog) {
+      val prop = new Properties()
+      prop.putAll(catalogProperties)
+      prop.put(PulsarOptions.TOPIC_SINGLE, properties.get(PulsarOptions.TOPIC_SINGLE))
+      prop
+    } else {
+      getPulsarProperties(dp)
+    }
+
+    val schema = if (isInPulsarCatalog) Some(dp.getTableSchema(SCHEMA)) else None
+
     PulsarTableSource(
-      getPulsarProperties(dp),
+      sourceProperties,
       SchemaValidator.deriveProctimeAttribute(dp).asScala,
-      SchemaValidator.deriveRowtimeAttributes(dp).asScala)
+      SchemaValidator.deriveRowtimeAttributes(dp).asScala,
+      schema)
+  }
+
+  override def createTableSource(
+    tablePath: ObjectPath,
+    table: CatalogTable): TableSource[Row] = {
+
+    val topicName = Utils.objectPath2TopicName(tablePath)
+
+    val props = new ju.HashMap[String, String]()
+    props.putAll(table.toProperties)
+    props.put(PulsarOptions.TOPIC_SINGLE, topicName)
+
+    createStreamTableSource(props)
+  }
+
+  override def createTableSink(
+    tablePath: ObjectPath,
+    table: CatalogTable): TableSink[Row] = {
+    val topicName = Utils.objectPath2TopicName(tablePath)
+
+    val props = new ju.HashMap[String, String]()
+    props.putAll(table.toProperties)
+    props.put(PulsarOptions.TOPIC_SINGLE, topicName)
+
+    createStreamTableSink(props)
   }
 
   override def createStreamTableSink(
@@ -65,12 +106,21 @@ class PulsarTableSourceSinkFactory
      throw new TableException("Time attributes and custom field mappings are not supported yet.")
     }
 
+    val sinkProperties = if (isInPulsarCatalog) {
+      val prop = new Properties()
+      prop.putAll(catalogProperties)
+      prop.put(PulsarOptions.TOPIC_SINGLE, properties.get(PulsarOptions.TOPIC_SINGLE))
+      prop
+    } else {
+      getPulsarProperties(dp)
+    }
+
     PulsarTableSink(
       schema,
-      getPulsarProperties(dp))
+      sinkProperties)
   }
 
-  private def getPulsarProperties(descriptorProperties: DescriptorProperties) = {
+  private def getPulsarProperties(descriptorProperties: DescriptorProperties): Properties = {
     val pulsarProperties = new Properties
     val propsList = descriptorProperties.getFixedIndexedProperties(
       CONNECTOR_PROPERTIES,
@@ -141,4 +191,6 @@ class PulsarTableSourceSinkFactory
     fieldMapping.size != schema.getFieldNames.length ||
       !fieldMapping.asScala.filterNot { case (k, v) => k == v }.isEmpty
   }
+
+  private val isInPulsarCatalog: Boolean = catalogProperties.size() != 0
 }

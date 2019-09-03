@@ -11,11 +11,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.pulsar
+package org.apache.flink.streaming.connectors.pulsar.internal
 
 import java.io.Closeable
 
 import scala.util.control.NonFatal
+
+import org.apache.flink.table.catalog.ObjectPath
+
+import org.apache.pulsar.common.naming.{NamespaceName, TopicDomain, TopicName}
 
 object Utils {
 
@@ -32,6 +36,13 @@ object Utils {
     } finally {
       closeAndAddSuppressed(exception, resource)
     }
+  }
+
+  def objectPath2TopicName(objectPath: ObjectPath): String = {
+    val ns = NamespaceName.get(objectPath.getDatabaseName)
+    val tp = objectPath.getObjectName
+    val fullName = TopicName.get(TopicDomain.persistent.toString, ns, tp)
+    fullName.toString
   }
 
   private def closeAndAddSuppressed(e: Throwable, resource: AutoCloseable): Unit = {

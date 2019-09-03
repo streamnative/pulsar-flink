@@ -11,12 +11,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.pulsar
+package org.apache.flink.streaming.connectors.pulsar.internal
 
 import java.{util => ju}
 import java.util.Locale
-
-import PulsarOptions._
 
 import org.apache.flink.table.api.TableConfig
 
@@ -25,6 +23,7 @@ import org.apache.pulsar.client.impl.{BatchMessageIdImpl, MessageIdImpl, TopicMe
 import org.apache.pulsar.common.naming.TopicName
 
 object SourceSinkUtils extends Logging {
+  import PulsarOptions._
 
   /**
    * Returns the index of the target subtask that a specific Pulsar partition should be

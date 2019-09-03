@@ -490,6 +490,55 @@ Flink SQL> USE `public/default`;
 Flink SQL> select * from topic0;
 ```
 
+The following configurations are optional in environment file or could be override in a SQL client session using `SET` command.
+
+<table class="table">
+
+<tr><th>Option</th><th>Value</th><th>Default</th><th>Description</th></tr>
+<tr>
+  <td>`default-database`</td>
+  <td>The default database name.</td>
+  <td>public/default</td>
+  <td>A topic in Pulsar is treated as a table in Flink table environment when using Pulsar catalog, therefore, database is the other name for `tenant/namespace`. The database is the basic path for table lookup or creation.</td>
+</tr>
+
+<tr>
+
+  <td>`startingOffsets`</td>
+
+  <td> The following are valid values:<br>
+       
+   * "earliest"(streaming and batch queries)<br>
+       
+   * "latest" (streaming query)<br>
+
+  </td>
+
+  <td>"latest"</td>
+
+  <td> `startingOffsets` option controls where a table reads data from.
+  </td>
+
+</tr>
+
+<tr>
+
+  <td>`table.partitions`</td>
+
+  <td> The default number of partitions when a table is created in Table API.
+
+  </td>
+
+  <td>5</td>
+
+  <td>
+  A table in Pulsar catalog is a topic in Pulsar, when creating table in Pulsar catalog, `table.partitions` controls the number of partitions when creating a topic.
+  </td>
+
+</tr>
+
+
+</table>
 
 ## Build Pulsar Flink Connector
 If you want to build a Pulsar Flink connector reading data from Pulsar and writing results to Pulsar, follow the steps below.

@@ -109,6 +109,25 @@ $ ./bin/start-scala-shell.sh remote <hostname> <portnumber>
 ```
 For more information about **submitting applications with CLI**, see [Command-Line Interface](https://ci.apache.org/projects/flink/flink-docs-release-1.9/ops/cli.html).
 
+
+#### SQL Client
+For playing with [SQL Client Beta](https://ci.apache.org/projects/flink/flink-docs-release-1.9/dev/table/sqlClient.html) and writing queries in SQL to manipulate data in Pulsar, you can use `--jar` to add `pulsar-flink-connector_{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar` directly.
+
+Example
+```
+$ ./bin/sql-client.sh embedded --jar pulsar-flink-connector_{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar
+```
+By default, to use Pulsar catalog in SQL Client and get it registered automatically at startup, the SQL Client reads its configuration from the environment file `./conf/sql-client-defaults.yaml`. You need to add Pulsar catalog to `catalogs` section in this YAML file:
+
+```yaml
+catalogs:
+- name: pulsarcatalog
+    type: pulsar
+    default-database: tn/ns
+    service.url: "pulsar://localhost:6650"
+    admin.url: "http://localhost:8080"
+```
+
 ## Usage
 
 ### Read data from Pulsar
@@ -454,6 +473,72 @@ Example
 
 For possible Pulsar parameters, see
 [Pulsar client libraries](https://pulsar.apache.org/docs/en/client-libraries/).
+
+### Use Pulsar Catalog
+
+Flink always searches for tables, views, and UDFs in the current catalog and database. To use Pulsar catalog and treat topics in Pulsar as tables in Flink, you should use `pulsarcatalog` that has been defined in `./conf/sql-client-defaults.yaml`.
+
+```scala
+tableEnv.useCatalog("pulsarcatalog")
+tableEnv.useDatabase("public/default")
+tableEnv.scan("topic0")
+```
+
+```SQL
+Flink SQL> USE CATALOG pulsarcatalog;
+Flink SQL> USE `public/default`;
+Flink SQL> select * from topic0;
+```
+
+The following configurations are optional in environment file or can be overridden in a SQL client session using the `SET` command.
+
+<table class="table">
+
+<tr><th>Option</th><th>Value</th><th>Default</th><th>Description</th></tr>
+<tr>
+  <td>`default-database`</td>
+  <td>The default database name.</td>
+  <td>public/default</td>
+  <td>A topic in Pulsar is treated as a table in Flink when using Pulsar catalog, therefore, `database` is another name for `tenant/namespace`. The database is the basic path for table lookup or creation.</td>
+</tr>
+
+<tr>
+
+  <td>`startingOffsets`</td>
+
+  <td> The following are valid values:<br>
+       
+   * "earliest"(streaming and batch queries)<br>
+       
+   * "latest" (streaming query)<br>
+
+  </td>
+
+  <td>"latest"</td>
+
+  <td> `startingOffsets` option controls where a table reads data from.
+  </td>
+
+</tr>
+
+<tr>
+
+  <td>`table.partitions`</td>
+
+  <td> The default number of partitions when a table is created in Table API.
+
+  </td>
+
+  <td>5</td>
+
+  <td>
+  A table in Pulsar catalog is a topic in Pulsar, when creating table in Pulsar catalog, `table.partitions` controls the number of partitions when creating a topic.
+  </td>
+
+</tr>
+
+
+</table>
 
 ## Build Pulsar Flink Connector
 If you want to build a Pulsar Flink connector reading data from Pulsar and writing results to Pulsar, follow the steps below.

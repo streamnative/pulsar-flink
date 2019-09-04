@@ -314,7 +314,7 @@ object SchemaUtils {
         val tpe = flinkType.getLogicalType.getTypeRoot
         tpe match {
           case LogicalTypeRoot.BOOLEAN => BooleanSchema.of()
-          case LogicalTypeRoot.BINARY => BytesSchema.of()
+          case LogicalTypeRoot.VARBINARY => BytesSchema.of()
           case LogicalTypeRoot.DATE => DateSchema.of()
           case LogicalTypeRoot.VARCHAR => PSchema.STRING
           case LogicalTypeRoot.TIMESTAMP_WITHOUT_TIME_ZONE => TimestampSchema.of()

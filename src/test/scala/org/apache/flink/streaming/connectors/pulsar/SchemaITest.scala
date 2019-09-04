@@ -18,12 +18,16 @@ import java.util.Properties
 import java.util.concurrent.atomic.AtomicInteger
 import java.sql.Timestamp
 import java.text.SimpleDateFormat
+import java.sql.{Date => sDate}
 
+import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.flink.streaming.connectors.pulsar.internals.{PulsarFlinkTest, PulsarFunSuite}
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper
-import org.apache.flink.table.descriptors.Pulsar
+import org.apache.flink.table.descriptors.{Pulsar, Schema}
 import org.apache.flink.table.runtime.utils.StreamITCase
+import org.apache.flink.table.types.DataType
+import org.apache.flink.table.types.utils.LegacyTypeInfoDataTypeConverter
 import org.apache.flink.types.Row
 import org.apache.flink.util.StringUtils
 import org.apache.pulsar.common.naming.TopicName
@@ -48,28 +52,56 @@ class SchemaITest extends PulsarFunSuite with PulsarFlinkTest {
     checkRead[Boolean](SchemaType.BOOLEAN, booleanSeq, null)
   }
 
+  test("test boolean write") {
+    checkWrite[Boolean](SchemaType.BOOLEAN, DataTypes.BOOLEAN(), booleanSeq, null)
+  }
+
   test("test int read") {
     checkRead[Int](SchemaType.INT32, int32Seq, null)
+  }
+
+  test("test int write") {
+    checkWrite[Int](SchemaType.INT32, DataTypes.INT(), int32Seq, null)
   }
 
   test("test string read") {
     checkRead[String](SchemaType.STRING, stringSeq, null)
   }
 
+  test("test string write") {
+    checkWrite[String](SchemaType.STRING, DataTypes.STRING(), stringSeq, null)
+  }
+
   test("test byte read") {
     checkRead[Byte](SchemaType.INT8, int8Seq, null)
+  }
+
+  test("test byte write") {
+    checkWrite[Byte](SchemaType.INT8, DataTypes.TINYINT(), int8Seq, null)
   }
 
   test("test short read") {
     checkRead[Short](SchemaType.INT16, int16Seq, null)
   }
 
+  test("test short write") {
+    checkWrite[Short](SchemaType.INT16, DataTypes.SMALLINT(), int16Seq, null)
+  }
+
   test("test float read") {
     checkRead[Float](SchemaType.FLOAT, floatSeq, null)
   }
 
+  test("test float write") {
+    checkWrite[Float](SchemaType.FLOAT, DataTypes.FLOAT(), floatSeq, null)
+  }
+
   test("test double read") {
     checkRead[Double](SchemaType.DOUBLE, doubleSeq, null)
+  }
+
+  test("test double write") {
+    checkWrite[Double](SchemaType.DOUBLE, DataTypes.DOUBLE(), doubleSeq, null)
   }
 
   test("test date read") {
@@ -77,12 +109,27 @@ class SchemaITest extends PulsarFunSuite with PulsarFlinkTest {
     checkRead[Date](SchemaType.DATE, dateSeq, dateFormat.format(_))
   }
 
+  test("test date write") {
+    val dateFormat = new SimpleDateFormat("yyyy-MM-dd")
+    checkWrite[sDate](SchemaType.DATE, DataTypes.DATE().bridgedTo(classOf[sDate]),
+      dateSeq.map(d => new sDate(d.getTime))
+      , dateFormat.format(_))
+  }
+
   test("test timestamp read") {
     checkRead[Timestamp](SchemaType.TIMESTAMP, timestampSeq, null)
   }
 
+  test("test timstamp write") {
+    checkWrite[Timestamp](SchemaType.TIMESTAMP, DataTypes.TIMESTAMP(3).bridgedTo(classOf[Timestamp]), timestampSeq, null)
+  }
+
   test("test byte array read") {
     checkRead[Array[Byte]](SchemaType.BYTES, bytesSeq, StringUtils.arrayAwareToString)
+  }
+
+  test("test byte array write") {
+    checkWrite[Array[Byte]](SchemaType.BYTES, DataTypes.BYTES(), bytesSeq, StringUtils.arrayAwareToString)
   }
 
   private def checkRead[T: ClassTag](
@@ -131,6 +178,85 @@ class SchemaITest extends PulsarFunSuite with PulsarFlinkTest {
     }
   }
 
+  private def checkWrite[T: ClassTag](
+    schemaType: SchemaType,
+    dt: DataType,
+    datas: Seq[T],
+    str: T => String) = {
+
+    val see = StreamExecutionEnvironment.getExecutionEnvironment
+    see.setParallelism(1)
+    val tEnv = StreamTableEnvironment.create(see)
+
+    val table = newTopic()
+    val tableName = TopicName.get(table).getLocalName
+
+    val tSchema = TableSchema.builder().field("value", dt).build()
+
+    val stream =
+      see.fromCollection(datas)(LegacyTypeInfoDataTypeConverter.toLegacyTypeInfo(dt).asInstanceOf[TypeInformation[T]])
+    tEnv.registerDataStream("origin", stream)
+
+    val sinkProps = sinkProperties()
+    sinkProps.setProperty(TOPIC_SINGLE, table)
+
+    tEnv
+      .connect(new Pulsar().properties(sinkProps))
+      .withSchema(new Schema().schema(tSchema))
+      .inAppendMode()
+      .registerTableSink(tableName)
+
+    tEnv.sqlUpdate(s"insert into `$tableName` select * from origin")
+
+    val sinkThread = new Thread("sink") {
+      override def run(): Unit = {
+        try {
+          see.execute("sink")
+        } catch {
+          case t: Throwable => // do nothing
+        }
+      }
+    }
+    sinkThread.start()
+    sinkThread.join()
+
+    val se2 = StreamExecutionEnvironment.getExecutionEnvironment
+    se2.setParallelism(1)
+    val tEnv2 = StreamTableEnvironment.create(se2)
+
+    val props = sourceProperties()
+    props.setProperty(TOPIC_SINGLE, table)
+
+    tEnv2
+      .connect(new Pulsar().properties(props))
+      .inAppendMode()
+      .registerTableSource(table)
+
+    val t: Table = tEnv2.scan(table).select("value")
+    implicit val ti = t.getSchema.toRowType
+    val as = t.toAppendStream[Row]
+    as.map(new FailingIdentityMapper[Row](datas.length))
+
+    as.addSink(new StreamITCase.StringSink[Row]).setParallelism(1)
+
+    val runner = new Thread("read") {
+      override def run(): Unit = {
+        try {
+          se2.execute("read")
+        } catch {
+          case t: Throwable => // do nothing
+        }
+      }
+    }
+    runner.start()
+    runner.join()
+
+    if (str == null) {
+      assert(StreamITCase.testResults == datas.init.map(_.toString))
+    } else {
+      assert(StreamITCase.testResults == datas.init.map(str(_)))
+    }
+  }
 
   def sourceProperties(): Properties = {
     val prop = new Properties()
@@ -138,6 +264,15 @@ class SchemaITest extends PulsarFunSuite with PulsarFlinkTest {
     prop.setProperty(ADMIN_URL_OPTION_KEY, adminUrl)
     prop.setProperty(PARTITION_DISCOVERY_INTERVAL_MS, "5000")
     prop.setProperty(STARTING_OFFSETS_OPTION_KEY, "earliest")
+    prop
+  }
+
+  def sinkProperties(): Properties = {
+    val prop = new Properties()
+    prop.setProperty(SERVICE_URL_OPTION_KEY, serviceUrl)
+    prop.setProperty(ADMIN_URL_OPTION_KEY, adminUrl)
+    prop.setProperty(FLUSH_ON_CHECKPOINT, "true")
+    prop.setProperty(FAIL_ON_WRITE, "true")
     prop
   }
 

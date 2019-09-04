@@ -205,7 +205,7 @@ class PulsarDeserializer(schemaInfo: SchemaInfo, parsedOptions: JSONOptions) {
         (updater, ordinal, value) =>
           updater.set(ordinal, value.asInstanceOf[GenericFixed].bytes().clone())
 
-      case (BYTES, LTR.BINARY) =>
+      case (BYTES, LTR.VARBINARY) =>
         (updater, ordinal, value) =>
           val bytes = value match {
             case b: ByteBuffer =>

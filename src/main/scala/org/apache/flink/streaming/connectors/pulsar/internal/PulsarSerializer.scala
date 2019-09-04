@@ -34,8 +34,8 @@ import org.apache.pulsar.shade.org.apache.avro.util.Utf8
 
 class PulsarSerializer(flinkType: DataType, nullable: Boolean) {
 
-  def serialize(catalystData: Any): Any = {
-    converter.apply(catalystData)
+  def serialize(flinkData: Any): Any = {
+    converter.apply(flinkData)
   }
 
   private lazy val decimalConversions = new DecimalConversion()
@@ -96,7 +96,7 @@ class PulsarSerializer(flinkType: DataType, nullable: Boolean) {
       case (LTR.VARCHAR, STRING) =>
         (getter, ordinal) =>
           getter.getField(ordinal).asInstanceOf[String]
-      case (LTR.BINARY, BYTES) =>
+      case (LTR.VARBINARY, BYTES) =>
         (getter, ordinal) =>
           getter.getField(ordinal).asInstanceOf[Array[Byte]]
       case (LTR.DATE, INT) =>
@@ -110,12 +110,12 @@ class PulsarSerializer(flinkType: DataType, nullable: Boolean) {
               getter.getField(ordinal)
           case other =>
             throw new IncompatibleSchemaException(
-              s"Cannot convert Catalyst Timestamp type to Avro logical type ${other}")
+              s"Cannot convert Flink Timestamp type to Avro logical type ${other}")
         }
 
       case other =>
         throw new IncompatibleSchemaException(
-          s"Cannot convert Catalyst type $dataType to " +
+          s"Cannot convert Flink type $dataType to " +
             s"Avro type $avroType.")
     }
   }
@@ -201,7 +201,7 @@ class PulsarSerializer(flinkType: DataType, nullable: Boolean) {
                 getter.getField(ordinal).asInstanceOf[java.sql.Timestamp])
           case other =>
             throw new IncompatibleSchemaException(
-              s"Cannot convert Catalyst Timestamp type to Avro logical type ${other}")
+              s"Cannot convert Flink Timestamp type to Avro logical type ${other}")
         }
 
       case (LTR.VARCHAR, STRING) =>
@@ -266,7 +266,7 @@ class PulsarSerializer(flinkType: DataType, nullable: Boolean) {
 
       case other =>
         throw new IncompatibleSchemaException(
-          s"Cannot convert Catalyst type $dataType to " +
+          s"Cannot convert Flink type $dataType to " +
             s"Avro type $avroType.")
     }
   }
@@ -277,7 +277,7 @@ class PulsarSerializer(flinkType: DataType, nullable: Boolean) {
     if (avroStruct.getType != RECORD ||
       avroStruct.getFields.size() != dataType.getFieldDataTypes.size()) {
       throw new IncompatibleSchemaException(
-        s"Cannot convert Catalyst type $dataType to " +
+        s"Cannot convert Flink type $dataType to " +
           s"Avro type $avroStruct.")
     }
 

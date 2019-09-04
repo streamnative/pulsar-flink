@@ -16,6 +16,8 @@ package org.apache.flink.streaming.connectors.pulsar.internal
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
 import java.sql.Timestamp
+import java.time.ZoneId
+import java.util.Date
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
@@ -84,12 +86,13 @@ class PulsarDeserializer(schemaInfo: SchemaInfo, parsedOptions: JSONOptions) {
 
       case _ => // AtomicTypes
         val fieldUpdater = new RowUpdater
+        val writer = newAtomicWriter(rootDataType)
         (msg: Message[_]) =>
         {
           val tmpRow = new Row(1 + metaDataFields.size)
           fieldUpdater.setRow(tmpRow)
           val value = msg.getValue
-          tmpRow.setField(0, value)
+          writer(fieldUpdater, 0, value)
           writeMetadataFields(msg, tmpRow)
           tmpRow
         }
@@ -115,6 +118,22 @@ class PulsarDeserializer(schemaInfo: SchemaInfo, parsedOptions: JSONOptions) {
       row.setField(metaStartIdx + 4, new Timestamp(message.getEventTime))
     } else {
       row.setField(metaStartIdx + 4, null)
+    }
+  }
+
+  private def newAtomicWriter(dataType: DataType): (RowUpdater, Int, Any) => Unit = {
+    val tpe = dataType.getLogicalType.getTypeRoot
+    tpe match {
+
+      case LTR.DATE =>
+        (updater, ordinal, value) =>
+          updater.set(
+            ordinal,
+            value.asInstanceOf[Date].toInstant.atZone(ZoneId.systemDefault()).toLocalDate)
+
+      case other =>
+        (updater, ordinal, value) =>
+          updater.set(ordinal, value)
     }
   }
 
@@ -186,7 +205,7 @@ class PulsarDeserializer(schemaInfo: SchemaInfo, parsedOptions: JSONOptions) {
         (updater, ordinal, value) =>
           updater.set(ordinal, value.asInstanceOf[GenericFixed].bytes().clone())
 
-      case (BYTES, LTR.BINARY) =>
+      case (BYTES, LTR.VARBINARY) =>
         (updater, ordinal, value) =>
           val bytes = value match {
             case b: ByteBuffer =>

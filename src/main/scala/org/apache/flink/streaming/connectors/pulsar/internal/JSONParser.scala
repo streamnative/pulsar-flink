@@ -195,7 +195,7 @@ class JacksonRecordParser(schema: DataType, val options: JSONOptions) extends Lo
               })
           }
 
-      case LTR.BINARY =>
+      case LTR.VARBINARY =>
         (parser: JsonParser) =>
           parseJsonToken[Array[Byte]](parser, dataType) {
             case VALUE_STRING => parser.getBinaryValue

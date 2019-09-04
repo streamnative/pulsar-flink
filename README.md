@@ -111,13 +111,13 @@ For more information about **submitting applications with CLI**, see [Command-Li
 
 
 #### SQL Client
-For playing with [SQL Client Beta](https://ci.apache.org/projects/flink/flink-docs-release-1.9/dev/table/sqlClient.html) and write queries in the SQL language to manipulate data in Pulsar, you can use `--jar` to add `pulsar-flink-connector_{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar` directly.
+For playing with [SQL Client Beta](https://ci.apache.org/projects/flink/flink-docs-release-1.9/dev/table/sqlClient.html) and writing queries in SQL to manipulate data in Pulsar, you can use `--jar` to add `pulsar-flink-connector_{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar` directly.
 
 Example
 ```
 $ ./bin/sql-client.sh embedded --jar pulsar-flink-connector_{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar
 ```
-By default, the SQL Client will read its configuration from the environment file located in `./conf/sql-client-defaults.yaml`, in order to use Pulsar catalog in SQL Client and get it registered automatically on startup, you should add Pulsar catalog in YAML `catalogs` section:
+By default, to use Pulsar catalog in SQL Client and get it registered automatically at startup, the SQL Client reads its configuration from the environment file `./conf/sql-client-defaults.yaml`. You need to add Pulsar catalog to `catalogs` section in this YAML file:
 
 ```yaml
 catalogs:
@@ -476,7 +476,7 @@ For possible Pulsar parameters, see
 
 ### Use Pulsar Catalog
 
-Flink will always search for tables, views, and UDF’s in the current catalog and database. To use Pulsar catalog and treat topics in Pulsar as tables in Flink, you should use `pulsarcatalog` we have defined in `./conf/sql-client-defaults.yaml`.
+Flink always searches for tables, views, and UDFs in the current catalog and database. To use Pulsar catalog and treat topics in Pulsar as tables in Flink, you should use `pulsarcatalog` that has been defined in `./conf/sql-client-defaults.yaml`.
 
 ```scala
 tableEnv.useCatalog("pulsarcatalog")
@@ -490,7 +490,7 @@ Flink SQL> USE `public/default`;
 Flink SQL> select * from topic0;
 ```
 
-The following configurations are optional in environment file or could be override in a SQL client session using `SET` command.
+The following configurations are optional in environment file or can be overridden in a SQL client session using the `SET` command.
 
 <table class="table">
 
@@ -499,7 +499,7 @@ The following configurations are optional in environment file or could be overri
   <td>`default-database`</td>
   <td>The default database name.</td>
   <td>public/default</td>
-  <td>A topic in Pulsar is treated as a table in Flink table environment when using Pulsar catalog, therefore, database is the other name for `tenant/namespace`. The database is the basic path for table lookup or creation.</td>
+  <td>A topic in Pulsar is treated as a table in Flink when using Pulsar catalog, therefore, `database` is another name for `tenant/namespace`. The database is the basic path for table lookup or creation.</td>
 </tr>
 
 <tr>

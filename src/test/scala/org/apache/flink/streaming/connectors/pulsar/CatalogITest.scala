@@ -265,6 +265,68 @@ class CatalogITest extends PulsarFunSuite with PulsarFlinkTest {
     assert(StreamITCase.testResults === int32Seq.init.map(_.toString))
   }
 
+  test("sink to existing topic") {
+    import org.apache.flink.streaming.connectors.pulsar.internals.SchemaData._
+
+    val tp = newTopic()
+    val tableName = TopicName.get(tp).getLocalName
+
+    sendTypedMessages[Int](tp, SchemaType.INT32, int32Seq.toArray, None)
+    sendTypedMessages[Int]("tableSink1", SchemaType.INT32, -1 :: Nil, None)
+
+    val conf = streamingConfs()
+    conf.put("$VAR_STARTING", "earliest")
+    val context = createExecutionContext(conf, CATALOGS_ENVIRONMENT_FILE_START)
+    val tableEnv = context.createEnvironmentInstance().getTableEnvironment
+
+    tableEnv.useCatalog("pulsarcatalog1")
+
+    val insertQ = s"INSERT INTO tableSink1 SELECT * FROM `$tableName`"
+
+    tableEnv.sqlUpdate(insertQ)
+
+    val runner = new Thread("write to table") {
+      override def run(): Unit = {
+        try {
+          tableEnv.execute("write to table")
+        } catch {
+          case t: Throwable => // do nothing
+        }
+      }
+    }
+    runner.start()
+
+    val conf1 = streamingConfs()
+    conf1.put("$VAR_STARTING", "latest")
+    val context1 = createExecutionContext(conf1, CATALOGS_ENVIRONMENT_FILE_START)
+    val tableEnv1 = context1.createEnvironmentInstance().getTableEnvironment
+
+    tableEnv1.useCatalog("pulsarcatalog1")
+
+    val t = tableEnv1.scan("tableSink1").select("value")
+
+    val tpe = t.getSchema.toRowType
+
+    val stream = t.asInstanceOf[TableImpl].getTableEnvironment.asInstanceOf[StreamTableEnvironment].toAppendStream(t, tpe)
+    stream.map(new FailingIdentityMapper[Row](int32Seq.length))
+
+    stream.addSink(new StreamITCase.StringSink[Row]).setParallelism(1)
+
+    val reader = new Thread("runner") {
+      override def run(): Unit = {
+        try {
+          tableEnv1.execute("read from ealiest")
+        } catch {
+          case t: Throwable => // do nothing
+        }
+      }
+    }
+    reader.start()
+
+    reader.join()
+    assert(StreamITCase.testResults === int32Seq.init.map(_.toString))
+  }
+
   private val topicId = new AtomicInteger(0)
 
   private def newTopic(): String = TopicName.get(s"topic-${topicId.getAndIncrement()}").toString

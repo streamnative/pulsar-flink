@@ -95,7 +95,6 @@ class FlinkPulsarRowSink(
     val fdt = schema.asInstanceOf[FieldsDataType]
     val fdtm = fdt.getFieldDataTypes
 
-    val length = fdt.getFieldDataTypes.size()
     val rowFields = fdt.getLogicalType.asInstanceOf[RowType].getFields.asScala
     val name2tpe: Map[String, (LTR, Int)] = rowFields.zipWithIndex.map {
       case (f, i) => (f.getName, (f.getType.getTypeRoot, i))
@@ -143,24 +142,20 @@ class FlinkPulsarRowSink(
       case None => metas(2) = -1
     }
 
-    val values = (0 until length).toSet.filterNot(metas.toSet.contains(_)).toSeq.sorted
+    val nonInternalFields = rowFields.filterNot(f => META_FIELD_NAMES.contains(f.getName))
 
-    val valuesNameAndType = values.map { i =>
-      val name = rowFields(i).getName
-      val dt = fdtm.get(name)
-      (name, dt)
+    val valueType = if (nonInternalFields.size == 1) {
+      val fieldName = nonInternalFields(0).getName
+      fdtm.get(fieldName)
+    } else {
+      val fields = nonInternalFields.map { f =>
+        val fieldName = f.getName
+        DataTypes.FIELD(fieldName, fdtm.get(fieldName))
+      }
+      DataTypes.ROW(fields: _*)
     }
 
-    val valueType =
-      if (values.size == 1) {
-        valuesNameAndType(0)._2
-      } else {
-        val fields = rowFields.filterNot(f => META_FIELD_NAMES.contains(f.getName)).map { case f =>
-          val fieldName = f.getName
-          DataTypes.FIELD(fieldName, fdtm.get(fieldName))
-        }
-        DataTypes.ROW(fields: _*)
-      }
+    val values = nonInternalFields.map(f => name2tpe.get(f.getName).get._2)
 
     val metaProj: Projection = { origin: Row =>
       val result = new Row(3)
@@ -178,7 +173,7 @@ class FlinkPulsarRowSink(
       result
     }
 
-    (valueType, metaProj, valueProj, values.size == 1)
+    (valueType, metaProj, valueProj, nonInternalFields.size == 1)
   }
 
 }

@@ -20,7 +20,7 @@ import java.util.regex.Pattern
 
 import scala.collection.JavaConverters._
 
-import org.apache.flink.table.api.TableSchema
+import org.apache.flink.table.api.{DataTypes, TableSchema}
 import org.apache.flink.table.catalog.{CatalogBaseTable, ObjectPath}
 import org.apache.flink.table.types.{DataType, FieldsDataType}
 
@@ -182,7 +182,19 @@ case class PulsarMetadataReader(
 
   def putSchema(objectPath: ObjectPath, table: CatalogBaseTable): Unit = {
     val topic = Utils.objectPath2TopicName(objectPath)
-    val si = SchemaUtils.sqlType2PSchema(table.getSchema.toRowDataType).getSchemaInfo
+    val tableSchema = table.getSchema
+    val fieldsRemaining =
+      tableSchema.getFieldNames.filterNot(PulsarOptions.META_FIELD_NAMES.contains(_))
+    val dataType = if (fieldsRemaining.size == 1) {
+      tableSchema.getFieldDataType(fieldsRemaining(0)).get()
+    } else {
+      val fields = fieldsRemaining.map { case f =>
+        DataTypes.FIELD(f, tableSchema.getFieldDataType(f).get())
+      }
+      DataTypes.ROW(fields: _*)
+    }
+
+    val si = SchemaUtils.sqlType2PSchema(dataType).getSchemaInfo
     SchemaUtils.uploadPulsarSchema(admin, topic, si)
   }
 

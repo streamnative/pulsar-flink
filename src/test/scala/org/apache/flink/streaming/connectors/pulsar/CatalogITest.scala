@@ -241,7 +241,7 @@ class CatalogITest extends PulsarFunSuite with PulsarFlinkTest {
 
     tableEnv1.useCatalog("pulsarcatalog1")
 
-    val t = tableEnv1.scan("tableSink").select("v")
+    val t = tableEnv1.scan("tableSink").select("value")
 
     val tpe = t.getSchema.toRowType
 

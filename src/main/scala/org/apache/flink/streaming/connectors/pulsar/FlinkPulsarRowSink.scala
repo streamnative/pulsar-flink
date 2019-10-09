@@ -18,22 +18,28 @@ import java.util.Properties
 import scala.collection.JavaConverters._
 
 import org.apache.flink.streaming.api.functions.sink.SinkFunction
-import org.apache.flink.streaming.connectors.pulsar.internal.{DateTimeUtils, PulsarSerializer, SchemaUtils}
+import org.apache.flink.streaming.connectors.pulsar.internal.{
+  DateTimeUtils,
+  PulsarSerializer,
+  SchemaUtils
+}
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions._
 import org.apache.flink.table.api.DataTypes
 import org.apache.flink.table.types.{DataType, FieldsDataType}
 import org.apache.flink.table.types.logical.{LogicalTypeRoot => LTR, RowType}
 import org.apache.flink.types.Row
 
-class FlinkPulsarRowSink(
-    schema: DataType,
-    parameters: Properties)
-  extends FlinkPulsarSinkBase[Row](parameters, DummyTopicKeyExtractor) {
+import org.apache.pulsar.client.api.Schema
+
+class FlinkPulsarRowSink(schema: DataType, parameters: Properties)
+    extends FlinkPulsarSinkBase[Row](parameters, DummyTopicKeyExtractor) {
 
   val (valueSchema, metaProj, valueProj, valIsStruct) = createProjection
 
-  @transient lazy val pulsarSchema = SchemaUtils.sqlType2PSchema(valueSchema)
   @transient lazy val serializer = new PulsarSerializer(valueSchema, false)
+
+  override def pulsarSchema[R](element: Option[R]): Schema[_] =
+    SchemaUtils.sqlType2PSchema(valueSchema)
 
   /**
    * Writes the given value to the sink. This function is called for every record.
@@ -54,19 +60,22 @@ class FlinkPulsarRowSink(
     val valueRow = valueProj(value)
     val v = serializer.serialize(valueRow)
 
-    val topic = if (forcedTopic) topicName else metaRow.getField(0).asInstanceOf[String]
+    val topic =
+      if (forcedTopic) topicName else metaRow.getField(0).asInstanceOf[String]
     val key = metaRow.getField(1).asInstanceOf[String]
     val eventTime = metaRow.getField(2).asInstanceOf[java.sql.Timestamp]
 
     if (topic == null) {
       if (doFailOnWrite) {
-        throw new NullPointerException(s"null topic present in the data. Use the " +
-          s"$TOPIC_SINGLE option for setting a topic.")
+        throw new NullPointerException(
+          s"null topic present in the data. Use the " +
+            s"$TOPIC_SINGLE option for setting a topic."
+        )
       }
       return
     }
 
-    val builder = getProducer(topic).newMessage().value(v)
+    val builder = getProducer[Any](topic, value).newMessage().value(v)
 
     if (null != key) {
       builder.keyBytes(key.getBytes)
@@ -110,13 +119,15 @@ class FlinkPulsarRowSink(
           throw new IllegalStateException(
             TOPIC_ATTRIBUTE_NAME +
               s"attribute unsupported type $tpe. $TOPIC_ATTRIBUTE_NAME " +
-              s"must be a string")
+              s"must be a string"
+          )
         }
       case None =>
         if (!forcedTopic) {
           throw new IllegalStateException(
             s"topic option required when no " +
-              s"'$TOPIC_ATTRIBUTE_NAME' attribute is present")
+              s"'$TOPIC_ATTRIBUTE_NAME' attribute is present"
+          )
         }
         metas(0) = -1
     }
@@ -127,7 +138,8 @@ class FlinkPulsarRowSink(
           metas(1) = t._2
         } else {
           throw new IllegalStateException(
-            s"$KEY_ATTRIBUTE_NAME attribute unsupported type ${t._1}")
+            s"$KEY_ATTRIBUTE_NAME attribute unsupported type ${t._1}"
+          )
         }
       case None => metas(1) = -1
     }
@@ -138,12 +150,14 @@ class FlinkPulsarRowSink(
           metas(2) = t._2
         } else {
           throw new IllegalStateException(
-            s"$EVENT_TIME_NAME attribute unsupported type ${t._1}")
+            s"$EVENT_TIME_NAME attribute unsupported type ${t._1}"
+          )
         }
       case None => metas(2) = -1
     }
 
-    val values = (0 until length).toSet.filterNot(metas.toSet.contains(_)).toSeq.sorted
+    val values =
+      (0 until length).toSet.filterNot(metas.toSet.contains(_)).toSeq.sorted
 
     val valuesNameAndType = values.map { i =>
       val name = rowFields(i).getName
@@ -155,25 +169,29 @@ class FlinkPulsarRowSink(
       if (values.size == 1) {
         valuesNameAndType(0)._2
       } else {
-        val fields = rowFields.filterNot(f => META_FIELD_NAMES.contains(f.getName)).map { case f =>
-          val fieldName = f.getName
-          DataTypes.FIELD(fieldName, fdtm.get(fieldName))
-        }
+        val fields =
+          rowFields.filterNot(f => META_FIELD_NAMES.contains(f.getName)).map {
+            case f =>
+              val fieldName = f.getName
+              DataTypes.FIELD(fieldName, fdtm.get(fieldName))
+          }
         DataTypes.ROW(fields: _*)
       }
 
     val metaProj: Projection = { origin: Row =>
       val result = new Row(3)
-      metas.zipWithIndex.foreach { case (slot, i) =>
-        if (slot != -1) result.setField(i, origin.getField(slot))
+      metas.zipWithIndex.foreach {
+        case (slot, i) =>
+          if (slot != -1) result.setField(i, origin.getField(slot))
       }
       result
     }
 
     val valueProj: Projection = { origin: Row =>
       val result = new Row(values.size)
-      values.zipWithIndex.foreach { case (slot, i) =>
-        result.setField(i, origin.getField(slot))
+      values.zipWithIndex.foreach {
+        case (slot, i) =>
+          result.setField(i, origin.getField(slot))
       }
       result
     }

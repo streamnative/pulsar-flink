@@ -24,6 +24,11 @@ object PulsarOptions {
   val PULSAR_CONSUMER_OPTION_KEY_PREFIX = "pulsar.consumer."
   val PULSAR_READER_OPTION_KEY_PREFIX = "pulsar.reader."
 
+  // auth options
+  val PULSAR_CLIENT_AUTH_PLUGIN_KEY = PULSAR_CLIENT_OPTION_KEY_PREFIX + "authPluginClassName"
+  val PULSAR_CLIENT_AUTH_PARAMS_KEY = PULSAR_CLIENT_OPTION_KEY_PREFIX + "authParams"
+  val PULSAR_CLIENT_TLS_CERT_PATH = PULSAR_CLIENT_OPTION_KEY_PREFIX + "tlsTrustCertsFilePath"
+
   // options
 
   val TOPIC_SINGLE = "topic"
@@ -32,11 +37,7 @@ object PulsarOptions {
 
   val PARTITION_SUFFIX = TopicName.PARTITIONED_TOPIC_SUFFIX
 
-  val TOPIC_OPTION_KEYS = Set(
-    TOPIC_SINGLE,
-    TOPIC_MULTI,
-    TOPIC_PATTERN
-  )
+  val TOPIC_OPTION_KEYS = Set(TOPIC_SINGLE, TOPIC_MULTI, TOPIC_PATTERN)
 
   val SERVICE_URL_OPTION_KEY = "service.url"
   val ADMIN_URL_OPTION_KEY = "admin.url"

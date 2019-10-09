@@ -1,16 +1,16 @@
 /**
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  *
+  *     http://www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an "AS IS" BASIS,
+  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  */
 package org.apache.flink.streaming.connectors.pulsar
 
 import java.util.Properties
@@ -49,7 +49,8 @@ class FlinkPulsarSinkTest extends PulsarFunSuite with MockitoSugar {
   test("async error rethrown on checkpoint") {
     val sink = new DummyFlinkPulsarSink(dummySchema(), dummyProperties())
 
-    val testHarness = new OneInputStreamOperatorTestHarness(new StreamSink[Row](sink))
+    val testHarness =
+      new OneInputStreamOperatorTestHarness(new StreamSink[Row](sink))
     testHarness.open()
     testHarness.processElement(new StreamRecord(intRow(1)))
 
@@ -64,7 +65,8 @@ class FlinkPulsarSinkTest extends PulsarFunSuite with MockitoSugar {
   test("async error rethrown on invoke") {
     val sink = new DummyFlinkPulsarSink(dummySchema(), dummyProperties())
 
-    val testHarness = new OneInputStreamOperatorTestHarness(new StreamSink[Row](sink))
+    val testHarness =
+      new OneInputStreamOperatorTestHarness(new StreamSink[Row](sink))
     testHarness.open()
     testHarness.processElement(new StreamRecord(intRow(1)))
 
@@ -78,9 +80,10 @@ class FlinkPulsarSinkTest extends PulsarFunSuite with MockitoSugar {
 
   test("async error rethrown on checkpoint after flush") {
     val sink = new DummyFlinkPulsarSink(dummySchema(), dummyProperties())
-    val mockProducer = sink.getProducer("tp")
+    val mockProducer = sink.getProducer("tp", intRow(1))
 
-    val testHarness = new OneInputStreamOperatorTestHarness(new StreamSink[Row](sink))
+    val testHarness =
+      new OneInputStreamOperatorTestHarness(new StreamSink[Row](sink))
     testHarness.open()
     testHarness.processElement(new StreamRecord(intRow(1)))
     testHarness.processElement(new StreamRecord(intRow(2)))
@@ -113,9 +116,10 @@ class FlinkPulsarSinkTest extends PulsarFunSuite with MockitoSugar {
     TimeLimits.failAfter(10 seconds) {
       val sink = new DummyFlinkPulsarSink(dummySchema(), dummyProperties())
 
-      val mockProducer = sink.getProducer("tp")
+      val mockProducer = sink.getProducer("tp", intRow(1))
 
-      val testHarness = new OneInputStreamOperatorTestHarness(new StreamSink[Row](sink))
+      val testHarness =
+        new OneInputStreamOperatorTestHarness(new StreamSink[Row](sink))
       testHarness.open()
       testHarness.processElement(new StreamRecord(intRow(1)))
       testHarness.processElement(new StreamRecord(intRow(2)))
@@ -161,8 +165,9 @@ class FlinkPulsarSinkTest extends PulsarFunSuite with MockitoSugar {
       props.setProperty("flushoncheckpoint", "false")
       val sink = new DummyFlinkPulsarSink(dummySchema(), props)
 
-      val mockProducer = sink.getProducer("tp")
-      val testHarness = new OneInputStreamOperatorTestHarness(new StreamSink[Row](sink))
+      val mockProducer = sink.getProducer("tp", intRow(1))
+      val testHarness =
+        new OneInputStreamOperatorTestHarness(new StreamSink[Row](sink))
 
       testHarness.open()
       testHarness.processElement(new StreamRecord(intRow(1)))
@@ -182,8 +187,7 @@ class FlinkPulsarSinkTest extends PulsarFunSuite with MockitoSugar {
   }
 
   def dummySchema(): DataType = {
-    DataTypes.ROW(
-      DataTypes.FIELD("1", DataTypes.INT))
+    DataTypes.ROW(DataTypes.FIELD("1", DataTypes.INT))
   }
 
   def dummyProperties(): Properties = {
@@ -196,42 +200,47 @@ class FlinkPulsarSinkTest extends PulsarFunSuite with MockitoSugar {
   }
 }
 
-class DummyFlinkPulsarSink(
-  schema: DataType,
-  producerConfig: Properties)
-  extends FlinkPulsarRowSink(schema, producerConfig) with MockitoSugar {
+class DummyFlinkPulsarSink(schema: DataType, producerConfig: Properties)
+    extends FlinkPulsarRowSink(schema, producerConfig)
+    with MockitoSugar {
 
-  val pendingCallbacks = mutable.ListBuffer.empty[BiConsumer[MessageId, Throwable]]
+  val pendingCallbacks =
+    mutable.ListBuffer.empty[BiConsumer[MessageId, Throwable]]
   val flushLatch = new MultiShotLatch()
   var isFlushed = false
 
   val mockProducer = mock[Producer[Any]]
   val mockMessageBuilder = mock[TypedMessageBuilderImpl[Any]]
-  when(mockMessageBuilder.sendAsync()).thenAnswer(new Answer[CompletableFuture[MessageId]] {
-    override def answer(
-      invocation: InvocationOnMock): CompletableFuture[MessageId] = {
-      val mockFuture = mock[CompletableFuture[MessageId]]
+  when(mockMessageBuilder.sendAsync())
+    .thenAnswer(new Answer[CompletableFuture[MessageId]] {
+      override def answer(
+        invocation: InvocationOnMock
+      ): CompletableFuture[MessageId] = {
+        val mockFuture = mock[CompletableFuture[MessageId]]
 
-      when(mockFuture.whenComplete(any[BiConsumer[MessageId, Throwable]])).thenAnswer(new Answer[Any] {
-        override def answer(invocation: InvocationOnMock): Any = {
-          pendingCallbacks.append(invocation.getArgument(0))
-          null
-        }
-      })
+        when(mockFuture.whenComplete(any[BiConsumer[MessageId, Throwable]]))
+          .thenAnswer(new Answer[Any] {
+            override def answer(invocation: InvocationOnMock): Any = {
+              pendingCallbacks.append(invocation.getArgument(0))
+              null
+            }
+          })
 
-      mockFuture
-    }
-  })
+        mockFuture
+      }
+    })
   when(mockMessageBuilder.value(any())).thenReturn(mockMessageBuilder)
   when(mockMessageBuilder.keyBytes(any())).thenReturn(mockMessageBuilder)
   when(mockMessageBuilder.eventTime(any())).thenReturn(mockMessageBuilder)
 
-  when(mockProducer.newMessage()).thenAnswer(new Answer[TypedMessageBuilderImpl[Any]]() {
-    override def answer(
-      invocation: InvocationOnMock): TypedMessageBuilderImpl[Any] = {
-      mockMessageBuilder
-    }
-  })
+  when(mockProducer.newMessage())
+    .thenAnswer(new Answer[TypedMessageBuilderImpl[Any]]() {
+      override def answer(
+        invocation: InvocationOnMock
+      ): TypedMessageBuilderImpl[Any] = {
+        mockMessageBuilder
+      }
+    })
 
   def getPendingSize(): Long = {
     if (doFlushOnCheckpoint) {
@@ -249,8 +258,10 @@ class DummyFlinkPulsarSink(
     // if the snapshot implementation doesn't wait until
     // all pending records are flushed, we should fail the test
     if (doFlushOnCheckpoint && !isFlushed) {
-      throw new RuntimeException("Flushing is enabled; snapshots should be blocked" +
-        " until all pending records are flushed")
+      throw new RuntimeException(
+        "Flushing is enabled; snapshots should be blocked" +
+          " until all pending records are flushed"
+      )
     }
   }
 
@@ -265,11 +276,13 @@ class DummyFlinkPulsarSink(
     // and pending records tracking logic is implemented correctly, otherwise
     // we will loop forever.
     while (numPendingRecords > 0) {
-     try {
+      try {
         Thread.sleep(10)
       } catch {
         case e: InterruptedException =>
-          throw new RuntimeException("Unable to flush producer, task was interrupted")
+          throw new RuntimeException(
+            "Unable to flush producer, task was interrupted"
+          )
       }
     }
     isFlushed = true

@@ -25,11 +25,18 @@ import scala.collection.mutable
 import org.apache.flink.api.common.ExecutionConfig
 import org.apache.flink.api.java.ClosureCleaner
 import org.apache.flink.configuration.Configuration
-import org.apache.flink.runtime.state.{FunctionInitializationContext, FunctionSnapshotContext}
+import org.apache.flink.runtime.state.{
+  FunctionInitializationContext,
+  FunctionSnapshotContext
+}
 import org.apache.flink.streaming.api.checkpoint.CheckpointedFunction
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext
-import org.apache.flink.streaming.connectors.pulsar.internal.{CachedPulsarClient, Logging, SchemaUtils}
+import org.apache.flink.streaming.connectors.pulsar.internal.{
+  CachedPulsarClient,
+  Logging,
+  SchemaUtils
+}
 import org.apache.flink.types.Row
 import org.apache.flink.util.SerializableObject
 
@@ -46,11 +53,11 @@ import org.apache.pulsar.client.api.{MessageId, Producer, Schema}
  * @tparam T Type of the messages to write into Pulsar.
  */
 abstract class FlinkPulsarSinkBase[T](
-    val parameters: Properties,
-    val topicKeyExtractor: TopicKeyExtractor[T])
-  extends RichSinkFunction[T]
-  with CheckpointedFunction
-  with Logging {
+  val parameters: Properties,
+  val topicKeyExtractor: TopicKeyExtractor[T]
+) extends RichSinkFunction[T]
+    with CheckpointedFunction
+    with Logging {
 
   import org.apache.flink.streaming.connectors.pulsar.internal.SourceSinkUtils._
   import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions._
@@ -80,34 +87,56 @@ abstract class FlinkPulsarSinkBase[T](
   if (!forcedTopic && topicKeyExtractor == null) {
     throw new IllegalArgumentException(
       s"You should either set output topic through $TOPIC_SINGLE option," +
-        "or provide a TopicKeyExtractor to generate topic from each record dynamically.")
+        "or provide a TopicKeyExtractor to generate topic from each record dynamically."
+    )
   }
 
   if (topicKeyExtractor != null) {
     ClosureCleaner.clean(
-      topicKeyExtractor, ExecutionConfig.ClosureCleanerLevel.RECURSIVE, true)
+      topicKeyExtractor,
+      ExecutionConfig.ClosureCleanerLevel.RECURSIVE,
+      true
+    )
   }
 
   // for test purpose, admin would not be initialized in unit test
   @transient var adminUsed = false
-  @transient protected lazy val admin = PulsarAdmin.builder().serviceHttpUrl(adminUrl).build()
+  @transient protected lazy val admin = {
+    var builder = PulsarAdmin.builder().serviceHttpUrl(adminUrl)
+    if (clientConf.containsKey(PULSAR_CLIENT_AUTH_PLUGIN_KEY) && clientConf
+          .containsKey(PULSAR_CLIENT_AUTH_PARAMS_KEY)) {
+      builder = builder.authentication(
+        clientConf.get(PULSAR_CLIENT_AUTH_PLUGIN_KEY).asInstanceOf[String],
+        clientConf.get(PULSAR_CLIENT_AUTH_PARAMS_KEY).asInstanceOf[String]
+      )
+    }
+    if (clientConf.containsKey(PULSAR_CLIENT_TLS_CERT_PATH)) {
+      builder = builder.tlsTrustCertsFilePath(
+        clientConf.get(PULSAR_CLIENT_TLS_CERT_PATH).asInstanceOf[String]
+      )
+    }
+    builder.build()
+  }
 
-  def pulsarSchema: Schema[_]
+  def pulsarSchema[R](element: Option[R] = None): Schema[_]
 
   // reuse producer through the executor
   @transient protected lazy val singleProducer =
-  if (forcedTopic) {
-    SchemaUtils.uploadPulsarSchema(admin, topicName, pulsarSchema.getSchemaInfo)
-    adminUsed = true
-    createProducer(clientConf, producerConf, topicName, pulsarSchema)
-  } else null
-  @transient protected lazy val topic2Producer: mutable.Map[String, Producer[_]] =
+    if (forcedTopic) {
+      val schema = pulsarSchema()
+      SchemaUtils.uploadPulsarSchema(admin, topicName, schema.getSchemaInfo)
+      adminUsed = true
+      createProducer(clientConf, producerConf, topicName, schema)
+    } else null
+  @transient protected lazy val topic2Producer
+    : mutable.Map[String, Producer[_]] =
     mutable.Map.empty
 
   // used to synchronize with Pulsar callbacks
   @transient @volatile protected var failedWrite: Throwable = _
 
-  @transient protected lazy val sendCallback: BiConsumer[MessageId, Throwable] = {
+  @transient protected lazy val sendCallback
+    : BiConsumer[MessageId, Throwable] = {
     if (doFailOnWrite) {
       new BiConsumer[MessageId, Throwable]() {
         override def accept(t: MessageId, u: Throwable): Unit = {
@@ -134,9 +163,13 @@ abstract class FlinkPulsarSinkBase[T](
 
   override def open(parameters: Configuration): Unit = {
     if (doFlushOnCheckpoint &&
-        !this.getRuntimeContext.asInstanceOf[StreamingRuntimeContext].isCheckpointingEnabled) {
-      logWarning("Flushing on checkpoint is enabled, " +
-        "but checkpointing is not enabled. Disabling flushing.")
+        !this.getRuntimeContext
+          .asInstanceOf[StreamingRuntimeContext]
+          .isCheckpointingEnabled) {
+      logWarning(
+        "Flushing on checkpoint is enabled, " +
+          "but checkpointing is not enabled. Disabling flushing."
+      )
       doFlushOnCheckpoint = false
     }
   }
@@ -166,7 +199,8 @@ abstract class FlinkPulsarSinkBase[T](
       pendingRecordsLock.synchronized {
         if (pendingRecords != 0) {
           throw new IllegalStateException(
-            s"Pending record count must be zero at this point: $pendingRecords");
+            s"Pending record count must be zero at this point: $pendingRecords"
+          );
         }
         checkForErrors()
       }
@@ -197,7 +231,10 @@ abstract class FlinkPulsarSinkBase[T](
           case e: InterruptedException =>
             // this can be interrupted when the Task has been cancelled.
             // by throwing an exception, we ensure that this checkpoint doesn't get confirmed
-            throw new RuntimeException("Flushing got interrupted while checkpointing", e)
+            throw new RuntimeException(
+              "Flushing got interrupted while checkpointing",
+              e
+            )
         }
       }
     }
@@ -216,28 +253,38 @@ abstract class FlinkPulsarSinkBase[T](
     topic2Producer.clear()
   }
 
-  def getProducer[T](tp: String): Producer[T] = {
+  def getProducer[R](tp: String, element: R): Producer[R] = {
     if (null != singleProducer) {
-      return singleProducer.asInstanceOf[Producer[T]]
+      return singleProducer.asInstanceOf[Producer[R]]
     }
 
     if (topic2Producer.contains(tp)) {
-      topic2Producer(tp).asInstanceOf[Producer[T]]
+      topic2Producer(tp).asInstanceOf[Producer[R]]
     } else {
-      SchemaUtils.uploadPulsarSchema(admin, tp, pulsarSchema.getSchemaInfo)
+      val schema = pulsarSchema(Some(element))
+      retry(3)(
+        () =>
+          SchemaUtils
+            .uploadPulsarSchema(admin, tp, schema.getSchemaInfo)
+      ) match {
+        case util.Failure(ex) =>
+          log.error("failed to upload schema multiple times, continuing", ex)
+        case util.Success(_) =>
+          log.debug("uploaded schema for {}", tp)
+      }
+
       adminUsed = true
       val p =
-        createProducer(clientConf, producerConf, tp, pulsarSchema)
+        createProducer(clientConf, producerConf, tp, schema)
       topic2Producer.put(tp, p)
-      p.asInstanceOf[Producer[T]]
+      p.asInstanceOf[Producer[R]]
     }
   }
 
-  private def createProducer[T](
-    clientConf: ju.Map[String, Object],
-    producerConf: ju.Map[String, Object],
-    topic: String,
-    schema: Schema[T]): Producer[T] = {
+  private def createProducer[R](clientConf: ju.Map[String, Object],
+                                producerConf: ju.Map[String, Object],
+                                topic: String,
+                                schema: Schema[R]): Producer[R] = {
 
     CachedPulsarClient
       .getOrCreate(clientConf)
@@ -249,10 +296,18 @@ abstract class FlinkPulsarSinkBase[T](
       .batchingMaxMessages(5 * 1024 * 1024)
       .create()
   }
+
+  @annotation.tailrec
+  private def retry[R](n: Int)(fn: => R): util.Try[R] = {
+    util.Try { fn } match {
+      case util.Failure(_) if n > 1 => retry(n - 1)(fn)
+      case fn => fn
+    }
+  }
 }
 
 trait TopicKeyExtractor[T] extends Serializable {
-  def serializeKey(element: T) : Array[Byte]
+  def serializeKey(element: T): Array[Byte]
   def getTopic(element: T): String
 }
 

@@ -1,42 +1,72 @@
 /**
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  *
+  *     http://www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an "AS IS" BASIS,
+  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  */
 package org.apache.flink.streaming.connectors.pulsar
 
 import java.util.{Properties, Random, UUID}
 import java.util.concurrent.atomic.{AtomicInteger, AtomicReference}
 
 import org.apache.flink.api.common.JobExecutionResult
-import org.apache.flink.streaming.api.environment.{StreamExecutionEnvironment => JavaEnv}
+import org.apache.flink.streaming.api.environment.{
+  StreamExecutionEnvironment => JavaEnv
+}
 
 import scala.collection.mutable
 import scala.collection.JavaConverters._
-import org.apache.flink.api.common.functions.{FlatMapFunction, MapFunction, RichFlatMapFunction, RichFunction}
+import org.apache.flink.api.common.functions.{
+  FlatMapFunction,
+  MapFunction,
+  RichFlatMapFunction,
+  RichFunction
+}
 import org.apache.flink.api.common.restartstrategy.RestartStrategies
-import org.apache.flink.api.common.typeinfo.{BasicTypeInfo, TypeHint, TypeInformation}
+import org.apache.flink.api.common.typeinfo.{
+  BasicTypeInfo,
+  TypeHint,
+  TypeInformation
+}
 import org.apache.flink.api.dag.Transformation
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.runtime.client.JobCancellationException
 import org.apache.flink.runtime.jobgraph.JobStatus
 import org.apache.flink.shaded.guava18.com.google.common.collect.Iterables
 import org.apache.flink.streaming.api.functions.sink.DiscardingSink
-import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment}
-import org.apache.flink.streaming.api.functions.source.{RichParallelSourceFunction, SourceFunction}
-import org.apache.flink.streaming.api.graph.{StreamGraph, StreamingJobGraphGenerator}
+import org.apache.flink.streaming.api.scala.{
+  DataStream,
+  StreamExecutionEnvironment
+}
+import org.apache.flink.streaming.api.functions.source.{
+  RichParallelSourceFunction,
+  SourceFunction
+}
+import org.apache.flink.streaming.api.graph.{
+  StreamGraph,
+  StreamingJobGraphGenerator
+}
 import org.apache.flink.streaming.api.operators.StreamSink
-import org.apache.flink.streaming.connectors.pulsar.internal.{CachedPulsarClient, JsonUtils, SourceSinkUtils}
-import org.apache.flink.streaming.connectors.pulsar.internals.{PulsarFlinkTest, PulsarFunSuite}
-import org.apache.flink.streaming.connectors.pulsar.testutils.{FailingIdentityMapper, ValidatingExactlyOnceSink}
+import org.apache.flink.streaming.connectors.pulsar.internal.{
+  CachedPulsarClient,
+  JsonUtils,
+  SourceSinkUtils
+}
+import org.apache.flink.streaming.connectors.pulsar.internals.{
+  PulsarFlinkTest,
+  PulsarFunSuite
+}
+import org.apache.flink.streaming.connectors.pulsar.testutils.{
+  FailingIdentityMapper,
+  ValidatingExactlyOnceSink
+}
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord
 import org.apache.flink.streaming.util.OneInputStreamOperatorTestHarness
 import org.apache.flink.table.api.DataTypes
@@ -67,8 +97,12 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
     val ex = intercept[Throwable] {
       see.execute("wrong service url test")
     }
-    assert(causedBySpecificException[IllegalArgumentException](
-      ex, "authority component is missing"))
+    assert(
+      causedBySpecificException[IllegalArgumentException](
+        ex,
+        "authority component is missing"
+      )
+    )
   }
 
   test("case sensitive reader conf") {
@@ -124,7 +158,12 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
     // wait for the program to be done and validate that we failed with the right exception
     runnerThread.join()
 
-    assert(flinkClient.getJobStatus(jobId).get().toString == JobStatus.CANCELED.toString)
+    assert(
+      flinkClient
+        .getJobStatus(jobId)
+        .get()
+        .toString == JobStatus.CANCELED.toString
+    )
   }
 
   test("case sensitive producer conf") {
@@ -143,7 +182,10 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
     val sinkProp = sinkProperties()
     sinkProp.setProperty("pulsar.producer.blockIfQueueFull", "true")
     sinkProp.setProperty("pulsar.producer.maxPendingMessages", "100000")
-    sinkProp.setProperty("pulsar.producer.maxPendingMessagesAcrossPartitions", "5000000")
+    sinkProp.setProperty(
+      "pulsar.producer.maxPendingMessagesAcrossPartitions",
+      "5000000"
+    )
     sinkProp.setProperty("pulsar.producer.sendTimeoutMs", "30000")
     produceIntoPulsar(stream, intRowWithTopicType(), sinkProp)
     see.execute("write with topics")
@@ -193,8 +235,10 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
     sourceProps.setProperty(TOPIC_MULTI, topics.mkString(","))
     val stream1 = env.addSource(new FlinkPulsarSource(sourceProps))
 
-    stream1.flatMap(
-      new CountMessageNumberFM(numElements))(new TypeHint[Int](){}.getTypeInfo)
+    stream1
+      .flatMap(new CountMessageNumberFM(numElements))(
+        new TypeHint[Int]() {}.getTypeInfo
+      )
       .setParallelism(1)
 
     TestUtils.tryExecute(env.getJavaEnv, "count elements from topics")
@@ -204,7 +248,8 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
     val topics = (0 until 3).map(_ => newTopic())
     val messages = (0 until 50)
     val expectedIds = topics.map { tp =>
-      val lid = sendTypedMessages[Int](tp, SchemaType.INT32, messages, None).last
+      val lid =
+        sendTypedMessages[Int](tp, SchemaType.INT32, messages, None).last
       tp -> lid
     }.toMap
 
@@ -219,7 +264,8 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
     sourceProps.setProperty(TOPIC_MULTI, topics.mkString(","))
 
     // Sink FlinkPulsarSource is ResultTypeQueryable, we don't need to provide an extra TypeInfo
-    val stream = see.addSource(new FlinkPulsarSourceSub(sourceProps, subName))(null)
+    val stream =
+      see.addSource(new FlinkPulsarSourceSub(sourceProps, subName))(null)
 
     stream.addSink(new DiscardingSink[Row]())
 
@@ -251,7 +297,9 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
     } while (System.nanoTime() < deadline && !gotLast)
 
     // cancel the job & wait for the job to finish
-    flinkClient.cancel(Iterables.getOnlyElement(getRunningJobs(flinkClient).asJava))
+    flinkClient.cancel(
+      Iterables.getOnlyElement(getRunningJobs(flinkClient).asJava)
+    )
     runner.join()
 
     val t = errorRef.get
@@ -264,7 +312,8 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
     val topics = (0 until 3).map(_ => newTopic())
     val messages = (0 until 50)
     val expectedData = topics.map { tp =>
-      val lid = sendTypedMessages[Int](tp, SchemaType.INT32, messages, None).last
+      val lid =
+        sendTypedMessages[Int](tp, SchemaType.INT32, messages, None).last
       tp -> messages.toSet
     }.toMap
 
@@ -279,7 +328,9 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
     val stream = see.addSource(source)(null)
 
     // we pass in an arbitrary TypeInfo since it collects nothing
-    val x = stream.flatMap(new CheckAllMessageIdExist(expectedData, 150))(intRowTypeInfo())
+    val x = stream.flatMap(new CheckAllMessageIdExist(expectedData, 150))(
+      intRowTypeInfo()
+    )
     x.setParallelism(1)
 
     TestUtils.tryExecute(see.getJavaEnv, "start from earliest")
@@ -290,7 +341,8 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
     val messages = (0 until 50)
     val newMessages = (50 until 60)
     topics.map { tp =>
-      val lid = sendTypedMessages[Int](tp, SchemaType.INT32, messages, None).last
+      val lid =
+        sendTypedMessages[Int](tp, SchemaType.INT32, messages, None).last
       tp -> messages.toSet
     }
 
@@ -311,7 +363,9 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
     }.toMap
 
     // we pass in an arbitrary TypeInfo since it collects nothing
-    val x = stream.flatMap(new CheckAllMessageIdExist(expectedData, 30))(intRowTypeInfo())
+    val x = stream.flatMap(new CheckAllMessageIdExist(expectedData, 30))(
+      intRowTypeInfo()
+    )
     x.setParallelism(1)
     x.addSink(new DiscardingSink[Row])
 
@@ -323,10 +377,13 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
       override def run(): Unit = {
         try {
           flinkClient.setDetached(false)
-          flinkClient.submitJob(jobGraph, classOf[FlinkPulsarITest].getClassLoader)
+          flinkClient
+            .submitJob(jobGraph, classOf[FlinkPulsarITest].getClassLoader)
         } catch {
           case t: Throwable =>
-            if (!ExceptionUtils.findThrowable(t, classOf[JobCancellationException]).isPresent) error.set(t)
+            if (!ExceptionUtils
+                  .findThrowable(t, classOf[JobCancellationException])
+                  .isPresent) error.set(t)
         }
       }
     })
@@ -357,9 +414,10 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
       topic,
       SchemaType.INT32,
       Array(
-        //  0,   1,   2, 3, 4, 5,  6,  7,  8
-           -20, -21, -22, 1, 2, 3, 10, 11, 12),
-      None)
+          //  0,   1,   2, 3, 4, 5,  6,  7,  8
+          -20, -21, -22, 1, 2, 3, 10, 11, 12),
+      None
+    )
 
     val s1 = JsonUtils.topicOffsets(Map(topic -> mids(3)))
 
@@ -376,7 +434,9 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
     val source = new FlinkPulsarSource(sourceProps)
     val stream = see.addSource(source)(null)
 
-    val x = stream.flatMap(new CheckAllMessageIdExist(expectedData, 5))(intRowTypeInfo())
+    val x = stream.flatMap(new CheckAllMessageIdExist(expectedData, 5))(
+      intRowTypeInfo()
+    )
     x.setParallelism(1)
 
     TestUtils.tryExecute(see.getJavaEnv, "start from specific")
@@ -396,7 +456,11 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
 
     generateRandomizedIntegerSequence(
       StreamExecutionEnvironment.getExecutionEnvironment,
-      topic, parallelism, numElementsPerPartition, true)
+      topic,
+      parallelism,
+      numElementsPerPartition,
+      true
+    )
 
     // run the topology that fails and recovers
 
@@ -411,10 +475,12 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
 
     val source = new FlinkPulsarSource(sourceProps)
     implicit val tpe = source.getProducedType
-    env.addSource(source)
+    env
+      .addSource(source)
       .map(new PartitionValidatorMapper(parallelism, 1))
       .map(new FailingIdentityMapper[Row](failAfterElements))
-      .addSink(new ValidatingExactlyOnceSink(totalElements)).setParallelism(1)
+      .addSink(new ValidatingExactlyOnceSink(totalElements))
+      .setParallelism(1)
 
     FailingIdentityMapper.failedBefore = false
     TestUtils.tryExecute(env.getJavaEnv, "One-to-one exactly once test")
@@ -434,7 +500,11 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
 
     generateRandomizedIntegerSequence(
       StreamExecutionEnvironment.getExecutionEnvironment,
-      topic, numPartitions, numElementsPerPartition, true)
+      topic,
+      numPartitions,
+      numElementsPerPartition,
+      true
+    )
 
     val parallelism = 2
 
@@ -451,13 +521,18 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
 
     val source = new FlinkPulsarSource(sourceProps)
     implicit val tpe = source.getProducedType
-    env.addSource(source)
+    env
+      .addSource(source)
       .map(new PartitionValidatorMapper(numPartitions, 3))
       .map(new FailingIdentityMapper[Row](failAfterElements))
-      .addSink(new ValidatingExactlyOnceSink(totalElements)).setParallelism(1)
+      .addSink(new ValidatingExactlyOnceSink(totalElements))
+      .setParallelism(1)
 
     FailingIdentityMapper.failedBefore = false
-    TestUtils.tryExecute(env.getJavaEnv, "One-source-multi-partitions exactly once test")
+    TestUtils.tryExecute(
+      env.getJavaEnv,
+      "One-source-multi-partitions exactly once test"
+    )
   }
 
   test("source task number > partition number") {
@@ -474,7 +549,11 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
 
     generateRandomizedIntegerSequence(
       StreamExecutionEnvironment.getExecutionEnvironment,
-      topic, numPartitions, numElementsPerPartition, true)
+      topic,
+      numPartitions,
+      numElementsPerPartition,
+      true
+    )
 
     val parallelism = 8
 
@@ -492,13 +571,18 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
 
     val source = new FlinkPulsarSource(sourceProps)
     implicit val tpe = source.getProducedType
-    env.addSource(source)
+    env
+      .addSource(source)
       .map(new PartitionValidatorMapper(numPartitions, 1))
       .map(new FailingIdentityMapper[Row](failAfterElements))
-      .addSink(new ValidatingExactlyOnceSink(totalElements)).setParallelism(1)
+      .addSink(new ValidatingExactlyOnceSink(totalElements))
+      .setParallelism(1)
 
     FailingIdentityMapper.failedBefore = false
-    TestUtils.tryExecute(env.getJavaEnv, "source task number > partition number")
+    TestUtils.tryExecute(
+      env.getJavaEnv,
+      "source task number > partition number"
+    )
   }
 
   test("canceling on full input") {
@@ -520,7 +604,6 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
     val prop = sourceProperties()
     prop.setProperty(TOPIC_SINGLE, tp)
     val source = new FlinkPulsarSource(prop)
-
 
     env.addSource(source)(null).addSink(new DiscardingSink[Row]())
 
@@ -556,7 +639,12 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
     // wait for the program to be done and validate that we failed with the right exception
     runnerThread.join()
 
-    assert(flinkClient.getJobStatus(jobId).get().toString == JobStatus.CANCELED.toString)
+    assert(
+      flinkClient
+        .getJobStatus(jobId)
+        .get()
+        .toString == JobStatus.CANCELED.toString
+    )
     if (generator.isAlive) {
       generator.shutdown()
       generator.join()
@@ -622,15 +710,19 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
     // wait for the program to be done and validate that we failed with the right exception
     runnerThread.join()
 
-    assert(flinkClient.getJobStatus(jobId).get().toString == JobStatus.CANCELED.toString)
+    assert(
+      flinkClient
+        .getJobStatus(jobId)
+        .get()
+        .toString == JobStatus.CANCELED.toString
+    )
   }
 
-  def generateRandomizedIntegerSequence(
-    env: StreamExecutionEnvironment,
-    tp: String,
-    numPartitions: Int,
-    numElements: Int,
-    randomizedOrder: Boolean): Unit = {
+  def generateRandomizedIntegerSequence(env: StreamExecutionEnvironment,
+                                        tp: String,
+                                        numPartitions: Int,
+                                        numElements: Int,
+                                        randomizedOrder: Boolean): Unit = {
 
     env.setParallelism(numPartitions)
     env.getConfig.disableSysoutLogging()
@@ -638,31 +730,36 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
 
     implicit val tpe = intRowWithTopicTypeInfo()
     val stream = env.addSource(
-      new RandomizedIntegerSeq(tp, numPartitions, numElements, randomizedOrder))
+      new RandomizedIntegerSeq(tp, numPartitions, numElements, randomizedOrder)
+    )
 
     produceIntoPulsar(stream, intRowWithTopicType(), sinkProperties())
     env.execute("scrambles in sequence generator")
   }
 
-
-  def roughEquals(a: Map[String, MessageId], b: Map[String, MessageId]): Boolean = {
-    a.foreach { case (k, v) =>
-      val bmid = b.getOrElse(k, MessageId.latest)
-      if (!SourceSinkUtils.messageIdRoughEquals(v, bmid)) {
-        return false
-      }
+  def roughEquals(a: Map[String, MessageId],
+                  b: Map[String, MessageId]): Boolean = {
+    a.foreach {
+      case (k, v) =>
+        val bmid = b.getOrElse(k, MessageId.latest)
+        if (!SourceSinkUtils.messageIdRoughEquals(v, bmid)) {
+          return false
+        }
     }
     true
   }
 
-  def produceIntoPulsar(stream: DataStream[Row], schema: DataType, props: Properties): Unit = {
+  def produceIntoPulsar(stream: DataStream[Row],
+                        schema: DataType,
+                        props: Properties): Unit = {
     props.setProperty(FLUSH_ON_CHECKPOINT, "true")
     stream.addSink(new FlinkPulsarRowSink(schema, props))
   }
 
-  def causedBySpecificException[T](e: Throwable, messagePart: String): Boolean = {
+  def causedBySpecificException[T](e: Throwable,
+                                   messagePart: String): Boolean = {
     if (e.isInstanceOf[T] && e.getMessage.contains(messagePart)) {
-        true
+      true
     } else {
       if (e.getCause == null) {
         return false
@@ -692,21 +789,17 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
   def intPulsarRow(): TypeInformation[Row] = {
     val dt = DataTypes.ROW(
       DataTypes.FIELD("value", DataTypes.INT()),
-      DataTypes.FIELD(
-        KEY_ATTRIBUTE_NAME,
-        DataTypes.BYTES()),
-      DataTypes.FIELD(
-        TOPIC_ATTRIBUTE_NAME,
-        DataTypes.STRING()),
-      DataTypes.FIELD(
-        MESSAGE_ID_NAME,
-        DataTypes.BYTES()),
+      DataTypes.FIELD(KEY_ATTRIBUTE_NAME, DataTypes.BYTES()),
+      DataTypes.FIELD(TOPIC_ATTRIBUTE_NAME, DataTypes.STRING()),
+      DataTypes.FIELD(MESSAGE_ID_NAME, DataTypes.BYTES()),
       DataTypes.FIELD(
         PUBLISH_TIME_NAME,
-        DataTypes.TIMESTAMP(3).bridgedTo(classOf[java.sql.Timestamp])),
+        DataTypes.TIMESTAMP(3).bridgedTo(classOf[java.sql.Timestamp])
+      ),
       DataTypes.FIELD(
         EVENT_TIME_NAME,
-        DataTypes.TIMESTAMP(3).bridgedTo(classOf[java.sql.Timestamp]))
+        DataTypes.TIMESTAMP(3).bridgedTo(classOf[java.sql.Timestamp])
+      )
     )
     LegacyTypeInfoDataTypeConverter
       .toLegacyTypeInfo(dt)
@@ -714,9 +807,7 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
   }
 
   def intRowType(): DataType = {
-    DataTypes.ROW(
-      DataTypes.FIELD("v", DataTypes.INT())
-    )
+    DataTypes.ROW(DataTypes.FIELD("v", DataTypes.INT()))
   }
 
   def intRowTypeInfo(): TypeInformation[Row] = {
@@ -758,7 +849,8 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
 
   private val topicId = new AtomicInteger(0)
 
-  private def newTopic(): String = TopicName.get(s"topic-${topicId.getAndIncrement()}").toString
+  private def newTopic(): String =
+    TopicName.get(s"topic-${topicId.getAndIncrement()}").toString
 
   class InfiniteStringsGenerator(tp: String) extends Thread {
     @volatile var running: Boolean = true
@@ -773,11 +865,13 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
         prop.setProperty(FLUSH_ON_CHECKPOINT, "true")
 
         val ps = new FlinkPulsarSinkBase[String](prop, null) {
-          override def pulsarSchema: Schema[_] = Schema.STRING
+          override def pulsarSchema[R](element: Option[R]): Schema[_] =
+            Schema.STRING
         }
         val sink = new StreamSink[String](ps)
 
-        val testHarness = new OneInputStreamOperatorTestHarness[String, Object](sink)
+        val testHarness =
+          new OneInputStreamOperatorTestHarness[String, Object](sink)
 
         testHarness.open()
 
@@ -834,19 +928,20 @@ class CheckAllMessageIdExist(expected: Map[String, Set[Int]], total: Int)
     count += 1
 
     if (count == total) {
-      map.foreach { case (tp, seq) =>
-        val s = seq.toSet
-        if (s.size != seq.size) {
-          throw new RuntimeException(s"duplicate elements in $tp: $seq")
-        }
-        val expectedSet = expected.getOrElse(tp, null)
-        if (expectedSet == null) {
-          throw new RuntimeException("Unknown topic seen $tp")
-        } else {
-          if (expectedSet != s) {
-            throw new RuntimeException(s"$expectedSet \n $s")
+      map.foreach {
+        case (tp, seq) =>
+          val s = seq.toSet
+          if (s.size != seq.size) {
+            throw new RuntimeException(s"duplicate elements in $tp: $seq")
           }
-        }
+          val expectedSet = expected.getOrElse(tp, null)
+          if (expectedSet == null) {
+            throw new RuntimeException("Unknown topic seen $tp")
+          } else {
+            if (expectedSet != s) {
+              throw new RuntimeException(s"$expectedSet \n $s")
+            }
+          }
       }
       throw new SuccessException
     }
@@ -892,11 +987,16 @@ class CountMessageNumberFM(numElements: Int) extends FlatMapFunction[Row, Int] {
   }
 }
 
-class FlinkPulsarSourceSub(parameters: Properties, sub: String) extends FlinkPulsarSource(parameters) {
+class FlinkPulsarSourceSub(parameters: Properties, sub: String)
+    extends FlinkPulsarSource(parameters) {
   @transient override lazy val subscriptionPrefix: String = s"flink-pulsar-$sub"
 }
 
-class RandomizedIntegerSeq(tp: String, numPartitions: Int, numElements: Int, randomizeOrder: Boolean) extends RichParallelSourceFunction[Row] {
+class RandomizedIntegerSeq(tp: String,
+                           numPartitions: Int,
+                           numElements: Int,
+                           randomizeOrder: Boolean)
+    extends RichParallelSourceFunction[Row] {
 
   @volatile var running = true
 
@@ -938,22 +1038,28 @@ class RandomizedIntegerSeq(tp: String, numPartitions: Int, numElements: Int, ran
 }
 
 class PartitionValidatorMapper(numPartitions: Int, maxPartitions: Int)
-    extends MapFunction[Row, Row]{
+    extends MapFunction[Row, Row] {
   val myTopics = mutable.HashSet.empty[String]
 
   override def map(t: Row): Row = {
     val tp = t.getField(2).asInstanceOf[String]
     myTopics.add(tp)
     if (myTopics.size > maxPartitions) {
-      throw new Exception(s"Error: Elements from too many different partitions: $myTopics " +
-        s"Expect elements only from $maxPartitions partitions")
+      throw new Exception(
+        s"Error: Elements from too many different partitions: $myTopics " +
+          s"Expect elements only from $maxPartitions partitions"
+      )
     }
     t
   }
 }
 
-class MockTransformation extends Transformation[String](
-    "MockTransformation", BasicTypeInfo.STRING_TYPE_INFO, 1) {
+class MockTransformation
+    extends Transformation[String](
+      "MockTransformation",
+      BasicTypeInfo.STRING_TYPE_INFO,
+      1
+    ) {
 
   override def getTransitivePredecessors() = null
 }

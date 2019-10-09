@@ -22,12 +22,9 @@ import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.TOPIC
 
 import org.apache.pulsar.client.api.Schema
 
-class FlinkPulsarSink[T: ClassTag](
-  parameters: Properties,
-  topicKeyExtractor: TopicKeyExtractor[T])
-  extends FlinkPulsarSinkBase[T](parameters, topicKeyExtractor) {
-
-  @transient lazy val pulsarSchema: Schema[_] = Schema.AVRO(implicitly[ClassTag[T]].runtimeClass)
+class FlinkPulsarSink[T: ClassTag](parameters: Properties,
+                                   topicKeyExtractor: TopicKeyExtractor[T])
+    extends FlinkPulsarSinkBase[T](parameters, topicKeyExtractor) {
 
   /**
    * Writes the given value to the sink. This function is called for every record.
@@ -45,20 +42,22 @@ class FlinkPulsarSink[T: ClassTag](
     checkForErrors()
 
     val mb = if (forcedTopic) {
-      getProducer(topicName).newMessage().value(value)
+      getProducer(topicName, value).newMessage().value(value)
     } else {
       val key = topicKeyExtractor.serializeKey(value)
       val topic = topicKeyExtractor.getTopic(value)
 
       if (topic == null) {
         if (doFailOnWrite) {
-          throw new NullPointerException(s"null topic present in the data. Use the " +
-            s"$TOPIC_SINGLE option for setting a topic.")
+          throw new NullPointerException(
+            s"null topic present in the data. Use the " +
+              s"$TOPIC_SINGLE option for setting a topic."
+          )
         }
         return
       }
 
-      val mb = getProducer(topic).newMessage().value(value)
+      val mb = getProducer(topic, value).newMessage().value(value)
       if (null != key) {
         mb.keyBytes(key)
       }
@@ -72,4 +71,7 @@ class FlinkPulsarSink[T: ClassTag](
     }
     mb.sendAsync().whenComplete(sendCallback)
   }
+
+  override def pulsarSchema[R](element: Option[R]): Schema[_] =
+    Schema.AVRO(implicitly[ClassTag[T]].runtimeClass)
 }

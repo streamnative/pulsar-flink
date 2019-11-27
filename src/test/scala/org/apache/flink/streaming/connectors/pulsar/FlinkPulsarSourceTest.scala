@@ -454,7 +454,7 @@ class TestingFlinkPulsarSource(discoverer: PulsarMetadataReader, discoveryInterv
       autoWatermarkInterval)
   }
 
-  override protected def createTopicDiscoverer(): PulsarMetadataReader = {
+  override protected def createMetadataReader(): PulsarMetadataReader = {
     discoverer
   }
 }
@@ -626,7 +626,7 @@ class DummyFlinkPulsarSource(
     testFetcherSupplier.get()
   }
 
-  override protected def createTopicDiscoverer(): PulsarMetadataReader = {
+  override protected def createMetadataReader(): PulsarMetadataReader = {
     discoverer
   }
 }

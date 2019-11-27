@@ -27,6 +27,7 @@ import org.apache.flink.table.types.{DataType, FieldsDataType}
 import org.apache.pulsar.client.admin.{PulsarAdmin, PulsarAdminException}
 import org.apache.pulsar.client.admin.PulsarAdminException.NotFoundException
 import org.apache.pulsar.client.api.{MessageId, PulsarClient}
+import org.apache.pulsar.client.impl.MessageIdImpl
 import org.apache.pulsar.client.impl.schema.BytesSchema
 import org.apache.pulsar.common.naming.{NamespaceName, TopicName}
 import org.apache.pulsar.common.schema.SchemaInfo
@@ -42,7 +43,9 @@ case class PulsarMetadataReader(
     driverGroupIdPrefix: String = "",
     caseInsensitiveParams: Map[String, String],
     indexOfThisSubtask: Int = -1,
-    numParallelSubtasks: Int = -1)
+    numParallelSubtasks: Int = -1,
+    isExternalSubscription: Boolean = false,
+    removeSubscriptionOnStop: Boolean = true)
     extends Closeable
     with Logging {
 
@@ -184,6 +187,35 @@ case class PulsarMetadataReader(
     val topic = Utils.objectPath2TopicName(objectPath)
     val si = SchemaUtils.sqlType2PSchema(table.getSchema.toRowDataType).getSchemaInfo
     SchemaUtils.uploadPulsarSchema(admin, topic, si)
+  }
+
+  def getStartPositionFromSubscription(
+      subName: String, initOffsets: Map[String, MessageId]): Map[String, MessageId] = {
+    initOffsets.map { case (topic, mid) =>
+      val readMid = getReadPosition(topic, subName, mid)
+      (topic, readMid)
+    }
+  }
+
+  def getReadPosition(topic: String, subName: String, initOffset: MessageId): MessageId = {
+    try {
+      val allSubscriptions = admin.topics().getInternalStats(topic).cursors
+      if (allSubscriptions.containsKey(subName)) {
+        // subscription already exists, use read position
+        val cursor = allSubscriptions.get(subName)
+        val partitionIdx = TopicName.get(topic).getPartitionIndex
+        val positionStr = cursor.readPosition.split(':').map(_.toInt)
+        new MessageIdImpl(positionStr(0), positionStr(1), partitionIdx)
+      } else {
+        // subscription doesn't exist, create subscription and use initOffset
+        admin.topics().createSubscription(topic, subName, initOffset)
+        initOffset
+      }
+    } catch {
+      case e: Throwable =>
+        throw new RuntimeException(
+          s"Failed to check subscription $subName existence on $topic.", e)
+    }
   }
 
   def setupCursor(offset: Map[String, MessageId]): Unit = {

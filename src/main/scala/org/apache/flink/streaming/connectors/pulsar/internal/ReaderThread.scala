@@ -26,6 +26,7 @@ class ReaderThread(
     pulsarSchema: SchemaInfo,
     clientConf: ju.Map[String, Object],
     readerConf: ju.Map[String, Object],
+    readerName: String,
     pollTimeoutMs: Int,
     jsonOptions: JSONOptionsInRead,
     exceptionProxy: ExceptionProxy)
@@ -50,6 +51,7 @@ class ReaderThread(
       reader = CachedPulsarClient
         .getOrCreate(clientConf)
         .newReader(schema)
+        .readerName(readerName)
         .topic(topic)
         .startMessageId(startingOffsets)
         .startMessageIdInclusive()

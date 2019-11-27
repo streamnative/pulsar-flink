@@ -230,7 +230,9 @@ class PulsarFetcher(
     running = false
 
     val topics = subscribedTopicStates.asScala.map(_.topic).toSeq
-    metadataReader.removeCursor(topics)
+    if (metadataReader.removeSubscriptionOnStop) {
+      metadataReader.removeCursor(topics)
+    }
     metadataReader.close()
 
     // make sure the main thread wakes up soon
@@ -242,15 +244,25 @@ class PulsarFetcher(
     exceptionProxy: ExceptionProxy): Map[String, ReaderThread] = {
 
     val startingOffsets = topicStates.asScala.map(state => (state.topic, state.offset)).toMap
-    metadataReader.setupCursor(startingOffsets)
+    if (!metadataReader.isExternalSubscription) {
+      metadataReader.setupCursor(startingOffsets)
+    }
 
     topicStates.asScala.map { state =>
+      val index = runtimeContext.getIndexOfThisSubtask
+      val readerName = if (metadataReader.isExternalSubscription) {
+        s"${metadataReader.driverGroupIdPrefix}-reader-$index"
+      } else {
+        s"${runtimeContext.getMetricGroup.getAllVariables.get("<job_id>")}-reader-$index"
+      }
+
       val readerT = new ReaderThread(
         this,
         state,
         pulsarSchema,
         clientConf,
         readerConf,
+        readerName,
         pollTimeoutMs,
         jsonOptions,
         exceptionProxy)

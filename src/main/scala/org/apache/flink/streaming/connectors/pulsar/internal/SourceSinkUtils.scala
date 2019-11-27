@@ -202,6 +202,20 @@ object SourceSinkUtils extends Logging {
     parameters.getOrElse(CLIENT_CACHE_SIZE, "5").toInt
   }
 
+  /**
+   * @return (useExternal or not, external subscription name, remove subscription on stop)
+   */
+  def prepareSubscriptionConf(parameters: Map[String, String]): (Boolean, String, Boolean) = {
+    val external = parameters.get(EXTERNAL_SUB_NAME)
+    val removeOnStop = parameters.getOrElse(REMOVE_SUB_ON_STOP, "false").toBoolean
+
+    if (external.isEmpty) {
+      (false, null, true)
+    } else {
+      (true, external.get, removeOnStop)
+    }
+  }
+
   def failOnWrite(caseInsensitiveParams: Map[String, String]): Boolean =
     caseInsensitiveParams.getOrElse(FAIL_ON_WRITE, "false").toBoolean
 

@@ -65,6 +65,9 @@ class FlinkPulsarSource(val parameters: Properties)
   val (clientConf, readerConf, serviceUrl, adminUrl) =
     prepareConfForReader(parameters.asScala.toMap)
 
+  val (useExternalSub, externalSubName, removeSubOnStop) =
+    prepareSubscriptionConf(parameters.asScala.toMap)
+
   val discoveryIntervalMs =
     getPartitionDiscoveryIntervalInMillis(caseInsensitiveParams)
 
@@ -98,7 +101,7 @@ class FlinkPulsarSource(val parameters: Properties)
   /** Fetcher implements Pulsar reads. */
   @transient @volatile private var pulsarFetcher: PulsarFetcher = null
 
-  @transient @volatile private var topicDiscoverer: PulsarMetadataReader = null
+  @transient @volatile private var metadataReader: PulsarMetadataReader = null
 
   /**
    * The offsets to restore to, if the reader restores state from a checkpoint.
@@ -224,10 +227,10 @@ class FlinkPulsarSource(val parameters: Properties)
   // ------------------------------------------------------------------------
 
   override def open(parameters: Configuration): Unit = {
-    this.topicDiscoverer = createTopicDiscoverer()
+    this.metadataReader = createMetadataReader()
 
     ownedTopicStarts = new mutable.HashMap[String, MessageId]()
-    val allTopics = topicDiscoverer.discoverTopicsChange()
+    val allTopics = metadataReader.discoverTopicsChange()
 
     if (restoredState != null) {
       allTopics.filter(!restoredState.contains(_)).foreach { tp =>
@@ -259,8 +262,16 @@ class FlinkPulsarSource(val parameters: Properties)
         STARTING_OFFSETS_OPTION_KEY,
         LatestOffset).topicOffsets
 
-      ownedTopicStarts ++= allTopicOffsets
+      val ownOffsetsFromParam = allTopicOffsets
         .filter(o => SourceSinkUtils.belongsTo(o._1, numParallelTasks, taskIndex))
+
+      val ownOffsets = if (useExternalSub) {
+        metadataReader.getStartPositionFromSubscription(externalSubName, ownOffsetsFromParam)
+      } else {
+        ownOffsetsFromParam
+      }
+
+      ownedTopicStarts ++= ownOffsets
 
       if (ownedTopicStarts.isEmpty) {
         logInfo(s"Source $taskIndex initially has no topics to read from.")
@@ -357,7 +368,7 @@ class FlinkPulsarSource(val parameters: Properties)
 
             while (running) {
 
-              val added = topicDiscoverer.discoverTopicsChange()
+              val added = metadataReader.discoverTopicsChange()
 
               if (running && !added.isEmpty) {
                 pulsarFetcher.addDiscoveredTopics(added)
@@ -410,9 +421,9 @@ class FlinkPulsarSource(val parameters: Properties)
 
     var exception: Exception = null
 
-    if (topicDiscoverer != null) {
+    if (metadataReader != null) {
       try {
-        topicDiscoverer.close()
+        metadataReader.close()
       } catch {
         case e: Exception =>
           exception = e
@@ -549,21 +560,24 @@ class FlinkPulsarSource(val parameters: Properties)
       adminUrl,
       clientConf,
       readerConf,
-      topicDiscoverer,
+      metadataReader,
       pollTimeoutMs(caseInsensitiveParams),
       SourceSinkUtils.jsonOptions)
   }
 
-  @transient lazy val subscriptionPrefix: String = s"flink-pulsar-${UUID.randomUUID()}"
+  @transient lazy val subscriptionPrefix: String =
+    if (useExternalSub) externalSubName else s"flink-pulsar-${UUID.randomUUID()}"
 
-  protected def createTopicDiscoverer() = {
+  protected def createMetadataReader() = {
     new PulsarMetadataReader(
       adminUrl,
       clientConf,
       subscriptionPrefix,
       caseInsensitiveParams,
       taskIndex,
-      numParallelTasks)
+      numParallelTasks,
+      useExternalSub,
+      removeSubOnStop)
   }
 
   def getPendingOffsetsToCommit(): LinkedMap = {

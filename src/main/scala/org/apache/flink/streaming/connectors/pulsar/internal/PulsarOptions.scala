@@ -43,6 +43,9 @@ object PulsarOptions {
   val STARTING_OFFSETS_OPTION_KEY = "startingoffsets"
   val ENDING_OFFSETS_OPTION_KEY = "endingoffsets"
 
+  val EXTERNAL_SUB_NAME = "subscriptionname"
+  val REMOVE_SUB_ON_STOP = "removesubscriptiononstop"
+
   val PARTITION_DISCOVERY_INTERVAL_MS = "partitiondiscoveryintervalmillis"
   val USE_METRICS_OPTION_KEY = "usemetrics"
 

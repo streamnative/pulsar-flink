@@ -24,7 +24,7 @@
 
   <groupId>io.streamnative.connectors</groupId>
   <artifactId>pulsar-flink-connector_${scala.binary.version}</artifactId>
-  <version>2.4.0</version>
+  <version>2.4.1</version>
   <name>StreamNative :: Pulsar Flink Connector</name>
   <url>http://pulsar.apache.org</url>
   <inceptionYear>2019</inceptionYear>
@@ -39,7 +39,7 @@
     <connection>scm:git:https://github.com/streamnative/pulsar-flink.git</connection>
     <developerConnection>scm:git:https://github.com/streamnative/pulsar-flink.git</developerConnection>
     <url>https://github.com/streamnative/pulsar-flink</url>
-    <tag>branch-2.4.0</tag>
+    <tag>branch-2.4.1</tag>
   </scm>
   <issueManagement>
     <system>Github</system>
@@ -65,12 +65,12 @@
     <flink.version>1.9.0</flink.version>
 
     <!-- dependencies -->
-    <!-- latest version from apache pulsar master -->
-    <pulsar.version>2.5.0-f6ed0377f</pulsar.version>
+    <!-- use Pulsar stable version -->
+    <pulsar.version>2.4.2</pulsar.version>
     <scala.version>2.11.12</scala.version>
     <scala.binary.version>2.11</scala.binary.version>
     <scalatest.version>3.0.3</scalatest.version>
-    <streamnative-tests.version>0.0.15</streamnative-tests.version>
+    <streamnative-tests.version>2.4.2</streamnative-tests.version>
     <testcontainers.version>1.10.6</testcontainers.version>
     <!-- plugin dependencies -->
     <maven.version>3.5.4</maven.version>

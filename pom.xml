@@ -66,11 +66,11 @@
 
     <!-- dependencies -->
     <!-- use Pulsar stable version -->
-    <pulsar.version>2.4.1</pulsar.version>
+    <pulsar.version>2.4.2</pulsar.version>
     <scala.version>2.11.12</scala.version>
     <scala.binary.version>2.11</scala.binary.version>
     <scalatest.version>3.0.3</scalatest.version>
-    <streamnative-tests.version>2.4.1</streamnative-tests.version>
+    <streamnative-tests.version>2.4.2</streamnative-tests.version>
     <testcontainers.version>1.10.6</testcontainers.version>
     <!-- plugin dependencies -->
     <maven.version>3.5.4</maven.version>

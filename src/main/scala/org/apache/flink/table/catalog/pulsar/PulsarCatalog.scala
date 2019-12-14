@@ -21,6 +21,7 @@ import scala.collection.JavaConverters._
 import org.apache.flink.streaming.connectors.pulsar.PulsarTableSourceSinkFactory
 import org.apache.flink.streaming.connectors.pulsar.internal.{PulsarMetadataReader, PulsarOptions}
 import org.apache.flink.table.catalog.{AbstractCatalog, CatalogBaseTable, CatalogDatabase, CatalogDatabaseImpl, CatalogFunction, CatalogPartition, CatalogPartitionSpec, CatalogTableImpl, ObjectPath}
+import org.apache.flink.table.catalog.exceptions.TableAlreadyExistException
 import org.apache.flink.table.catalog.stats.{CatalogColumnStatistics, CatalogTableStatistics}
 import org.apache.flink.table.factories.TableFactory
 
@@ -96,6 +97,12 @@ class PulsarCatalog(
     tablePath: ObjectPath,
     table: CatalogBaseTable,
     ignoreIfExists: Boolean): Unit = {
+
+    val tableAlreadyExist = tableExists(tablePath)
+    if (tableAlreadyExist) {
+      if (ignoreIfExists) return
+      else throw new TableAlreadyExistException(getName, tablePath)
+    }
 
     val defaultNumPartitions = properties.getOrDefault(PulsarOptions.NUM_PARTITIONS, "5").toInt
 

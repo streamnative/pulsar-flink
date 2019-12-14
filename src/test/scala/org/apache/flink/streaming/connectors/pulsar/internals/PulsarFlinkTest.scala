@@ -70,12 +70,20 @@ trait PulsarFlinkTest extends PulsarTest {
   def waitUntilNoJobIsRunning(client: ClusterClient[_]): Unit = {
     while (!getRunningJobs(client).isEmpty) {
       Thread.sleep(50)
+      cancelRunningJobs(client)
     }
   }
 
   def getRunningJobs(client: ClusterClient[_]): Seq[JobID] = {
     val statusMessages= client.listJobs.get
     statusMessages.asScala.filter(!_.getJobState.isGloballyTerminalState).map(_.getJobId).toSeq
+  }
+
+  def cancelRunningJobs(client: ClusterClient[_]): Unit = {
+    val runningJobs = getRunningJobs(client)
+    runningJobs.foreach { job =>
+      client.cancel(job)
+    }
   }
 
 }

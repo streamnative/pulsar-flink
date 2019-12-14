@@ -262,7 +262,8 @@ class CatalogITest extends PulsarFunSuite with PulsarFlinkTest {
     reader.start()
 
     reader.join()
-    assert(StreamITCase.testResults === int32Seq.init.map(_.toString))
+    assert(StreamITCase.testResults.toSet === int32Seq.init.map(_.toString).toSet)
+
   }
 
   test("sink to existing topic") {

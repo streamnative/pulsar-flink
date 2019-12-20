@@ -243,10 +243,10 @@ abstract class FlinkPulsarSinkBase[T](
       .getOrCreate(clientConf)
       .newProducer(schema)
       .topic(topic)
-      .loadConf(producerConf)
+      // TODO replace these two configuration with `batchingMaxBytes` when 2.5.0 is used.
       .batchingMaxPublishDelay(100, TimeUnit.MILLISECONDS)
-      // maximizing the throughput
       .batchingMaxMessages(5 * 1024 * 1024)
+      .loadConf(producerConf)
       .create()
   }
 }

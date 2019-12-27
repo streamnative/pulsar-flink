@@ -625,6 +625,97 @@ class FlinkPulsarITest extends PulsarFunSuite with PulsarFlinkTest {
     assert(flinkClient.getJobStatus(jobId).get().toString == JobStatus.CANCELED.toString)
   }
 
+  test("partition number grows during sink") {
+    import org.apache.flink.streaming.api.scala._
+
+    val inputTp = newTopic()
+    createTopic(inputTp, 3)
+
+    val outTP = newTopic()
+    val originParallelism = 3
+    val changdParallelism = 5
+    createTopic(outTP, originParallelism)
+
+    val messages = (0 until 50)
+    sendTypedMessages[Int](inputTp, SchemaType.INT32, messages, None)
+
+    val see = StreamExecutionEnvironment.getExecutionEnvironment
+    see.getConfig.disableSysoutLogging()
+    see.setParallelism(3)
+
+    val sourceProps = sourceProperties()
+    sourceProps.setProperty(TOPIC_SINGLE, inputTp)
+
+    val sinkProp = sinkProperties()
+    sinkProp.setProperty(FLUSH_ON_CHECKPOINT, "true")
+    sinkProp.setProperty(TOPIC_SINGLE, outTP)
+    sinkProp.setProperty("pulsar.producer.batchingEnabled", "false")
+
+    val source = new FlinkPulsarSource(sourceProps)
+    val stream = see.addSource(source)
+
+    stream.addSink(new FlinkPulsarRowSink(intRowType(), sinkProp))
+
+    // launch a consumer asynchronously
+    val jobError = new AtomicReference[Throwable]()
+
+    val jobGraph = StreamingJobGraphGenerator.createJobGraph(see.getStreamGraph)
+    val jobId = jobGraph.getJobID
+
+    val jobRunner = new Runnable {
+      override def run(): Unit = {
+        try {
+          flinkClient.setDetached(false)
+          flinkClient.submitJob(jobGraph, getClass.getClassLoader)
+        } catch {
+          case e: Throwable =>
+            jobError.set(e)
+        }
+      }
+    }
+
+    val runnerThread = new Thread(jobRunner, "program runner thread")
+    runnerThread.start()
+
+    Thread.sleep(2000)
+
+    addPartitions(outTP, changdParallelism)
+
+    val messages2 = (51 until 100)
+    sendTypedMessages[Int](inputTp, SchemaType.INT32, messages2, None)
+
+    val failureCause = jobError.get()
+
+    if (failureCause != null) {
+      failureCause.printStackTrace()
+      fail("Test failed prematurely with: " + failureCause.getMessage)
+    }
+
+    val sourceProps1 = sourceProperties()
+    sourceProps1.setProperty(TOPIC_SINGLE, s"$outTP-partition-4")
+
+    val see1 = StreamExecutionEnvironment.getExecutionEnvironment
+    see1.getConfig.disableSysoutLogging()
+    see1.setParallelism(1)
+
+    val source1 = new FlinkPulsarSource(sourceProps1)
+
+    see1.addSource(source1)
+      .map(new FailingIdentityMapper[Row](1))
+      .addSink(new DiscardingSink[Row]())
+
+    TestUtils.tryExecute(see1.getJavaEnv, "Assert new partition got data")
+
+    // cancel
+    flinkClient.cancel(jobId)
+
+    // wait for the program to be done and validate that we failed with the right exception
+    runnerThread.join()
+
+    assert(flinkClient.getJobStatus(jobId).get().toString == JobStatus.CANCELED.toString)
+
+  }
+
   def generateRandomizedIntegerSequence(
     env: StreamExecutionEnvironment,
     tp: String,

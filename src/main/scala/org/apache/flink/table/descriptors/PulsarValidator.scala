@@ -20,7 +20,7 @@ import scala.compat.java8.FunctionConverters._
 
 import org.apache.flink.table.descriptors.DescriptorProperties.noValidation
 
-class PulsarValidator extends ConnectorDescriptorValidator {
+class PulsarValidatorX extends ConnectorDescriptorValidator {
 
   import PulsarValidator._
   import ConnectorDescriptorValidator._
@@ -62,7 +62,7 @@ class PulsarValidator extends ConnectorDescriptorValidator {
 
 }
 
-object PulsarValidator {
+object PulsarValidatorX {
   val CONNECTOR_TYPE_VALUE_PULSAR = "pulsar"
   val CONNECTOR_PROPERTIES = "connector.properties"
   val CONNECTOR_PROPERTIES_KEY = "key"

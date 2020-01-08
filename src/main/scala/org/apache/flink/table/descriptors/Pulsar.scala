@@ -22,7 +22,7 @@ import org.apache.flink.streaming.connectors.pulsar.TopicKeyExtractor
 import org.apache.flink.table.descriptors.PulsarValidator._
 import org.apache.flink.util.Preconditions
 
-class Pulsar extends ConnectorDescriptor(CONNECTOR_TYPE_VALUE_PULSAR, 1, false) {
+class PulsarC extends ConnectorDescriptor(CONNECTOR_TYPE_VALUE_PULSAR, 1, false) {
 
   var pulsarProperties: ju.Map[String, String] = _
   var sinkExtractorType: String = _

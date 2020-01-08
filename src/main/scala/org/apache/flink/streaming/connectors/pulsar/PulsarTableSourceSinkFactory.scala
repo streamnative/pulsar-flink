@@ -32,7 +32,7 @@ import org.apache.flink.table.sinks.{StreamTableSink, TableSink}
 import org.apache.flink.table.sources.{StreamTableSource, TableSource}
 import org.apache.flink.types.Row
 
-case class PulsarTableSourceSinkFactory(catalogProperties: Properties)
+case class PulsarTableSourceSinkFactoryX(catalogProperties: Properties)
     extends StreamTableSourceFactory[Row]
     with StreamTableSinkFactory[Row] {
 

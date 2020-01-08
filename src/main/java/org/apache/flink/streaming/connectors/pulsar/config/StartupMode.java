@@ -11,21 +11,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.connectors.pulsar.internal.metrics
+package org.apache.flink.streaming.connectors.pulsar.config;
 
-object PulsarSourceMetrics {
+public enum StartupMode {
 
-  val PULSAR_CONSUMER_METRICS_GROUP = "PulsarConsumer"
+    EARLIEST,
 
-  //  Per-subtask metrics
-  val COMMITS_SUCCEEDED_METRICS_COUNTER = "commitsSucceeded"
-  val COMMITS_FAILED_METRICS_COUNTER = "commitsFailed"
+    LATEST,
 
-
-  //  Per-partition metrics
-  val OFFSETS_BY_TOPIC_METRICS_GROUP = "topic"
-  val OFFSETS_BY_PARTITION_METRICS_GROUP = "partition"
-
-  val CURRENT_OFFSETS_METRICS_GAUGE = "currentOffsets"
-  val COMMITTED_OFFSETS_METRICS_GAUGE = "committedOffsets"
+    SPECIFIC_OFFSETS;
 }

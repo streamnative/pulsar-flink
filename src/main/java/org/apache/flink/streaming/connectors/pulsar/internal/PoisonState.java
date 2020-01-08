@@ -11,15 +11,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.connectors.pulsar.internal
+package org.apache.flink.streaming.connectors.pulsar.internal;
 
-import org.apache.pulsar.client.api.MessageId
+public class PoisonState extends PulsarTopicState {
 
-sealed trait PulsarOffset
+    static final PoisonState INSTANCE = new PoisonState();
 
-case object EarliestOffset extends PulsarOffset
-
-case object LatestOffset extends PulsarOffset
-
-case class SpecificPulsarOffset(topicOffsets: Map[String, MessageId])
-    extends PulsarOffset
+    private PoisonState() {
+        super("n/a");
+    }
+}

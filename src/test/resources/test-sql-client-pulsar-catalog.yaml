@@ -33,13 +33,13 @@ deployment:
 catalogs:
   - name: pulsarcatalog1
     type: pulsar
-    service.url: "$VAR_SERVICEURL"
-    admin.url: "$VAR_ADMINURL"
+    service-url: "$VAR_SERVICEURL"
+    admin-url: "$VAR_ADMINURL"
   - name: pulsarcatalog2
     type: pulsar
     default-database: tn/ns
-    service.url: "$VAR_SERVICEURL"
-    admin.url: "$VAR_ADMINURL"
+    service-url: "$VAR_SERVICEURL"
+    admin-url: "$VAR_ADMINURL"
   - name: inmemorycatalog
     type: generic_in_memory
     default-database: mydatabase

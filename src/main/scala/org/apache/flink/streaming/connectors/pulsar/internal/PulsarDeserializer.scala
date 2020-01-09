@@ -19,14 +19,15 @@ import java.sql.Timestamp
 import java.time.ZoneId
 import java.util.Date
 
+import com.fasterxml.jackson.core.{JsonFactory, JsonParser}
+import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils.IncompatibleSchemaException
+
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
-
 import org.apache.flink.table.api.DataTypes
 import org.apache.flink.table.types.{CollectionDataType, DataType, FieldsDataType, KeyValueDataType}
-import org.apache.flink.table.types.logical.{DecimalType, LogicalTypeRoot => LTR, RowType}
+import org.apache.flink.table.types.logical.{DecimalType, RowType, LogicalTypeRoot => LTR}
 import org.apache.flink.types.Row
-
 import org.apache.pulsar.client.api.Message
 import org.apache.pulsar.client.impl.schema.generic.GenericAvroRecord
 import org.apache.pulsar.common.schema.{SchemaInfo, SchemaType}
@@ -43,7 +44,7 @@ class PulsarDeserializer(schemaInfo: SchemaInfo, parsedOptions: JSONOptions) {
 
   val rootDataType: DataType = SchemaUtils.si2SqlType(schemaInfo)
 
-  import SchemaUtils._
+  import PulsarOptions._
 
   def deserialize(message: Message[_]): Row = converter(message)
 
@@ -52,7 +53,7 @@ class PulsarDeserializer(schemaInfo: SchemaInfo, parsedOptions: JSONOptions) {
     schemaInfo.getType match {
       case SchemaType.AVRO =>
         val st = rootDataType.asInstanceOf[FieldsDataType]
-        val fieldsNum = st.getFieldDataTypes.size() + metaDataFields.size
+        val fieldsNum = st.getFieldDataTypes.size() + META_FIELD_NAMES.size
         val fieldUpdater = new RowUpdater
         val avroSchema =
           new Schema.Parser().parse(new String(schemaInfo.getSchema, StandardCharsets.UTF_8))
@@ -69,15 +70,15 @@ class PulsarDeserializer(schemaInfo: SchemaInfo, parsedOptions: JSONOptions) {
 
       case SchemaType.JSON =>
         val st = rootDataType.asInstanceOf[FieldsDataType]
-        val createParser = CreateJacksonParser.string _
+        val createParser: (JsonFactory, String) => JsonParser = CreateJacksonParser.string _
         val rawParser = new JacksonRecordParser(rootDataType, parsedOptions)
         val parser = new FailureSafeRecordParser[String](
           (input, record) => rawParser.parse(input, createParser, record),
-          parsedOptions.parseMode,
+          parsedOptions.getParseMode,
           st)
         (msg: Message[_]) =>
         {
-          val resultRow = new Row(st.getFieldDataTypes.size() + metaDataFields.size)
+          val resultRow = new Row(st.getFieldDataTypes.size() + META_FIELD_NAMES.size)
           val value = msg.getData
           parser.parse(new String(value, java.nio.charset.StandardCharsets.UTF_8), resultRow)
           writeMetadataFields(msg, resultRow)
@@ -89,7 +90,7 @@ class PulsarDeserializer(schemaInfo: SchemaInfo, parsedOptions: JSONOptions) {
         val writer = newAtomicWriter(rootDataType)
         (msg: Message[_]) =>
         {
-          val tmpRow = new Row(1 + metaDataFields.size)
+          val tmpRow = new Row(1 + META_FIELD_NAMES.size)
           fieldUpdater.setRow(tmpRow)
           val value = msg.getValue
           writer(fieldUpdater, 0, value)

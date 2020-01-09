@@ -347,7 +347,7 @@ public class SchemaUtils {
 		throw new IncompatibleSchemaException(String.format("%s is not supported by Pulsar yet", flinkType.toString()), null);
 	}
 
-	private static GenericSchema<GenericRecord> avroSchema2PulsarSchema(Schema avroSchema) {
+	static GenericSchema<GenericRecord> avroSchema2PulsarSchema(Schema avroSchema) {
 		byte[] schemaBytes = avroSchema.toString().getBytes(StandardCharsets.UTF_8);
 		SchemaInfo si = new SchemaInfo();
 		si.setName("Avro");

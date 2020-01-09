@@ -715,7 +715,7 @@ object JacksonUtils {
   }
 }
 
-sealed trait ParseMode {
+sealed trait ParseModeC {
   /**
    * String name of the parse mode.
    */
@@ -737,7 +737,7 @@ case object DropMalformedMode extends ParseMode { val name = "DROPMALFORMED" }
  */
 case object FailFastMode extends ParseMode { val name = "FAILFAST" }
 
-object ParseMode extends Logging {
+object ParseModeC extends Logging {
   /**
    * Returns the parse mode from the given string.
    */

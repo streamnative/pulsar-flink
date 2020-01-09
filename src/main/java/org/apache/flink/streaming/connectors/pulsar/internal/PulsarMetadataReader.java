@@ -18,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.collections.ListUtils;
 import org.apache.flink.table.api.DataTypes;
+import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.catalog.CatalogBaseTable;
 import org.apache.flink.table.catalog.ObjectPath;
 import org.apache.flink.table.types.DataType;
@@ -56,7 +57,7 @@ public class PulsarMetadataReader implements AutoCloseable {
 
     private final String adminUrl;
 
-    private final String dirverGroupIdPrefix;
+    private final String driverGroupIdPrefix;
 
     private final Map<String, String> caseInsensitiveParams;
 
@@ -73,20 +74,20 @@ public class PulsarMetadataReader implements AutoCloseable {
 
     public PulsarMetadataReader(
             String adminUrl,
-            String dirverGroupIdPrefix,
+            String driverGroupIdPrefix,
             Map<String, String> caseInsensitiveParams,
             int indexOfThisSubtask,
             int numParallelSubtasks) throws PulsarClientException {
 
         this.adminUrl = adminUrl;
-        this.dirverGroupIdPrefix = dirverGroupIdPrefix;
+        this.driverGroupIdPrefix = driverGroupIdPrefix;
         this.caseInsensitiveParams = caseInsensitiveParams;
         this.indexOfThisSubtask = indexOfThisSubtask;
         this.numParallelSubtasks = numParallelSubtasks;
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         closed = true;
         admin.close();
     }
@@ -136,6 +137,17 @@ public class PulsarMetadataReader implements AutoCloseable {
         List<String> allTopics = new ArrayList<>();
         Stream.of(partitionedTopics, nonPartitionedTopics).forEach(allTopics::addAll);
         return allTopics.stream().map(t -> TopicName.get(t).getLocalName()).collect(Collectors.toList());
+    }
+
+    public TableSchema getTableSchema(ObjectPath objectPath) throws PulsarAdminException {
+        String topicName = objectPath2TopicName(objectPath);
+        FieldsDataType fieldsDataType = null;
+        try {
+            fieldsDataType = getSchema(Collections.singletonList(topicName));
+        } catch (IncompatibleSchemaException e) {
+            throw new PulsarAdminException(e);
+        }
+        return SchemaUtils.toTableSchema(fieldsDataType);
     }
 
     public boolean topicExists(ObjectPath objectPath) throws PulsarAdminException {
@@ -193,7 +205,7 @@ public class PulsarMetadataReader implements AutoCloseable {
     public void setupCursor(Map<String, MessageId> offset) {
         for (Map.Entry<String, MessageId> entry : offset.entrySet()) {
             try {
-                admin.topics().createSubscription(entry.getKey(), dirverGroupIdPrefix, entry.getValue());
+                admin.topics().createSubscription(entry.getKey(), driverGroupIdPrefix, entry.getValue());
             } catch (PulsarAdminException e) {
                 throw new RuntimeException(
                     String.format("Failed to set up cursor for %s", TopicName.get(entry.getKey()).toString()), e);
@@ -205,7 +217,7 @@ public class PulsarMetadataReader implements AutoCloseable {
         for (Map.Entry<String, MessageId> entry : offset.entrySet()) {
             val tp = entry.getKey();
             try {
-                admin.topics().resetCursor(tp, dirverGroupIdPrefix, entry.getValue());
+                admin.topics().resetCursor(tp, driverGroupIdPrefix, entry.getValue());
             } catch (Throwable e) {
                 if (e instanceof PulsarAdminException &&
                     (((PulsarAdminException) e).getStatusCode() == 404 ||
@@ -223,7 +235,7 @@ public class PulsarMetadataReader implements AutoCloseable {
     public void removeCursor(Set<String> topics) {
         for (String topic : topics) {
             try {
-                admin.topics().deleteSubscription(topic, dirverGroupIdPrefix);
+                admin.topics().deleteSubscription(topic, driverGroupIdPrefix);
             } catch (Throwable e) {
                 if (e instanceof PulsarAdminException && ((PulsarAdminException) e).getStatusCode() == 404) {
                     log.info(

@@ -15,10 +15,12 @@ package org.apache.flink.streaming.connectors.pulsar;
 
 import org.apache.flink.types.Row;
 
+import java.io.Serializable;
+
 /**
  * Extract key and topic from a value.
  */
-public interface TopicKeyExtractor<T> {
+public interface TopicKeyExtractor<T> extends Serializable {
 
     TopicKeyExtractor DUMMY_FOR_ROW = new TopicKeyExtractor<Row>() {
         @Override
@@ -32,7 +34,7 @@ public interface TopicKeyExtractor<T> {
         }
     };
 
-    public byte[] serializeKey(T element);
+    byte[] serializeKey(T element);
 
-    public String getTopic(T element);
+    String getTopic(T element);
 }

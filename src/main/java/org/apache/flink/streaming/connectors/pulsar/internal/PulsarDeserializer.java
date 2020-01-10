@@ -27,7 +27,6 @@ import org.apache.pulsar.shade.org.apache.avro.generic.GenericFixed;
 import org.apache.pulsar.shade.org.apache.avro.generic.GenericRecord;
 import org.apache.pulsar.shade.org.apache.avro.util.Utf8;
 
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
@@ -94,7 +93,10 @@ public class PulsarDeserializer {
                     BiFunction<JsonFactory, String, JsonParser> createParser =
                         (jsonFactory, s) -> CreateJacksonParser.string(jsonFactory, s);
                     val rawParser = new JacksonRecordParser(rootDataType, parsedOptions);
-                    val parser = new FailureSafeRecordParser();
+                    val parser = new JacksonRecordParser.FailureSafeRecordParser(
+                        (s, row) -> rawParser.parse(s, createParser, row),
+                        parsedOptions.getParseMode(),
+                        fdt);
                     this.converter = msg -> {
                         val resultRow = new Row(fdt.getFieldDataTypes().size() + META_FIELD_NAMES.size());
                         val value = msg.getData();

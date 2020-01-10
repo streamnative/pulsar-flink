@@ -17,7 +17,6 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.checkpoint.ListCheckpointed;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.test.util.SuccessException;
-import org.apache.flink.types.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,7 +27,7 @@ import java.util.List;
 /**
  * A {@link RichSinkFunction} that verifies that no duplicate records are generated.
  */
-public class ValidatingExactlyOnceSink extends RichSinkFunction<Row> implements ListCheckpointed<Tuple2<Integer, BitSet>> {
+public class ValidatingExactlyOnceSink extends RichSinkFunction<Integer> implements ListCheckpointed<Tuple2<Integer, BitSet>> {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ValidatingExactlyOnceSink.class);
 
@@ -45,16 +44,13 @@ public class ValidatingExactlyOnceSink extends RichSinkFunction<Row> implements 
 	}
 
 	@Override
-	@SuppressWarnings("deprecation")
-	public void invoke(Row value) throws Exception {
+	public void invoke(Integer value) throws Exception {
 		numElements++;
 
-		int v = (Integer) value.getField(0);
-
-		if (duplicateChecker.get(v)) {
-			throw new Exception("Received a duplicate: " + v);
+		if (duplicateChecker.get(value)) {
+			throw new Exception("Received a duplicate: " + value);
 		}
-		duplicateChecker.set(v);
+		duplicateChecker.set(value);
 		if (numElements == numElementsTotal) {
 			// validate
 			if (duplicateChecker.cardinality() != numElementsTotal) {

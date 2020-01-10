@@ -36,7 +36,6 @@ public class FailingIdentityMapper<T> extends RichMapFunction<T, T> implements
 	private static final long serialVersionUID = 6334389850158707313L;
 
 	public static volatile boolean failedBefore;
-	public static volatile boolean hasBeenCheckpointedBeforeFailure;
 
 	private final int failCount;
 	private int numElementsTotal;
@@ -68,7 +67,6 @@ public class FailingIdentityMapper<T> extends RichMapFunction<T, T> implements
 			Thread.sleep(10);
 
 			if (failer && numElementsTotal >= failCount) {
-				hasBeenCheckpointedBeforeFailure = hasBeenCheckpointed;
 				failedBefore = true;
 				throw new Exception("Artificial Test Failure");
 			}

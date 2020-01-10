@@ -72,6 +72,7 @@
     <scalatest.version>3.0.3</scalatest.version>
     <streamnative-tests.version>2.4.2</streamnative-tests.version>
     <testcontainers.version>1.10.6</testcontainers.version>
+    <testng.version>6.14.3</testng.version>
     <!-- plugin dependencies -->
     <maven.version>3.5.4</maven.version>
     <license-maven-plugin.version>3.0.rc1</license-maven-plugin.version>
@@ -181,6 +182,19 @@
       <artifactId>flink-test-utils_${scala.binary.version}</artifactId>
       <version>${flink.version}</version>
       <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-test-utils-junit</artifactId>
+      <version>${flink.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.testng</groupId>
+      <artifactId>testng</artifactId>
+      <version>${testng.version}</version>
     </dependency>
 
     <dependency>

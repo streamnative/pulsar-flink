@@ -44,7 +44,7 @@ class DiscovererTest extends PulsarFunSuite {
           new TestMetadataReader(mp, subtaskIndex, numSubtasks,
             TestMetadataReader.createMockGetAllTopicsSequenceFromFixedReturn(mockAllTopics))
 
-        val initials = discoverer.discoverTopicsChange()
+        val initials = discoverer.discoverTopicChanges()
         assert(1 == initials.size)
         assert(initials.subsetOf(mockAllTopics))
         assert(

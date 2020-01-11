@@ -13,17 +13,17 @@
  */
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertNotEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 import java.util.concurrent.ConcurrentMap;
 
 import org.apache.pulsar.client.impl.PulsarClientImpl;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
+import org.junit.Before;
+import org.junit.Test;
 import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
-import org.testng.annotations.BeforeTest;
-import org.testng.annotations.Test;
 
 /**
  * Unit test of {@link CachedPulsarClient}.
@@ -32,7 +32,7 @@ public class CachedPulsarClientTest {
 
     private static final String SERVICE_URL = "pulsar://localhost:6650";
 
-    @BeforeTest
+    @Before
     public void clearCache() {
         CachedPulsarClient.clear();
     }

@@ -57,7 +57,7 @@ public class PulsarFetcher<T> {
     private final Object checkpointLock;
 
     /** All partitions (and their state) that this fetcher is subscribed to. */
-    private final List<PulsarTopicState> subscribedPartitionStates;
+    protected final List<PulsarTopicState> subscribedPartitionStates;
 
     /**
      * Queue of partitions that are not yet assigned to any reader thread for consuming.
@@ -477,6 +477,10 @@ public class PulsarFetcher<T> {
             topic2Threads.put(state.getTopic(), readerT);
         }
         return topic2Threads;
+    }
+
+    protected List<PulsarTopicState> getSubscribedTopicStates() {
+        return subscribedPartitionStates;
     }
 
     protected ReaderThread createReaderThread(ExceptionProxy exceptionProxy, PulsarTopicState state) {

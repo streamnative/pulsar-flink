@@ -49,6 +49,7 @@ import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
 import org.apache.flink.util.ExceptionUtils;
 import org.apache.flink.util.SerializedValue;
 import org.apache.pulsar.client.api.MessageId;
+import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.shade.com.google.common.collect.Maps;
 
@@ -302,12 +303,7 @@ public class FlinkPulsarSource<T>
         this.taskIndex = getRuntimeContext().getIndexOfThisSubtask();
         this.numParallelTasks = getRuntimeContext().getNumberOfParallelSubtasks();
 
-        this.topicDiscoverer = new PulsarMetadataReader(
-            adminUrl,
-            String.format("flink-pulsar-%s", UUID.randomUUID()),
-            caseInsensitiveParams,
-            taskIndex,
-            numParallelTasks);
+        this.topicDiscoverer = createTopicDiscoverer();
 
         ownedTopicStarts = new HashMap<>();
         val allTopics = topicDiscoverer.discoverTopicChanges();
@@ -348,6 +344,15 @@ public class FlinkPulsarSource<T>
                     taskIndex, ownedTopicStarts.size());
             }
         }
+    }
+
+    protected PulsarMetadataReader createTopicDiscoverer() throws PulsarClientException {
+        return new PulsarMetadataReader(
+            adminUrl,
+            String.format("flink-pulsar-%s", UUID.randomUUID()),
+            caseInsensitiveParams,
+            taskIndex,
+            numParallelTasks);
     }
 
     @Override
@@ -675,5 +680,9 @@ public class FlinkPulsarSource<T>
 
     public LinkedMap getPendingOffsetsToCommit() {
         return pendingOffsetsToCommit;
+    }
+
+    public Map<String, MessageId> getOwnedTopicStarts() {
+        return ownedTopicStarts;
     }
 }

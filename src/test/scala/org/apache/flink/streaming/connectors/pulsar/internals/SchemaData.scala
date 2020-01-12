@@ -15,7 +15,7 @@ package org.apache.flink.streaming.connectors.pulsar.internals
 
 import java.sql.Timestamp
 import java.util
-import java.util.Calendar
+import java.util.{Calendar, Date}
 
 import scala.beans.BeanProperty
 import scala.collection.JavaConverters._
@@ -27,7 +27,7 @@ object SchemaData {
 
   val cal = Calendar.getInstance()
   cal.clear()
-  val dateSeq = (1 to 5).map { i =>
+  val dateSeq: Seq[Date] = (1 to 5).map { i =>
     cal.set(2019, 0, i)
     cal.getTime
   }

@@ -121,6 +121,10 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
             SourceSinkUtils.failOnWrite(caseInsensitiveParams);
 
         CachedPulsarClient.setCacheSize(SourceSinkUtils.getClientCacheSize(caseInsensitiveParams));
+
+        if (this.clientConfigurationData.getServiceUrl() == null) {
+            throw new IllegalArgumentException("ServiceUrl must be supplied in the client configuration");
+        }
     }
 
     public FlinkPulsarSinkBase(
@@ -129,8 +133,13 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
             Optional<String> defaultTopicName,
             Properties properties,
             TopicKeyExtractor<T> topicKeyExtractor) {
-        this(adminUrl, defaultTopicName, new ClientConfigurationData(), properties, topicKeyExtractor);
-        this.clientConfigurationData.setServiceUrl(serviceUrl);
+        this(adminUrl, defaultTopicName, newClientConf(checkNotNull(serviceUrl)), properties, topicKeyExtractor);
+    }
+
+    private static ClientConfigurationData newClientConf(String serviceUrl) {
+        ClientConfigurationData clientConf = new ClientConfigurationData();
+        clientConf.setServiceUrl(serviceUrl);
+        return clientConf;
     }
 
     @Override

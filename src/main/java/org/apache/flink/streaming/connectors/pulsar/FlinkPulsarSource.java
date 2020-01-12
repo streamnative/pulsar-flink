@@ -184,6 +184,10 @@ public class FlinkPulsarSource<T>
             SourceSinkUtils.getPollTimeoutMs(caseInsensitiveParams);
 
         CachedPulsarClient.setCacheSize(SourceSinkUtils.getClientCacheSize(caseInsensitiveParams));
+
+        if (this.clientConfigurationData.getServiceUrl() == null) {
+            throw new IllegalArgumentException("ServiceUrl must be supplied in the client configuration");
+        }
     }
 
     public FlinkPulsarSource(
@@ -191,8 +195,13 @@ public class FlinkPulsarSource<T>
             String adminUrl,
             DeserializationSchema<T> deserializer,
             Properties properties) {
-        this(adminUrl, new ClientConfigurationData(), deserializer, properties);
-        this.clientConfigurationData.setServiceUrl(checkNotNull(serviceUrl));
+        this(adminUrl, newClientConf(checkNotNull(serviceUrl)), deserializer, properties);
+    }
+
+    private static ClientConfigurationData newClientConf(String serviceUrl) {
+        ClientConfigurationData clientConf = new ClientConfigurationData();
+        clientConf.setServiceUrl(serviceUrl);
+        return clientConf;
     }
 
 

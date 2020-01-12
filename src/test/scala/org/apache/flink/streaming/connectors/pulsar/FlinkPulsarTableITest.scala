@@ -29,7 +29,7 @@ import org.apache.flink.types.Row
 import org.apache.pulsar.common.naming.TopicName
 import org.apache.pulsar.common.schema.SchemaType
 
-class FlinkPulsarTableITest extends PulsarFunSuite with PulsarFlinkTest {
+class FlinkPulsarTableITestX extends PulsarFunSuite with PulsarFlinkTest {
   import org.apache.flink.streaming.connectors.pulsar.internals.SchemaData._
   import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions._
   import org.apache.flink.table.api._
@@ -178,7 +178,7 @@ class FlinkPulsarTableITest extends PulsarFunSuite with PulsarFlinkTest {
 
 }
 
-class StringSink[T] extends RichSinkFunction[T]() {
+class StringSinkX[T] extends RichSinkFunction[T]() {
   val testResults = mutable.MutableList.empty[String]
   override def invoke(value: T) {
     testResults.synchronized {

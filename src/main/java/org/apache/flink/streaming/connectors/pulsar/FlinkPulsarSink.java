@@ -36,6 +36,16 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
         this.recordClazz = recordClazz;
     }
 
+    public FlinkPulsarSink(
+            String serviceUrl,
+            String adminUrl,
+            Optional<String> defaultTopicName,
+            Properties properties,
+            TopicKeyExtractor<T> topicKeyExtractor,
+            Class<T> recordClazz) {
+        this(adminUrl, defaultTopicName, newClientConf(serviceUrl), properties, topicKeyExtractor, recordClazz);
+    }
+
     @Override
     protected Schema<T> getPulsarSchema() {
         return Schema.AVRO(recordClazz);

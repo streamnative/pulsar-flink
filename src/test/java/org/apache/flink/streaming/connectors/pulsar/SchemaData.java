@@ -13,6 +13,10 @@
  */
 package org.apache.flink.streaming.connectors.pulsar;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -33,6 +37,7 @@ public class SchemaData {
     public static final List<String> stringList = int32List.stream().map(Objects::toString).collect(Collectors.toList());
     public static List<Date> dateList;
     public static List<Timestamp> timestampList;
+    public static List<Foo> fooList;
     
     static {
         Calendar cal = Calendar.getInstance();
@@ -47,6 +52,28 @@ public class SchemaData {
             cal.set(2019, 0, i, 20, 35, 40);
             return new Timestamp(cal.getTimeInMillis());
         }).collect(Collectors.toList());
+
+        fooList = Arrays.asList(
+            new Foo(1, 1.0f, new Bar(true, "a")),
+            new Foo(2, 2.0f, new Bar(false, "b")),
+            new Foo(3, 0, null),
+            new Foo(0, 0, null));
     }
-    
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class Foo {
+        public int i;
+        public float f;
+        public Bar bar;
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class Bar {
+        public boolean b;
+        public String s;
+    }
 }

@@ -136,7 +136,7 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
         this(adminUrl, defaultTopicName, newClientConf(checkNotNull(serviceUrl)), properties, topicKeyExtractor);
     }
 
-    private static ClientConfigurationData newClientConf(String serviceUrl) {
+    protected static ClientConfigurationData newClientConf(String serviceUrl) {
         ClientConfigurationData clientConf = new ClientConfigurationData();
         clientConf.setServiceUrl(serviceUrl);
         return clientConf;

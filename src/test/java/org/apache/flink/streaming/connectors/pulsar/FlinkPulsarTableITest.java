@@ -38,7 +38,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.Assert.assertEquals;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.booleanList;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.fooList;
-import static org.junit.Assert.assertTrue;
 
 public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
 

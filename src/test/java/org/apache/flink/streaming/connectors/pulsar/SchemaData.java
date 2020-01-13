@@ -29,6 +29,7 @@ public class SchemaData {
 
     public static final List<Boolean> booleanList = Arrays.asList(true, false, true, true, false);
     public static final List<Integer> int32List = Arrays.asList(1, 2, 3, 4, 5);
+    public static final List<byte[]> bytesList = int32List.stream().map(i -> i.toString().getBytes()).collect(Collectors.toList());
     public static final List<Byte> int8List = int32List.stream().map(Integer::byteValue).collect(Collectors.toList());
     public static final List<Short> int16List = int32List.stream().map(Integer::shortValue).collect(Collectors.toList());
     public static final List<Long> int64List = int32List.stream().map(Integer::longValue).collect(Collectors.toList());

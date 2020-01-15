@@ -14,9 +14,9 @@
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 import org.apache.flink.types.Row;
 import org.apache.pulsar.client.api.Message;
+import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
@@ -62,8 +62,8 @@ public class RowReaderThread extends ReaderThread<Row> {
 
     @Override
     protected void emitRecord(Message<?> message) throws IOException {
-        val messageId = message.getMessageId();
-        val record = deserializer.deserialize(message);
+        MessageId messageId = message.getMessageId();
+        Row record = deserializer.deserialize(message);
         owner.emitRecord(record, state, messageId);
     }
 }

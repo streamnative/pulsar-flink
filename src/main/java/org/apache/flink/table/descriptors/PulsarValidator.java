@@ -13,7 +13,6 @@
  */
 package org.apache.flink.table.descriptors;
 
-import lombok.val;
 import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
 
 import java.util.HashMap;
@@ -82,7 +81,7 @@ public class PulsarValidator extends ConnectorDescriptorValidator {
     }
 
     private void validatePulsarProperties(DescriptorProperties properties) {
-        val propertyValidators = new HashMap<String, Consumer<String>>();
+        Map<String, Consumer<String>> propertyValidators = new HashMap<>();
 
         propertyValidators.put(
             CONNECTOR_PROPERTIES_KEY,
@@ -96,7 +95,7 @@ public class PulsarValidator extends ConnectorDescriptorValidator {
     }
 
     private void validateSinkExtractor(DescriptorProperties properties) {
-        val sinkValidators = new HashMap<String, Consumer<String>>();
+        Map<String, Consumer<String>> sinkValidators = new HashMap<String, Consumer<String>>();
 
         sinkValidators.put(CONNECTOR_SINK_EXTRACTOR_NONE, noValidation());
         sinkValidators.put(

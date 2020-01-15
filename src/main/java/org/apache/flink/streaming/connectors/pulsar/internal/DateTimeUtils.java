@@ -13,8 +13,6 @@
  */
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
-import lombok.val;
-import lombok.var;
 import org.apache.flink.api.java.tuple.Tuple2;
 
 import javax.xml.bind.DatatypeConverter;
@@ -43,11 +41,11 @@ public class DateTimeUtils {
     private static final long MICROS_PER_SECOND = MICROS_PER_MILLIS * MILLIS_PER_SECOND;
 
     public static Date stringToTime(String s) {
-        val indexOfGMT = s.indexOf("GMT");
+        int indexOfGMT = s.indexOf("GMT");
         if (indexOfGMT != -1) {
             // ISO8601 with a weird time zone specifier (2000-01-01T00:00GMT+01:00)
-            val s0 = s.substring(0, indexOfGMT);
-            val s1 = s.substring(indexOfGMT + 3);
+            String s0 = s.substring(0, indexOfGMT);
+            String s1 = s.substring(indexOfGMT + 3);
             // Mapped to 2000-01-01T00:00+01:00
             return stringToTime(s0 + s1);
         } else if (!s.contains("T")) {
@@ -75,7 +73,7 @@ public class DateTimeUtils {
     }
 
     public static int millisToDays(long millisUtc, TimeZone timeZone) {
-        val millisLocal = millisUtc + timeZone.getOffset(millisUtc);
+        long millisLocal = millisUtc + timeZone.getOffset(millisUtc);
         return (int) Math.floor((double) millisLocal / MILLIS_PER_DAY);
     }
 
@@ -96,10 +94,10 @@ public class DateTimeUtils {
 
     // Converts Timestamp to string according to Hive TimestampWritable convention.
     public static String timestampToString(long us, TimeZone timeZone) {
-        val ts = toJavaTimestamp(us);
-        val timestampString = ts.toString();
-        val timestampFormat = getThreadLocalTimestampFormat(timeZone);
-        val formatted = timestampFormat.format(ts);
+        Timestamp ts = toJavaTimestamp(us);
+        String timestampString = ts.toString();
+        DateFormat timestampFormat = getThreadLocalTimestampFormat(timeZone);
+        String formatted = timestampFormat.format(ts);
 
         if (timestampString.length() > 19 && timestampString.substring(19) != ".0") {
             return formatted + timestampString.substring(19);
@@ -113,7 +111,7 @@ public class DateTimeUtils {
         ThreadLocal.withInitial(() -> new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US));
 
     public static DateFormat getThreadLocalTimestampFormat(TimeZone timeZone) {
-        val sdf = threadLocalTimestampFormat.get();
+        DateFormat sdf = threadLocalTimestampFormat.get();
         sdf.setTimeZone(timeZone);
         return sdf;
     }
@@ -124,14 +122,14 @@ public class DateTimeUtils {
     public static Timestamp toJavaTimestamp(long us) {
         // setNanos() will overwrite the millisecond part, so the milliseconds should be
         // cut off at seconds
-        var seconds = us / MICROS_PER_SECOND;
-        var micros = us % MICROS_PER_SECOND;
+        long seconds = us / MICROS_PER_SECOND;
+        long micros = us % MICROS_PER_SECOND;
         // setNanos() can not accept negative value
         if (micros < 0) {
             micros += MICROS_PER_SECOND;
             seconds -= 1;
         }
-        val t = new Timestamp(seconds * 1000);
+        Timestamp t = new Timestamp(seconds * 1000);
         t.setNanos((int) micros * 1000);
         return t;
     }
@@ -149,7 +147,7 @@ public class DateTimeUtils {
     }
 
     public static long daysToMillis(int days, TimeZone timeZone) {
-        val millisLocal = (long) days * MILLIS_PER_DAY;
+        long millisLocal = (long) days * MILLIS_PER_DAY;
         return millisLocal - getOffsetFromLocalMillis(millisLocal, timeZone);
     }
 
@@ -159,29 +157,29 @@ public class DateTimeUtils {
      * TODO: Replace with JSR-310 or similar system
      */
     private static long getOffsetFromLocalMillis(long millisLocal, TimeZone tz) {
-        var guess = tz.getRawOffset();
+        int guess = tz.getRawOffset();
         // the actual offset should be calculated based on milliseconds in UTC
-        val offset = tz.getOffset(millisLocal - guess);
+        int offset = tz.getOffset(millisLocal - guess);
         if (offset != guess) {
             guess = tz.getOffset(millisLocal - offset);
             if (guess != offset) {
                 // fallback to do the reverse lookup using java.sql.Timestamp
                 // this should only happen near the start or end of DST
-                val days = (int) Math.floor((double) millisLocal / MILLIS_PER_DAY);
-                val year = getYear(days);
-                val month = getMonth(days);
-                val day = getDayOfMonth(days);
+                int days = (int) Math.floor((double) millisLocal / MILLIS_PER_DAY);
+                int year = getYear(days);
+                int month = getMonth(days);
+                int day = getDayOfMonth(days);
 
-                var millisOfDay = (int) (millisLocal % MILLIS_PER_DAY);
+                int millisOfDay = (int) (millisLocal % MILLIS_PER_DAY);
                 if (millisOfDay < 0) {
                     millisOfDay += (int) MILLIS_PER_DAY;
                 }
-                val seconds = (int) (millisOfDay / 1000L);
-                val hh = seconds / 3600;
-                val mm = seconds / 60 % 60;
-                val ss = seconds % 60;
-                val ms = millisOfDay % 1000;
-                val calendar = Calendar.getInstance(tz);
+                int seconds = (int) (millisOfDay / 1000L);
+                int hh = seconds / 3600;
+                int mm = seconds / 60 % 60;
+                int ss = seconds % 60;
+                int ms = millisOfDay % 1000;
+                Calendar calendar = Calendar.getInstance(tz);
                 calendar.set(year, month - 1, day, hh, mm, ss);
                 calendar.set(Calendar.MILLISECOND, ms);
                 guess = (int) (millisLocal - calendar.getTimeInMillis());
@@ -207,17 +205,17 @@ public class DateTimeUtils {
      */
     private static Tuple2<Integer, Integer> getYearAndDayInYear(int daysSince1970) {
         // add the difference (in days) between 1.1.1970 and the artificial year 0 (-17999)
-        var  daysSince1970Tmp = daysSince1970;
+        int daysSince1970Tmp = daysSince1970;
         // Since Julian calendar was replaced with the Gregorian calendar,
         // the 10 days after Oct. 4 were skipped.
         // (1582-10-04) -141428 days since 1970-01-01
         if (daysSince1970 <= -141428) {
             daysSince1970Tmp -= 10;
         }
-        val daysNormalized = daysSince1970Tmp + toYearZero;
-        val numOfQuarterCenturies = daysNormalized / daysIn400Years;
-        val daysInThis400 = daysNormalized % daysIn400Years + 1;
-        val yD = numYears(daysInThis400);
+        int daysNormalized = daysSince1970Tmp + toYearZero;
+        int numOfQuarterCenturies = daysNormalized / daysIn400Years;
+        int daysInThis400 = daysNormalized % daysIn400Years + 1;
+        Tuple2<Integer, Integer> yD = numYears(daysInThis400);
         int year = (2001 - 20000) + 400 * numOfQuarterCenturies + yD.f0;
         return Tuple2.of(year, yD.f1);
     }
@@ -229,8 +227,8 @@ public class DateTimeUtils {
      * @return (number of year, days in year)
      */
     private static Tuple2<Integer, Integer> numYears(int days) {
-        val year = days / 365;
-        val boundary = yearBoundary(year);
+        int year = days / 365;
+        int boundary = yearBoundary(year);
         if (days > boundary) {
             return new Tuple2<>(year, days - boundary);
         } else {
@@ -251,9 +249,9 @@ public class DateTimeUtils {
      * since 1.1.1970. January is month 1.
      */
     public static int getMonth(int date) {
-        val entry = getYearAndDayInYear(date);
-        var year = entry.f0;
-        var dayInYear = entry.f1;
+        Tuple2<Integer, Integer> entry = getYearAndDayInYear(date);
+        int year = entry.f0;
+        int dayInYear = entry.f1;
 
         if (isLeapYear(year)) {
             if (dayInYear == 60) {
@@ -295,9 +293,9 @@ public class DateTimeUtils {
      * since 1.1.1970.
      */
     public static int getDayOfMonth(int date) {
-        val entry = getYearAndDayInYear(date);
-        var year = entry.f0;
-        var dayInYear = entry.f1;
+        Tuple2<Integer, Integer> entry = getYearAndDayInYear(date);
+        int year = entry.f0;
+        int dayInYear = entry.f1;
 
         if (isLeapYear(year)) {
             if (dayInYear == 60) {

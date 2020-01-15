@@ -15,9 +15,7 @@ package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.types.CollectionDataType;
@@ -33,6 +31,7 @@ import org.apache.pulsar.client.impl.schema.generic.GenericAvroRecord;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.shade.com.google.common.collect.ImmutableSet;
 import org.apache.pulsar.shade.org.apache.avro.Conversions;
+import org.apache.pulsar.shade.org.apache.avro.LogicalType;
 import org.apache.pulsar.shade.org.apache.avro.LogicalTypes;
 import org.apache.pulsar.shade.org.apache.avro.Schema;
 import org.apache.pulsar.shade.org.apache.avro.generic.GenericData;
@@ -41,6 +40,7 @@ import org.apache.pulsar.shade.org.apache.avro.generic.GenericRecord;
 import org.apache.pulsar.shade.org.apache.avro.util.Utf8;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
@@ -74,7 +74,6 @@ public class PulsarDeserializer {
 
     private final DataType rootDataType;
 
-    @Getter(lazy = true)
     private final Conversions.DecimalConversion decimalConversions =
         new Conversions.DecimalConversion();
 
@@ -86,16 +85,16 @@ public class PulsarDeserializer {
 
             switch (schemaInfo.getType()) {
                 case AVRO:
-                    val st = (FieldsDataType) rootDataType;
-                    val fieldsNum = st.getFieldDataTypes().size() + META_FIELD_NAMES.size();
-                    val fieldUpdater = new RowUpdater();
-                    val avroSchema =
+                    FieldsDataType st = (FieldsDataType) rootDataType;
+                    int fieldsNum = st.getFieldDataTypes().size() + META_FIELD_NAMES.size();
+                    RowUpdater fieldUpdater = new RowUpdater();
+                    Schema avroSchema =
                         new Schema.Parser().parse(new String(schemaInfo.getSchema(), StandardCharsets.UTF_8));
-                    val writer = getRecordWriter(avroSchema, st, new ArrayList<>());
+                    BinFunction<RowUpdater, GenericRecord> writer = getRecordWriter(avroSchema, st, new ArrayList<>());
                     this.converter = msg -> {
-                        val resultRow = new Row(fieldsNum);
+                        Row resultRow = new Row(fieldsNum);
                         fieldUpdater.setRow(resultRow);
-                        val value = msg.getValue();
+                        Object value = msg.getValue();
                         writer.apply(fieldUpdater, ((GenericAvroRecord) value).getAvroRecord());
                         writeMetadataFields(msg, resultRow);
                         return resultRow;
@@ -103,7 +102,7 @@ public class PulsarDeserializer {
                     break;
 
                 case JSON:
-                    val fdt = (FieldsDataType) rootDataType;
+                    FieldsDataType fdt = (FieldsDataType) rootDataType;
                     BiFunction<JsonFactory, String, JsonParser> createParser =
                         (jsonFactory, s) -> {
                             try {
@@ -112,14 +111,14 @@ public class PulsarDeserializer {
                                 throw new RuntimeException(e);
                             }
                         };
-                    val rawParser = new JacksonRecordParser(rootDataType, parsedOptions);
-                    val parser = new JacksonRecordParser.FailureSafeRecordParser(
+                    JacksonRecordParser rawParser = new JacksonRecordParser(rootDataType, parsedOptions);
+                    JacksonRecordParser.FailureSafeRecordParser parser = new JacksonRecordParser.FailureSafeRecordParser(
                         (s, row) -> rawParser.parse(s, createParser, row),
                         parsedOptions.getParseMode(),
                         fdt);
                     this.converter = msg -> {
-                        val resultRow = new Row(fdt.getFieldDataTypes().size() + META_FIELD_NAMES.size());
-                        val value = msg.getData();
+                        Row resultRow = new Row(fdt.getFieldDataTypes().size() + META_FIELD_NAMES.size());
+                        byte[] value = msg.getData();
                         parser.parse(new String(value, StandardCharsets.UTF_8), resultRow);
                         writeMetadataFields(msg, resultRow);
                         return resultRow;
@@ -127,12 +126,12 @@ public class PulsarDeserializer {
                     break;
 
                 default:
-                    val fUpdater = new RowUpdater();
-                    val writer2 = newAtomicWriter(rootDataType);
+                    RowUpdater fUpdater = new RowUpdater();
+                    TriFunction<RowUpdater, Integer, Object> writer2 = newAtomicWriter(rootDataType);
                     this.converter = msg -> {
-                        val tmpRow = new Row(1 + META_FIELD_NAMES.size());
+                        Row tmpRow = new Row(1 + META_FIELD_NAMES.size());
                         fUpdater.setRow(tmpRow);
-                        val value = msg.getValue();
+                        Object value = msg.getValue();
                         writer2.apply(fUpdater, 0, value);
                         writeMetadataFields(msg, tmpRow);
                         return tmpRow;
@@ -171,7 +170,7 @@ public class PulsarDeserializer {
     }
 
     private TriFunction<RowUpdater, Integer, Object> newAtomicWriter(DataType dataType) {
-        val tpe = dataType.getLogicalType().getTypeRoot();
+        LogicalTypeRoot tpe = dataType.getLogicalType().getTypeRoot();
 
         switch (tpe) {
             case DATE:
@@ -186,8 +185,8 @@ public class PulsarDeserializer {
 
 
     private TriFunction<FlinkDataUpdater, Integer, Object> newWriter(Schema avroType, DataType flinkType, List<String> path) throws SchemaUtils.IncompatibleSchemaException {
-        val tpe = flinkType.getLogicalType().getTypeRoot();
-        val atpe = avroType.getType();
+        LogicalTypeRoot tpe = flinkType.getLogicalType().getTypeRoot();
+        Schema.Type atpe = avroType.getType();
 
         if (atpe == Schema.Type.NULL && tpe == LogicalTypeRoot.NULL) {
             return (rowUpdater, ordinal, value) -> rowUpdater.setNullAt(ordinal);
@@ -205,7 +204,7 @@ public class PulsarDeserializer {
                     DateTimeUtils.toJavaDate((Integer) value));
 
         } else if (atpe == Schema.Type.LONG && tpe == LogicalTypeRoot.TIMESTAMP_WITHOUT_TIME_ZONE) {
-            val altpe = avroType.getLogicalType();
+            LogicalType altpe = avroType.getLogicalType();
             if (altpe instanceof LogicalTypes.TimestampMillis) {
                 return (rowUpdater, ordinal, value) ->
                     rowUpdater.set(ordinal,
@@ -225,8 +224,8 @@ public class PulsarDeserializer {
                 if (value instanceof String) {
                     s = (String) value;
                 } else if (value instanceof Utf8) {
-                    val u8 = (Utf8) value;
-                    val bytes = new byte[u8.getByteLength()];
+                    Utf8 u8 = (Utf8) value;
+                    byte[] bytes = new byte[u8.getByteLength()];
                     System.arraycopy(u8.getBytes(), 0, bytes, 0, u8.getByteLength());
                     s = new String(bytes, StandardCharsets.UTF_8);
                 }
@@ -245,7 +244,7 @@ public class PulsarDeserializer {
             return (rowUpdater, ordinal, value) -> {
                 byte[] bytes = null;
                 if (value instanceof ByteBuffer) {
-                    val bb = (ByteBuffer) value;
+                    ByteBuffer bb = (ByteBuffer) value;
                     bytes = new byte[bb.remaining()];
                     bb.get(bytes);
                 } else if (value instanceof byte[]) {
@@ -257,9 +256,9 @@ public class PulsarDeserializer {
             };
 
         } else if (atpe == Schema.Type.FIXED && tpe == LogicalTypeRoot.DECIMAL) {
-            val d = (DecimalType) flinkType.getLogicalType();
+            DecimalType d = (DecimalType) flinkType.getLogicalType();
             return (rowUpdater, ordinal, value) -> {
-                val bigDecimal = decimalConversions.fromFixed(
+                BigDecimal bigDecimal = decimalConversions.fromFixed(
                     (GenericFixed) value,
                     avroType,
                     LogicalTypes.decimal(d.getPrecision(), d.getScale()));
@@ -267,9 +266,9 @@ public class PulsarDeserializer {
             };
 
         } else if (atpe == Schema.Type.BYTES && tpe == LogicalTypeRoot.DECIMAL) {
-            val d = (DecimalType) flinkType.getLogicalType();
+            DecimalType d = (DecimalType) flinkType.getLogicalType();
             return (rowUpdater, ordinal, value) -> {
-                val bigDecimal = decimalConversions.fromBytes(
+                BigDecimal bigDecimal = decimalConversions.fromBytes(
                     (ByteBuffer) value,
                     avroType,
                     LogicalTypes.decimal(d.getPrecision(), d.getScale()));
@@ -277,28 +276,28 @@ public class PulsarDeserializer {
             };
 
         } else if (atpe == Schema.Type.RECORD && tpe == LogicalTypeRoot.ROW) {
-            val fieldsDataType = (FieldsDataType) flinkType;
-            val writeRecord = getRecordWriter(avroType, fieldsDataType, path);
+            FieldsDataType fieldsDataType = (FieldsDataType) flinkType;
+            BinFunction<RowUpdater, GenericRecord> writeRecord = getRecordWriter(avroType, fieldsDataType, path);
             return (rowUpdater, ordinal, value) -> {
-                val row = new Row(fieldsDataType.getFieldDataTypes().size());
-                val ru = new RowUpdater();
+                Row row = new Row(fieldsDataType.getFieldDataTypes().size());
+                RowUpdater ru = new RowUpdater();
                 ru.setRow(row);
                 writeRecord.apply(ru, (GenericRecord) value);
                 rowUpdater.set(ordinal, row);
             };
 
         } else if (tpe == LogicalTypeRoot.ARRAY && atpe == ARRAY && flinkType instanceof CollectionDataType) {
-            val et = ((CollectionDataType) flinkType).getElementDataType();
-            val containsNull = et.getLogicalType().isNullable();
-            val elementWriter = newWriter(avroType.getElementType(), et, path);
+            DataType et = ((CollectionDataType) flinkType).getElementDataType();
+            boolean containsNull = et.getLogicalType().isNullable();
+            TriFunction<FlinkDataUpdater, Integer, Object> elementWriter = newWriter(avroType.getElementType(), et, path);
             return (rowUpdater, ordinal, value) -> {
-                val array = (Object[]) value;
-                val len = array.length;
-                val result = new Object[len];
-                val elementUpdater = new ArrayDataUpdater(result);
+                Object[] array = (Object[]) value;
+                int len = array.length;
+                Object[] result = new Object[len];
+                ArrayDataUpdater elementUpdater = new ArrayDataUpdater(result);
 
                 for (int i = 0; i <len; i++) {
-                    val element = array[i];
+                    Object element = array[i];
                     if (element == null) {
                         if (!containsNull) {
                             throw new RuntimeException(String.format(
@@ -317,13 +316,13 @@ public class PulsarDeserializer {
         } else if (tpe == LogicalTypeRoot.MAP && atpe == MAP &&
                 ((KeyValueDataType) flinkType).getKeyDataType().getLogicalType().getTypeRoot() == LogicalTypeRoot.VARCHAR) {
 
-            val kvt = (KeyValueDataType) flinkType;
-            val kt = kvt.getKeyDataType();
-            val vt = kvt.getValueDataType();
-            val valueContainsNull = vt.getLogicalType().isNullable();
+            KeyValueDataType kvt = (KeyValueDataType) flinkType;
+            DataType kt = kvt.getKeyDataType();
+            DataType vt = kvt.getValueDataType();
+            boolean valueContainsNull = vt.getLogicalType().isNullable();
 
             return (rowUpdater, ordinal, value) -> {
-                val map = (Map<Object, Object>) value;
+                Map<Object, Object> map = (Map<Object, Object>) value;
                 for (Map.Entry<Object, Object> entry : map.entrySet()) {
                     assert entry.getKey() != null;
                     if (entry.getValue() == null) {
@@ -336,16 +335,16 @@ public class PulsarDeserializer {
                 rowUpdater.set(ordinal, map);
             };
         } else if (atpe == UNION) {
-            val allTypes = avroType.getTypes();
-            val nonNullTypes = allTypes.stream().filter(t -> t.getType() != NULL).collect(Collectors.toList());
+            List<Schema> allTypes = avroType.getTypes();
+            List<Schema> nonNullTypes = allTypes.stream().filter(t -> t.getType() != NULL).collect(Collectors.toList());
             if (!nonNullTypes.isEmpty()) {
 
                 if (nonNullTypes.size() == 1) {
                     return newWriter(nonNullTypes.get(0), flinkType, path);
                 } else {
                     if (nonNullTypes.size() == 2) {
-                        val tp1 = nonNullTypes.get(0).getType();
-                        val tp2 = nonNullTypes.get(1).getType();
+                        Schema.Type tp1 = nonNullTypes.get(0).getType();
+                        Schema.Type tp2 = nonNullTypes.get(1).getType();
                         if (ImmutableSet.of(tp1, tp2).equals(ImmutableSet.of(INT, LONG)) && flinkType == DataTypes.BIGINT()) {
                             return (updater, ordinal, value) -> {
                                 if (value == null) {
@@ -371,21 +370,21 @@ public class PulsarDeserializer {
                                 "Cannot convert %s %s together to %s", tp1.toString(), tp2.toString(), flinkType.toString()));
                         }
                     } else if (tpe == LogicalTypeRoot.ROW && ((RowType) flinkType.getLogicalType()).getFieldCount() == nonNullTypes.size()) {
-                        val feildsType = ((FieldsDataType) flinkType).getFieldDataTypes();
-                        val rt = (RowType) flinkType.getLogicalType();
+                        Map<String, DataType> feildsType = ((FieldsDataType) flinkType).getFieldDataTypes();
+                        RowType rt = (RowType) flinkType.getLogicalType();
 
-                        val fieldWriters = new ArrayList<TriFunction<FlinkDataUpdater, Integer, Object>>();
+                        List<TriFunction<FlinkDataUpdater, Integer, Object>> fieldWriters = new ArrayList<TriFunction<FlinkDataUpdater, Integer, Object>>();
                         for (int i = 0; i < nonNullTypes.size(); i++) {
-                            val schema = nonNullTypes.get(i);
-                            val field = rt.getFieldNames().get(i);
+                            Schema schema = nonNullTypes.get(i);
+                            String field = rt.getFieldNames().get(i);
                             fieldWriters.add(newWriter(schema, feildsType.get(field),
                                 Stream.concat(path.stream(), Stream.of(field)).collect(Collectors.toList())));
                         }
                         return (updater, ordinal, value) -> {
-                            val row = new Row(rt.getFieldCount());
-                            val fieldUpdater = new RowUpdater();
+                            Row row = new Row(rt.getFieldCount());
+                            RowUpdater fieldUpdater = new RowUpdater();
                             fieldUpdater.setRow(row);
-                            val i = GenericData.get().resolveUnion(avroType, value);
+                            int i = GenericData.get().resolveUnion(avroType, value);
                             fieldWriters.get(i).apply(fieldUpdater, i, value);
                             updater.set(ordinal, row);
                         };
@@ -408,23 +407,23 @@ public class PulsarDeserializer {
     }
 
     private BinFunction<RowUpdater, GenericRecord> getRecordWriter(Schema avroType, FieldsDataType sqlType, List<String> path) throws SchemaUtils.IncompatibleSchemaException {
-        val validFieldIndexes = new ArrayList<Integer>();
-        val fieldWriters = new ArrayList<BinFunction<RowUpdater, Object>>();
+        List<Integer> validFieldIndexes = new ArrayList<>();
+        List<BinFunction<RowUpdater, Object>> fieldWriters = new ArrayList<>();
 
-        val length = sqlType.getFieldDataTypes().size();
-        val fields = ((RowType) sqlType.getLogicalType()).getFields();
-        val fieldsType = sqlType.getFieldDataTypes();
+        int length = sqlType.getFieldDataTypes().size();
+        List<RowType.RowField> fields = ((RowType) sqlType.getLogicalType()).getFields();
+        Map<String, DataType> fieldsType = sqlType.getFieldDataTypes();
 
         for (int i = 0; i < length; i++) {
-            val sqlField = fields.get(i);
-            val avroField = avroType.getField(sqlField.getName());
+            RowType.RowField sqlField = fields.get(i);
+            Schema.Field avroField = avroType.getField(sqlField.getName());
             if (avroField != null) {
                 validFieldIndexes.add(avroField.pos());
 
-                val baseWriter = newWriter(
+                TriFunction<FlinkDataUpdater, Integer, Object> baseWriter = newWriter(
                     avroField.schema(), fieldsType.get(sqlField.getName()),
                     Stream.concat(path.stream(), Stream.of(sqlField.getName())).collect(Collectors.toList()));
-                val ordinal = i;
+                int ordinal = i;
 
                 BinFunction<RowUpdater, Object> fieldWriter = (updater, value) -> {
                     if (value == null) {

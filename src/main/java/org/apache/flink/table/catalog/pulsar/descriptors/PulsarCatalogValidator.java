@@ -13,7 +13,6 @@
  */
 package org.apache.flink.table.catalog.pulsar.descriptors;
 
-import lombok.val;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.table.api.ValidationException;
 import org.apache.flink.table.descriptors.CatalogDescriptorValidator;
@@ -41,7 +40,7 @@ public class PulsarCatalogValidator extends CatalogDescriptorValidator {
 
     private void validateStartingOffsets(DescriptorProperties properties) {
         if (properties.containsKey(CATALOG_STARTING_POS)) {
-            val v = properties.getString(CATALOG_STARTING_POS);
+            String v = properties.getString(CATALOG_STARTING_POS);
             if (v != "earliest" && v != "latest") {
                 throw new ValidationException(CATALOG_STARTING_POS + " should be either earliest or latest");
             }

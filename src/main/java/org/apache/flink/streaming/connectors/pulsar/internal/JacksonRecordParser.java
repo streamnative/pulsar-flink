@@ -19,10 +19,10 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.FieldsDataType;
+import org.apache.flink.table.types.logical.LogicalTypeRoot;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.types.Row;
 
@@ -32,6 +32,7 @@ import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -58,11 +59,11 @@ public class JacksonRecordParser {
     }
 
     private BiFunction<JsonParser, Row, Row> makeStructRootConverter(FieldsDataType st) {
-        val fieldNames = ((RowType) st.getLogicalType()).getFieldNames();
-        val fieldConverters = new ArrayList<Function<JsonParser, Object>>();
+        List<String> fieldNames = ((RowType) st.getLogicalType()).getFieldNames();
+        List<Function<JsonParser, Object>> fieldConverters = new ArrayList<Function<JsonParser, Object>>();
         for (int i = 0; i < fieldNames.size(); i++) {
-            val fieldName = fieldNames.get(i);
-            val type = st.getFieldDataTypes().get(fieldName);
+            String fieldName = fieldNames.get(i);
+            DataType type = st.getFieldDataTypes().get(fieldName);
             fieldConverters.add(makeConverter(type));
         }
         return (parser, row) -> {
@@ -100,7 +101,7 @@ public class JacksonRecordParser {
             if (token == null) {
                 return new Row(0);
             } else {
-                val result = rootConverter.apply(parser, row);
+                Row result = rootConverter.apply(parser, row);
                 if (result == null) {
                     throw new RuntimeException("Root converter returned null");
                 } else {
@@ -114,10 +115,10 @@ public class JacksonRecordParser {
 
     private Row convertObject(JsonParser parser, FieldsDataType fdt, List<Function<JsonParser, Object>> fieldConverters, Row row) throws IOException {
 
-        val rowType = (RowType) fdt.getLogicalType();
-        val fieldNames = rowType.getFieldNames();
+        RowType rowType = (RowType) fdt.getLogicalType();
+        List<String> fieldNames = rowType.getFieldNames();
         while (nextUntil(parser, JsonToken.END_OBJECT)) {
-            val index = fieldNames.indexOf(parser.getCurrentName());
+            int index = fieldNames.indexOf(parser.getCurrentName());
             if (index == -1) {
                 parser.skipChildren();
             } else {
@@ -135,7 +136,7 @@ public class JacksonRecordParser {
 
 
     private boolean nextUntil(JsonParser parser, JsonToken stopOn) throws IOException {
-        val token = parser.nextToken();
+        JsonToken token = parser.nextToken();
         if (token == null) {
             return false;
         } else {
@@ -147,7 +148,7 @@ public class JacksonRecordParser {
 
 
     private Function<JsonParser, Object> makeConverter(DataType dataType) {
-        val tpe = dataType.getLogicalType().getTypeRoot();
+        LogicalTypeRoot tpe = dataType.getLogicalType().getTypeRoot();
 
         switch (tpe) {
             case BOOLEAN:
@@ -291,7 +292,7 @@ public class JacksonRecordParser {
                                         || token == JsonToken.VALUE_NUMBER_FLOAT) {
                                         return parser.getFloatValue();
                                     } else {
-                                        val txt = parser.getText();
+                                        String txt = parser.getText();
                                         if (txt == "NaN") {
                                             return Float.NaN;
                                         } else if (txt == "Infinity") {
@@ -332,7 +333,7 @@ public class JacksonRecordParser {
                                         || token == JsonToken.VALUE_NUMBER_FLOAT) {
                                         return parser.getDoubleValue();
                                     } else {
-                                        val txt = parser.getText();
+                                        String txt = parser.getText();
                                         if (txt == "NaN") {
                                             return Float.NaN;
                                         } else if (txt == "Infinity") {
@@ -370,7 +371,7 @@ public class JacksonRecordParser {
                                     if (token == JsonToken.VALUE_STRING) {
                                         return parser.getText();
                                     } else {
-                                        val writer = new ByteArrayOutputStream();
+                                        ByteArrayOutputStream writer = new ByteArrayOutputStream();
                                         try (JsonGenerator generator = factory.createGenerator(writer, JsonEncoding.UTF8)) {
                                             generator.copyCurrentStructure(parser);
                                         }
@@ -402,8 +403,8 @@ public class JacksonRecordParser {
                             public Object apply(JsonToken token) {
                                 try {
                                     if (token == JsonToken.VALUE_STRING) {
-                                        val v = parser.getText();
-                                        val t = options.getTimestampFormat().parse(v).getTime() * 1000L;
+                                        String v = parser.getText();
+                                        long t = options.getTimestampFormat().parse(v).getTime() * 1000L;
                                         return DateTimeUtils.toJavaTimestamp(t);
                                     } else {
                                         return DateTimeUtils.toJavaTimestamp(parser.getLongValue() * 1000000L);
@@ -432,8 +433,8 @@ public class JacksonRecordParser {
                             @Override
                             public Object apply(JsonToken token) {
                                 try {
-                                    val v = parser.getText();
-                                    val t = DateTimeUtils.millisToDays(options.getDateFormat().parse(v).getTime());
+                                    String v = parser.getText();
+                                    int t = DateTimeUtils.millisToDays(options.getDateFormat().parse(v).getTime());
                                     return DateTimeUtils.toJavaDate(t);
 
                                 } catch (IOException | ParseException e) {
@@ -499,10 +500,10 @@ public class JacksonRecordParser {
                 };
 
             case ROW:
-                val rowType = (RowType) dataType.getLogicalType();
-                val types = ((FieldsDataType) dataType).getFieldDataTypes();
-                val fieldNames = rowType.getFieldNames();
-                val fieldConverters = new ArrayList<Function<JsonParser, Object>>();
+                RowType rowType = (RowType) dataType.getLogicalType();
+                Map<String, DataType> types = ((FieldsDataType) dataType).getFieldDataTypes();
+                List<String> fieldNames = rowType.getFieldNames();
+                List<Function<JsonParser, Object>> fieldConverters = new ArrayList<Function<JsonParser, Object>>();
                 for (int i = 0; i < fieldNames.size(); i++) {
                     fieldConverters.add(makeConverter(types.get(fieldNames.get(i))));
                 }
@@ -518,7 +519,7 @@ public class JacksonRecordParser {
                             @Override
                             public Object apply(JsonToken token) {
                                 try {
-                                    val record = new Row(rowType.getFieldCount());
+                                    Row record = new Row(rowType.getFieldCount());
                                     return convertObject(parser, (FieldsDataType) dataType, fieldConverters, record);
                                 } catch (IOException e) {
                                     suroundWithRuntimeE(e);

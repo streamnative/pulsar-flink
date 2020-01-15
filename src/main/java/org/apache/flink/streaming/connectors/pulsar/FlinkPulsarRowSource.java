@@ -14,7 +14,6 @@
 package org.apache.flink.streaming.connectors.pulsar;
 
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
@@ -24,11 +23,13 @@ import org.apache.flink.streaming.connectors.pulsar.internal.PulsarFetcher;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarRowFetcher;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
+import org.apache.flink.table.types.FieldsDataType;
 import org.apache.flink.table.types.utils.LegacyTypeInfoDataTypeConverter;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.SerializedValue;
 import org.apache.pulsar.client.api.MessageId;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -42,8 +43,8 @@ public class FlinkPulsarRowSource extends FlinkPulsarSource<Row> {
     @Override
     public TypeInformation<Row> getProducedType() {
         try (PulsarMetadataReader reader = new PulsarMetadataReader(adminUrl, "", caseInsensitiveParams, -1, -1)) {
-            val topics = reader.getTopics();
-            val schema = reader.getSchema(topics);
+            List<String> topics = reader.getTopics();
+            FieldsDataType schema = reader.getSchema(topics);
             return (TypeInformation<Row>) LegacyTypeInfoDataTypeConverter.toLegacyTypeInfo(schema);
         } catch (Exception e) {
             log.error("Failed to get schema for source with exception %s", ExceptionUtils.getStackTrace(e));

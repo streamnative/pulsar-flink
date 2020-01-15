@@ -13,7 +13,6 @@
  */
 package org.apache.flink.table.catalog.pulsar.factories;
 
-import lombok.val;
 import org.apache.flink.table.catalog.Catalog;
 import org.apache.flink.table.catalog.pulsar.PulsarCatalog;
 import org.apache.flink.table.catalog.pulsar.descriptors.PulsarCatalogValidator;
@@ -39,16 +38,16 @@ public class PulsarCatalogFactory implements CatalogFactory {
 
     @Override
     public Catalog createCatalog(String name, Map<String, String> properties) {
-        val dp = getValidateProperties(properties);
-        val defaultDB = dp.getOptionalString(CATALOG_DEFAULT_DATABASE).orElse("public/default");
-        val adminUrl = dp.getString(CATALOG_ADMIN_URL);
+        DescriptorProperties dp = getValidateProperties(properties);
+        String defaultDB = dp.getOptionalString(CATALOG_DEFAULT_DATABASE).orElse("public/default");
+        String adminUrl = dp.getString(CATALOG_ADMIN_URL);
 
         return new PulsarCatalog(adminUrl, name, dp.asMap(), defaultDB);
     }
 
     @Override
     public Map<String, String> requiredContext() {
-        val context = new HashMap<String, String>();
+        HashMap<String, String> context = new HashMap<>();
         context.put(CATALOG_TYPE, CATALOG_TYPE_VALUE_PULSAR);
         context.put(CATALOG_PROPERTY_VERSION, "1");
         return context;
@@ -56,7 +55,7 @@ public class PulsarCatalogFactory implements CatalogFactory {
 
     @Override
     public List<String> supportedProperties() {
-        val props = new ArrayList<String>();
+        List props = new ArrayList<String>();
         props.add(CATALOG_DEFAULT_DATABASE);
         props.add(CATALOG_PULSAR_VERSION);
         props.add(CATALOG_SERVICE_URL);
@@ -67,7 +66,7 @@ public class PulsarCatalogFactory implements CatalogFactory {
     }
 
     private DescriptorProperties getValidateProperties(Map<String, String> properties) {
-        val dp = new DescriptorProperties();
+        DescriptorProperties dp = new DescriptorProperties();
         dp.putProperties(properties);
         new PulsarCatalogValidator().validate(dp);
         return dp;

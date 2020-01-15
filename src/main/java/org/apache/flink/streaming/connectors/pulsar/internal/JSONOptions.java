@@ -16,7 +16,6 @@ package org.apache.flink.streaming.connectors.pulsar.internal;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 import lombok.Getter;
-import lombok.val;
 import org.apache.commons.lang3.time.FastDateFormat;
 import org.apache.flink.util.Preconditions;
 
@@ -95,7 +94,7 @@ public class JSONOptions implements Serializable {
             Boolean.valueOf(parameters.getOrDefault("multiLine", "false"));
 
         if (parameters.containsKey("encoding") || parameters.containsKey("charset")) {
-            val enc = parameters.getOrDefault("encoding", parameters.getOrDefault("charset", null));
+            String enc = parameters.getOrDefault("encoding", parameters.getOrDefault("charset", null));
             if (enc == null) {
                 this.encoding = Optional.empty();
             } else {
@@ -106,7 +105,7 @@ public class JSONOptions implements Serializable {
         }
 
         if (parameters.containsKey("lineSep")) {
-            val lineSep = parameters.get("lineSep");
+            String lineSep = parameters.get("lineSep");
             Preconditions.checkArgument(!lineSep.isEmpty());
             this.lineSeparator = Optional.of(lineSep);
             try {

@@ -14,7 +14,6 @@
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
 import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
@@ -63,7 +62,7 @@ public class PulsarRowFetcher extends PulsarFetcher<Row> {
 
     @Override
     protected ReaderThread createReaderThread(ExceptionProxy exceptionProxy, PulsarTopicState state) {
-        val schemaInfo = getPulsarSchema();
+        SchemaInfo schemaInfo = getPulsarSchema();
         return new RowReaderThread(
             this, state, clientConf, readerConf, pollTimeoutMs, schemaInfo, null, exceptionProxy);
     }

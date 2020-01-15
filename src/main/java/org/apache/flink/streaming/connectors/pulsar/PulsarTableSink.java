@@ -14,7 +14,6 @@
 package org.apache.flink.streaming.connectors.pulsar;
 
 import lombok.EqualsAndHashCode;
-import lombok.val;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSink;
@@ -65,7 +64,7 @@ public class PulsarTableSink implements AppendStreamTableSink<Row> {
 
     @Override
     public DataStreamSink<?> consumeDataStream(DataStream<Row> dataStream) {
-       val sink = new FlinkPulsarRowSink(adminUrl, defaultTopicName, clientConf, properties, schema.toRowDataType());
+        FlinkPulsarRowSink sink = new FlinkPulsarRowSink(adminUrl, defaultTopicName, clientConf, properties, schema.toRowDataType());
        return dataStream
            .addSink(sink)
            .setParallelism(dataStream.getParallelism())

@@ -13,10 +13,10 @@
  */
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
-import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 public class SourceSinkUtils {
 
     public static Map<String, String> validateStreamSourceOptions(Map<String, String> parameters) {
-        val caseInsensitiveParams = parameters.entrySet().stream()
+        Map<String, String> caseInsensitiveParams = parameters.entrySet().stream()
             .collect(Collectors.toMap(t -> t.getKey(), t -> t.getValue().toLowerCase(Locale.ROOT)));
 
         if (caseInsensitiveParams.containsKey(PulsarOptions.ENDING_OFFSETS_OPTION_KEY)) {
@@ -35,7 +35,7 @@ public class SourceSinkUtils {
     }
 
     private static Map<String, String> validateSourceOptions(Map<String, String> caseInsensitiveParams) {
-        val topicOptions = caseInsensitiveParams.entrySet().stream()
+        Map<String, String> topicOptions = caseInsensitiveParams.entrySet().stream()
             .filter(t -> PulsarOptions.TOPIC_OPTION_KEYS.contains(t))
             .collect(Collectors.toMap(map -> map.getKey(), map -> map.getValue()));
 
@@ -46,15 +46,15 @@ public class SourceSinkUtils {
         }
 
         for (Map.Entry<String, String> topicEntry : topicOptions.entrySet()) {
-            val key = topicEntry.getKey();
-            val value = topicEntry.getValue();
+            String key = topicEntry.getKey();
+            String value = topicEntry.getValue();
             if (key == "topic") {
                 if (value.contains(",")) {
                     throw new IllegalArgumentException(
                         "Use `topics` instead of `topic` for multi topic read");
                 }
             } else if (key == "topics") {
-                val topics = Arrays.asList(value.split(",")).stream()
+                List<String> topics = Arrays.asList(value.split(",")).stream()
                     .map(String::trim).filter(t -> !t.isEmpty()).collect(Collectors.toList());
                 if (topics.isEmpty()) {
                     throw new IllegalArgumentException(
@@ -74,27 +74,27 @@ public class SourceSinkUtils {
     }
 
     public static long getPartitionDiscoveryIntervalInMillis(Map<String, String> parameters) {
-        val interval = parameters.getOrDefault(PulsarOptions.PARTITION_DISCOVERY_INTERVAL_MS_OPTION_KEY, "-1");
+        String interval = parameters.getOrDefault(PulsarOptions.PARTITION_DISCOVERY_INTERVAL_MS_OPTION_KEY, "-1");
         return Long.parseLong(interval);
     }
 
     public static int getPollTimeoutMs(Map<String, String> parameters) {
-        val interval = parameters.getOrDefault(PulsarOptions.POLL_TIMEOUT_MS_OPTION_KEY, "120000");
+        String interval = parameters.getOrDefault(PulsarOptions.POLL_TIMEOUT_MS_OPTION_KEY, "120000");
         return Integer.parseInt(interval);
     }
 
     public static int getClientCacheSize(Map<String, String> parameters) {
-        val size = parameters.getOrDefault(PulsarOptions.CLIENT_CACHE_SIZE_OPTION_KEY, "5");
+        String size = parameters.getOrDefault(PulsarOptions.CLIENT_CACHE_SIZE_OPTION_KEY, "5");
         return Integer.parseInt(size);
     }
 
     public static boolean flushOnCheckpoint(Map<String, String> parameters) {
-        val b = parameters.getOrDefault(PulsarOptions.FLUSH_ON_CHECKPOINT_OPTION_KEY, "true");
+        String b = parameters.getOrDefault(PulsarOptions.FLUSH_ON_CHECKPOINT_OPTION_KEY, "true");
         return Boolean.parseBoolean(b);
     }
 
     public static boolean failOnWrite(Map<String, String> parameters) {
-        val b = parameters.getOrDefault(PulsarOptions.FAIL_ON_WRITE_OPTION_KEY, "false");
+        String b = parameters.getOrDefault(PulsarOptions.FAIL_ON_WRITE_OPTION_KEY, "false");
         return Boolean.parseBoolean(b);
     }
 

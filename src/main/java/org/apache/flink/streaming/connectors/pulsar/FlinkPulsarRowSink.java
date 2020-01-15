@@ -14,7 +14,6 @@
 package org.apache.flink.streaming.connectors.pulsar;
 
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
@@ -28,9 +27,12 @@ import org.apache.flink.table.types.logical.LogicalTypeRoot;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.types.Row;
 import org.apache.pulsar.client.api.Schema;
+import org.apache.pulsar.client.api.TypedMessageBuilder;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.function.Function;
@@ -89,21 +91,21 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
     }
 
     private void createProjection() {
-        val metas = new int[3];
+        int[] metas = new int[3];
 
-        val fdt = (FieldsDataType) dataType;
-        val fdtm = fdt.getFieldDataTypes();
+        FieldsDataType fdt = (FieldsDataType) dataType;
+        Map<String, DataType> fdtm = fdt.getFieldDataTypes();
 
-        val rowFields = ((RowType) fdt.getLogicalType()).getFields();
-        val name2Type = new HashMap<String, Tuple2<LogicalTypeRoot, Integer>>();
+        List<RowType.RowField> rowFields = ((RowType) fdt.getLogicalType()).getFields();
+        Map<String, Tuple2<LogicalTypeRoot, Integer>> name2Type = new HashMap<>();
         for (int i = 0; i < rowFields.size(); i++) {
-            val rf = rowFields.get(i);
+            RowType.RowField rf = rowFields.get(i);
             name2Type.put(rf.getName(), new Tuple2<>(rf.getType().getTypeRoot(), i));
         }
 
         // topic
         if (name2Type.containsKey(TOPIC_ATTRIBUTE_NAME)) {
-            val value = name2Type.get(TOPIC_ATTRIBUTE_NAME);
+            Tuple2<LogicalTypeRoot, Integer> value = name2Type.get(TOPIC_ATTRIBUTE_NAME);
             if (value.f0 == LogicalTypeRoot.VARCHAR) {
                 metas[0] = value.f1;
             } else {
@@ -120,7 +122,7 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
 
         // key
         if (name2Type.containsKey(KEY_ATTRIBUTE_NAME)) {
-            val value = name2Type.get(KEY_ATTRIBUTE_NAME);
+            Tuple2<LogicalTypeRoot, Integer> value = name2Type.get(KEY_ATTRIBUTE_NAME);
             if (value.f0 == LogicalTypeRoot.VARBINARY) {
                 metas[0] = value.f1;
             } else {
@@ -133,7 +135,7 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
 
         // eventTime
         if (name2Type.containsKey(EVENT_TIME_NAME)) {
-            val value = name2Type.get(EVENT_TIME_NAME);
+            Tuple2<LogicalTypeRoot, Integer> value = name2Type.get(EVENT_TIME_NAME);
             if (value.f0 == LogicalTypeRoot.TIMESTAMP_WITHOUT_TIME_ZONE) {
                 metas[0] = value.f1;
             } else {
@@ -144,26 +146,26 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
             metas[2] = -1;
         }
 
-        val nonInternalFields = rowFields.stream()
+        List<RowType.RowField> nonInternalFields = rowFields.stream()
             .filter(f -> !META_FIELD_NAMES.contains(f.getName())).collect(Collectors.toList());
 
         if (nonInternalFields.size() == 1) {
-            val fieldName = nonInternalFields.get(0).getName();
+            String fieldName = nonInternalFields.get(0).getName();
             valueType = fdtm.get(fieldName);
         } else {
-            val fields = nonInternalFields.stream()
+            List<DataTypes.Field> fields = nonInternalFields.stream()
                 .map(f -> {
-                    val fieldName = f.getName();
+                    String fieldName = f.getName();
                     return DataTypes.FIELD(fieldName, fdtm.get(fieldName));
                 }).collect(Collectors.toList());
             valueType = DataTypes.ROW(fields.toArray(new DataTypes.Field[0]));
         }
 
-        val values = nonInternalFields.stream()
+        List<Integer> values = nonInternalFields.stream()
             .map(f -> name2Type.get(f.getName()).f1).collect(Collectors.toList());
 
         metaProjection = row -> {
-            val result = new Row(3);
+            Row result = new Row(3);
             for (int i = 0; i < metas.length; i++) {
                 if (metas[i] != -1) {
                     result.setField(i, row.getField(metas[i]));
@@ -173,7 +175,7 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
         };
 
         valueProjection = row -> {
-            val result = new Row(values.size());
+            Row result = new Row(values.size());
             for (int i = 0; i < values.size(); i++) {
                 result.setField(i, row.getField(values.get(i)));
             }
@@ -197,9 +199,9 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
     public void invoke(Row value, Context context) throws Exception {
         checkErroneous();
 
-        val metaRow = metaProjection.apply(value);
-        val valueRow = valueProjection.apply(value);
-        val v = serializer.serialize(valueRow);
+        Row metaRow = metaProjection.apply(value);
+        Row valueRow = valueProjection.apply(value);
+        Object v = serializer.serialize(valueRow);
 
         String topic;
         if (forcedTopic) {
@@ -208,8 +210,8 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
             topic = (String) metaRow.getField(0);
         }
 
-        val key = (String) metaRow.getField(1);
-        val eventTime = (java.sql.Timestamp) metaRow.getField(2);
+        String key = (String) metaRow.getField(1);
+        java.sql.Timestamp eventTime = (java.sql.Timestamp) metaRow.getField(2);
 
         if (topic == null) {
             if (failOnWrite) {
@@ -218,14 +220,14 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
             return;
         }
 
-        val builder = getProducer(topic).newMessage().value((Row) v);
+        TypedMessageBuilder builder = getProducer(topic).newMessage().value((Row) v);
 
         if (key != null) {
             builder.keyBytes(key.getBytes());
         }
 
         if (eventTime != null) {
-            val et = DateTimeUtils.fromJavaTimestamp(eventTime);
+            long et = DateTimeUtils.fromJavaTimestamp(eventTime);
             if (et > 0) {
                 builder.eventTime(et);
             }

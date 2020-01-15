@@ -14,7 +14,6 @@
 package org.apache.flink.streaming.connectors.pulsar;
 
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
@@ -30,6 +29,7 @@ import org.apache.flink.table.factories.StreamTableSinkFactory;
 import org.apache.flink.table.factories.StreamTableSourceFactory;
 import org.apache.flink.table.sinks.StreamTableSink;
 import org.apache.flink.table.sinks.TableSink;
+import org.apache.flink.table.sources.RowtimeAttributeDescriptor;
 import org.apache.flink.table.sources.StreamTableSource;
 import org.apache.flink.table.sources.TableSource;
 import org.apache.flink.types.Row;
@@ -95,15 +95,15 @@ public class PulsarTableSourceSinkFactory
 
     @Override
     public StreamTableSink<Row> createStreamTableSink(Map<String, String> properties) {
-        val dp = getValidatedProperties(properties);
-        val schema = dp.getTableSchema(SCHEMA);
+        DescriptorProperties dp = getValidatedProperties(properties);
+        TableSchema schema = dp.getTableSchema(SCHEMA);
 
         final String topic = dp.getString(CONNECTOR_TOPIC);
-        val serviceUrl = dp.getString(CONNECTOR_SERVICE_URL);
-        val adminUrl = dp.getString(CONNECTOR_ADMIN_URL);
+        String serviceUrl = dp.getString(CONNECTOR_SERVICE_URL);
+        String adminUrl = dp.getString(CONNECTOR_ADMIN_URL);
 
-        val proctime = SchemaValidator.deriveProctimeAttribute(dp);
-        val rowtimeAttributeDescriptors = SchemaValidator.deriveRowtimeAttributes(dp);
+        Optional<String> proctime = SchemaValidator.deriveProctimeAttribute(dp);
+        List<RowtimeAttributeDescriptor> rowtimeAttributeDescriptors = SchemaValidator.deriveRowtimeAttributes(dp);
 
         // see also FLINK-9870
         if (proctime.isPresent() || !rowtimeAttributeDescriptors.isEmpty() ||
@@ -125,9 +125,9 @@ public class PulsarTableSourceSinkFactory
 
     @Override
     public TableSink<Row> createTableSink(ObjectPath tablePath, CatalogTable table) {
-        val topic = PulsarMetadataReader.objectPath2TopicName(tablePath);
+        String topic = PulsarMetadataReader.objectPath2TopicName(tablePath);
 
-        val props = new HashMap<String, String>();
+        Map<String, String> props = new HashMap<String, String>();
         props.putAll(table.toProperties());
         props.put(PulsarOptions.TOPIC_SINGLE_OPTION_KEY, topic);
 
@@ -136,11 +136,11 @@ public class PulsarTableSourceSinkFactory
 
     @Override
     public StreamTableSource<Row> createStreamTableSource(Map<String, String> properties) {
-        val descriptorProperties = getValidatedProperties(properties);
-        val topic = descriptorProperties.getString(CONNECTOR_TOPIC);
-        val serviceUrl = descriptorProperties.getString(CONNECTOR_SERVICE_URL);
-        val adminUrl = descriptorProperties.getString(CONNECTOR_ADMIN_URL);
-        val startupOptions = getStartupOptions(descriptorProperties);
+        DescriptorProperties descriptorProperties = getValidatedProperties(properties);
+        String topic = descriptorProperties.getString(CONNECTOR_TOPIC);
+        String serviceUrl = descriptorProperties.getString(CONNECTOR_SERVICE_URL);
+        String adminUrl = descriptorProperties.getString(CONNECTOR_ADMIN_URL);
+        StartupOptions startupOptions = getStartupOptions(descriptorProperties);
 
         Optional<TableSchema> schema;
         if (isInPulsarCatalog) {
@@ -171,9 +171,9 @@ public class PulsarTableSourceSinkFactory
 
     @Override
     public TableSource<Row> createTableSource(ObjectPath tablePath, CatalogTable table) {
-        val topic = PulsarMetadataReader.objectPath2TopicName(tablePath);
+        String topic = PulsarMetadataReader.objectPath2TopicName(tablePath);
 
-        val props = new HashMap<String, String>();
+        Map<String, String> props = new HashMap<>();
         props.putAll(table.toProperties());
         props.put(PulsarOptions.TOPIC_SINGLE_OPTION_KEY, topic);
 
@@ -291,7 +291,7 @@ public class PulsarTableSourceSinkFactory
     }
 
     private DescriptorProperties getValidatedProperties(Map<String, String> properties) {
-        val descriptorProperties = new DescriptorProperties(true);
+        DescriptorProperties descriptorProperties = new DescriptorProperties(true);
         descriptorProperties.putProperties(properties);
         // TODO allow Pulsar timestamps to be used, watermarks can not be received from source
         new PulsarSchemaValidator(true, true, false).validate(descriptorProperties);

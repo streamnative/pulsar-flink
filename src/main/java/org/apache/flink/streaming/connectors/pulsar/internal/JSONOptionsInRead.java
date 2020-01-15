@@ -13,8 +13,6 @@
  */
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
-import lombok.val;
-
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -39,14 +37,14 @@ public class JSONOptionsInRead extends JSONOptions {
 
     @Override
     protected String checkEncoding(String enc) {
-        val isBlacklisted = JSONOptionsInRead.blackList.contains(Charset.forName(enc));
+        boolean isBlacklisted = JSONOptionsInRead.blackList.contains(Charset.forName(enc));
         if (!multiLine && isBlacklisted) {
             throw new IllegalArgumentException(String.format(
                 "The %s encoding must not be included in the blacklist when multiLine is disabled",
                 enc));
         }
 
-        val isLineSepRequired =
+        boolean isLineSepRequired =
             multiLine || Charset.forName(enc) == StandardCharsets.UTF_8 || lineSeparator.isPresent();
 
         if (!isLineSepRequired) {

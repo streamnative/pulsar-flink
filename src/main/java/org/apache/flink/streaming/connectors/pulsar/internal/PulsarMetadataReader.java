@@ -13,9 +13,7 @@
  */
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 import org.apache.commons.collections.ListUtils;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.api.TableSchema;
@@ -65,8 +63,7 @@ public class PulsarMetadataReader implements AutoCloseable {
 
     private final int numParallelSubtasks;
 
-    @Getter(lazy = true) private final PulsarAdmin admin =
-        PulsarAdmin.builder().serviceHttpUrl(adminUrl).build();
+    private final PulsarAdmin admin;
 
     private volatile boolean closed = false;
 
@@ -84,6 +81,7 @@ public class PulsarMetadataReader implements AutoCloseable {
         this.caseInsensitiveParams = caseInsensitiveParams;
         this.indexOfThisSubtask = indexOfThisSubtask;
         this.numParallelSubtasks = numParallelSubtasks;
+        this.admin = PulsarAdmin.builder().serviceHttpUrl(adminUrl).build();
     }
 
     @Override
@@ -94,8 +92,8 @@ public class PulsarMetadataReader implements AutoCloseable {
 
     public Set<String> discoverTopicChanges() throws PulsarAdminException, ClosedException {
         if (!closed) {
-            val currentTopics = getTopicPartitions();
-            val addedTopics = Sets.difference(currentTopics, seenTopics);
+            Set<String> currentTopics = getTopicPartitions();
+            Set<String> addedTopics = Sets.difference(currentTopics, seenTopics);
             seenTopics = currentTopics;
             return addedTopics;
         } else {
@@ -104,8 +102,8 @@ public class PulsarMetadataReader implements AutoCloseable {
     }
 
     public List<String> listNamespaces() throws PulsarAdminException {
-        val tenants = admin.tenants().getTenants();
-        val namespaces = new ArrayList<String>();
+        List<String> tenants = admin.tenants().getTenants();
+        List<String> namespaces = new ArrayList<String>();
         for (String tenant : tenants) {
             namespaces.addAll(admin.namespaces().getNamespaces(tenant));
         }
@@ -178,9 +176,9 @@ public class PulsarMetadataReader implements AutoCloseable {
     }
 
     public void putSchema(ObjectPath tablePath, CatalogBaseTable table) throws IncompatibleSchemaException {
-        val topic = objectPath2TopicName(tablePath);
-        val tableSchema = table.getSchema();
-        val fieldsRemaining = new ArrayList<String>(tableSchema.getFieldCount());
+        String topic = objectPath2TopicName(tablePath);
+        TableSchema tableSchema = table.getSchema();
+        List<String> fieldsRemaining = new ArrayList<>(tableSchema.getFieldCount());
         for (String fieldName : tableSchema.getFieldNames()) {
             if (!PulsarOptions.META_FIELD_NAMES.contains(fieldName)) {
                 fieldsRemaining.add(fieldName);
@@ -192,13 +190,13 @@ public class PulsarMetadataReader implements AutoCloseable {
         if (fieldsRemaining.size() == 1) {
             dataType = tableSchema.getFieldDataType(fieldsRemaining.get(0)).get();
         } else {
-            val fieldList = fieldsRemaining.stream()
+            List<DataTypes.Field> fieldList = fieldsRemaining.stream()
                 .map(f -> DataTypes.FIELD(f, tableSchema.getFieldDataType(f).get()))
                 .collect(Collectors.toList());
             dataType = DataTypes.ROW(fieldList.toArray(new DataTypes.Field[0]));
         }
 
-        val si = SchemaUtils.sqlType2PulsarSchema(dataType).getSchemaInfo();
+        SchemaInfo si = SchemaUtils.sqlType2PulsarSchema(dataType).getSchemaInfo();
         SchemaUtils.uploadPulsarSchema(admin, topic, si);
     }
 
@@ -215,7 +213,7 @@ public class PulsarMetadataReader implements AutoCloseable {
 
     public void commitCursorToOffset(Map<String, MessageId> offset) {
         for (Map.Entry<String, MessageId> entry : offset.entrySet()) {
-            val tp = entry.getKey();
+            String tp = entry.getKey();
             try {
                 admin.topics().resetCursor(tp, driverGroupIdPrefix, entry.getValue());
             } catch (Throwable e) {
@@ -285,17 +283,17 @@ public class PulsarMetadataReader implements AutoCloseable {
     }
 
     public Set<String> getTopicPartitions() throws PulsarAdminException {
-        val topics = getTopicPartitionsAll();
+        Set<String> topics = getTopicPartitionsAll();
         return topics.stream()
             .filter(t -> SourceSinkUtils.belongsTo(t, numParallelSubtasks, indexOfThisSubtask))
             .collect(Collectors.toSet());
     }
 
     public Set<String> getTopicPartitionsAll() throws PulsarAdminException {
-        val topics = getTopics();
-        val allTopics = new HashSet<String>();
+        List<String> topics = getTopics();
+        HashSet<String> allTopics = new HashSet<>();
         for (String topic : topics) {
-            val partNum = admin.topics().getPartitionedTopicMetadata(topic).partitions;
+            int partNum = admin.topics().getPartitionedTopicMetadata(topic).partitions;
             if (partNum == 0) {
                 allTopics.add(topic);
             } else {
@@ -310,7 +308,7 @@ public class PulsarMetadataReader implements AutoCloseable {
     public List<String> getTopics() throws PulsarAdminException {
         for (Map.Entry<String, String> e : caseInsensitiveParams.entrySet()) {
             if (PulsarOptions.TOPIC_OPTION_KEYS.contains(e.getKey())) {
-                val key = e.getKey();
+                String key = e.getKey();
                 if (key == "topic") {
                     return Collections.singletonList(TopicName.get(e.getValue()).toString());
                 } else if (key == "topics") {
@@ -327,12 +325,12 @@ public class PulsarMetadataReader implements AutoCloseable {
     }
 
     private List<String> getTopicsWithPattern(String topicsPattern) throws PulsarAdminException {
-        val dest = TopicName.get(topicsPattern);
-        val allNonPartitionedTopics = getNonPartitionedTopics(dest.getNamespace());
-        val nonPartitionedMatch = topicsPatternFilter(allNonPartitionedTopics, dest.toString());
+        TopicName dest = TopicName.get(topicsPattern);
+        List<String> allNonPartitionedTopics = getNonPartitionedTopics(dest.getNamespace());
+        List<String> nonPartitionedMatch = topicsPatternFilter(allNonPartitionedTopics, dest.toString());
 
-        val allPartitionedTopics = admin.topics().getPartitionedTopicList(dest.getNamespace());
-        val partitionedMatch = topicsPatternFilter(allPartitionedTopics, dest.toString());
+        List<String> allPartitionedTopics = admin.topics().getPartitionedTopicList(dest.getNamespace());
+        List<String> partitionedMatch = topicsPatternFilter(allPartitionedTopics, dest.toString());
 
         return ListUtils.union(nonPartitionedMatch, partitionedMatch);
     }
@@ -344,7 +342,7 @@ public class PulsarMetadataReader implements AutoCloseable {
     }
 
     private List<String> topicsPatternFilter(List<String> allTopics, String topicsPattern) {
-        val shortenedTopicsPattern = Pattern.compile(topicsPattern.split("\\:\\/\\/")[1]);
+        Pattern shortenedTopicsPattern = Pattern.compile(topicsPattern.split("\\:\\/\\/")[1]);
         return allTopics.stream().map(t -> TopicName.get(t).toString())
             .filter(t -> shortenedTopicsPattern.matcher(t.split("\\:\\/\\/")[1]).matches())
             .collect(Collectors.toList());

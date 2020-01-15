@@ -16,13 +16,13 @@ package org.apache.flink.streaming.connectors.pulsar;
 import avro.shaded.com.google.common.collect.Sets;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 import org.apache.commons.collections.map.LinkedMap;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.state.ListState;
 import org.apache.flink.api.common.state.ListStateDescriptor;
+import org.apache.flink.api.common.state.OperatorStateStore;
 import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.ClosureCleaner;
@@ -315,7 +315,7 @@ public class FlinkPulsarSource<T>
         this.topicDiscoverer = createTopicDiscoverer();
 
         ownedTopicStarts = new HashMap<>();
-        val allTopics = topicDiscoverer.discoverTopicChanges();
+        Set<String> allTopics = topicDiscoverer.discoverTopicChanges();
 
         if (restoredState != null) {
             allTopics.stream()
@@ -326,7 +326,7 @@ public class FlinkPulsarSource<T>
                 .filter(e -> SourceSinkUtils.belongsTo(e.getKey(), numParallelTasks, taskIndex))
                 .forEach(e -> ownedTopicStarts.put(e.getKey(), e.getValue()));
 
-            val goneTopics = Sets.difference(restoredState.keySet(), allTopics).stream()
+            Set<String> goneTopics = Sets.difference(restoredState.keySet(), allTopics).stream()
                 .filter(k -> SourceSinkUtils.belongsTo(k, numParallelTasks, taskIndex))
                 .collect(Collectors.toSet());
 
@@ -339,7 +339,7 @@ public class FlinkPulsarSource<T>
             log.info("Source %d will start reading %d topics in restored state %s",
                 taskIndex, ownedTopicStarts.size(), StringUtils.join(ownedTopicStarts.entrySet()));
         } else {
-            val allTopicOffsets =
+            Map<String, MessageId> allTopicOffsets =
                 offsetForEachTopic(allTopics, startupMode, specificStartupOffsets);
 
             ownedTopicStarts.putAll(allTopicOffsets.entrySet().stream()
@@ -402,7 +402,7 @@ public class FlinkPulsarSource<T>
         //   - 'notifyCheckpointComplete' will start to do work (i.e. commit offsets to
         //     Pulsar through the fetcher, if configured to do so)
 
-        val streamingRuntime = (StreamingRuntimeContext) getRuntimeContext();
+        StreamingRuntimeContext streamingRuntime = (StreamingRuntimeContext) getRuntimeContext();
 
         this.pulsarFetcher = createFetcher(
             ctx,
@@ -465,7 +465,7 @@ public class FlinkPulsarSource<T>
 
         joinDiscoveryLoopThread();
 
-        val discoveryLoopError = discoveryLoopErrorRef.get();
+        Exception discoveryLoopError = discoveryLoopErrorRef.get();
         if (discoveryLoopError != null) {
             throw new RuntimeException(discoveryLoopError);
         }
@@ -476,7 +476,7 @@ public class FlinkPulsarSource<T>
             () -> {
                 try {
                     while (running) {
-                        val added = topicDiscoverer.discoverTopicChanges();
+                        Set<String> added = topicDiscoverer.discoverTopicChanges();
 
                         if (running && !added.isEmpty()) {
                             pulsarFetcher.addDiscoveredTopics(added);
@@ -561,7 +561,7 @@ public class FlinkPulsarSource<T>
 
     @Override
     public void initializeState(FunctionInitializationContext context) throws Exception {
-        val stateStore = context.getOperatorStateStore();
+        OperatorStateStore stateStore = context.getOperatorStateStore();
 
         unionOffsetStates = stateStore.getUnionListState(
             new ListStateDescriptor<>(
@@ -586,7 +586,7 @@ public class FlinkPulsarSource<T>
         } else {
             unionOffsetStates.clear();
 
-            val fetcher = this.pulsarFetcher;
+            PulsarFetcher fetcher = this.pulsarFetcher;
 
             if (fetcher == null) {
                 // the fetcher has not yet been initialized, which means we need to return the
@@ -596,7 +596,7 @@ public class FlinkPulsarSource<T>
                 }
                 pendingOffsetsToCommit.put(context.getCheckpointId(), restoredState);
             } else {
-                val currentOffsets = fetcher.snapshotCurrentState();
+                Map<String, MessageId> currentOffsets = fetcher.snapshotCurrentState();
                 pendingOffsetsToCommit.put(context.getCheckpointId(), currentOffsets);
                 for (Map.Entry<String, MessageId> entry : currentOffsets.entrySet()) {
                     unionOffsetStates.add(Tuple2.of(entry.getKey(), entry.getValue()));
@@ -616,7 +616,7 @@ public class FlinkPulsarSource<T>
             return;
         }
 
-        val fetcher = this.pulsarFetcher;
+        PulsarFetcher<T> fetcher = this.pulsarFetcher;
 
         if (fetcher == null) {
             log.info("notifyCheckpointComplete() called on uninitialized source");
@@ -627,14 +627,14 @@ public class FlinkPulsarSource<T>
             taskIndex, checkpointId);
 
         try {
-            val posInMap = pendingOffsetsToCommit.indexOf(checkpointId);
+            int posInMap = pendingOffsetsToCommit.indexOf(checkpointId);
             if (posInMap == -1) {
                 log.warn("Source %d received confirmation for unknown checkpoint id %d",
                     taskIndex, checkpointId);
                 return;
             }
 
-            val offset = (Map<String, MessageId>)pendingOffsetsToCommit.remove(posInMap);
+            Map<String, MessageId> offset = (Map<String, MessageId>)pendingOffsetsToCommit.remove(posInMap);
 
             // remove older checkpoints in map
             for(int i = 0; i < posInMap; i ++) {

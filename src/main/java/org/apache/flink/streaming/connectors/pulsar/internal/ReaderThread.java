@@ -14,7 +14,6 @@
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageId;
@@ -78,7 +77,7 @@ public class ReaderThread<T> extends Thread {
             log.info(String.format("Starting to read %s with reader thread %s", topic, getName()));
 
             while (running) {
-                val message = reader.readNext(pollTimeoutMs, TimeUnit.MILLISECONDS);
+                Message message = reader.readNext(pollTimeoutMs, TimeUnit.MILLISECONDS);
                 if (message != null) {
                     emitRecord(message);
                 }
@@ -143,8 +142,8 @@ public class ReaderThread<T> extends Thread {
     }
 
     protected void emitRecord(Message<?> message) throws IOException {
-        val messageId = message.getMessageId();
-        val record = deserializer.deserialize(message.getData());
+        MessageId messageId = message.getMessageId();
+        T record = deserializer.deserialize(message.getData());
         owner.emitRecord(record, state, messageId);
     }
 

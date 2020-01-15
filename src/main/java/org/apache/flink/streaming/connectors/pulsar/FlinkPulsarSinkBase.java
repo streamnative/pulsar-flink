@@ -15,7 +15,6 @@ package org.apache.flink.streaming.connectors.pulsar;
 
 import avro.shaded.com.google.common.collect.Maps;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.java.ClosureCleaner;
@@ -219,7 +218,7 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
             return (Producer<T>) topic2Producer.get(topic);
         } else {
             uploadSchema(topic);
-            val p = createProducer(clientConfigurationData, producerConf, topic, getPulsarSchema());
+            Producer p = createProducer(clientConfigurationData, producerConf, topic, getPulsarSchema());
             topic2Producer.put(topic, p);
             return (Producer<T>) p;
         }

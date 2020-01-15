@@ -13,9 +13,7 @@
  */
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 import org.apache.flink.table.types.CollectionDataType;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.FieldsDataType;
@@ -25,18 +23,24 @@ import org.apache.flink.table.types.logical.LogicalTypeRoot;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.types.Row;
 import org.apache.pulsar.client.api.schema.Field;
+import org.apache.pulsar.client.api.schema.GenericRecord;
+import org.apache.pulsar.client.api.schema.GenericRecordBuilder;
+import org.apache.pulsar.client.api.schema.GenericSchema;
 import org.apache.pulsar.client.impl.schema.generic.GenericAvroRecord;
 import org.apache.pulsar.shade.org.apache.avro.Conversions;
+import org.apache.pulsar.shade.org.apache.avro.LogicalType;
 import org.apache.pulsar.shade.org.apache.avro.LogicalTypes;
 import org.apache.pulsar.shade.org.apache.avro.Schema;
 import org.apache.pulsar.shade.org.apache.avro.generic.GenericData;
 import org.apache.pulsar.shade.org.apache.avro.util.Utf8;
 
+import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -56,7 +60,6 @@ public class PulsarSerializer {
 
     private final boolean nullable;
 
-    @Getter(lazy = true)
     private final Conversions.DecimalConversion decimalConversion =
         new Conversions.DecimalConversion();
 
@@ -71,10 +74,10 @@ public class PulsarSerializer {
         try {
             this.rootAvroType = SchemaUtils.sqlType2AvroSchema(flinkType);
 
-            val actualAvroType = resolveNullableType(rootAvroType, nullable);
+            Schema actualAvroType = resolveNullableType(rootAvroType, nullable);
             Function<Object, Object> baseConverter;
             if (flinkType instanceof FieldsDataType) {
-                val st = (FieldsDataType) flinkType;
+                FieldsDataType st = (FieldsDataType) flinkType;
                 baseConverter = newStructConverter(st, actualAvroType);
             } else {
                 BiFunction<PositionedGetter, Integer, Object> converter = singleValueConverter(flinkType, actualAvroType);
@@ -105,8 +108,8 @@ public class PulsarSerializer {
     }
 
     private BiFunction<PositionedGetter, Integer, Object> singleValueConverter(DataType dataType, Schema avroType) throws SchemaUtils.IncompatibleSchemaException {
-        val tpe = dataType.getLogicalType().getTypeRoot();
-        val atpe = avroType.getType();
+        LogicalTypeRoot tpe = dataType.getLogicalType().getTypeRoot();
+        Schema.Type atpe = avroType.getType();
         if (tpe == LogicalTypeRoot.NULL && atpe == Schema.Type.NULL) {
             return (getter, ordinal) -> null;
         } else if ((tpe == LogicalTypeRoot.BOOLEAN && atpe == Schema.Type.BOOLEAN) ||
@@ -121,7 +124,7 @@ public class PulsarSerializer {
             (tpe == LogicalTypeRoot.DATE && atpe == Schema.Type.INT)) {
             return (getter, ordinal) -> getter.getField(ordinal);
         } else if (tpe == LogicalTypeRoot.TIMESTAMP_WITH_TIME_ZONE && atpe == Schema.Type.LONG) {
-            val altpe = avroType.getLogicalType();
+            LogicalType altpe = avroType.getLogicalType();
             if (altpe instanceof LogicalTypes.TimestampMillis || altpe instanceof LogicalTypes.TimestampMicros) {
                 return (getter, ordinal) -> getter.getField(ordinal);
             } else {
@@ -141,23 +144,23 @@ public class PulsarSerializer {
                 String.format("Cannot convert Flink type %s to Avro type %s.", dataType.toString(), avroStruct.toString(true)));
         }
 
-        val fieldsType = dataType.getFieldDataTypes();
-        val fields = ((RowType) dataType.getLogicalType()).getFields();
+        Map<String, DataType> fieldsType = dataType.getFieldDataTypes();
+        List<RowType.RowField> fields = ((RowType) dataType.getLogicalType()).getFields();
 
         List<BiFunction<PositionedGetter, Integer, Object>> fieldConverters = new ArrayList<>();
 
         for (int i = 0; i < fields.size(); i++) {
-            val rf = fields.get(i);
-            val dt = fieldsType.get(rf.getName());
-            val at = avroStruct.getFields().get(i);
+            RowType.RowField rf = fields.get(i);
+            DataType dt = fieldsType.get(rf.getName());
+            Schema.Field at = avroStruct.getFields().get(i);
             fieldConverters.add(newConverter(dt, resolveNullableType(at.schema(), dt.getLogicalType().isNullable())));
         }
-        val numFields = fieldsType.size();
+        int numFields = fieldsType.size();
 
         return row -> {
-            val pSchema = SchemaUtils.avroSchema2PulsarSchema(avroStruct);
-            val builder = pSchema.newRecordBuilder();
-            val rowX = (Row) row;
+            GenericSchema<GenericRecord> pSchema = SchemaUtils.avroSchema2PulsarSchema(avroStruct);
+            GenericRecordBuilder builder = pSchema.newRecordBuilder();
+            Row rowX = (Row) row;
 
             for (int i = 0; i < numFields; i++) {
                 if (rowX.getField(i) == null) {
@@ -172,8 +175,8 @@ public class PulsarSerializer {
     }
 
     private BiFunction<PositionedGetter, Integer, Object> newConverter(DataType dataType, Schema avroType) throws SchemaUtils.IncompatibleSchemaException {
-        val tpe = dataType.getLogicalType().getTypeRoot();
-        val atpe = avroType.getType();
+        LogicalTypeRoot tpe = dataType.getLogicalType().getTypeRoot();
+        Schema.Type atpe = avroType.getType();
         if (tpe == LogicalTypeRoot.NULL && atpe == Schema.Type.NULL) {
             return (getter, ordinal) -> null;
         } else if ((tpe == LogicalTypeRoot.BOOLEAN && atpe == Schema.Type.BOOLEAN) ||
@@ -186,10 +189,10 @@ public class PulsarSerializer {
             (tpe == LogicalTypeRoot.VARBINARY && atpe == BYTES)) {
             return (getter, ordinal) -> getter.getField(ordinal);
         } else if (tpe == LogicalTypeRoot.DECIMAL && (atpe == FIXED || atpe == BYTES)) {
-            val d = (DecimalType) dataType.getLogicalType();
+            DecimalType d = (DecimalType) dataType.getLogicalType();
             if (avroType.getLogicalType() == LogicalTypes.decimal(d.getPrecision(), d.getScale())) {
                 return (getter, ordinal) -> {
-                    val decimal = (java.math.BigDecimal) getter.getField(ordinal);
+                    java.math.BigDecimal decimal = (java.math.BigDecimal) getter.getField(ordinal);
                     return decimalConversion.toFixed(
                         decimal,
                         avroType,
@@ -204,7 +207,7 @@ public class PulsarSerializer {
         } else if (tpe == LogicalTypeRoot.DATE && atpe == Schema.Type.INT) {
             return (getter, ordinal) -> DateTimeUtils.fromJavaDate((java.sql.Date) getter.getField(ordinal));
         } else if (tpe == LogicalTypeRoot.TIMESTAMP_WITH_TIME_ZONE && atpe == Schema.Type.LONG) {
-            val altpe = avroType.getLogicalType();
+            LogicalType altpe = avroType.getLogicalType();
             if (altpe instanceof LogicalTypes.TimestampMillis) {
                 return (getter, ordinal) -> DateTimeUtils.fromJavaTimestamp((java.sql.Timestamp) getter.getField(ordinal)) / 1000;
             } else if (altpe instanceof LogicalTypes.TimestampMicros) {
@@ -216,9 +219,9 @@ public class PulsarSerializer {
         } else if (tpe == LogicalTypeRoot.VARCHAR && atpe == STRING) {
             return (getter, ordinal) -> new Utf8((String) getter.getField(ordinal));
         } else if (tpe == LogicalTypeRoot.VARCHAR && atpe == ENUM) {
-            val enumSymbols = new HashSet<>(avroType.getEnumSymbols());
+            HashSet<String> enumSymbols = new HashSet<>(avroType.getEnumSymbols());
             return (getter, ordinal) -> {
-                val data = (String) getter.getField(ordinal);
+                String data = (String) getter.getField(ordinal);
                 if (!enumSymbols.contains(data)) {
                     throw new RuntimeException(String.format(
                         "Cannot write %s since it's not defined in enum %s", data, String.join(", ", enumSymbols)));
@@ -226,13 +229,14 @@ public class PulsarSerializer {
                 return new GenericData.EnumSymbol(avroType, data);
             };
         } else if (tpe == LogicalTypeRoot.ARRAY && atpe == ARRAY && dataType instanceof CollectionDataType) {
-            val et = ((CollectionDataType) dataType).getElementDataType();
-            val containsNull = et.getLogicalType().isNullable();
-            val elementConverter = newConverter(et, resolveNullableType(avroType.getElementType(), containsNull));
+            DataType et = ((CollectionDataType) dataType).getElementDataType();
+            boolean containsNull = et.getLogicalType().isNullable();
+            BiFunction<PositionedGetter, Integer, Object> elementConverter =
+                newConverter(et, resolveNullableType(avroType.getElementType(), containsNull));
             return (getter, ordinal) -> {
-                val arrayData = (Object[]) getter.getField(ordinal);
-                val len = arrayData.length;
-                val result = new Object[len];
+                Object[] arrayData = (Object[]) getter.getField(ordinal);
+                int len = arrayData.length;
+                Object[] result = new Object[len];
                 for (int i = 0; i < len; i++) {
                     if (containsNull && arrayData[i] == null) {
                         result[i] = null;
@@ -247,19 +251,19 @@ public class PulsarSerializer {
         } else if (tpe == LogicalTypeRoot.MAP && atpe == MAP &&
             ((KeyValueDataType) dataType).getKeyDataType().getLogicalType().getTypeRoot() == LogicalTypeRoot.VARCHAR) {
 
-            val kvt = (KeyValueDataType) dataType;
-            val ktl = kvt.getKeyDataType().getLogicalType();
-            val vt = kvt.getValueDataType();
-            val vtl = kvt.getValueDataType().getLogicalType();
-            val valueContainsNull = vt.getLogicalType().isNullable();
+            KeyValueDataType kvt = (KeyValueDataType) dataType;
+            org.apache.flink.table.types.logical.LogicalType ktl = kvt.getKeyDataType().getLogicalType();
+            DataType vt = kvt.getValueDataType();
+            org.apache.flink.table.types.logical.LogicalType vtl = kvt.getValueDataType().getLogicalType();
+            boolean valueContainsNull = vt.getLogicalType().isNullable();
 
-            val valueConverter =
+            BiFunction<PositionedGetter, Integer, Object> valueConverter =
                 newConverter(vt, resolveNullableType(avroType.getValueType(), valueContainsNull));
 
             return (getter, ordinal) -> getter.getField(ordinal);
         } else if (tpe == LogicalTypeRoot.ROW && atpe == RECORD) {
-            val st = (FieldsDataType) dataType;
-            val structConverter = newStructConverter(st, avroType);
+            FieldsDataType st = (FieldsDataType) dataType;
+            Function<Object, Object> structConverter = newStructConverter(st, avroType);
             return (getter, ordinal) -> ((GenericAvroRecord) structConverter.apply(getter.getField(ordinal))).getAvroRecord();
         } else {
             throw new SchemaUtils.IncompatibleSchemaException(String.format(
@@ -274,9 +278,9 @@ public class PulsarSerializer {
 
     private Schema resolveNullableType(Schema avroType, boolean nullable) {
         if (nullable && avroType.getType() != Schema.Type.NULL) {
-            val fields = avroType.getTypes();
+            List<Schema> fields = avroType.getTypes();
             assert fields.size() == 2;
-            val actualType = fields.stream()
+            List<Schema> actualType = fields.stream()
                 .filter(f -> f.getType() != Schema.Type.NULL).collect(Collectors.toList());
             assert actualType.size() == 1;
             return actualType.get(0);

@@ -285,9 +285,6 @@
           <source>${javac.target}</source>
           <target>${javac.target}</target>
           <compilerArgs>
-            <compilerArg>-Werror</compilerArg>
-            <compilerArg>-Xlint:deprecation</compilerArg>
-            <compilerArg>-Xlint:unchecked</compilerArg>
             <!-- https://issues.apache.org/jira/browse/MCOMPILER-205 -->
             <compilerArg>-Xpkginfo:always</compilerArg>
           </compilerArgs>
@@ -325,75 +322,6 @@
             <tfvars>SCRIPT_STYLE</tfvars>
           </mapping>
         </configuration>
-      </plugin>
-      <!-- scala plugins -->
-      <plugin>
-        <groupId>net.alchim31.maven</groupId>
-        <artifactId>scala-maven-plugin</artifactId>
-        <version>${scala-maven-plugin.version}</version>
-        <executions>
-          <execution>
-            <id>eclipse-add-source</id>
-            <goals>
-              <goal>add-source</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>scala-compile-first</id>
-            <goals>
-              <goal>compile</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>scala-test-compile-first</id>
-            <goals>
-              <goal>testCompile</goal>
-            </goals>
-          </execution>
-        </executions>
-        <configuration>
-          <scalaVersion>${scala.version}</scalaVersion>
-          <args>
-            <arg>-target:jvm-1.8</arg>
-            <arg>-unchecked</arg>
-            <arg>-deprecation</arg>
-            <arg>-feature</arg>
-            <arg>-explaintypes</arg>
-            <arg>-Yno-adapted-args</arg>
-          </args>
-          <jvmArgs>
-            <jvmArg>-Xms1024m</jvmArg>
-            <jvmArg>-Xmx1024m</jvmArg>
-          </jvmArgs>
-          <javacArgs>
-            <javacArg>-source</javacArg>
-            <javacArg>${javac.target}</javacArg>
-            <javacArg>-target</javacArg>
-            <javacArg>${javac.target}</javacArg>
-            <javacArg>-Xlint:all,-serial,-path,-try</javacArg>
-          </javacArgs>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.scalatest</groupId>
-        <artifactId>scalatest-maven-plugin</artifactId>
-        <version>${scalatest-maven-plugin.version}</version>
-        <configuration>
-          <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
-          <junitxml>.</junitxml>
-          <filereports>ConnectorTestSuite.txt</filereports>
-          <systemProperties>
-            <log4j.configuration>file:src/test/resources/log4j.properties</log4j.configuration>
-          </systemProperties>
-        </configuration>
-        <executions>
-          <execution>
-            <id>test</id>
-            <goals>
-              <goal>test</goal>
-            </goals>
-          </execution>
-        </executions>
       </plugin>
       <plugin>
         <!-- Shade all the dependencies to avoid conflicts -->
@@ -453,30 +381,6 @@
                 <transformer implementation="org.apache.maven.plugins.shade.resource.PluginXmlResourceTransformer" />
               </transformers>
             </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.scalastyle</groupId>
-        <artifactId>scalastyle-maven-plugin</artifactId>
-        <version>1.0.0</version>
-        <configuration>
-          <verbose>false</verbose>
-          <failOnViolation>true</failOnViolation>
-          <includeTestSourceDirectory>false</includeTestSourceDirectory>
-          <failOnWarning>false</failOnWarning>
-          <sourceDirectory>${basedir}/src/main/scala</sourceDirectory>
-          <testSourceDirectory>${basedir}/src/test/scala</testSourceDirectory>
-          <configLocation>${basedir}/tools/maven/scalastyle-config.xml</configLocation>
-          <outputFile>${basedir}/target/scalastyle-output.xml</outputFile>
-          <inputEncoding>${project.build.sourceEncoding}</inputEncoding>
-          <outputEncoding>${project.reporting.outputEncoding}</outputEncoding>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>check</goal>
-            </goals>
           </execution>
         </executions>
       </plugin>

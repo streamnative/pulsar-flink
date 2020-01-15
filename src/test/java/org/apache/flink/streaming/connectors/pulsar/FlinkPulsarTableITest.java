@@ -13,7 +13,6 @@
  */
 package org.apache.flink.streaming.connectors.pulsar;
 
-import lombok.val;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;

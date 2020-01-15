@@ -13,7 +13,6 @@
  */
 package org.apache.flink.streaming.connectors.pulsar;
 
-import lombok.val;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
@@ -60,8 +59,8 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
         if (forcedTopic) {
             mb = getProducer(defaultTopic).newMessage().value(value);
         } else {
-            val key = topicKeyExtractor.serializeKey(value);
-            val topic = topicKeyExtractor.getTopic(value);
+            byte[] key = topicKeyExtractor.serializeKey(value);
+            String topic = topicKeyExtractor.getTopic(value);
 
             if (topic == null) {
                 if (failOnWrite) {

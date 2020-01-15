@@ -16,7 +16,6 @@ package org.apache.flink.streaming.connectors.pulsar;
 import avro.shaded.com.google.common.collect.Maps;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -32,6 +31,7 @@ import org.apache.flink.table.sources.DefinedRowtimeAttributes;
 import org.apache.flink.table.sources.RowtimeAttributeDescriptor;
 import org.apache.flink.table.sources.StreamTableSource;
 import org.apache.flink.table.types.DataType;
+import org.apache.flink.table.types.FieldsDataType;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
 import org.apache.pulsar.client.admin.PulsarAdminException;
@@ -154,9 +154,9 @@ public class PulsarTableSource
             return providedSchema.get();
         } else {
             try {
-                val reader = new PulsarMetadataReader(adminUrl, "", caseInsensitiveParams, -1, -1);
-                val topics = reader.getTopics();
-                val schema = reader.getSchema(topics);
+                PulsarMetadataReader reader = new PulsarMetadataReader(adminUrl, "", caseInsensitiveParams, -1, -1);
+                List<String> topics = reader.getTopics();
+                FieldsDataType schema = reader.getSchema(topics);
                 return SchemaUtils.toTableSchema(schema);
             } catch (PulsarClientException | PulsarAdminException | SchemaUtils.IncompatibleSchemaException e) {
                 log.error("Failed to fetch table schema", adminUrl);

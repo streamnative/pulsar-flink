@@ -13,7 +13,6 @@
  */
 package org.apache.flink.table.catalog.pulsar.descriptors;
 
-import lombok.val;
 import org.apache.flink.table.descriptors.CatalogDescriptor;
 import org.apache.flink.table.descriptors.DescriptorProperties;
 import org.apache.flink.util.Preconditions;
@@ -41,7 +40,7 @@ public class PulsarCatalogDescriptor extends CatalogDescriptor {
 
     @Override
     protected Map<String, String> toCatalogProperties() {
-        val props = new DescriptorProperties();
+        DescriptorProperties props = new DescriptorProperties();
 
         if (pulsarVersion != null) {
             props.putString(CATALOG_PULSAR_VERSION, pulsarVersion);

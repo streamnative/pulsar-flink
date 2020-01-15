@@ -76,9 +76,9 @@ public abstract class PulsarTestBase extends TestLogger {
         pulsarService.start();
 
         for (URI uri : pulsarService.getServiceUris()) {
-            if (uri != null && uri.getScheme() == "pulsar") {
+            if (uri != null && uri.getScheme().equals("pulsar")) {
                 serviceUrl = uri.toString();
-            } else if (uri != null && uri.getScheme() != "pulsar") {
+            } else if (uri != null && !uri.getScheme().equals("pulsar")) {
                 adminUrl = uri.toString();
             }
         }

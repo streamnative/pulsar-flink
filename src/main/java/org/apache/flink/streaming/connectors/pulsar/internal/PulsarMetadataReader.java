@@ -309,9 +309,9 @@ public class PulsarMetadataReader implements AutoCloseable {
         for (Map.Entry<String, String> e : caseInsensitiveParams.entrySet()) {
             if (PulsarOptions.TOPIC_OPTION_KEYS.contains(e.getKey())) {
                 String key = e.getKey();
-                if (key == "topic") {
+                if (key.equals("topic")) {
                     return Collections.singletonList(TopicName.get(e.getValue()).toString());
-                } else if (key == "topics") {
+                } else if (key.equals("topics")) {
                     return Arrays.asList(e.getValue().split(",")).stream()
                             .filter(s -> !s.isEmpty())
                             .map(t -> TopicName.get(t).toString())

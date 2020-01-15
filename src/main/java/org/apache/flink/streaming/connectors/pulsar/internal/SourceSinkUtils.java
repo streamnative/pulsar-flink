@@ -49,12 +49,12 @@ public class SourceSinkUtils {
         for (Map.Entry<String, String> topicEntry : topicOptions.entrySet()) {
             String key = topicEntry.getKey();
             String value = topicEntry.getValue();
-            if (key == "topic") {
+            if (key.equals("topic")) {
                 if (value.contains(",")) {
                     throw new IllegalArgumentException(
                             "Use `topics` instead of `topic` for multi topic read");
                 }
-            } else if (key == "topics") {
+            } else if (key.equals("topics")) {
                 List<String> topics = Arrays.asList(value.split(",")).stream()
                         .map(String::trim).filter(t -> !t.isEmpty()).collect(Collectors.toList());
                 if (topics.isEmpty()) {

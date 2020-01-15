@@ -30,12 +30,12 @@ public class PulsarTopicState {
 
     public PulsarTopicState(String topic) {
         this.topic = topic;
-        this.offset = MessageId.earliest;
-        this.committedOffset = MessageId.earliest;
+        this.offset = null;
+        this.committedOffset = null;
     }
 
     public final boolean isOffsetDefined() {
-        return offset != MessageId.earliest;
+        return offset != null;
     }
 
     @Override

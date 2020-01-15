@@ -194,7 +194,7 @@ public class DiscovererTest extends TestLogger {
                 initialAll.add(topic);
             }
 
-            List<Set<String>> mockGet = Arrays.asList(initial, initialAll);
+            List<Set<String>> mockGet = Arrays.asList(initial, mockAllTopics);
             int numTasks = 3;
             int minInitialPartitionsPerConsumer = initial.size() / numTasks;
             int maxInitialPartitionsPerConsumer = initial.size() / numTasks + 1;
@@ -229,13 +229,13 @@ public class DiscovererTest extends TestLogger {
 
             for (String tp : initials2) {
                 assertTrue(initialAll.contains(tp));
-                assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 0);
+                assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 1);
                 initialAll.remove(tp);
             }
 
             for (String tp : initials3) {
                 assertTrue(initialAll.contains(tp));
-                assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 0);
+                assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 2);
                 initialAll.remove(tp);
             }
 
@@ -264,13 +264,13 @@ public class DiscovererTest extends TestLogger {
 
             for (String tp : initials2) {
                 assertTrue(allTopics.contains(tp));
-                assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 0);
+                assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 1);
                 allTopics.remove(tp);
             }
 
             for (String tp : initials3) {
                 assertTrue(allTopics.contains(tp));
-                assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 0);
+                assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 2);
                 allTopics.remove(tp);
             }
 
@@ -282,13 +282,13 @@ public class DiscovererTest extends TestLogger {
 
             for (String tp : seconds2) {
                 assertTrue(allTopics.contains(tp));
-                assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 0);
+                assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 1);
                 allTopics.remove(tp);
             }
 
             for (String tp : seconds3) {
                 assertTrue(allTopics.contains(tp));
-                assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 0);
+                assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 2);
                 allTopics.remove(tp);
             }
 

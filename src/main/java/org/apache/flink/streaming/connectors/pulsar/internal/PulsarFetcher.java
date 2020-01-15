@@ -123,16 +123,16 @@ public class PulsarFetcher<T> {
             DeserializationSchema<T> deserializer,
             PulsarMetadataReader metadataReader) throws Exception {
 
-        this.sourceContext = checkNotNull(sourceContext);
-        this.seedTopicsWithInitialOffsets = checkNotNull(seedTopicsWithInitialOffsets);
+        this.sourceContext = sourceContext;
+        this.seedTopicsWithInitialOffsets = seedTopicsWithInitialOffsets;
         this.checkpointLock = sourceContext.getCheckpointLock();
-        this.userCodeClassLoader = checkNotNull(userCodeClassLoader);
-        this.runtimeContext = checkNotNull(runtimeContext);
-        this.clientConf = checkNotNull(clientConf);
-        this.readerConf = checkNotNull(readerConf);
+        this.userCodeClassLoader = userCodeClassLoader;
+        this.runtimeContext = runtimeContext;
+        this.clientConf = clientConf;
+        this.readerConf = readerConf;
         this.pollTimeoutMs = pollTimeoutMs;
         this.deserializer = deserializer;
-        this.metadataReader = checkNotNull(metadataReader);
+        this.metadataReader = metadataReader;
 
         // figure out what we watermark mode we will be using
         this.watermarksPeriodic = watermarksPeriodic;

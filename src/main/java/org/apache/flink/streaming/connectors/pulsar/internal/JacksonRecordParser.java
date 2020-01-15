@@ -287,11 +287,11 @@ public class JacksonRecordParser {
                                         return parser.getFloatValue();
                                     } else {
                                         String txt = parser.getText();
-                                        if (txt == "NaN") {
+                                        if (txt.equals("NaN")) {
                                             return Float.NaN;
-                                        } else if (txt == "Infinity") {
+                                        } else if (txt.equals("Infinity")) {
                                             return Float.POSITIVE_INFINITY;
-                                        } else if (txt == "-Infinity") {
+                                        } else if (txt.equals("-Infinity")) {
                                             return Float.NEGATIVE_INFINITY;
                                         } else {
                                             throw new RuntimeException("Cannot parse " + txt + " as Float");
@@ -328,11 +328,11 @@ public class JacksonRecordParser {
                                         return parser.getDoubleValue();
                                     } else {
                                         String txt = parser.getText();
-                                        if (txt == "NaN") {
+                                        if (txt.equals("NaN")) {
                                             return Float.NaN;
-                                        } else if (txt == "Infinity") {
+                                        } else if (txt.equals("Infinity")) {
                                             return Float.POSITIVE_INFINITY;
-                                        } else if (txt == "-Infinity") {
+                                        } else if (txt.equals("-Infinity")) {
                                             return Float.NEGATIVE_INFINITY;
                                         } else {
                                             throw new RuntimeException("Cannot parse " + txt + " as Float");

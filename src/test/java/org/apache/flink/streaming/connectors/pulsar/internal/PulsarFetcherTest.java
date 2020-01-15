@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class PulsarFetcherTest extends TestLogger {
@@ -145,7 +146,7 @@ public class PulsarFetcherTest extends TestLogger {
         // advance timer for watermark emitting
         processingTimeProvider.setCurrentTime(10L);
         assertTrue(sourceContext.hasWatermark());
-        assertEquals(sourceContext.getLatestElement().getTimestamp(), 3L);
+        assertEquals(sourceContext.getLatestWatermark().getTimestamp(), 3L);
 
         // emit null record
         fetcher.emitRecord(null, stateHolder, dummyMessageId(4));
@@ -157,7 +158,7 @@ public class PulsarFetcherTest extends TestLogger {
         assertEquals(dummyMessageId(4), stateHolder.getOffset());
 
         processingTimeProvider.setCurrentTime(20L);
-        assertTrue(!sourceContext.hasWatermark());
+        assertFalse(sourceContext.hasWatermark());
     }
 
     @Test

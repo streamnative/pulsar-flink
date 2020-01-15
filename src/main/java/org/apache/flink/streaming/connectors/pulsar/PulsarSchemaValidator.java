@@ -11,6 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.pulsar;
 
 import org.apache.flink.table.api.ValidationException;
@@ -49,7 +50,7 @@ public class PulsarSchemaValidator extends SchemaValidator {
 
         int fieldsCount = Math.max(names.size(), types.size());
 
-        for (int i = 0; i < fieldsCount; i ++) {
+        for (int i = 0; i < fieldsCount; i++) {
             properties.validateString(SCHEMA + "." + i + "." + SCHEMA_NAME, false, 1);
             properties.validateType(SCHEMA + "." + i + "." + SCHEMA_TYPE, false, false);
             properties.validateString(SCHEMA + "." + i + "." + SCHEMA_FROM, true, 1);
@@ -60,7 +61,7 @@ public class PulsarSchemaValidator extends SchemaValidator {
             if (properties.containsKey(proctime)) {
                 if (!isStreamEnvironment) {
                     throw new ValidationException(
-                        "Property $proctime is not allowed in a batch environment.");
+                            "Property $proctime is not allowed in a batch environment.");
                 } else if (proctimeFound) {
                     throw new ValidationException("A proctime attribute must only be defined once.");
                 }
@@ -72,8 +73,8 @@ public class PulsarSchemaValidator extends SchemaValidator {
             } else if (properties.hasPrefix(rowtime)) {
                 // check rowtime
                 RowtimeValidator rowtimeValidator =
-                    new RowtimeValidator(
-                        supportsSourceTimestamps, supportsSourceWatermarks, SCHEMA + "." + i + ".");
+                        new RowtimeValidator(
+                                supportsSourceTimestamps, supportsSourceWatermarks, SCHEMA + "." + i + ".");
                 rowtimeValidator.validate(properties);
                 // no proctime
                 properties.validateExclusion(proctime);

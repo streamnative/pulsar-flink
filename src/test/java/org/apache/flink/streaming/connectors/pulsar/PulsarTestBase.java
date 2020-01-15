@@ -11,6 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.pulsar;
 
 import io.streamnative.tests.pulsar.service.PulsarService;
@@ -44,7 +45,7 @@ import java.util.UUID;
 
 @Slf4j
 public abstract class PulsarTestBase extends TestLogger {
-    
+
     protected static PulsarService pulsarService;
 
     protected static String serviceUrl;
@@ -67,9 +68,9 @@ public abstract class PulsarTestBase extends TestLogger {
         log.info("-------------------------------------------------------------------------");
 
         PulsarServiceSpec spec = PulsarServiceSpec.builder()
-            .clusterName("standalone-" + UUID.randomUUID())
-            .enableContainerLogging(false)
-            .build();
+                .clusterName("standalone-" + UUID.randomUUID())
+                .enableContainerLogging(false)
+                .build();
 
         pulsarService = PulsarServiceFactory.createPulsarService(spec);
         pulsarService.start();

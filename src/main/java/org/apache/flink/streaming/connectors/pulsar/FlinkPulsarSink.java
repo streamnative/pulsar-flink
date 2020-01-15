@@ -11,6 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.pulsar;
 
 import org.apache.pulsar.client.api.Schema;
@@ -77,7 +78,7 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
 
         if (flushOnCheckpoint) {
             synchronized (pendingRecordsLock) {
-                pendingRecords ++;
+                pendingRecords++;
             }
         }
         mb.sendAsync().whenComplete(sendCallback);

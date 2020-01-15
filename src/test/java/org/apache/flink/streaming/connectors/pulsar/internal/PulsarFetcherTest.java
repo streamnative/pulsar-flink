@@ -11,6 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import org.apache.flink.core.testutils.CheckedThread;
@@ -33,7 +34,6 @@ import org.mockito.internal.util.collections.Sets;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -59,14 +59,14 @@ public class PulsarFetcherTest extends TestLogger {
 
         TestSourceContext<Long> sourceContext = new TestSourceContext<>();
         TestFetcher<Long> fetcher = new TestFetcher<>(
-            sourceContext,
-            offset,
-            null,
-            null,
-            new TestProcessingTimeService(),
-            0,
-            null,
-            null);
+                sourceContext,
+                offset,
+                null,
+                null,
+                new TestProcessingTimeService(),
+                0,
+                null,
+                null);
 
         synchronized (sourceContext.getCheckpointLock()) {
             Map<String, MessageId> current = fetcher.snapshotCurrentState();
@@ -94,14 +94,14 @@ public class PulsarFetcherTest extends TestLogger {
 
         TestSourceContext<Long> sourceContext = new TestSourceContext<Long>();
         TestFetcher<Long> fetcher = new TestFetcher<>(
-            sourceContext,
-            offset,
-            null,
-            null,
-            new TestProcessingTimeService(),
-            0,
-            null,
-            null);
+                sourceContext,
+                offset,
+                null,
+                null,
+                new TestProcessingTimeService(),
+                0,
+                null,
+                null);
 
         PulsarTopicState stateHolder = fetcher.getSubscribedTopicStates().get(0);
         fetcher.emitRecord(1L, stateHolder, dummyMessageId(1));
@@ -124,14 +124,14 @@ public class PulsarFetcherTest extends TestLogger {
 
         TestSourceContext<Long> sourceContext = new TestSourceContext<Long>();
         TestFetcher<Long> fetcher = new TestFetcher<>(
-            sourceContext,
-            offset,
-            new SerializedValue<>(new PeriodicTestExtractor()), /* periodic watermark assigner */
-            null,
-            processingTimeProvider,
-            10,
-            null,
-            null);
+                sourceContext,
+                offset,
+                new SerializedValue<>(new PeriodicTestExtractor()), /* periodic watermark assigner */
+                null,
+                processingTimeProvider,
+                10,
+                null,
+                null);
 
         PulsarTopicState stateHolder = fetcher.getSubscribedTopicStates().get(0);
 
@@ -169,14 +169,14 @@ public class PulsarFetcherTest extends TestLogger {
 
         TestSourceContext<Long> sourceContext = new TestSourceContext<Long>();
         TestFetcher<Long> fetcher = new TestFetcher<>(
-            sourceContext,
-            offset,
-            null,
-            new SerializedValue<>(new PunctuatedTestExtractor()),
-            new TestProcessingTimeService(),
-            0,
-            null,
-            null);
+                sourceContext,
+                offset,
+                null,
+                new SerializedValue<>(new PunctuatedTestExtractor()),
+                new TestProcessingTimeService(),
+                0,
+                null,
+                null);
 
         PulsarTopicState stateHolder = fetcher.getSubscribedTopicStates().get(0);
 
@@ -212,14 +212,14 @@ public class PulsarFetcherTest extends TestLogger {
         TestSourceContext<Long> sourceContext = new TestSourceContext<Long>();
         TestProcessingTimeService processingTimeProvider = new TestProcessingTimeService();
         TestFetcher<Long> fetcher = new TestFetcher<>(
-            sourceContext,
-            offset,
-            new SerializedValue<>(new PeriodicTestExtractor()), /* periodic watermark assigner */
-            null,
-            processingTimeProvider,
-            10,
-            null,
-            null);
+                sourceContext,
+                offset,
+                new SerializedValue<>(new PeriodicTestExtractor()), /* periodic watermark assigner */
+                null,
+                processingTimeProvider,
+                10,
+                null,
+                null);
 
         PulsarTopicState part1 = fetcher.getSubscribedTopicStates().get(0);
         PulsarTopicState part2 = fetcher.getSubscribedTopicStates().get(1);
@@ -287,14 +287,14 @@ public class PulsarFetcherTest extends TestLogger {
         TestProcessingTimeService processingTimeService = new TestProcessingTimeService();
 
         TestFetcher<Long> fetcher = new TestFetcher<>(
-            sourceContext,
-            offset,
-            null,
-            new SerializedValue<>(new PunctuatedTestExtractor()),
-            new TestProcessingTimeService(),
-            0,
-            null,
-            null);
+                sourceContext,
+                offset,
+                null,
+                new SerializedValue<>(new PunctuatedTestExtractor()),
+                new TestProcessingTimeService(),
+                0,
+                null,
+                null);
 
         PulsarTopicState part1 = fetcher.getSubscribedTopicStates().get(0);
         PulsarTopicState part2 = fetcher.getSubscribedTopicStates().get(1);
@@ -359,14 +359,14 @@ public class PulsarFetcherTest extends TestLogger {
         Map<String, MessageId> offset = new HashMap<>();
 
         TestFetcher<Long> fetcher = new TestFetcher<>(
-            sourceContext,
-            offset,
-            new SerializedValue<>(new PeriodicTestExtractor()), /* periodic watermark assigner */
-            null,
-            processingTimeService,
-            10,
-            null,
-            null);
+                sourceContext,
+                offset,
+                new SerializedValue<>(new PeriodicTestExtractor()), /* periodic watermark assigner */
+                null,
+                processingTimeService,
+                10,
+                null,
+                null);
 
         processingTimeService.setCurrentTime(10);
         assertTrue(!sourceContext.hasWatermark());
@@ -387,14 +387,14 @@ public class PulsarFetcherTest extends TestLogger {
         OneShotLatch stateIterationBlockLatch = new OneShotLatch();
 
         TestFetcher fetcher = new TestFetcher(
-            sourceContext,
-            offset,
-            null,
-            null,
-            new TestProcessingTimeService(),
-            10,
-            fetchLoopWaitLatch,
-            stateIterationBlockLatch);
+                sourceContext,
+                offset,
+                null,
+                null,
+                new TestProcessingTimeService(),
+                10,
+                fetchLoopWaitLatch,
+                stateIterationBlockLatch);
 
 
         // ----- run the fetcher -----
@@ -421,28 +421,28 @@ public class PulsarFetcherTest extends TestLogger {
         Optional<Map<String, MessageId>> lastCommittedOffsets = Optional.empty();
 
         public TestFetcher(
-            SourceFunction.SourceContext<T> sourceContext,
-            Map<String, MessageId> seedTopicsWithInitialOffsets,
-            SerializedValue<AssignerWithPeriodicWatermarks<T>> watermarksPeriodic,
-            SerializedValue<AssignerWithPunctuatedWatermarks<T>> watermarksPunctuated,
-            ProcessingTimeService processingTimeProvider,
-            long autoWatermarkInterval,
-            OneShotLatch fetchLoopWaitLatch,
-            OneShotLatch stateIterationBlockLatch) throws Exception {
+                SourceFunction.SourceContext<T> sourceContext,
+                Map<String, MessageId> seedTopicsWithInitialOffsets,
+                SerializedValue<AssignerWithPeriodicWatermarks<T>> watermarksPeriodic,
+                SerializedValue<AssignerWithPunctuatedWatermarks<T>> watermarksPunctuated,
+                ProcessingTimeService processingTimeProvider,
+                long autoWatermarkInterval,
+                OneShotLatch fetchLoopWaitLatch,
+                OneShotLatch stateIterationBlockLatch) throws Exception {
             super(
-                sourceContext,
-                seedTopicsWithInitialOffsets,
-                watermarksPeriodic,
-                watermarksPunctuated,
-                processingTimeProvider,
-                autoWatermarkInterval,
-                TestFetcher.class.getClassLoader(),
-                null,
-                null,
-                null,
-                0,
-                null,
-                null);
+                    sourceContext,
+                    seedTopicsWithInitialOffsets,
+                    watermarksPeriodic,
+                    watermarksPunctuated,
+                    processingTimeProvider,
+                    autoWatermarkInterval,
+                    TestFetcher.class.getClassLoader(),
+                    null,
+                    null,
+                    null,
+                    0,
+                    null,
+                    null);
 
             this.fetchLoopWaitLatch = fetchLoopWaitLatch;
             this.stateIterationBlockLatch = stateIterationBlockLatch;
@@ -467,8 +467,8 @@ public class PulsarFetcherTest extends TestLogger {
 
         @Override
         public void doCommitOffsetToPulsar(
-            Map<String, MessageId> offset,
-            PulsarCommitCallback offsetCommitCallback) {
+                Map<String, MessageId> offset,
+                PulsarCommitCallback offsetCommitCallback) {
 
             lastCommittedOffsets = Optional.of(offset);
             offsetCommitCallback.onSuccess();

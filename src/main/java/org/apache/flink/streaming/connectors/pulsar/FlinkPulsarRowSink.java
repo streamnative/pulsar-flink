@@ -38,10 +38,10 @@ import java.util.Properties;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.EVENT_TIME_NAME;
+import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.KEY_ATTRIBUTE_NAME;
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.META_FIELD_NAMES;
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.TOPIC_ATTRIBUTE_NAME;
-import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.KEY_ATTRIBUTE_NAME;
-import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.EVENT_TIME_NAME;
 
 @Slf4j
 public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
@@ -64,14 +64,14 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
             ClientConfigurationData clientConf,
             Properties properties,
             DataType dataType) {
-       super(
-           adminUrl,
-           defaultTopicName,
-           clientConf,
-           properties,
-           TopicKeyExtractor.DUMMY_FOR_ROW);
+        super(
+                adminUrl,
+                defaultTopicName,
+                clientConf,
+                properties,
+                TopicKeyExtractor.DUMMY_FOR_ROW);
 
-       dataType = this.dataType;
+        dataType = this.dataType;
     }
 
     public FlinkPulsarRowSink(
@@ -110,12 +110,12 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
                 metas[0] = value.f1;
             } else {
                 throw new IllegalStateException(
-                    String.format("attribute unsupported type %s, %s must be a string", value.f0.toString(), TOPIC_ATTRIBUTE_NAME));
+                        String.format("attribute unsupported type %s, %s must be a string", value.f0.toString(), TOPIC_ATTRIBUTE_NAME));
             }
         } else {
             if (!forcedTopic) {
                 throw new IllegalStateException(
-                    String.format("topic option required when no %s attribute is present.", TOPIC_ATTRIBUTE_NAME));
+                        String.format("topic option required when no %s attribute is present.", TOPIC_ATTRIBUTE_NAME));
             }
             metas[0] = -1;
         }
@@ -127,7 +127,7 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
                 metas[0] = value.f1;
             } else {
                 throw new IllegalStateException(
-                    String.format("%s attribute unsupported type %s", KEY_ATTRIBUTE_NAME, value.f0.toString()));
+                        String.format("%s attribute unsupported type %s", KEY_ATTRIBUTE_NAME, value.f0.toString()));
             }
         } else {
             metas[1] = -1;
@@ -140,29 +140,29 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
                 metas[0] = value.f1;
             } else {
                 throw new IllegalStateException(
-                    String.format("%s attribute unsupported type %s", EVENT_TIME_NAME, value.f0.toString()));
+                        String.format("%s attribute unsupported type %s", EVENT_TIME_NAME, value.f0.toString()));
             }
         } else {
             metas[2] = -1;
         }
 
         List<RowType.RowField> nonInternalFields = rowFields.stream()
-            .filter(f -> !META_FIELD_NAMES.contains(f.getName())).collect(Collectors.toList());
+                .filter(f -> !META_FIELD_NAMES.contains(f.getName())).collect(Collectors.toList());
 
         if (nonInternalFields.size() == 1) {
             String fieldName = nonInternalFields.get(0).getName();
             valueType = fdtm.get(fieldName);
         } else {
             List<DataTypes.Field> fields = nonInternalFields.stream()
-                .map(f -> {
-                    String fieldName = f.getName();
-                    return DataTypes.FIELD(fieldName, fdtm.get(fieldName));
-                }).collect(Collectors.toList());
+                    .map(f -> {
+                        String fieldName = f.getName();
+                        return DataTypes.FIELD(fieldName, fdtm.get(fieldName));
+                    }).collect(Collectors.toList());
             valueType = DataTypes.ROW(fields.toArray(new DataTypes.Field[0]));
         }
 
         List<Integer> values = nonInternalFields.stream()
-            .map(f -> name2Type.get(f.getName()).f1).collect(Collectors.toList());
+                .map(f -> name2Type.get(f.getName()).f1).collect(Collectors.toList());
 
         metaProjection = row -> {
             Row result = new Row(3);
@@ -235,7 +235,7 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
 
         if (flushOnCheckpoint) {
             synchronized (pendingRecordsLock) {
-                pendingRecords ++;
+                pendingRecords++;
             }
         }
         builder.sendAsync().whenComplete(sendCallback);

@@ -11,6 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.table.descriptors;
 
 import org.apache.flink.streaming.connectors.pulsar.TopicKeyExtractor;
@@ -179,18 +180,18 @@ public class Pulsar extends ConnectorDescriptor {
                 values.add(Arrays.asList(entry.getKey(), new String(entry.getValue().toByteArray())));
             }
             properties.putIndexedFixedProperties(
-                CONNECTOR_SPECIFIC_OFFSETS,
-                Arrays.asList(CONNECTOR_SPECIFIC_OFFSETS_PARTITION, CONNECTOR_SPECIFIC_OFFSETS_OFFSET),
-                values);
+                    CONNECTOR_SPECIFIC_OFFSETS,
+                    Arrays.asList(CONNECTOR_SPECIFIC_OFFSETS_PARTITION, CONNECTOR_SPECIFIC_OFFSETS_OFFSET),
+                    values);
         }
 
         if (pulsarProperties != null) {
             properties.putIndexedFixedProperties(
-                CONNECTOR_PROPERTIES,
-                Arrays.asList(CONNECTOR_PROPERTIES_KEY, CONNECTOR_PROPERTIES_VALUE),
-                this.pulsarProperties.entrySet().stream()
-                    .map(e -> Arrays.asList(e.getKey(), e.getValue()))
-                    .collect(Collectors.toList())
+                    CONNECTOR_PROPERTIES,
+                    Arrays.asList(CONNECTOR_PROPERTIES_KEY, CONNECTOR_PROPERTIES_VALUE),
+                    this.pulsarProperties.entrySet().stream()
+                            .map(e -> Arrays.asList(e.getKey(), e.getValue()))
+                            .collect(Collectors.toList())
             );
         }
 

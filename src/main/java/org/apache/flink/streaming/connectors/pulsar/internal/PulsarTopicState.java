@@ -11,6 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import lombok.Getter;
@@ -40,7 +41,7 @@ public class PulsarTopicState {
     @Override
     public String toString() {
         return String.format("%s offset = %s",
-            topic,
-            isOffsetDefined() ? offset.toString() : "not set");
+                topic,
+                isOffsetDefined() ? offset.toString() : "not set");
     }
 }

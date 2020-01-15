@@ -11,6 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import java.nio.charset.Charset;
@@ -21,8 +22,8 @@ import java.util.Map;
 
 public class JSONOptionsInRead extends JSONOptions {
     private static final List<Charset> blackList = Arrays.asList(
-        Charset.forName("UTF-16"),
-        Charset.forName("UTF-32"));
+            StandardCharsets.UTF_16,
+            Charset.forName("UTF-32"));
 
     private transient final Map<String, String> parameters;
     private final String defaultTimeZoneId;
@@ -40,16 +41,16 @@ public class JSONOptionsInRead extends JSONOptions {
         boolean isBlacklisted = JSONOptionsInRead.blackList.contains(Charset.forName(enc));
         if (!multiLine && isBlacklisted) {
             throw new IllegalArgumentException(String.format(
-                "The %s encoding must not be included in the blacklist when multiLine is disabled",
-                enc));
+                    "The %s encoding must not be included in the blacklist when multiLine is disabled",
+                    enc));
         }
 
         boolean isLineSepRequired =
-            multiLine || Charset.forName(enc) == StandardCharsets.UTF_8 || lineSeparator.isPresent();
+                multiLine || Charset.forName(enc) == StandardCharsets.UTF_8 || lineSeparator.isPresent();
 
         if (!isLineSepRequired) {
             throw new IllegalArgumentException(String.format(
-                "The lineSep must be specified for the %s encoding", enc));
+                    "The lineSep must be specified for the %s encoding", enc));
         }
 
         return enc;

@@ -15,6 +15,7 @@ package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.ListUtils;
+import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils.IncompatibleSchemaException;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.catalog.CatalogBaseTable;
@@ -32,7 +33,6 @@ import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.shade.com.google.common.collect.Iterables;
 import org.apache.pulsar.shade.com.google.common.collect.Sets;
-import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils.IncompatibleSchemaException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -191,8 +191,8 @@ public class PulsarMetadataReader implements AutoCloseable {
             dataType = tableSchema.getFieldDataType(fieldsRemaining.get(0)).get();
         } else {
             List<DataTypes.Field> fieldList = fieldsRemaining.stream()
-                .map(f -> DataTypes.FIELD(f, tableSchema.getFieldDataType(f).get()))
-                .collect(Collectors.toList());
+                    .map(f -> DataTypes.FIELD(f, tableSchema.getFieldDataType(f).get()))
+                    .collect(Collectors.toList());
             dataType = DataTypes.ROW(fieldList.toArray(new DataTypes.Field[0]));
         }
 
@@ -206,7 +206,7 @@ public class PulsarMetadataReader implements AutoCloseable {
                 admin.topics().createSubscription(entry.getKey(), driverGroupIdPrefix, entry.getValue());
             } catch (PulsarAdminException e) {
                 throw new RuntimeException(
-                    String.format("Failed to set up cursor for %s", TopicName.get(entry.getKey()).toString()), e);
+                        String.format("Failed to set up cursor for %s", TopicName.get(entry.getKey()).toString()), e);
             }
         }
     }
@@ -218,13 +218,13 @@ public class PulsarMetadataReader implements AutoCloseable {
                 admin.topics().resetCursor(tp, driverGroupIdPrefix, entry.getValue());
             } catch (Throwable e) {
                 if (e instanceof PulsarAdminException &&
-                    (((PulsarAdminException) e).getStatusCode() == 404 ||
-                        ((PulsarAdminException) e).getStatusCode() == 412 ) ) {
+                        (((PulsarAdminException) e).getStatusCode() == 404 ||
+                                ((PulsarAdminException) e).getStatusCode() == 412)) {
                     log.info(
-                        String.format("Cannot commit cursor since the topic %s has been deleted during execution", tp));
+                            String.format("Cannot commit cursor since the topic %s has been deleted during execution", tp));
                 } else {
                     throw new RuntimeException(
-                        String.format("Failed to commit cursor for %s", tp), e);
+                            String.format("Failed to commit cursor for %s", tp), e);
                 }
             }
         }
@@ -237,10 +237,10 @@ public class PulsarMetadataReader implements AutoCloseable {
             } catch (Throwable e) {
                 if (e instanceof PulsarAdminException && ((PulsarAdminException) e).getStatusCode() == 404) {
                     log.info(
-                        String.format("Cannot remove cursor since the topic %s has been deleted during execution", topic));
+                            String.format("Cannot remove cursor since the topic %s has been deleted during execution", topic));
                 } else {
                     throw new RuntimeException(
-                        String.format("Failed to remove cursor for %s", topic), e);
+                            String.format("Failed to remove cursor for %s", topic), e);
                 }
             }
         }
@@ -258,10 +258,10 @@ public class PulsarMetadataReader implements AutoCloseable {
 
             if (schemas.size() != 1) {
                 throw new IncompatibleSchemaException(
-                    String.format("Topics to read must share identical schema, however we got %d distinct schemas [%s]",
-                        schemas.size(),
-                        String.join(",", schemas.stream().map(SchemaInfo::toString).collect(Collectors.toList()))),
-                    null);
+                        String.format("Topics to read must share identical schema, however we got %d distinct schemas [%s]",
+                                schemas.size(),
+                                String.join(",", schemas.stream().map(SchemaInfo::toString).collect(Collectors.toList()))),
+                        null);
             }
             return Iterables.getFirst(schemas, SchemaUtils.emptySchemaInfo());
         } else {
@@ -277,7 +277,7 @@ public class PulsarMetadataReader implements AutoCloseable {
                 return BytesSchema.of().getSchemaInfo();
             } else {
                 throw new RuntimeException(
-                    String.format("Failed to get schema information for %s", TopicName.get(topic).toString()), e);
+                        String.format("Failed to get schema information for %s", TopicName.get(topic).toString()), e);
             }
         }
     }
@@ -285,8 +285,8 @@ public class PulsarMetadataReader implements AutoCloseable {
     public Set<String> getTopicPartitions() throws PulsarAdminException {
         Set<String> topics = getTopicPartitionsAll();
         return topics.stream()
-            .filter(t -> SourceSinkUtils.belongsTo(t, numParallelSubtasks, indexOfThisSubtask))
-            .collect(Collectors.toSet());
+                .filter(t -> SourceSinkUtils.belongsTo(t, numParallelSubtasks, indexOfThisSubtask))
+                .collect(Collectors.toSet());
     }
 
     public Set<String> getTopicPartitionsAll() throws PulsarAdminException {
@@ -297,7 +297,7 @@ public class PulsarMetadataReader implements AutoCloseable {
             if (partNum == 0) {
                 allTopics.add(topic);
             } else {
-                for (int i = 0; i < partNum; i ++) {
+                for (int i = 0; i < partNum; i++) {
                     allTopics.add(topic + PulsarOptions.PARTITION_SUFFIX + i);
                 }
             }
@@ -313,9 +313,9 @@ public class PulsarMetadataReader implements AutoCloseable {
                     return Collections.singletonList(TopicName.get(e.getValue()).toString());
                 } else if (key == "topics") {
                     return Arrays.asList(e.getValue().split(",")).stream()
-                        .filter(s -> !s.isEmpty())
-                        .map(t -> TopicName.get(t).toString())
-                        .collect(Collectors.toList());
+                            .filter(s -> !s.isEmpty())
+                            .map(t -> TopicName.get(t).toString())
+                            .collect(Collectors.toList());
                 } else { // topicspattern
                     return getTopicsWithPattern(e.getValue());
                 }
@@ -337,15 +337,15 @@ public class PulsarMetadataReader implements AutoCloseable {
 
     private List<String> getNonPartitionedTopics(String namespace) throws PulsarAdminException {
         return admin.topics().getList(namespace).stream()
-            .filter(t -> !TopicName.get(t).isPartitioned())
-            .collect(Collectors.toList());
+                .filter(t -> !TopicName.get(t).isPartitioned())
+                .collect(Collectors.toList());
     }
 
     private List<String> topicsPatternFilter(List<String> allTopics, String topicsPattern) {
         Pattern shortenedTopicsPattern = Pattern.compile(topicsPattern.split("\\:\\/\\/")[1]);
         return allTopics.stream().map(t -> TopicName.get(t).toString())
-            .filter(t -> shortenedTopicsPattern.matcher(t.split("\\:\\/\\/")[1]).matches())
-            .collect(Collectors.toList());
+                .filter(t -> shortenedTopicsPattern.matcher(t.split("\\:\\/\\/")[1]).matches())
+                .collect(Collectors.toList());
     }
 
     public static String objectPath2TopicName(ObjectPath objectPath) {

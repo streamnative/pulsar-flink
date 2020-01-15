@@ -11,6 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.pulsar;
 
 import com.google.common.collect.Iterables;
@@ -104,7 +105,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
             see.setParallelism(1);
 
             FlinkPulsarSource<String> source =
-                new FlinkPulsarSource<String>("sev", "admin", null, props).setStartFromEarliest();
+                    new FlinkPulsarSource<String>("sev", "admin", null, props).setStartFromEarliest();
 
             DataStream<String> stream = see.addSource(source);
             stream.print();
@@ -120,7 +121,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
     public void testCaseSensitiveReaderConf() throws Exception {
         String tp = newTopic();
         List<Integer> messages =
-            IntStream.rangeClosed(0, 50).mapToObj(t -> Integer.valueOf(t)).collect(Collectors.toList());
+                IntStream.rangeClosed(0, 50).mapToObj(t -> Integer.valueOf(t)).collect(Collectors.toList());
 
         sendTypedMessages(tp, SchemaType.INT32, messages, Optional.empty());
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
@@ -130,8 +131,8 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         props.setProperty("pulsar.reader.receiverQueueSize", "1000000");
 
         FlinkPulsarSource<Integer> source =
-            new FlinkPulsarSource<Integer>(serviceUrl, adminUrl, null, props)
-            .setStartFromEarliest();
+                new FlinkPulsarSource<Integer>(serviceUrl, adminUrl, null, props)
+                        .setStartFromEarliest();
 
         DataStream<Integer> stream = see.addSource(source);
         stream.addSink(new DiscardingSink<Integer>());
@@ -146,8 +147,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
                 try {
                     client.setDetached(false);
                     client.submitJob(jobGraph, this.getClass().getClassLoader());
-                }
-                catch (Throwable t) {
+                } catch (Throwable t) {
                     if (!(t instanceof JobCancellationException)) {
                         jobError.set(t);
                     }
@@ -273,7 +273,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         sourceProps.setProperty(TOPIC_MULTI_OPTION_KEY, StringUtils.join(topics, ','));
 
         DataStream stream = see.addSource(
-            new FlinkPulsarRowSource(serviceUrl, adminUrl, sourceProps).setStartFromEarliest());
+                new FlinkPulsarRowSource(serviceUrl, adminUrl, sourceProps).setStartFromEarliest());
         stream.addSink(new DiscardingSink());
 
         AtomicReference<Throwable> error = new AtomicReference<>();
@@ -340,7 +340,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         sourceProps.setProperty(TOPIC_MULTI_OPTION_KEY, StringUtils.join(topics, ','));
 
         DataStream stream = see.addSource(
-            new FlinkPulsarRowSource(serviceUrl, adminUrl, sourceProps).setStartFromEarliest());
+                new FlinkPulsarRowSource(serviceUrl, adminUrl, sourceProps).setStartFromEarliest());
 
         stream.flatMap(new CheckAllMessageExist(expectedData, 150)).setParallelism(1);
         TestUtils.tryExecute(see, "start from earliest");
@@ -372,7 +372,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         sourceProps.setProperty(TOPIC_MULTI_OPTION_KEY, StringUtils.join(topics, ','));
 
         DataStream stream = see.addSource(
-            new FlinkPulsarRowSource(serviceUrl, adminUrl, sourceProps).setStartFromLatest());
+                new FlinkPulsarRowSource(serviceUrl, adminUrl, sourceProps).setStartFromLatest());
         stream.flatMap(new CheckAllMessageExist(expectedData, 30)).setParallelism(1);
         stream.addSink(new DiscardingSink());
 
@@ -423,8 +423,8 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
     public void testStartFromSpecific() throws Exception {
         String topic = newTopic();
         List<MessageId> mids = sendTypedMessages(topic, SchemaType.INT32, Arrays.asList(
-            //  0,   1,   2, 3, 4, 5,  6,  7,  8
-               -20, -21, -22, 1, 2, 3, 10, 11, 12), Optional.empty());
+                //  0,   1,   2, 3, 4, 5,  6,  7,  8
+                -20, -21, -22, 1, 2, 3, 10, 11, 12), Optional.empty());
 
         Map<String, Set<Integer>> expectedData = new HashMap<>();
         expectedData.put(topic, new HashSet<>(Arrays.asList(2, 3, 10, 11, 12)));
@@ -439,7 +439,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         Properties sourceProps = sourceProperties();
         sourceProps.setProperty(TOPIC_SINGLE_OPTION_KEY, topic);
         DataStream stream = see.addSource(
-            new FlinkPulsarRowSource(serviceUrl, adminUrl, sourceProps).setStartFromSpecificOffsets(offset));
+                new FlinkPulsarRowSource(serviceUrl, adminUrl, sourceProps).setStartFromSpecificOffsets(offset));
         stream.flatMap(new CheckAllMessageExist(expectedData, 5)).setParallelism(1);
 
         TestUtils.tryExecute(see, "start from specific");
@@ -461,7 +461,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         createTopic(topic, parallelism, adminUrl);
 
         generateRandomizedIntegerSequence(
-            StreamExecutionEnvironment.getExecutionEnvironment(), topic, parallelism, numElementsPerPartition, true);
+                StreamExecutionEnvironment.getExecutionEnvironment(), topic, parallelism, numElementsPerPartition, true);
 
         // run the topology that fails and recovers
 
@@ -475,9 +475,9 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         sourceProps.setProperty(TOPIC_MULTI_OPTION_KEY, StringUtils.join(allTopicNames, ','));
 
         env.addSource(new FlinkPulsarRowSource(serviceUrl, adminUrl, sourceProps).setStartFromEarliest())
-            .map(new PartitionValidationMapper(parallelism, 1))
-            .map(new FailingIdentityMapper<Row>(failAfterElements))
-            .addSink(new ValidatingExactlyOnceSink(totalElements)).setParallelism(1);
+                .map(new PartitionValidationMapper(parallelism, 1))
+                .map(new FailingIdentityMapper<Row>(failAfterElements))
+                .addSink(new ValidatingExactlyOnceSink(totalElements)).setParallelism(1);
 
         FailingIdentityMapper.failedBefore = false;
         TestUtils.tryExecute(env, "one to one exactly once test");
@@ -499,7 +499,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         createTopic(topic, numPartitions, adminUrl);
 
         generateRandomizedIntegerSequence(
-            StreamExecutionEnvironment.getExecutionEnvironment(), topic, numPartitions, numElementsPerPartition, true);
+                StreamExecutionEnvironment.getExecutionEnvironment(), topic, numPartitions, numElementsPerPartition, true);
 
         int parallelism = 2;
 
@@ -515,9 +515,9 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         sourceProps.setProperty(TOPIC_MULTI_OPTION_KEY, StringUtils.join(allTopicNames, ','));
 
         env.addSource(new FlinkPulsarRowSource(serviceUrl, adminUrl, sourceProps).setStartFromEarliest())
-            .map(new PartitionValidationMapper(parallelism, 3))
-            .map(new FailingIdentityMapper<Row>(failAfterElements))
-            .addSink(new ValidatingExactlyOnceSink(totalElements)).setParallelism(1);
+                .map(new PartitionValidationMapper(parallelism, 3))
+                .map(new FailingIdentityMapper<Row>(failAfterElements))
+                .addSink(new ValidatingExactlyOnceSink(totalElements)).setParallelism(1);
 
         FailingIdentityMapper.failedBefore = false;
         TestUtils.tryExecute(env, "One-source-multi-partitions exactly once test");
@@ -539,7 +539,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         createTopic(topic, numPartitions, adminUrl);
 
         generateRandomizedIntegerSequence(
-            StreamExecutionEnvironment.getExecutionEnvironment(), topic, numPartitions, numElementsPerPartition, true);
+                StreamExecutionEnvironment.getExecutionEnvironment(), topic, numPartitions, numElementsPerPartition, true);
 
         int parallelism = 8;
 
@@ -555,9 +555,9 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         sourceProps.setProperty(TOPIC_MULTI_OPTION_KEY, StringUtils.join(allTopicNames, ','));
 
         env.addSource(new FlinkPulsarRowSource(serviceUrl, adminUrl, sourceProps).setStartFromEarliest())
-            .map(new PartitionValidationMapper(parallelism, 1))
-            .map(new FailingIdentityMapper<Row>(failAfterElements))
-            .addSink(new ValidatingExactlyOnceSink(totalElements)).setParallelism(1);
+                .map(new PartitionValidationMapper(parallelism, 1))
+                .map(new FailingIdentityMapper<Row>(failAfterElements))
+                .addSink(new ValidatingExactlyOnceSink(totalElements)).setParallelism(1);
 
         FailingIdentityMapper.failedBefore = false;
         TestUtils.tryExecute(env, "source task number > partition number");
@@ -584,7 +584,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         Properties prop = sourceProperties();
         prop.setProperty(TOPIC_SINGLE_OPTION_KEY, tp);
         env.addSource(new FlinkPulsarRowSource(serviceUrl, adminUrl, prop).setStartFromEarliest())
-            .addSink(new DiscardingSink<>());
+                .addSink(new DiscardingSink<>());
 
         JobGraph jobGraph = StreamingJobGraphGenerator.createJobGraph(env.getStreamGraph());
         JobID jobid = jobGraph.getJobID();
@@ -600,7 +600,8 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
                 }
             }
         };
-        jobRunner.start();;
+        jobRunner.start();
+        ;
 
         Thread.sleep(2000);
         Throwable failureCause = jobError.get();
@@ -649,7 +650,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         Properties prop = sourceProperties();
         prop.setProperty(TOPIC_SINGLE_OPTION_KEY, tp);
         env.addSource(new FlinkPulsarRowSource(serviceUrl, adminUrl, prop).setStartFromEarliest())
-            .addSink(new DiscardingSink<>());
+                .addSink(new DiscardingSink<>());
 
         JobGraph jobGraph = StreamingJobGraphGenerator.createJobGraph(env.getStreamGraph());
         JobID jobid = jobGraph.getJobID();
@@ -665,7 +666,8 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
                 }
             }
         };
-        jobRunner.start();;
+        jobRunner.start();
+        ;
 
         Thread.sleep(2000);
         Throwable failureCause = jobError.get();
@@ -693,7 +695,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
             Class<? extends Throwable> expected,
             Throwable exc) {
         return expected.isInstance(exc) || (
-            exc != null && isCause(expected, exc.getCause())
+                exc != null && isCause(expected, exc.getCause())
         );
     }
 
@@ -738,24 +740,24 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
 
     private DataType intRowType() {
         return DataTypes.ROW(
-            DataTypes.FIELD("v", DataTypes.INT()));
+                DataTypes.FIELD("v", DataTypes.INT()));
     }
 
     private TypeInformation<Row> intRowTypeInfo() {
         return (TypeInformation<Row>) LegacyTypeInfoDataTypeConverter
-            .toLegacyTypeInfo(intRowType());
+                .toLegacyTypeInfo(intRowType());
     }
 
     private DataType intRowWithTopicType() {
         return DataTypes.ROW(
-            DataTypes.FIELD(TOPIC_ATTRIBUTE_NAME, DataTypes.STRING()),
-            DataTypes.FIELD("v", DataTypes.INT())
+                DataTypes.FIELD(TOPIC_ATTRIBUTE_NAME, DataTypes.STRING()),
+                DataTypes.FIELD("v", DataTypes.INT())
         );
     }
 
     private TypeInformation<Row> intRowWithTopicTypeInfo() {
         return (TypeInformation<Row>) LegacyTypeInfoDataTypeConverter
-            .toLegacyTypeInfo(intRowWithTopicType());
+                .toLegacyTypeInfo(intRowWithTopicType());
     }
 
     private Properties sinkProperties() {
@@ -916,7 +918,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
             String tp,
             int numPartitions,
             int numElements,
-            boolean randomizedOrder) throws Exception{
+            boolean randomizedOrder) throws Exception {
         see.setParallelism(numPartitions);
         see.getConfig().disableSysoutLogging();
         see.setRestartStrategy(RestartStrategies.noRestart());
@@ -1001,8 +1003,8 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
             myTopics.add(topic);
             if (myTopics.size() > maxPartitions) {
                 throw new Exception(String.format(
-                    "Error: Elements from too many different partitions: %s, Expected elements only from %d partitions",
-                    myTopics.toString(), maxPartitions));
+                        "Error: Elements from too many different partitions: %s, Expected elements only from %d partitions",
+                        myTopics.toString(), maxPartitions));
             }
             return value;
         }
@@ -1027,22 +1029,22 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
                 props.setProperty(FAIL_ON_WRITE_OPTION_KEY, "true");
 
                 StreamSink<String> sink = new StreamSink<>(
-                    new FlinkPulsarSinkBase<String>(serviceUrl, adminUrl, Optional.of(tp), props, new TopicKeyExtractor<String>() {
-                        @Override
-                        public byte[] serializeKey(String element) {
-                            return new byte[0];
-                        }
+                        new FlinkPulsarSinkBase<String>(serviceUrl, adminUrl, Optional.of(tp), props, new TopicKeyExtractor<String>() {
+                            @Override
+                            public byte[] serializeKey(String element) {
+                                return new byte[0];
+                            }
 
-                        @Override
-                        public String getTopic(String element) {
-                            return null;
-                        }
-                    }) {
-                        @Override
-                        protected Schema<?> getPulsarSchema() {
-                            return Schema.STRING;
-                        }
-                    });
+                            @Override
+                            public String getTopic(String element) {
+                                return null;
+                            }
+                        }) {
+                            @Override
+                            protected Schema<?> getPulsarSchema() {
+                                return Schema.STRING;
+                            }
+                        });
 
                 OneInputStreamOperatorTestHarness<String, Object> testHarness = new OneInputStreamOperatorTestHarness(sink);
                 testHarness.open();
@@ -1054,7 +1056,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
                     bld.setLength(0);
                     int len = rnd.nextInt(100) + 1;
                     for (int i = 0; i < len; i++) {
-                        bld.append((char)(rnd.nextInt(20) + 'a'));
+                        bld.append((char) (rnd.nextInt(20) + 'a'));
                     }
 
                     String next = bld.toString();

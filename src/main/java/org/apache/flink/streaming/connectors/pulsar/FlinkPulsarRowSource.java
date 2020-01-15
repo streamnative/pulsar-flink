@@ -64,18 +64,18 @@ public class FlinkPulsarRowSource extends FlinkPulsarSource<Row> {
             StreamingRuntimeContext streamingRuntime) throws Exception {
 
         return new PulsarRowFetcher(
-            sourceContext,
-            seedTopicsWithInitialOffsets,
-            watermarksPeriodic,
-            watermarksPunctuated,
-            processingTimeProvider,
-            autoWatermarkInterval,
-            userCodeClassLoader,
-            streamingRuntime,
-            clientConfigurationData,
-            readerConf,
-            pollTimeoutMs,
-            null,
-            topicDiscoverer);
+                sourceContext,
+                seedTopicsWithInitialOffsets,
+                watermarksPeriodic,
+                watermarksPunctuated,
+                processingTimeProvider,
+                autoWatermarkInterval,
+                userCodeClassLoader,
+                streamingRuntime,
+                clientConfigurationData,
+                readerConf,
+                pollTimeoutMs,
+                null,
+                topicDiscoverer);
     }
 }

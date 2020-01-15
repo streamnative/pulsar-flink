@@ -11,6 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.pulsar;
 
 import lombok.AllArgsConstructor;
@@ -39,7 +40,7 @@ public class SchemaData {
     public static List<Date> dateList;
     public static List<Timestamp> timestampList;
     public static List<Foo> fooList;
-    
+
     static {
         Calendar cal = Calendar.getInstance();
         cal.clear();
@@ -47,7 +48,7 @@ public class SchemaData {
             cal.set(2019, 0, i);
             return cal.getTime();
         }).collect(Collectors.toList());
-        
+
         cal.clear();
         timestampList = int32List.stream().map(i -> {
             cal.set(2019, 0, i, 20, 35, 40);
@@ -55,10 +56,10 @@ public class SchemaData {
         }).collect(Collectors.toList());
 
         fooList = Arrays.asList(
-            new Foo(1, 1.0f, new Bar(true, "a")),
-            new Foo(2, 2.0f, new Bar(false, "b")),
-            new Foo(3, 0, null),
-            new Foo(0, 0, null));
+                new Foo(1, 1.0f, new Bar(true, "a")),
+                new Foo(2, 2.0f, new Bar(false, "b")),
+                new Foo(3, 0, null),
+                new Foo(0, 0, null));
     }
 
     @Data

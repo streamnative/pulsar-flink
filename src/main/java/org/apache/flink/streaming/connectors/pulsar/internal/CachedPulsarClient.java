@@ -11,6 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +28,7 @@ import java.util.concurrent.ExecutionException;
 
 @Slf4j
 public class CachedPulsarClient {
-    
+
     private static int cacheSize = 5;
 
     public static void setCacheSize(int size) {
@@ -39,34 +40,34 @@ public class CachedPulsarClient {
     }
 
     private static CacheLoader<ClientConfigurationData, PulsarClientImpl> cacheLoader =
-        new CacheLoader<ClientConfigurationData, PulsarClientImpl>() {
-            @Override
-            public PulsarClientImpl load(ClientConfigurationData key) throws Exception {
-                return createPulsarClient(key);
-            }
-        };
+            new CacheLoader<ClientConfigurationData, PulsarClientImpl>() {
+                @Override
+                public PulsarClientImpl load(ClientConfigurationData key) throws Exception {
+                    return createPulsarClient(key);
+                }
+            };
 
     private static RemovalListener<ClientConfigurationData, PulsarClientImpl> removalListener = notification -> {
         ClientConfigurationData config = notification.getKey();
         PulsarClientImpl client = notification.getValue();
         log.debug("Evicting pulsar client %s with config %s, due to %s",
-            client.toString(), config.toString(), notification.getCause().toString());
+                client.toString(), config.toString(), notification.getCause().toString());
         close(config, client);
     };
 
     private static LoadingCache<ClientConfigurationData, PulsarClientImpl> guavaCache =
-        CacheBuilder.newBuilder().maximumSize(cacheSize).removalListener(removalListener).build(cacheLoader);
+            CacheBuilder.newBuilder().maximumSize(cacheSize).removalListener(removalListener).build(cacheLoader);
 
     private static PulsarClientImpl createPulsarClient(
-        ClientConfigurationData clientConfig) throws PulsarClientException {
+            ClientConfigurationData clientConfig) throws PulsarClientException {
         PulsarClientImpl client;
         try {
             client = new PulsarClientImpl(clientConfig);
             log.debug(String.format("Created a new instance of PulsarClientImpl for clientConf = %s",
-                clientConfig.toString()));
+                    clientConfig.toString()));
         } catch (PulsarClientException e) {
             log.error(String.format("Failed to create PulsarClientImpl for clientConf = %s",
-                clientConfig.toString()));
+                    clientConfig.toString()));
             throw e;
         }
         return client;

@@ -11,12 +11,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.pulsar.internal;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-
-import java.util.concurrent.ConcurrentMap;
 
 import org.apache.pulsar.client.impl.PulsarClientImpl;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
@@ -24,6 +20,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
+
+import java.util.concurrent.ConcurrentMap;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 /**
  * Unit test of {@link CachedPulsarClient}.
@@ -49,9 +50,9 @@ public class CachedPulsarClientTest {
         conf2.setServiceUrl(SERVICE_URL);
 
         PowerMockito.whenNew(PulsarClientImpl.class)
-            .withArguments(conf1).thenReturn(impl1);
+                .withArguments(conf1).thenReturn(impl1);
         PowerMockito.whenNew(PulsarClientImpl.class)
-            .withArguments(conf2).thenReturn(impl2);
+                .withArguments(conf2).thenReturn(impl2);
 
         PulsarClientImpl client1 = CachedPulsarClient.getOrCreate(conf1);
         PulsarClientImpl client2 = CachedPulsarClient.getOrCreate(conf2);
@@ -76,9 +77,9 @@ public class CachedPulsarClientTest {
         conf2.setNumIoThreads(5);
 
         PowerMockito.whenNew(PulsarClientImpl.class)
-            .withArguments(conf1).thenReturn(impl1);
+                .withArguments(conf1).thenReturn(impl1);
         PowerMockito.whenNew(PulsarClientImpl.class)
-            .withArguments(conf2).thenReturn(impl2);
+                .withArguments(conf2).thenReturn(impl2);
 
         PulsarClientImpl client1 = CachedPulsarClient.getOrCreate(conf1);
         PulsarClientImpl client2 = CachedPulsarClient.getOrCreate(conf2);

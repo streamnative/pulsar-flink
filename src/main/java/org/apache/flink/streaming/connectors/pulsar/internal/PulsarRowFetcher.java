@@ -11,6 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import lombok.extern.slf4j.Slf4j;
@@ -53,7 +54,7 @@ public class PulsarRowFetcher extends PulsarFetcher<Row> {
     private SchemaInfo getPulsarSchema() {
         try {
             return metadataReader.getPulsarSchema(
-                seedTopicsWithInitialOffsets.keySet().stream().collect(Collectors.toList()));
+                    seedTopicsWithInitialOffsets.keySet().stream().collect(Collectors.toList()));
         } catch (SchemaUtils.IncompatibleSchemaException e) {
             log.error("Incompatible schema encountered while read multi topics %s", e.getMessage());
             throw new RuntimeException(e);
@@ -64,6 +65,6 @@ public class PulsarRowFetcher extends PulsarFetcher<Row> {
     protected ReaderThread createReaderThread(ExceptionProxy exceptionProxy, PulsarTopicState state) {
         SchemaInfo schemaInfo = getPulsarSchema();
         return new RowReaderThread(
-            this, state, clientConf, readerConf, pollTimeoutMs, schemaInfo, null, exceptionProxy);
+                this, state, clientConf, readerConf, pollTimeoutMs, schemaInfo, null, exceptionProxy);
     }
 }

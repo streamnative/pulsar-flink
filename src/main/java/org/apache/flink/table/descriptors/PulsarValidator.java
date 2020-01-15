@@ -11,6 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.table.descriptors;
 
 import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
@@ -62,21 +63,21 @@ public class PulsarValidator extends ConnectorDescriptorValidator {
     private void validateStartupMode(DescriptorProperties properties) {
         final Map<String, Consumer<String>> specificOffsetValidators = new HashMap<>();
         specificOffsetValidators.put(
-            CONNECTOR_SPECIFIC_OFFSETS_PARTITION,
-            (key) -> properties.validateString(
-                key,
-                false,
-                1));
+                CONNECTOR_SPECIFIC_OFFSETS_PARTITION,
+                (key) -> properties.validateString(
+                        key,
+                        false,
+                        1));
         specificOffsetValidators.put(
-            CONNECTOR_SPECIFIC_OFFSETS_OFFSET,
-            noValidation());
+                CONNECTOR_SPECIFIC_OFFSETS_OFFSET,
+                noValidation());
 
         final Map<String, Consumer<String>> startupModeValidation = new HashMap<>();
         startupModeValidation.put(CONNECTOR_STARTUP_MODE_VALUE_EARLIEST, noValidation());
         startupModeValidation.put(CONNECTOR_STARTUP_MODE_VALUE_LATEST, noValidation());
         startupModeValidation.put(
-            CONNECTOR_STARTUP_MODE_VALUE_SPECIFIC_OFFSETS,
-            key -> properties.validateFixedIndexedProperties(CONNECTOR_SPECIFIC_OFFSETS, false, specificOffsetValidators));
+                CONNECTOR_STARTUP_MODE_VALUE_SPECIFIC_OFFSETS,
+                key -> properties.validateFixedIndexedProperties(CONNECTOR_SPECIFIC_OFFSETS, false, specificOffsetValidators));
         properties.validateEnum(CONNECTOR_STARTUP_MODE, true, startupModeValidation);
     }
 
@@ -84,12 +85,12 @@ public class PulsarValidator extends ConnectorDescriptorValidator {
         Map<String, Consumer<String>> propertyValidators = new HashMap<>();
 
         propertyValidators.put(
-            CONNECTOR_PROPERTIES_KEY,
-            k -> properties.validateString(k, false, 1));
+                CONNECTOR_PROPERTIES_KEY,
+                k -> properties.validateString(k, false, 1));
 
         propertyValidators.put(
-            CONNECTOR_PROPERTIES_VALUE,
-            k -> properties.validateString(k, false, 0));
+                CONNECTOR_PROPERTIES_VALUE,
+                k -> properties.validateString(k, false, 0));
 
         properties.validateFixedIndexedProperties(CONNECTOR_PROPERTIES, true, propertyValidators);
     }
@@ -99,8 +100,8 @@ public class PulsarValidator extends ConnectorDescriptorValidator {
 
         sinkValidators.put(CONNECTOR_SINK_EXTRACTOR_NONE, noValidation());
         sinkValidators.put(
-            CONNECTOR_SINK_EXTRACTOR_CUSTOM,
-            k -> properties.validateString(CONNECTOR_SINK_EXTRACTOR_CLASS, false, 1));
+                CONNECTOR_SINK_EXTRACTOR_CUSTOM,
+                k -> properties.validateString(CONNECTOR_SINK_EXTRACTOR_CLASS, false, 1));
 
         properties.validateEnum(CONNECTOR_SINK_EXTRACTOR, true, sinkValidators);
     }

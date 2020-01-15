@@ -11,6 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.pulsar;
 
 import org.apache.flink.core.testutils.CheckedThread;
@@ -66,7 +67,7 @@ public class FlinkPulsarSinkTest extends TestLogger {
         DummyFlinkPulsarSink<String> sink = new DummyFlinkPulsarSink<>(dummyClientConf(), new Properties(), null, null);
 
         OneInputStreamOperatorTestHarness<String, Object> testHarness =
-            new OneInputStreamOperatorTestHarness<>(new StreamSink<>(sink));
+                new OneInputStreamOperatorTestHarness<>(new StreamSink<>(sink));
 
         testHarness.open();
 
@@ -94,10 +95,10 @@ public class FlinkPulsarSinkTest extends TestLogger {
     @Test
     public void testAsyncErrorRethrownOnCheckpoint() throws Throwable {
         final DummyFlinkPulsarSink<String> producer = new DummyFlinkPulsarSink<>(
-            dummyClientConf(), new Properties(), null, null);
+                dummyClientConf(), new Properties(), null, null);
 
         OneInputStreamOperatorTestHarness<String, Object> testHarness =
-            new OneInputStreamOperatorTestHarness<>(new StreamSink<>(producer));
+                new OneInputStreamOperatorTestHarness<>(new StreamSink<>(producer));
 
         testHarness.open();
 
@@ -133,7 +134,7 @@ public class FlinkPulsarSinkTest extends TestLogger {
         Producer mockProducer = sink.getProducer("tp");
 
         final OneInputStreamOperatorTestHarness<String, Object> testHarness =
-            new OneInputStreamOperatorTestHarness<>(new StreamSink<>(sink));
+                new OneInputStreamOperatorTestHarness<>(new StreamSink<>(sink));
 
         testHarness.open();
 
@@ -184,7 +185,7 @@ public class FlinkPulsarSinkTest extends TestLogger {
         final Producer mockProducer = sink.getProducer("tp");
 
         final OneInputStreamOperatorTestHarness<String, Object> testHarness =
-            new OneInputStreamOperatorTestHarness<>(new StreamSink<>(sink));
+                new OneInputStreamOperatorTestHarness<>(new StreamSink<>(sink));
 
         testHarness.open();
 
@@ -245,7 +246,7 @@ public class FlinkPulsarSinkTest extends TestLogger {
         final Producer mockProducer = sink.getProducer("tp");
 
         final OneInputStreamOperatorTestHarness<String, Object> testHarness =
-            new OneInputStreamOperatorTestHarness<>(new StreamSink<>(sink));
+                new OneInputStreamOperatorTestHarness<>(new StreamSink<>(sink));
 
         testHarness.open();
 
@@ -279,15 +280,14 @@ public class FlinkPulsarSinkTest extends TestLogger {
         private boolean isFlushed;
 
 
-
         public DummyFlinkPulsarSink(ClientConfigurationData clientConf, Properties properties, TopicKeyExtractor<T> topicKeyExtractor, Class<T> recordClazz) {
             super(
-                "",
-                Optional.of(DUMMY_TOPIC),
-                clientConf,
-                properties,
-                topicKeyExtractor,
-                recordClazz);
+                    "",
+                    Optional.of(DUMMY_TOPIC),
+                    clientConf,
+                    properties,
+                    topicKeyExtractor,
+                    recordClazz);
 
             this.mockProducer = mock(Producer.class);
             this.mockMessageBuilder = mock(TypedMessageBuilderImpl.class);
@@ -329,7 +329,7 @@ public class FlinkPulsarSinkTest extends TestLogger {
             // all pending records are flushed, we should fail the test
             if (flushOnCheckpoint && !isFlushed) {
                 throw new RuntimeException("Flushing is enabled; snapshots should be blocked" +
-                    " until all pending records are flushed");
+                        " until all pending records are flushed");
             }
         }
 

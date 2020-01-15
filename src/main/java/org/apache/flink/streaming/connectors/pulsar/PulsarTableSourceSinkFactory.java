@@ -11,6 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.pulsar;
 
 import lombok.extern.slf4j.Slf4j;
@@ -60,10 +61,10 @@ import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_SPECI
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_STARTUP_MODE;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_TOPIC;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_TYPE_VALUE_PULSAR;
-import static org.apache.flink.table.descriptors.Rowtime.ROWTIME_TIMESTAMPS_TYPE;
 import static org.apache.flink.table.descriptors.Rowtime.ROWTIME_TIMESTAMPS_CLASS;
 import static org.apache.flink.table.descriptors.Rowtime.ROWTIME_TIMESTAMPS_FROM;
 import static org.apache.flink.table.descriptors.Rowtime.ROWTIME_TIMESTAMPS_SERIALIZED;
+import static org.apache.flink.table.descriptors.Rowtime.ROWTIME_TIMESTAMPS_TYPE;
 import static org.apache.flink.table.descriptors.Rowtime.ROWTIME_WATERMARKS_CLASS;
 import static org.apache.flink.table.descriptors.Rowtime.ROWTIME_WATERMARKS_DELAY;
 import static org.apache.flink.table.descriptors.Rowtime.ROWTIME_WATERMARKS_SERIALIZED;
@@ -107,7 +108,7 @@ public class PulsarTableSourceSinkFactory
 
         // see also FLINK-9870
         if (proctime.isPresent() || !rowtimeAttributeDescriptors.isEmpty() ||
-            checkForCustomFieldMapping(dp, schema)) {
+                checkForCustomFieldMapping(dp, schema)) {
             throw new TableException("Time attributes and custom field mappings are not supported yet.");
         }
 
@@ -159,14 +160,14 @@ public class PulsarTableSourceSinkFactory
         sourceProp.put(PulsarOptions.TOPIC_SINGLE_OPTION_KEY, topic);
 
         return new PulsarTableSource(
-            schema,
-            SchemaValidator.deriveProctimeAttribute(descriptorProperties),
-            SchemaValidator.deriveRowtimeAttributes(descriptorProperties),
-            serviceUrl,
-            adminUrl,
-            sourceProp,
-            startupOptions.startupMode,
-            startupOptions.specificOffsets);
+                schema,
+                SchemaValidator.deriveProctimeAttribute(descriptorProperties),
+                SchemaValidator.deriveRowtimeAttributes(descriptorProperties),
+                serviceUrl,
+                adminUrl,
+                sourceProp,
+                startupOptions.startupMode,
+                startupOptions.specificOffsets);
     }
 
     @Override
@@ -236,34 +237,34 @@ public class PulsarTableSourceSinkFactory
     private StartupOptions getStartupOptions(DescriptorProperties descriptorProperties) {
         final Map<String, MessageId> specificOffsets = new HashMap<>();
         final StartupMode startupMode = descriptorProperties
-            .getOptionalString(CONNECTOR_STARTUP_MODE)
-            .map(modeString -> {
-                switch (modeString) {
-                    case PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_EARLIEST:
-                        return StartupMode.EARLIEST;
+                .getOptionalString(CONNECTOR_STARTUP_MODE)
+                .map(modeString -> {
+                    switch (modeString) {
+                        case PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_EARLIEST:
+                            return StartupMode.EARLIEST;
 
-                    case PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_LATEST:
-                        return StartupMode.LATEST;
+                        case PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_LATEST:
+                            return StartupMode.LATEST;
 
-                    case PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_SPECIFIC_OFFSETS:
-                        final List<Map<String, String>> offsetList = descriptorProperties.getFixedIndexedProperties(
-                            CONNECTOR_SPECIFIC_OFFSETS,
-                            Arrays.asList(CONNECTOR_SPECIFIC_OFFSETS_PARTITION, CONNECTOR_SPECIFIC_OFFSETS_OFFSET));
-                        offsetList.forEach(kv -> {
-                            final String partition = descriptorProperties.getString(kv.get(CONNECTOR_SPECIFIC_OFFSETS_PARTITION));
-                            final String offset = descriptorProperties.getString(kv.get(CONNECTOR_SPECIFIC_OFFSETS_OFFSET));
-                            try {
-                                specificOffsets.put(partition, MessageId.fromByteArray(offset.getBytes()));
-                            } catch (IOException e) {
-                                log.error("Failed to decode message id from properties %s", ExceptionUtils.getFullStackTrace(e));
-                                throw new RuntimeException(e);
-                            }
-                        });
-                        return StartupMode.SPECIFIC_OFFSETS;
-                    default:
-                        throw new TableException("Unsupported startup mode. Validator should have checked that.");
-                }
-            }).orElse(StartupMode.LATEST);
+                        case PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_SPECIFIC_OFFSETS:
+                            final List<Map<String, String>> offsetList = descriptorProperties.getFixedIndexedProperties(
+                                    CONNECTOR_SPECIFIC_OFFSETS,
+                                    Arrays.asList(CONNECTOR_SPECIFIC_OFFSETS_PARTITION, CONNECTOR_SPECIFIC_OFFSETS_OFFSET));
+                            offsetList.forEach(kv -> {
+                                final String partition = descriptorProperties.getString(kv.get(CONNECTOR_SPECIFIC_OFFSETS_PARTITION));
+                                final String offset = descriptorProperties.getString(kv.get(CONNECTOR_SPECIFIC_OFFSETS_OFFSET));
+                                try {
+                                    specificOffsets.put(partition, MessageId.fromByteArray(offset.getBytes()));
+                                } catch (IOException e) {
+                                    log.error("Failed to decode message id from properties %s", ExceptionUtils.getFullStackTrace(e));
+                                    throw new RuntimeException(e);
+                                }
+                            });
+                            return StartupMode.SPECIFIC_OFFSETS;
+                        default:
+                            throw new TableException("Unsupported startup mode. Validator should have checked that.");
+                    }
+                }).orElse(StartupMode.LATEST);
         final StartupOptions options = new StartupOptions();
         options.startupMode = startupMode;
         options.specificOffsets = specificOffsets;
@@ -273,21 +274,21 @@ public class PulsarTableSourceSinkFactory
     private Properties getPulsarProperties(DescriptorProperties descriptorProperties) {
         final Properties pulsarProperties = new Properties();
         final List<Map<String, String>> propsList = descriptorProperties.getFixedIndexedProperties(
-            CONNECTOR_PROPERTIES,
-            Arrays.asList(CONNECTOR_PROPERTIES_KEY, CONNECTOR_PROPERTIES_VALUE));
+                CONNECTOR_PROPERTIES,
+                Arrays.asList(CONNECTOR_PROPERTIES_KEY, CONNECTOR_PROPERTIES_VALUE));
         propsList.forEach(kv -> pulsarProperties.put(
-            descriptorProperties.getString(kv.get(CONNECTOR_PROPERTIES_KEY)),
-            descriptorProperties.getString(kv.get(CONNECTOR_PROPERTIES_VALUE))
+                descriptorProperties.getString(kv.get(CONNECTOR_PROPERTIES_KEY)),
+                descriptorProperties.getString(kv.get(CONNECTOR_PROPERTIES_VALUE))
         ));
         return pulsarProperties;
     }
 
     private boolean checkForCustomFieldMapping(DescriptorProperties descriptorProperties, TableSchema schema) {
         final Map<String, String> fieldMapping = SchemaValidator.deriveFieldMapping(
-            descriptorProperties,
-            Optional.of(schema.toRowType())); // until FLINK-9870 is fixed we assume that the table schema is the output type
+                descriptorProperties,
+                Optional.of(schema.toRowType())); // until FLINK-9870 is fixed we assume that the table schema is the output type
         return fieldMapping.size() != schema.getFieldNames().length ||
-            !fieldMapping.entrySet().stream().allMatch(mapping -> mapping.getKey().equals(mapping.getValue()));
+                !fieldMapping.entrySet().stream().allMatch(mapping -> mapping.getKey().equals(mapping.getValue()));
     }
 
     private DescriptorProperties getValidatedProperties(Map<String, String> properties) {

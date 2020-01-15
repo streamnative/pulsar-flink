@@ -11,6 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.pulsar.testutils;
 
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -30,59 +31,57 @@ import java.util.List;
  */
 public class ValidatingExactlyOnceSink extends RichSinkFunction<Row> implements ListCheckpointed<Tuple2<Integer, BitSet>> {
 
-	private static final Logger LOG = LoggerFactory.getLogger(ValidatingExactlyOnceSink.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ValidatingExactlyOnceSink.class);
 
-	private static final long serialVersionUID = 1748426382527469932L;
+    private static final long serialVersionUID = 1748426382527469932L;
 
-	private final int numElementsTotal;
+    private final int numElementsTotal;
 
-	private BitSet duplicateChecker = new BitSet();  // this is checkpointed
+    private BitSet duplicateChecker = new BitSet();  // this is checkpointed
 
-	private int numElements; // this is checkpointed
+    private int numElements; // this is checkpointed
 
-	public ValidatingExactlyOnceSink(int numElementsTotal) {
-		this.numElementsTotal = numElementsTotal;
-	}
+    public ValidatingExactlyOnceSink(int numElementsTotal) {
+        this.numElementsTotal = numElementsTotal;
+    }
 
-	@Override
-	public void invoke(Row value) throws Exception {
-		numElements++;
+    @Override
+    public void invoke(Row value) throws Exception {
+        numElements++;
 
-		int v = (Integer) value.getField(0);
+        int v = (Integer) value.getField(0);
 
-		if (duplicateChecker.get(v)) {
-			throw new Exception("Received a duplicate: " + v);
-		}
-		duplicateChecker.set(v);
-		if (numElements == numElementsTotal) {
-			// validate
-			if (duplicateChecker.cardinality() != numElementsTotal) {
-				throw new Exception("Duplicate checker has wrong cardinality");
-			}
-			else if (duplicateChecker.nextClearBit(0) != numElementsTotal) {
-				throw new Exception("Received sparse sequence");
-			}
-			else {
-				throw new SuccessException();
-			}
-		}
-	}
+        if (duplicateChecker.get(v)) {
+            throw new Exception("Received a duplicate: " + v);
+        }
+        duplicateChecker.set(v);
+        if (numElements == numElementsTotal) {
+            // validate
+            if (duplicateChecker.cardinality() != numElementsTotal) {
+                throw new Exception("Duplicate checker has wrong cardinality");
+            } else if (duplicateChecker.nextClearBit(0) != numElementsTotal) {
+                throw new Exception("Received sparse sequence");
+            } else {
+                throw new SuccessException();
+            }
+        }
+    }
 
-	@Override
-	public List<Tuple2<Integer, BitSet>> snapshotState(long checkpointId, long timestamp) throws Exception {
-		LOG.info("Snapshot of counter " + numElements + " at checkpoint " + checkpointId);
-		return Collections.singletonList(new Tuple2<>(numElements, duplicateChecker));
-	}
+    @Override
+    public List<Tuple2<Integer, BitSet>> snapshotState(long checkpointId, long timestamp) throws Exception {
+        LOG.info("Snapshot of counter " + numElements + " at checkpoint " + checkpointId);
+        return Collections.singletonList(new Tuple2<>(numElements, duplicateChecker));
+    }
 
-	@Override
-	public void restoreState(List<Tuple2<Integer, BitSet>> state) throws Exception {
-		if (state.isEmpty() || state.size() > 1) {
-			throw new RuntimeException("Test failed due to unexpected recovered state size " + state.size());
-		}
+    @Override
+    public void restoreState(List<Tuple2<Integer, BitSet>> state) throws Exception {
+        if (state.isEmpty() || state.size() > 1) {
+            throw new RuntimeException("Test failed due to unexpected recovered state size " + state.size());
+        }
 
-		Tuple2<Integer, BitSet> s = state.get(0);
-		LOG.info("restoring num elements to {}", s.f0);
-		this.numElements = s.f0;
-		this.duplicateChecker = s.f1;
-	}
+        Tuple2<Integer, BitSet> s = state.get(0);
+        LOG.info("restoring num elements to {}", s.f0);
+        this.numElements = s.f0;
+        this.duplicateChecker = s.f1;
+    }
 }

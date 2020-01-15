@@ -11,6 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.pulsar.testutils;
 
 import org.apache.flink.table.client.config.Environment;
@@ -27,25 +28,25 @@ import java.util.Objects;
  */
 public final class EnvironmentFileUtil {
 
-	private EnvironmentFileUtil() {
-		// private
-	}
+    private EnvironmentFileUtil() {
+        // private
+    }
 
-	public static Environment parseUnmodified(String fileName) throws IOException {
-		final URL url = EnvironmentFileUtil.class.getClassLoader().getResource(fileName);
-		Objects.requireNonNull(url);
-		return Environment.parse(url);
-	}
+    public static Environment parseUnmodified(String fileName) throws IOException {
+        final URL url = EnvironmentFileUtil.class.getClassLoader().getResource(fileName);
+        Objects.requireNonNull(url);
+        return Environment.parse(url);
+    }
 
-	public static Environment parseModified(String fileName, Map<String, String> replaceVars) throws IOException {
-		final URL url = EnvironmentFileUtil.class.getClassLoader().getResource(fileName);
-		Objects.requireNonNull(url);
-		String schema = FileUtils.readFileUtf8(new File(url.getFile()));
+    public static Environment parseModified(String fileName, Map<String, String> replaceVars) throws IOException {
+        final URL url = EnvironmentFileUtil.class.getClassLoader().getResource(fileName);
+        Objects.requireNonNull(url);
+        String schema = FileUtils.readFileUtf8(new File(url.getFile()));
 
-		for (Map.Entry<String, String> replaceVar : replaceVars.entrySet()) {
-			schema = schema.replace(replaceVar.getKey(), replaceVar.getValue());
-		}
+        for (Map.Entry<String, String> replaceVar : replaceVars.entrySet()) {
+            schema = schema.replace(replaceVar.getKey(), replaceVar.getValue());
+        }
 
-		return Environment.parse(schema);
-	}
+        return Environment.parse(schema);
+    }
 }

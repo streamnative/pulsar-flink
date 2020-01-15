@@ -11,6 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import lombok.extern.slf4j.Slf4j;
@@ -156,11 +157,11 @@ public class PulsarFetcher<T> {
 
         // initialize subscribed partition states with seed partitions
         this.subscribedPartitionStates = createPartitionStateHolders(
-            seedTopicsWithInitialOffsets,
-            timestampWatermarkMode,
-            watermarksPeriodic,
-            watermarksPunctuated,
-            userCodeClassLoader);
+                seedTopicsWithInitialOffsets,
+                timestampWatermarkMode,
+                watermarksPeriodic,
+                watermarksPunctuated,
+                userCodeClassLoader);
 
         // check that all seed partition states have a defined offset
         for (PulsarTopicState state : subscribedPartitionStates) {
@@ -178,10 +179,10 @@ public class PulsarFetcher<T> {
         if (timestampWatermarkMode == PERIODIC_WATERMARKS) {
             @SuppressWarnings("unchecked")
             PeriodicWatermarkEmitter periodicEmitter = new PeriodicWatermarkEmitter(
-                subscribedPartitionStates,
-                sourceContext,
-                processingTimeProvider,
-                autoWatermarkInterval);
+                    subscribedPartitionStates,
+                    sourceContext,
+                    processingTimeProvider,
+                    autoWatermarkInterval);
 
             periodicEmitter.start();
         }
@@ -211,7 +212,7 @@ public class PulsarFetcher<T> {
                     }
 
                     topicToThread.putAll(
-                        createAndStartReaderThread(topicsToAssign, exceptionProxy));
+                            createAndStartReaderThread(topicsToAssign, exceptionProxy));
 
                 } else {
                     // there were no partitions to assign. Check if any consumer threads shut down.
@@ -225,7 +226,7 @@ public class PulsarFetcher<T> {
                 if (topicToThread.size() == 0 && unassignedPartitionsQueue.isEmpty()) {
                     if (unassignedPartitionsQueue.close()) {
                         log.info("All reader threads are finished, " +
-                            "there are no more unassigned partitions. Stopping fetcher");
+                                "there are no more unassigned partitions. Stopping fetcher");
                         throw BreakingException.INSTANCE;
                     }
                 }
@@ -274,8 +275,7 @@ public class PulsarFetcher<T> {
                 // waiting for the thread shutdown apparently got interrupted
                 // restore interrupted state and continue
                 Thread.currentThread().interrupt();
-            }
-            catch (Throwable t) {
+            } catch (Throwable t) {
                 // we catch all here to preserve the original exception
                 log.error("Exception while shutting down reader threads", t);
             }
@@ -310,7 +310,7 @@ public class PulsarFetcher<T> {
     }
 
     private void emitRecordWithTimestampAndPeriodicWatermark(
-        T record, PulsarTopicState topicState, MessageId offset, long eventTimestamp) {
+            T record, PulsarTopicState topicState, MessageId offset, long eventTimestamp) {
 
         PulsarTopicStateWithPeriodicWatermarks<T> periodicState = (PulsarTopicStateWithPeriodicWatermarks<T>) topicState;
 
@@ -327,7 +327,7 @@ public class PulsarFetcher<T> {
     }
 
     private void emitRecordWithTimestampAndPunctuatedWatermark(
-        T record, PulsarTopicState topicState, MessageId offset, long eventTimestamp) {
+            T record, PulsarTopicState topicState, MessageId offset, long eventTimestamp) {
 
         PulsarTopicStateWithPunctuatedWatermarks<T> punctuatedState = (PulsarTopicStateWithPunctuatedWatermarks<T>) topicState;
         long timestamp = punctuatedState.getTimestampForRecord(record, eventTimestamp);
@@ -368,7 +368,7 @@ public class PulsarFetcher<T> {
         running = false;
 
         Set<String> topics = subscribedPartitionStates.stream()
-            .map(PulsarTopicState::getTopic).collect(Collectors.toSet());
+                .map(PulsarTopicState::getTopic).collect(Collectors.toSet());
 
         metadataReader.removeCursor(topics);
         metadataReader.close();
@@ -422,11 +422,11 @@ public class PulsarFetcher<T> {
 
     public void addDiscoveredTopics(Set<String> newTopics) throws IOException, ClassNotFoundException {
         List<PulsarTopicState> newStates = createPartitionStateHolders(
-            newTopics.stream().collect(Collectors.toMap(t -> t, t -> MessageId.earliest)),
-            timestampWatermarkMode,
-            watermarksPeriodic,
-            watermarksPunctuated,
-            userCodeClassLoader);
+                newTopics.stream().collect(Collectors.toMap(t -> t, t -> MessageId.earliest)),
+                timestampWatermarkMode,
+                watermarksPeriodic,
+                watermarksPunctuated,
+                userCodeClassLoader);
 
         for (PulsarTopicState state : newStates) {
             // the ordering is crucial here; first register the state holder, then
@@ -484,13 +484,13 @@ public class PulsarFetcher<T> {
 
     protected ReaderThread createReaderThread(ExceptionProxy exceptionProxy, PulsarTopicState state) {
         return new ReaderThread(
-            this,
-            state,
-            clientConf,
-            readerConf,
-            deserializer,
-            pollTimeoutMs,
-            exceptionProxy);
+                this,
+                state,
+                clientConf,
+                readerConf,
+                deserializer,
+                pollTimeoutMs,
+                exceptionProxy);
     }
 
     /**
@@ -523,8 +523,8 @@ public class PulsarFetcher<T> {
                 for (Map.Entry<String, MessageId> partitionEntry : partitionsToInitialOffsets.entrySet()) {
                     AssignerWithPeriodicWatermarks<T> assignerInstance = watermarksPeriodic.deserializeValue(userCodeClassLoader);
                     PulsarTopicStateWithPeriodicWatermarks<T> state = new PulsarTopicStateWithPeriodicWatermarks<T>(
-                        partitionEntry.getKey(),
-                        assignerInstance);
+                            partitionEntry.getKey(),
+                            assignerInstance);
                     state.setOffset(partitionEntry.getValue());
                     partitionStates.add(state);
                 }
@@ -536,8 +536,8 @@ public class PulsarFetcher<T> {
                 for (Map.Entry<String, MessageId> partitionEntry : partitionsToInitialOffsets.entrySet()) {
                     AssignerWithPunctuatedWatermarks<T> assignerInstance = watermarksPunctuated.deserializeValue(userCodeClassLoader);
                     PulsarTopicStateWithPunctuatedWatermarks<T> state = new PulsarTopicStateWithPunctuatedWatermarks<T>(
-                        partitionEntry.getKey(),
-                        assignerInstance);
+                            partitionEntry.getKey(),
+                            assignerInstance);
                     state.setOffset(partitionEntry.getValue());
                     partitionStates.add(state);
                 }
@@ -570,10 +570,10 @@ public class PulsarFetcher<T> {
         //-------------------------------------------------
 
         PeriodicWatermarkEmitter(
-            List<PulsarTopicState> allPartitions,
-            SourceContext<?> emitter,
-            ProcessingTimeService timerService,
-            long autoWatermarkInterval) {
+                List<PulsarTopicState> allPartitions,
+                SourceContext<?> emitter,
+                ProcessingTimeService timerService,
+                long autoWatermarkInterval) {
             this.allPartitions = checkNotNull(allPartitions);
             this.emitter = checkNotNull(emitter);
             this.timerService = checkNotNull(timerService);
@@ -621,6 +621,7 @@ public class PulsarFetcher<T> {
     private static class BreakingException extends Exception {
         static final BreakingException INSTANCE = new BreakingException();
 
-        private BreakingException() {}
+        private BreakingException() {
+        }
     }
 }

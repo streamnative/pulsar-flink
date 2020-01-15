@@ -11,6 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.pulsar;
 
 import avro.shaded.com.google.common.collect.Sets;
@@ -62,18 +63,18 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
+import static org.apache.flink.streaming.connectors.pulsar.internal.metrics.PulsarSourceMetrics.COMMITS_FAILED_METRICS_COUNTER;
+import static org.apache.flink.streaming.connectors.pulsar.internal.metrics.PulsarSourceMetrics.COMMITS_SUCCEEDED_METRICS_COUNTER;
 import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
-import static org.apache.flink.streaming.connectors.pulsar.internal.metrics.PulsarSourceMetrics.COMMITS_SUCCEEDED_METRICS_COUNTER;
-import static org.apache.flink.streaming.connectors.pulsar.internal.metrics.PulsarSourceMetrics.COMMITS_FAILED_METRICS_COUNTER;
 
 
 @Slf4j
 public class FlinkPulsarSource<T>
-    extends RichParallelSourceFunction<T>
-    implements ResultTypeQueryable<T>,
-    CheckpointListener,
-    CheckpointedFunction {
+        extends RichParallelSourceFunction<T>
+        implements ResultTypeQueryable<T>,
+        CheckpointListener,
+        CheckpointedFunction {
 
     /** The maximum number of pending non-committed checkpoints to track, to avoid memory leaks. */
     public static final int MAX_NUM_PENDING_CHECKPOINTS = 100;
@@ -175,13 +176,13 @@ public class FlinkPulsarSource<T>
         this.deserializer = deserializer;
         this.properties = properties;
         this.caseInsensitiveParams =
-            SourceSinkUtils.validateStreamSourceOptions(Maps.fromProperties(properties));
+                SourceSinkUtils.validateStreamSourceOptions(Maps.fromProperties(properties));
         this.readerConf =
-            SourceSinkUtils.getReaderParams(caseInsensitiveParams);
+                SourceSinkUtils.getReaderParams(caseInsensitiveParams);
         this.discoveryIntervalMillis =
-            SourceSinkUtils.getPartitionDiscoveryIntervalInMillis(caseInsensitiveParams);
+                SourceSinkUtils.getPartitionDiscoveryIntervalInMillis(caseInsensitiveParams);
         this.pollTimeoutMs =
-            SourceSinkUtils.getPollTimeoutMs(caseInsensitiveParams);
+                SourceSinkUtils.getPollTimeoutMs(caseInsensitiveParams);
 
         CachedPulsarClient.setCacheSize(SourceSinkUtils.getClientCacheSize(caseInsensitiveParams));
 
@@ -319,49 +320,49 @@ public class FlinkPulsarSource<T>
 
         if (restoredState != null) {
             allTopics.stream()
-                .filter(k -> !restoredState.containsKey(k))
-                .forEach(t -> restoredState.put(t, MessageId.earliest));
+                    .filter(k -> !restoredState.containsKey(k))
+                    .forEach(t -> restoredState.put(t, MessageId.earliest));
 
             restoredState.entrySet().stream()
-                .filter(e -> SourceSinkUtils.belongsTo(e.getKey(), numParallelTasks, taskIndex))
-                .forEach(e -> ownedTopicStarts.put(e.getKey(), e.getValue()));
+                    .filter(e -> SourceSinkUtils.belongsTo(e.getKey(), numParallelTasks, taskIndex))
+                    .forEach(e -> ownedTopicStarts.put(e.getKey(), e.getValue()));
 
             Set<String> goneTopics = Sets.difference(restoredState.keySet(), allTopics).stream()
-                .filter(k -> SourceSinkUtils.belongsTo(k, numParallelTasks, taskIndex))
-                .collect(Collectors.toSet());
+                    .filter(k -> SourceSinkUtils.belongsTo(k, numParallelTasks, taskIndex))
+                    .collect(Collectors.toSet());
 
             for (String goneTopic : goneTopics) {
                 log.warn(goneTopic + " is removed from subscription since " +
-                    "it no longer matches with topics settings.");
+                        "it no longer matches with topics settings.");
                 ownedTopicStarts.remove(goneTopic);
             }
 
             log.info("Source %d will start reading %d topics in restored state %s",
-                taskIndex, ownedTopicStarts.size(), StringUtils.join(ownedTopicStarts.entrySet()));
+                    taskIndex, ownedTopicStarts.size(), StringUtils.join(ownedTopicStarts.entrySet()));
         } else {
             Map<String, MessageId> allTopicOffsets =
-                offsetForEachTopic(allTopics, startupMode, specificStartupOffsets);
+                    offsetForEachTopic(allTopics, startupMode, specificStartupOffsets);
 
             ownedTopicStarts.putAll(allTopicOffsets.entrySet().stream()
-                .filter(e -> SourceSinkUtils.belongsTo(e.getKey(), numParallelTasks, taskIndex))
-                .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue())));
+                    .filter(e -> SourceSinkUtils.belongsTo(e.getKey(), numParallelTasks, taskIndex))
+                    .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue())));
 
             if (ownedTopicStarts.isEmpty()) {
                 log.info("Source %d initially has no topics to read from.", taskIndex);
             } else {
                 log.info("Source %d will start reading %d topics from initialized positions",
-                    taskIndex, ownedTopicStarts.size());
+                        taskIndex, ownedTopicStarts.size());
             }
         }
     }
 
     protected PulsarMetadataReader createTopicDiscoverer() throws PulsarClientException {
         return new PulsarMetadataReader(
-            adminUrl,
-            String.format("flink-pulsar-%s", UUID.randomUUID()),
-            caseInsensitiveParams,
-            taskIndex,
-            numParallelTasks);
+                adminUrl,
+                String.format("flink-pulsar-%s", UUID.randomUUID()),
+                caseInsensitiveParams,
+                taskIndex,
+                numParallelTasks);
     }
 
     @Override
@@ -371,9 +372,9 @@ public class FlinkPulsarSource<T>
         }
 
         this.successfulCommits =
-            this.getRuntimeContext().getMetricGroup().counter(COMMITS_SUCCEEDED_METRICS_COUNTER);
+                this.getRuntimeContext().getMetricGroup().counter(COMMITS_SUCCEEDED_METRICS_COUNTER);
         this.failedCommits =
-            this.getRuntimeContext().getMetricGroup().counter(COMMITS_FAILED_METRICS_COUNTER);
+                this.getRuntimeContext().getMetricGroup().counter(COMMITS_FAILED_METRICS_COUNTER);
 
         this.offsetCommitCallback = new PulsarCommitCallback() {
             @Override
@@ -393,8 +394,8 @@ public class FlinkPulsarSource<T>
         }
 
         log.info("Source %d creating fetcher with offsets %s",
-            taskIndex,
-            StringUtils.join(ownedTopicStarts.entrySet()));
+                taskIndex,
+                StringUtils.join(ownedTopicStarts.entrySet()));
 
         // from this point forward:
         //   - 'snapshotState' will draw offsets from the fetcher,
@@ -405,14 +406,14 @@ public class FlinkPulsarSource<T>
         StreamingRuntimeContext streamingRuntime = (StreamingRuntimeContext) getRuntimeContext();
 
         this.pulsarFetcher = createFetcher(
-            ctx,
-            ownedTopicStarts,
-            periodicWatermarkAssigner,
-            punctuatedWatermarkAssigner,
-            streamingRuntime.getProcessingTimeService(),
-            streamingRuntime.getExecutionConfig().getAutoWatermarkInterval(),
-            getRuntimeContext().getUserCodeClassLoader(),
-            streamingRuntime);
+                ctx,
+                ownedTopicStarts,
+                periodicWatermarkAssigner,
+                punctuatedWatermarkAssigner,
+                streamingRuntime.getProcessingTimeService(),
+                streamingRuntime.getExecutionConfig().getAutoWatermarkInterval(),
+                getRuntimeContext().getUserCodeClassLoader(),
+                streamingRuntime);
 
         if (!running) {
             return;
@@ -436,19 +437,19 @@ public class FlinkPulsarSource<T>
             StreamingRuntimeContext streamingRuntime) throws Exception {
 
         return new PulsarFetcher(
-            sourceContext,
-            seedTopicsWithInitialOffsets,
-            watermarksPeriodic,
-            watermarksPunctuated,
-            processingTimeProvider,
-            autoWatermarkInterval,
-            userCodeClassLoader,
-            streamingRuntime,
-            clientConfigurationData,
-            readerConf,
-            pollTimeoutMs,
-            deserializer,
-            topicDiscoverer);
+                sourceContext,
+                seedTopicsWithInitialOffsets,
+                watermarksPeriodic,
+                watermarksPunctuated,
+                processingTimeProvider,
+                autoWatermarkInterval,
+                userCodeClassLoader,
+                streamingRuntime,
+                clientConfigurationData,
+                readerConf,
+                pollTimeoutMs,
+                deserializer,
+                topicDiscoverer);
     }
 
     public void joinDiscoveryLoopThread() throws InterruptedException {
@@ -473,33 +474,33 @@ public class FlinkPulsarSource<T>
 
     private void createAndStartDiscoveryLoop(AtomicReference<Exception> discoveryLoopErrorRef) {
         discoveryLoopThread = new Thread(
-            () -> {
-                try {
-                    while (running) {
-                        Set<String> added = topicDiscoverer.discoverTopicChanges();
+                () -> {
+                    try {
+                        while (running) {
+                            Set<String> added = topicDiscoverer.discoverTopicChanges();
 
-                        if (running && !added.isEmpty()) {
-                            pulsarFetcher.addDiscoveredTopics(added);
+                            if (running && !added.isEmpty()) {
+                                pulsarFetcher.addDiscoveredTopics(added);
+                            }
+
+                            if (running && discoveryIntervalMillis != -1) {
+                                Thread.sleep(discoveryIntervalMillis);
+                            }
                         }
-
-                        if (running && discoveryIntervalMillis != -1) {
-                            Thread.sleep(discoveryIntervalMillis);
+                    } catch (PulsarMetadataReader.ClosedException e) {
+                        // break out while and do nothing
+                    } catch (InterruptedException e) {
+                        // break out while and do nothing
+                    } catch (Exception e) {
+                        discoveryLoopErrorRef.set(e);
+                    } finally {
+                        if (running) {
+                            // calling cancel will also let the fetcher loop escape
+                            // (if not running, cancel() was already called)
+                            cancel();
                         }
                     }
-                } catch (PulsarMetadataReader.ClosedException e) {
-                    // break out while and do nothing
-                } catch (InterruptedException e) {
-                    // break out while and do nothing
-                } catch (Exception e) {
-                    discoveryLoopErrorRef.set(e);
-                } finally {
-                    if (running) {
-                        // calling cancel will also let the fetcher loop escape
-                        // (if not running, cancel() was already called)
-                        cancel();
-                    }
-                }
-            }, "Pulsar topic discovery for source " + taskIndex);
+                }, "Pulsar topic discovery for source " + taskIndex);
         discoveryLoopThread.start();
     }
 
@@ -564,16 +565,17 @@ public class FlinkPulsarSource<T>
         OperatorStateStore stateStore = context.getOperatorStateStore();
 
         unionOffsetStates = stateStore.getUnionListState(
-            new ListStateDescriptor<>(
-                OFFSETS_STATE_NAME,
-                TypeInformation.of(new TypeHint<Tuple2<String, MessageId>>() {})));
+                new ListStateDescriptor<>(
+                        OFFSETS_STATE_NAME,
+                        TypeInformation.of(new TypeHint<Tuple2<String, MessageId>>() {
+                        })));
 
         if (context.isRestored()) {
             restoredState = new TreeMap<>();
             unionOffsetStates.get().forEach(e -> restoredState.put(e.f0, e.f1));
             log.info("Source subtask %d restored state %s",
-                taskIndex,
-                StringUtils.join(restoredState.entrySet()));
+                    taskIndex,
+                    StringUtils.join(restoredState.entrySet()));
         } else {
             log.info("Source subtask %d has no restore state", taskIndex);
         }
@@ -624,20 +626,20 @@ public class FlinkPulsarSource<T>
         }
 
         log.debug("Source %d received confirmation for unknown checkpoint id %d",
-            taskIndex, checkpointId);
+                taskIndex, checkpointId);
 
         try {
             int posInMap = pendingOffsetsToCommit.indexOf(checkpointId);
             if (posInMap == -1) {
                 log.warn("Source %d received confirmation for unknown checkpoint id %d",
-                    taskIndex, checkpointId);
+                        taskIndex, checkpointId);
                 return;
             }
 
-            Map<String, MessageId> offset = (Map<String, MessageId>)pendingOffsetsToCommit.remove(posInMap);
+            Map<String, MessageId> offset = (Map<String, MessageId>) pendingOffsetsToCommit.remove(posInMap);
 
             // remove older checkpoints in map
-            for(int i = 0; i < posInMap; i ++) {
+            for (int i = 0; i < posInMap; i++) {
                 pendingOffsetsToCommit.remove(0);
             }
 
@@ -661,22 +663,22 @@ public class FlinkPulsarSource<T>
         switch (mode) {
             case LATEST:
                 return topics.stream()
-                    .collect(Collectors.toMap(k -> k, k -> MessageId.latest));
+                        .collect(Collectors.toMap(k -> k, k -> MessageId.latest));
             case EARLIEST:
                 return topics.stream()
-                    .collect(Collectors.toMap(k -> k, k -> MessageId.earliest));
+                        .collect(Collectors.toMap(k -> k, k -> MessageId.earliest));
             case SPECIFIC_OFFSETS:
                 checkArgument(topics.containsAll(specificStartupOffsets.keySet()),
-                    String.format(
-                        "Topics designated in startingOffsets should appear in %s, topics:" +
-                            "%s, topics in offsets: %s",
-                        StringUtils.join(PulsarOptions.TOPIC_OPTION_KEYS),
-                        StringUtils.join(topics.toArray()),
-                        StringUtils.join(specificStartupOffsets.entrySet().toArray())));
+                        String.format(
+                                "Topics designated in startingOffsets should appear in %s, topics:" +
+                                        "%s, topics in offsets: %s",
+                                StringUtils.join(PulsarOptions.TOPIC_OPTION_KEYS),
+                                StringUtils.join(topics.toArray()),
+                                StringUtils.join(specificStartupOffsets.entrySet().toArray())));
 
                 Map<String, MessageId> specificOffsets = new HashMap<>();
                 for (String topic : topics) {
-                    if (specificOffsets.keySet().contains(topic)) {
+                    if (specificOffsets.containsKey(topic)) {
                         specificOffsets.put(topic, specificStartupOffsets.get(topic));
                     } else {
                         specificOffsets.put(topic, MessageId.latest);

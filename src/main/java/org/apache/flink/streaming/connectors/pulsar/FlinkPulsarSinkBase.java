@@ -11,6 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.pulsar;
 
 import avro.shaded.com.google.common.collect.Maps;
@@ -101,23 +102,23 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
             this.forcedTopic = false;
             this.defaultTopic = null;
             ClosureCleaner.clean(
-                topicKeyExtractor, ExecutionConfig.ClosureCleanerLevel.RECURSIVE, true);
+                    topicKeyExtractor, ExecutionConfig.ClosureCleanerLevel.RECURSIVE, true);
             this.topicKeyExtractor = checkNotNull(topicKeyExtractor);
         }
 
         this.properties = checkNotNull(properties);
 
         this.caseInsensitiveParams =
-            SourceSinkUtils.toCaceInsensitiveParams(Maps.fromProperties(properties));
+                SourceSinkUtils.toCaceInsensitiveParams(Maps.fromProperties(properties));
 
         this.producerConf =
-            SourceSinkUtils.getProducerParams(caseInsensitiveParams);
+                SourceSinkUtils.getProducerParams(caseInsensitiveParams);
 
         this.flushOnCheckpoint =
-            SourceSinkUtils.flushOnCheckpoint(caseInsensitiveParams);
+                SourceSinkUtils.flushOnCheckpoint(caseInsensitiveParams);
 
         this.failOnWrite =
-            SourceSinkUtils.failOnWrite(caseInsensitiveParams);
+                SourceSinkUtils.failOnWrite(caseInsensitiveParams);
 
         CachedPulsarClient.setCacheSize(SourceSinkUtils.getClientCacheSize(caseInsensitiveParams));
 
@@ -232,14 +233,14 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
 
         try {
             return CachedPulsarClient
-                .getOrCreate(clientConf)
-                .newProducer(schema)
-                .topic(topic)
-                .batchingMaxPublishDelay(100, TimeUnit.MILLISECONDS)
-                // maximizing the throughput
-                .batchingMaxMessages(5 * 1024 * 1024)
-                .loadConf(producerConf)
-                .create();
+                    .getOrCreate(clientConf)
+                    .newProducer(schema)
+                    .topic(topic)
+                    .batchingMaxPublishDelay(100, TimeUnit.MILLISECONDS)
+                    // maximizing the throughput
+                    .batchingMaxMessages(5 * 1024 * 1024)
+                    .loadConf(producerConf)
+                    .create();
         } catch (PulsarClientException e) {
             log.error("Failed to create producer for topic %s", topic);
             throw new RuntimeException(e);
@@ -294,7 +295,7 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
 
     private void acknowledgeMessage() {
         if (flushOnCheckpoint) {
-            synchronized(pendingRecordsLock) {
+            synchronized (pendingRecordsLock) {
                 pendingRecords--;
                 if (pendingRecords == 0) {
                     pendingRecordsLock.notifyAll();

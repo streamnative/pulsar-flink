@@ -11,6 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import lombok.extern.slf4j.Slf4j;
@@ -51,13 +52,13 @@ public class RowReaderThread extends ReaderThread<Row> {
     @Override
     protected void createActualReader() throws PulsarClientException, ExecutionException {
         reader = CachedPulsarClient
-            .getOrCreate(clientConf)
-            .newReader(schema)
-            .topic(topic)
-            .startMessageId(startMessageId)
-            .startMessageIdInclusive()
-            .loadConf(readerConf)
-            .create();
+                .getOrCreate(clientConf)
+                .newReader(schema)
+                .topic(topic)
+                .startMessageId(startMessageId)
+                .startMessageIdInclusive()
+                .loadConf(readerConf)
+                .create();
     }
 
     @Override

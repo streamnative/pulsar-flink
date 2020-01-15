@@ -11,10 +11,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.pulsar.testutils;
 
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
 import org.apache.pulsar.client.api.PulsarClientException;
+import org.mockito.stubbing.Answer;
 
 import java.util.List;
 import java.util.Map;
@@ -23,8 +25,6 @@ import java.util.Set;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
-import org.mockito.stubbing.Answer;
 
 public class TestMetadataReader extends PulsarMetadataReader {
 

@@ -11,6 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import java.util.Collections;
@@ -39,7 +40,7 @@ public enum ParseMode {
 
     static {
         Map<String, ParseMode> map = new ConcurrentHashMap<>();
-        for(ParseMode instance : ParseMode.values()) {
+        for (ParseMode instance : ParseMode.values()) {
             map.put(instance.getName(), instance);
         }
         ENUM_MAP = Collections.unmodifiableMap(map);

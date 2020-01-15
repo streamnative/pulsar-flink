@@ -11,6 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.pulsar;
 
 import lombok.EqualsAndHashCode;
@@ -65,10 +66,10 @@ public class PulsarTableSink implements AppendStreamTableSink<Row> {
     @Override
     public DataStreamSink<?> consumeDataStream(DataStream<Row> dataStream) {
         FlinkPulsarRowSink sink = new FlinkPulsarRowSink(adminUrl, defaultTopicName, clientConf, properties, schema.toRowDataType());
-       return dataStream
-           .addSink(sink)
-           .setParallelism(dataStream.getParallelism())
-           .name(TableConnectorUtils.generateRuntimeName(getClass(), getFieldNames()));
+        return dataStream
+                .addSink(sink)
+                .setParallelism(dataStream.getParallelism())
+                .name(TableConnectorUtils.generateRuntimeName(getClass(), getFieldNames()));
     }
 
     @Override
@@ -95,8 +96,8 @@ public class PulsarTableSink implements AppendStreamTableSink<Row> {
     public TableSink<Row> configure(String[] fieldNames, TypeInformation<?>[] fieldTypes) {
         if (!Arrays.equals(getFieldNames(), fieldNames) || !Arrays.equals(getFieldTypes(), fieldTypes)) {
             throw new ValidationException("Reconfiguration with different fields is not allowed. " +
-                "Expected: " + Arrays.toString(getFieldNames()) + " / " + Arrays.toString(getFieldTypes()) + ". " +
-                "But was: " + Arrays.toString(fieldNames) + " / " + Arrays.toString(fieldTypes));
+                    "Expected: " + Arrays.toString(getFieldNames()) + " / " + Arrays.toString(getFieldTypes()) + ". " +
+                    "But was: " + Arrays.toString(fieldNames) + " / " + Arrays.toString(fieldTypes));
         }
         return this;
     }

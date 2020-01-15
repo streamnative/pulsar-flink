@@ -11,6 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import lombok.extern.slf4j.Slf4j;
@@ -97,13 +98,13 @@ public class ReaderThread<T> extends Thread {
 
     protected void createActualReader() throws org.apache.pulsar.client.api.PulsarClientException, ExecutionException {
         reader = CachedPulsarClient
-            .getOrCreate(clientConf)
-            .newReader()
-            .topic(topic)
-            .startMessageId(startMessageId)
-            .startMessageIdInclusive()
-            .loadConf(readerConf)
-            .create();
+                .getOrCreate(clientConf)
+                .newReader()
+                .topic(topic)
+                .startMessageId(startMessageId)
+                .startMessageIdInclusive()
+                .loadConf(readerConf)
+                .create();
     }
 
     protected void skipFirstMessageIfNeeded() throws org.apache.pulsar.client.api.PulsarClientException {
@@ -113,15 +114,15 @@ public class ReaderThread<T> extends Thread {
             currentMessage = reader.readNext(pollTimeoutMs, TimeUnit.MILLISECONDS);
             if (currentMessage == null) {
                 reportDataLoss(String.format("Cannot read data at offset %s from topic: %s",
-                    startMessageId.toString(),
-                    topic));
+                        startMessageId.toString(),
+                        topic));
             } else {
                 currentId = currentMessage.getMessageId();
                 if (!messageIdRoughEquals(currentId, startMessageId)) {
                     reportDataLoss(
-                        String.format(
-                            "Potential Data Loss in reading %s: intended to start at %s, actually we get %s",
-                            topic, startMessageId.toString(), currentId.toString()));
+                            String.format(
+                                    "Potential Data Loss in reading %s: intended to start at %s, actually we get %s",
+                                    topic, startMessageId.toString(), currentId.toString()));
                 }
 
                 if (startMessageId instanceof BatchMessageIdImpl && currentId instanceof BatchMessageIdImpl) {
@@ -132,7 +133,7 @@ public class ReaderThread<T> extends Thread {
                     BatchMessageIdImpl cbmid = (BatchMessageIdImpl) currentId;
 
                     MessageIdImpl newStart =
-                        new MessageIdImpl(cbmid.getLedgerId(), cbmid.getEntryId() + 1, cbmid.getPartitionIndex());
+                            new MessageIdImpl(cbmid.getLedgerId(), cbmid.getEntryId() + 1, cbmid.getPartitionIndex());
                     reader.seek(newStart);
                 } else if (startMessageId instanceof MessageIdImpl && currentId instanceof MessageIdImpl) {
                     // current entry is a non-batch entry, we can read next directly later
@@ -164,7 +165,7 @@ public class ReaderThread<T> extends Thread {
     private void reportDataLoss(String message) {
         running = false;
         exceptionProxy.reportError(
-            new IllegalStateException(message + PulsarOptions.INSTRUCTION_FOR_FAIL_ON_DATA_LOSS_TRUE));
+                new IllegalStateException(message + PulsarOptions.INSTRUCTION_FOR_FAIL_ON_DATA_LOSS_TRUE));
     }
 
     // used to check whether starting position and current message we got actually are equal
@@ -186,7 +187,7 @@ public class ReaderThread<T> extends Thread {
             return l.equals(r);
         } else {
             throw new IllegalStateException(
-                String.format("comparing messageIds of type %s, %s", l.getClass().toString(), r.getClass().toString()));
+                    String.format("comparing messageIds of type %s, %s", l.getClass().toString(), r.getClass().toString()));
         }
     }
 }

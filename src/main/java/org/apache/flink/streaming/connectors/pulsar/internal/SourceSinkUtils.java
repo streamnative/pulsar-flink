@@ -11,6 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import org.apache.commons.lang3.StringUtils;
@@ -25,7 +26,7 @@ public class SourceSinkUtils {
 
     public static Map<String, String> validateStreamSourceOptions(Map<String, String> parameters) {
         Map<String, String> caseInsensitiveParams = parameters.entrySet().stream()
-            .collect(Collectors.toMap(t -> t.getKey(), t -> t.getValue().toLowerCase(Locale.ROOT)));
+                .collect(Collectors.toMap(t -> t.getKey(), t -> t.getValue().toLowerCase(Locale.ROOT)));
 
         if (caseInsensitiveParams.containsKey(PulsarOptions.ENDING_OFFSETS_OPTION_KEY)) {
             throw new IllegalArgumentException("ending offset not valid in streaming queries");
@@ -36,13 +37,13 @@ public class SourceSinkUtils {
 
     private static Map<String, String> validateSourceOptions(Map<String, String> caseInsensitiveParams) {
         Map<String, String> topicOptions = caseInsensitiveParams.entrySet().stream()
-            .filter(t -> PulsarOptions.TOPIC_OPTION_KEYS.contains(t))
-            .collect(Collectors.toMap(map -> map.getKey(), map -> map.getValue()));
+                .filter(t -> PulsarOptions.TOPIC_OPTION_KEYS.contains(t))
+                .collect(Collectors.toMap(map -> map.getKey(), map -> map.getValue()));
 
         if (topicOptions.isEmpty() || topicOptions.size() > 1) {
             throw new IllegalArgumentException(
-                "You should specify topic(s) using one of the topic options: " +
-                    StringUtils.join(PulsarOptions.TOPIC_OPTION_KEYS, ","));
+                    "You should specify topic(s) using one of the topic options: " +
+                            StringUtils.join(PulsarOptions.TOPIC_OPTION_KEYS, ","));
         }
 
         for (Map.Entry<String, String> topicEntry : topicOptions.entrySet()) {
@@ -51,14 +52,14 @@ public class SourceSinkUtils {
             if (key == "topic") {
                 if (value.contains(",")) {
                     throw new IllegalArgumentException(
-                        "Use `topics` instead of `topic` for multi topic read");
+                            "Use `topics` instead of `topic` for multi topic read");
                 }
             } else if (key == "topics") {
                 List<String> topics = Arrays.asList(value.split(",")).stream()
-                    .map(String::trim).filter(t -> !t.isEmpty()).collect(Collectors.toList());
+                        .map(String::trim).filter(t -> !t.isEmpty()).collect(Collectors.toList());
                 if (topics.isEmpty()) {
                     throw new IllegalArgumentException(
-                        "No topics is specified for read with option" + value);
+                            "No topics is specified for read with option" + value);
                 }
             } else {
                 if (value.trim().length() == 0) {
@@ -100,19 +101,19 @@ public class SourceSinkUtils {
 
     public static Map<String, Object> getReaderParams(Map<String, String> parameters) {
         return parameters.keySet().stream()
-            .filter(k -> k.startsWith(PulsarOptions.PULSAR_READER_OPTION_KEY_PREFIX))
-            .collect(Collectors.toMap(k -> k.substring(PulsarOptions.PULSAR_READER_OPTION_KEY_PREFIX.length()), k -> parameters.get(k)));
+                .filter(k -> k.startsWith(PulsarOptions.PULSAR_READER_OPTION_KEY_PREFIX))
+                .collect(Collectors.toMap(k -> k.substring(PulsarOptions.PULSAR_READER_OPTION_KEY_PREFIX.length()), k -> parameters.get(k)));
     }
 
     public static Map<String, String> toCaceInsensitiveParams(Map<String, String> parameters) {
         return parameters.entrySet().stream()
-            .collect(Collectors.toMap(t -> t.getKey(), t -> t.getValue().toLowerCase(Locale.ROOT)));
+                .collect(Collectors.toMap(t -> t.getKey(), t -> t.getValue().toLowerCase(Locale.ROOT)));
     }
 
     public static Map<String, Object> getProducerParams(Map<String, String> parameters) {
         return parameters.keySet().stream()
-            .filter(k -> k.startsWith(PulsarOptions.PULSAR_PRODUCER_OPTION_KEY_PREFIX))
-            .collect(Collectors.toMap(k -> k.substring(PulsarOptions.PULSAR_PRODUCER_OPTION_KEY_PREFIX.length()), k -> parameters.get(k)));
+                .filter(k -> k.startsWith(PulsarOptions.PULSAR_PRODUCER_OPTION_KEY_PREFIX))
+                .collect(Collectors.toMap(k -> k.substring(PulsarOptions.PULSAR_PRODUCER_OPTION_KEY_PREFIX.length()), k -> parameters.get(k)));
     }
 
 }

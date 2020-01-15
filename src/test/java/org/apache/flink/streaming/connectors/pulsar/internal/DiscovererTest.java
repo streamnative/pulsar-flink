@@ -11,6 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import com.google.common.collect.Sets;
@@ -48,8 +49,8 @@ public class DiscovererTest extends TestLogger {
     @Parameterized.Parameters(name = "params = {0}")
     public static Collection<Map<String, String>[]> pattern() {
         return Arrays.asList(
-            new Map[]{Collections.singletonMap("topic", TEST_TOPIC)},
-            new Map[]{Collections.singletonMap("topicspattern", TEST_TOPIC_PATTERN)});
+                new Map[]{Collections.singletonMap("topic", TEST_TOPIC)},
+                new Map[]{Collections.singletonMap("topicspattern", TEST_TOPIC_PATTERN)});
     }
 
     String topicName(String topic, int partition) {
@@ -61,23 +62,23 @@ public class DiscovererTest extends TestLogger {
     public void testPartitionEqualConsumerNumber() {
         try {
             Set<String> mockAllTopics = Sets.newHashSet(
-                topicName(TEST_TOPIC, 0),
-                topicName(TEST_TOPIC, 1),
-                topicName(TEST_TOPIC, 2),
-                topicName(TEST_TOPIC, 3));
+                    topicName(TEST_TOPIC, 0),
+                    topicName(TEST_TOPIC, 1),
+                    topicName(TEST_TOPIC, 2),
+                    topicName(TEST_TOPIC, 3));
 
             int numSubTasks = mockAllTopics.size();
 
             for (int i = 0; i < numSubTasks; i++) {
                 TestMetadataReader discoverer = new TestMetadataReader(
-                    params, i, numSubTasks,
-                    TestMetadataReader.createMockGetAllTopicsSequenceFromFixedReturn(mockAllTopics));
+                        params, i, numSubTasks,
+                        TestMetadataReader.createMockGetAllTopicsSequenceFromFixedReturn(mockAllTopics));
 
                 Set<String> initials = discoverer.discoverTopicChanges();
                 assertEquals(1, initials.size());
                 assertTrue(mockAllTopics.containsAll(initials));
                 assertEquals(i,
-                    TestMetadataReader.getExpectedSubtaskIndex(initials.iterator().next(), numSubTasks));
+                        TestMetadataReader.getExpectedSubtaskIndex(initials.iterator().next(), numSubTasks));
 
                 Set<String> second = discoverer.discoverTopicChanges();
                 Set<String> third = discoverer.discoverTopicChanges();
@@ -107,8 +108,8 @@ public class DiscovererTest extends TestLogger {
 
             for (int i = 0; i < numTasks; i++) {
                 TestMetadataReader discoverer = new TestMetadataReader(
-                    params, i, numTasks,
-                    TestMetadataReader.createMockGetAllTopicsSequenceFromFixedReturn(mockAllTopics));
+                        params, i, numTasks,
+                        TestMetadataReader.createMockGetAllTopicsSequenceFromFixedReturn(mockAllTopics));
 
                 Set<String> initials = discoverer.discoverTopicChanges();
                 int isize = initials.size();
@@ -148,8 +149,8 @@ public class DiscovererTest extends TestLogger {
 
             for (int i = 0; i < numTasks; i++) {
                 TestMetadataReader discoverer = new TestMetadataReader(
-                    params, i, numTasks,
-                    TestMetadataReader.createMockGetAllTopicsSequenceFromFixedReturn(mockAllTopics));
+                        params, i, numTasks,
+                        TestMetadataReader.createMockGetAllTopicsSequenceFromFixedReturn(mockAllTopics));
 
                 Set<String> initials = discoverer.discoverTopicChanges();
                 int isize = initials.size();
@@ -201,24 +202,24 @@ public class DiscovererTest extends TestLogger {
             int maxAll = allTopics.size() / numTasks + 1;
 
             TestMetadataReader discover1 = new TestMetadataReader(params, 0, numTasks,
-                TestMetadataReader.createMockGetAllTopicsSequenceFromTwoReturns(mockGet));
+                    TestMetadataReader.createMockGetAllTopicsSequenceFromTwoReturns(mockGet));
 
             TestMetadataReader discover2 = new TestMetadataReader(params, 1, numTasks,
-                TestMetadataReader.createMockGetAllTopicsSequenceFromTwoReturns(mockGet));
+                    TestMetadataReader.createMockGetAllTopicsSequenceFromTwoReturns(mockGet));
 
             TestMetadataReader discover3 = new TestMetadataReader(params, 2, numTasks,
-                TestMetadataReader.createMockGetAllTopicsSequenceFromTwoReturns(mockGet));
+                    TestMetadataReader.createMockGetAllTopicsSequenceFromTwoReturns(mockGet));
 
             Set<String> initials1 = discover1.discoverTopicChanges();
             Set<String> initials2 = discover2.discoverTopicChanges();
             Set<String> initials3 = discover3.discoverTopicChanges();
 
             assertTrue(initials1.size() >= minInitialPartitionsPerConsumer &&
-                initials1.size() <= maxInitialPartitionsPerConsumer);
+                    initials1.size() <= maxInitialPartitionsPerConsumer);
             assertTrue(initials2.size() >= minInitialPartitionsPerConsumer &&
-                initials2.size() <= maxInitialPartitionsPerConsumer);
+                    initials2.size() <= maxInitialPartitionsPerConsumer);
             assertTrue(initials3.size() >= minInitialPartitionsPerConsumer &&
-                initials3.size() <= maxInitialPartitionsPerConsumer);
+                    initials3.size() <= maxInitialPartitionsPerConsumer);
 
             for (String tp : initials1) {
                 assertTrue(initialAll.contains(tp));
@@ -249,11 +250,11 @@ public class DiscovererTest extends TestLogger {
             assertTrue(Collections.disjoint(seconds3, initials3));
 
             assertTrue(initials1.size() + seconds1.size() >= minAll
-                && initials1.size() + seconds1.size() <= maxAll);
+                    && initials1.size() + seconds1.size() <= maxAll);
             assertTrue(initials2.size() + seconds2.size() >= minAll
-                && initials2.size() + seconds2.size() <= maxAll);
+                    && initials2.size() + seconds2.size() <= maxAll);
             assertTrue(initials3.size() + seconds3.size() >= minAll
-                && initials3.size() + seconds3.size() <= maxAll);
+                    && initials3.size() + seconds3.size() <= maxAll);
 
             for (String tp : initials1) {
                 assertTrue(allTopics.contains(tp));

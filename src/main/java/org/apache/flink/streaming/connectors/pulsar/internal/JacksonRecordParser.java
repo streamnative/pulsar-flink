@@ -11,6 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import com.fasterxml.jackson.core.JsonEncoding;
@@ -134,7 +135,6 @@ public class JacksonRecordParser {
     }
 
 
-
     private boolean nextUntil(JsonParser parser, JsonToken stopOn) throws IOException {
         JsonToken token = parser.nextToken();
         if (token == null) {
@@ -143,8 +143,6 @@ public class JacksonRecordParser {
             return token != stopOn;
         }
     }
-
-
 
 
     private Function<JsonParser, Object> makeConverter(DataType dataType) {
@@ -162,11 +160,7 @@ public class JacksonRecordParser {
 
                             @Override
                             public Object apply(JsonToken token) {
-                                if (token == JsonToken.VALUE_TRUE) {
-                                    return true;
-                                } else {
-                                    return false;
-                                }
+                                return token == JsonToken.VALUE_TRUE;
                             }
                         });
                     } catch (IOException e) {
@@ -281,15 +275,15 @@ public class JacksonRecordParser {
                             @Override
                             public boolean isDefinedAt(JsonToken token) {
                                 return token == JsonToken.VALUE_NUMBER_INT
-                                    || token == JsonToken.VALUE_NUMBER_FLOAT
-                                    || token == JsonToken.VALUE_STRING;
+                                        || token == JsonToken.VALUE_NUMBER_FLOAT
+                                        || token == JsonToken.VALUE_STRING;
                             }
 
                             @Override
                             public Object apply(JsonToken token) {
                                 try {
                                     if (token == JsonToken.VALUE_NUMBER_INT
-                                        || token == JsonToken.VALUE_NUMBER_FLOAT) {
+                                            || token == JsonToken.VALUE_NUMBER_FLOAT) {
                                         return parser.getFloatValue();
                                     } else {
                                         String txt = parser.getText();
@@ -322,15 +316,15 @@ public class JacksonRecordParser {
                             @Override
                             public boolean isDefinedAt(JsonToken token) {
                                 return token == JsonToken.VALUE_NUMBER_INT
-                                    || token == JsonToken.VALUE_NUMBER_FLOAT
-                                    || token == JsonToken.VALUE_STRING;
+                                        || token == JsonToken.VALUE_NUMBER_FLOAT
+                                        || token == JsonToken.VALUE_STRING;
                             }
 
                             @Override
                             public Object apply(JsonToken token) {
                                 try {
                                     if (token == JsonToken.VALUE_NUMBER_INT
-                                        || token == JsonToken.VALUE_NUMBER_FLOAT) {
+                                            || token == JsonToken.VALUE_NUMBER_FLOAT) {
                                         return parser.getDoubleValue();
                                     } else {
                                         String txt = parser.getText();
@@ -535,7 +529,7 @@ public class JacksonRecordParser {
 
             default:
                 throw new RuntimeException(String.format(
-                    "Failed to parse a value for data type %s (current: %s).", dataType.toString(), tpe.toString()));
+                        "Failed to parse a value for data type %s (current: %s).", dataType.toString(), tpe.toString()));
         }
     }
 
@@ -546,7 +540,7 @@ public class JacksonRecordParser {
      * token, call `failedConversion` to handle the token.
      */
     public Object parseJsonToken(JsonParser parser, DataType dataType, PartialFunc f) throws IOException {
-        while(true) {
+        while (true) {
             JsonToken currentToken = parser.getCurrentToken();
             if (!JsonToken.FIELD_NAME.equals(currentToken)) {
                 Object result;
@@ -579,7 +573,7 @@ public class JacksonRecordParser {
                     return null;
                 } else {
                     throw new RuntimeException(String.format(
-                        "Failed to parse a value for data type %s (current token: %s).", dataType.toString(), token.toString()));
+                            "Failed to parse a value for data type %s (current token: %s).", dataType.toString(), token.toString()));
                 }
             }
         }

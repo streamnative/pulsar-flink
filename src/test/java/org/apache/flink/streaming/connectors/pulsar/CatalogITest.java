@@ -11,6 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.pulsar;
 
 import com.google.common.collect.Iterables;
@@ -48,23 +49,23 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import static org.apache.flink.streaming.connectors.pulsar.SchemaData.int32List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.apache.flink.streaming.connectors.pulsar.SchemaData.int32List;
 
 
 public class CatalogITest extends PulsarTestBaseWithFlink {
-    
+
     private static final String CATALOGS_ENVIRONMENT_FILE = "test-sql-client-pulsar-catalog.yaml";
     private static final String CATALOGS_ENVIRONMENT_FILE_START = "test-sql-client-pulsar-start-catalog.yaml";
-    
+
     @Before
     public void clearStates() {
         StreamITCase.testResults().clear();
         FailingIdentityMapper.failedBefore = false;
     }
-    
+
     @Test
     public void testCatalogs() throws Exception {
         String inmemoryCatalog = "inmemorycatalog";
@@ -73,7 +74,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
         ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE, getStreamingConfs());
         TableEnvironment tableEnv = context.createEnvironmentInstance().getTableEnvironment();
-        
+
         assertEquals(tableEnv.getCurrentCatalog(), inmemoryCatalog);
         assertEquals(tableEnv.getCurrentDatabase(), "mydatabase");
 
@@ -82,14 +83,14 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         assertTrue(catalog instanceof PulsarCatalog);
         tableEnv.useCatalog(pulsarCatalog1);
         assertEquals(tableEnv.getCurrentDatabase(), "public/default");
-        
+
         catalog = tableEnv.getCatalog(pulsarCatalog2).orElse(null);
         assertNotNull(catalog);
         assertTrue(catalog instanceof PulsarCatalog);
         tableEnv.useCatalog(pulsarCatalog2);
         assertEquals(tableEnv.getCurrentDatabase(), "tn/ns");
     }
-    
+
     @Test
     public void testDatabases() throws Exception {
         String pulsarCatalog1 = "pulsarcatalog1";
@@ -107,7 +108,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
         try (PulsarAdmin admin = PulsarAdmin.builder().serviceHttpUrl(getAdminUrl()).build()) {
             admin.tenants().createTenant("tn1",
-                new TenantInfo(Sets.newHashSet(), Sets.newHashSet("standalone")));
+                    new TenantInfo(Sets.newHashSet(), Sets.newHashSet("standalone")));
             for (String ns : namespaces) {
                 admin.namespaces().createNamespace(ns);
             }
@@ -125,10 +126,10 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
             tableEnv.useDatabase("tn1/ns1");
 
             assertTrue(
-                Sets.symmetricDifference(
-                    Sets.newHashSet(tableEnv.listTables()),
-                    Sets.newHashSet(Iterables.concat(topics, partitionedTopics)))
-                    .isEmpty());
+                    Sets.symmetricDifference(
+                            Sets.newHashSet(tableEnv.listTables()),
+                            Sets.newHashSet(Iterables.concat(topics, partitionedTopics)))
+                            .isEmpty());
 
             for (String tp : topicsFullName) {
                 admin.topics().delete(tp);
@@ -160,7 +161,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         Table t = tableEnv.scan(TopicName.get(tableName).getLocalName()).select("value");
         DataStream stream = ((StreamTableEnvironment) ((TableImpl) t).getTableEnvironment()).toAppendStream(t, Row.class);
         stream.map(new FailingIdentityMapper<Row>(int32List.size()))
-            .addSink(new StreamITCase.StringSink<>()).setParallelism(1);
+                .addSink(new StreamITCase.StringSink<>()).setParallelism(1);
 
         Thread runner = new Thread("runner") {
             @Override
@@ -199,7 +200,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         Table t = tableEnv.scan(TopicName.get(tableName).getLocalName()).select("value");
         DataStream stream = ((StreamTableEnvironment) ((TableImpl) t).getTableEnvironment()).toAppendStream(t, Row.class);
         stream.map(new FailingIdentityMapper<Row>(int32List.size()))
-            .addSink(new StreamITCase.StringSink<>()).setParallelism(1);
+                .addSink(new StreamITCase.StringSink<>()).setParallelism(1);
 
         Thread runner = new Thread("runner") {
             @Override
@@ -263,7 +264,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         Table t = tableEnv1.scan("tableSink").select("value");
         DataStream stream = ((StreamTableEnvironment) ((TableImpl) t).getTableEnvironment()).toAppendStream(t, Row.class);
         stream.map(new FailingIdentityMapper<Row>(int32List.size()))
-            .addSink(new StreamITCase.StringSink<>()).setParallelism(1);
+                .addSink(new StreamITCase.StringSink<>()).setParallelism(1);
 
         Thread reader = new Thread("read") {
             @Override
@@ -326,7 +327,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         Table t = tableEnv1.scan("tableSink1").select("value");
         DataStream stream = ((StreamTableEnvironment) ((TableImpl) t).getTableEnvironment()).toAppendStream(t, Row.class);
         stream.map(new FailingIdentityMapper<Row>(int32List.size()))
-            .addSink(new StreamITCase.StringSink<>()).setParallelism(1);
+                .addSink(new StreamITCase.StringSink<>()).setParallelism(1);
 
         Thread reader = new Thread("read") {
             @Override
@@ -346,18 +347,18 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
     private <T> ExecutionContext<T> createExecutionContext(String file, Map<String, String> replaceVars) throws Exception {
         final Environment env = EnvironmentFileUtil.parseModified(
-            file,
-            replaceVars);
+                file,
+                replaceVars);
         final Configuration flinkConfig = new Configuration();
         return new ExecutionContext<>(
-            env,
-            new SessionContext("test-session", new Environment()),
-            Collections.emptyList(),
-            flinkConfig,
-            new Options(),
-            Collections.singletonList(new DefaultCLI(flinkConfig)));
+                env,
+                new SessionContext("test-session", new Environment()),
+                Collections.emptyList(),
+                flinkConfig,
+                new Options(),
+                Collections.singletonList(new DefaultCLI(flinkConfig)));
     }
-    
+
     private Map<String, String> getStreamingConfs() {
         Map<String, String> replaceVars = new HashMap<>();
         replaceVars.put("$VAR_EXECUTION_TYPE", "streaming");

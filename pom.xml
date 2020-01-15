@@ -13,7 +13,9 @@
     limitations under the License.
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -37,7 +39,8 @@
   </licenses>
   <scm>
     <connection>scm:git:https://github.com/streamnative/pulsar-flink.git</connection>
-    <developerConnection>scm:git:https://github.com/streamnative/pulsar-flink.git</developerConnection>
+    <developerConnection>scm:git:https://github.com/streamnative/pulsar-flink.git
+    </developerConnection>
     <url>https://github.com/streamnative/pulsar-flink</url>
     <tag>HEAD</tag>
   </scm>
@@ -352,7 +355,9 @@
               </artifactSet>
               <filters>
                 <filter>
-                  <artifact>io.streamnative.connectors:pulsar-flink-connector_${scala.binary.version}</artifact>
+                  <artifact>
+                    io.streamnative.connectors:pulsar-flink-connector_${scala.binary.version}
+                  </artifact>
                   <includes>
                     <include>**</include>
                   </includes>
@@ -377,8 +382,10 @@
                 </relocation>
               </relocations>
               <transformers>
-                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
-                <transformer implementation="org.apache.maven.plugins.shade.resource.PluginXmlResourceTransformer" />
+                <transformer
+                    implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                <transformer
+                    implementation="org.apache.maven.plugins.shade.resource.PluginXmlResourceTransformer"/>
               </transformers>
             </configuration>
           </execution>
@@ -402,7 +409,9 @@
   <distributionManagement>
     <repository>
       <id>streamnative</id>
-      <url>https://api.bintray.com/maven/streamnative/maven/io.streamnative.pulsar-flink/;publish=1</url>
+      <url>
+        https://api.bintray.com/maven/streamnative/maven/io.streamnative.pulsar-flink/;publish=1
+      </url>
     </repository>
   </distributionManagement>
 </project>

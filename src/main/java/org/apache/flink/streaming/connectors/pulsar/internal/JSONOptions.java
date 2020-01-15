@@ -11,6 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import com.fasterxml.jackson.core.JsonFactory;
@@ -67,31 +68,31 @@ public class JSONOptions implements Serializable {
         this.defaultColumnNameOfCorruptRecord = defaultColumnNameOfCorruptRecord;
 
         this.primitivesAsString =
-            Boolean.valueOf(parameters.getOrDefault("primitivesAsString", "false"));
+                Boolean.valueOf(parameters.getOrDefault("primitivesAsString", "false"));
         this.prefersDecimal =
-            Boolean.valueOf(parameters.getOrDefault("prefersDecimal", "false"));
+                Boolean.valueOf(parameters.getOrDefault("prefersDecimal", "false"));
         this.allowComments =
-            Boolean.valueOf(parameters.getOrDefault("allowComments", "false"));
+                Boolean.valueOf(parameters.getOrDefault("allowComments", "false"));
         this.allowUnquotedFieldNames =
-            Boolean.valueOf(parameters.getOrDefault("allowUnquotedFieldNames", "false"));
+                Boolean.valueOf(parameters.getOrDefault("allowUnquotedFieldNames", "false"));
         this.allowSingleQuotes =
-            Boolean.valueOf(parameters.getOrDefault("allowSingleQuotes", "false"));
+                Boolean.valueOf(parameters.getOrDefault("allowSingleQuotes", "false"));
         this.allowNumericLeadingZeros =
-            Boolean.valueOf(parameters.getOrDefault("allowNumericLeadingZeros", "false"));
+                Boolean.valueOf(parameters.getOrDefault("allowNumericLeadingZeros", "false"));
         this.allowNonNumericNumbers =
-            Boolean.valueOf(parameters.getOrDefault("allowNonNumericNumbers", "false"));
+                Boolean.valueOf(parameters.getOrDefault("allowNonNumericNumbers", "false"));
         this.allowBackslashEscapingAnyCharacter =
-            Boolean.valueOf(parameters.getOrDefault("allowBackslashEscapingAnyCharacter", "false"));
+                Boolean.valueOf(parameters.getOrDefault("allowBackslashEscapingAnyCharacter", "false"));
         this.allowUnquotedControlChars =
-            Boolean.valueOf(parameters.getOrDefault("allowUnquotedControlChars", "false"));
+                Boolean.valueOf(parameters.getOrDefault("allowUnquotedControlChars", "false"));
         this.columnNameOfCorruptRecord =
-            parameters.getOrDefault("columnNameOfCorruptRecord", defaultColumnNameOfCorruptRecord);
+                parameters.getOrDefault("columnNameOfCorruptRecord", defaultColumnNameOfCorruptRecord);
         this.dropFieldIfAllNull =
-            Boolean.valueOf(parameters.getOrDefault("dropFieldIfAllNull", "false"));
+                Boolean.valueOf(parameters.getOrDefault("dropFieldIfAllNull", "false"));
         this.parseMode =
-            ParseMode.get(parameters.get("mode"));
+                ParseMode.get(parameters.get("mode"));
         this.multiLine =
-            Boolean.valueOf(parameters.getOrDefault("multiLine", "false"));
+                Boolean.valueOf(parameters.getOrDefault("multiLine", "false"));
 
         if (parameters.containsKey("encoding") || parameters.containsKey("charset")) {
             String enc = parameters.getOrDefault("encoding", parameters.getOrDefault("charset", null));
@@ -128,7 +129,7 @@ public class JSONOptions implements Serializable {
 
         this.dateFormat = FastDateFormat.getInstance(parameters.getOrDefault("dateFormat", "yyyy-MM-dd"), Locale.US);
         this.timestampFormat = FastDateFormat.getInstance(
-            parameters.getOrDefault("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSS"), timeZone, Locale.US);
+                parameters.getOrDefault("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSS"), timeZone, Locale.US);
 
     }
 

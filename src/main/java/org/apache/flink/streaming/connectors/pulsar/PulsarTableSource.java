@@ -11,6 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.pulsar;
 
 import avro.shaded.com.google.common.collect.Maps;
@@ -88,7 +89,7 @@ public class PulsarTableSource
         this.specificStartupOffsets = specificStartupOffsets;
 
         this.caseInsensitiveParams =
-            SourceSinkUtils.validateStreamSourceOptions(Maps.fromProperties(properties));
+                SourceSinkUtils.validateStreamSourceOptions(Maps.fromProperties(properties));
 
         this.schema = inferTableSchema();
 
@@ -101,14 +102,14 @@ public class PulsarTableSource
             String adminUrl,
             Properties properties) {
         this(
-            Optional.empty(),
-            Optional.empty(),
-            Collections.emptyList(),
-            serviceUrl,
-            adminUrl,
-            properties,
-            StartupMode.LATEST,
-            Collections.emptyMap());
+                Optional.empty(),
+                Optional.empty(),
+                Collections.emptyList(),
+                serviceUrl,
+                adminUrl,
+                properties,
+                StartupMode.LATEST,
+                Collections.emptyMap());
     }
 
     @Override

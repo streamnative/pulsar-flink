@@ -40,6 +40,7 @@ import org.apache.pulsar.shade.org.apache.avro.generic.GenericFixed;
 import org.apache.pulsar.shade.org.apache.avro.generic.GenericRecord;
 import org.apache.pulsar.shade.org.apache.avro.util.Utf8;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
@@ -104,7 +105,13 @@ public class PulsarDeserializer {
                 case JSON:
                     val fdt = (FieldsDataType) rootDataType;
                     BiFunction<JsonFactory, String, JsonParser> createParser =
-                        (jsonFactory, s) -> CreateJacksonParser.string(jsonFactory, s);
+                        (jsonFactory, s) -> {
+                            try {
+                                return jsonFactory.createParser(s);
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        };
                     val rawParser = new JacksonRecordParser(rootDataType, parsedOptions);
                     val parser = new JacksonRecordParser.FailureSafeRecordParser(
                         (s, row) -> rawParser.parse(s, createParser, row),

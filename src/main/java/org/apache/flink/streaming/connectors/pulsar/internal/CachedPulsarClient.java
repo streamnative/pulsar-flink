@@ -34,6 +34,10 @@ public class CachedPulsarClient {
         cacheSize = size;
     }
 
+    public static int getCacheSize() {
+        return cacheSize;
+    }
+
     private static CacheLoader<ClientConfigurationData, PulsarClientImpl> cacheLoader =
         new CacheLoader<ClientConfigurationData, PulsarClientImpl>() {
             @Override

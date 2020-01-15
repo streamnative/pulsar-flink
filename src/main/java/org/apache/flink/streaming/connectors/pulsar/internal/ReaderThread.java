@@ -170,7 +170,7 @@ public class ReaderThread<T> extends Thread {
 
     // used to check whether starting position and current message we got actually are equal
     // we neglect the potential batchIdx deliberately while seeking to MessageIdImpl for batch entry
-    public boolean messageIdRoughEquals(MessageId l, MessageId r) {
+    public static boolean messageIdRoughEquals(MessageId l, MessageId r) {
         if (l == null || r == null) {
             return false;
         }

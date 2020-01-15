@@ -23,7 +23,6 @@ import org.apache.flink.configuration.TaskManagerOptions;
 import org.apache.flink.metrics.jmx.JMXReporter;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.streaming.util.TestStreamEnvironment;
-import org.apache.flink.table.catalog.pulsar.PulsarCatalog;
 import org.apache.flink.util.TestLogger;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.MessageId;

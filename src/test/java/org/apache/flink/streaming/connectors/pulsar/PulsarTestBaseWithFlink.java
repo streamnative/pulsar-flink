@@ -31,6 +31,8 @@ public abstract class PulsarTestBaseWithFlink extends PulsarTestBase {
 
     protected static final int TM_SLOTS = 8;
 
+    protected ClusterClient<?> client;
+
     @ClassRule
     public static MiniClusterWithClientResource flink = new MiniClusterWithClientResource(
         new MiniClusterResourceConfiguration.Builder()
@@ -41,7 +43,8 @@ public abstract class PulsarTestBaseWithFlink extends PulsarTestBase {
 
     @Before
     public void noJobIsRunning() throws Exception {
-        waitUntilNoJobIsRunning(flink.getClusterClient());
+        client = flink.getClusterClient();
+        waitUntilNoJobIsRunning(client);
     }
 
     public static void waitUntilJobIsRunning(ClusterClient<?> client) throws Exception {

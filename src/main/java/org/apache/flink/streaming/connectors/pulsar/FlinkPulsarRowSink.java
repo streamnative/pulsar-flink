@@ -72,6 +72,15 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
        dataType = this.dataType;
     }
 
+    public FlinkPulsarRowSink(
+            String serviceUrl,
+            String adminUrl,
+            Optional<String> defaultTopicName,
+            Properties properties,
+            DataType dataType) {
+        this(adminUrl, defaultTopicName, newClientConf(serviceUrl), properties, dataType);
+    }
+
     @Override
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);

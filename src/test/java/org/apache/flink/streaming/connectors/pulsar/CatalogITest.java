@@ -14,13 +14,14 @@
 package org.apache.flink.streaming.connectors.pulsar;
 
 import com.google.common.collect.Iterables;
-import lombok.val;
 import org.apache.commons.cli.Options;
 import org.apache.flink.client.cli.DefaultCLI;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.connectors.pulsar.testutils.EnvironmentFileUtil;
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper;
 import org.apache.flink.table.api.Table;
+import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.api.internal.TableImpl;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.catalog.Catalog;
@@ -41,6 +42,7 @@ import org.testcontainers.shaded.com.google.common.collect.Sets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -65,12 +67,12 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
     
     @Test
     public void testCatalogs() throws Exception {
-        val inmemoryCatalog = "inmemorycatalog";
-        val pulsarCatalog1 = "pulsarcatalog1";
-        val pulsarCatalog2 = "pulsarcatalog2";
-        
-        val context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE, getStreamingConfs());
-        val tableEnv = context.createEnvironmentInstance().getTableEnvironment();
+        String inmemoryCatalog = "inmemorycatalog";
+        String pulsarCatalog1 = "pulsarcatalog1";
+        String pulsarCatalog2 = "pulsarcatalog2";
+
+        ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE, getStreamingConfs());
+        TableEnvironment tableEnv = context.createEnvironmentInstance().getTableEnvironment();
         
         assertEquals(tableEnv.getCurrentCatalog(), inmemoryCatalog);
         assertEquals(tableEnv.getCurrentDatabase(), "mydatabase");
@@ -90,15 +92,15 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
     
     @Test
     public void testDatabases() throws Exception {
-        val pulsarCatalog1 = "pulsarcatalog1";
-        val namespaces = Arrays.asList("tn1/ns1", "tn1/ns2");
-        val topics = Arrays.asList("tp1", "tp2");
-        val topicsFullName = topics.stream().map(a -> "tn1/ns1/" + a).collect(Collectors.toList());
-        val partitionedTopics = Arrays.asList("ptp1", "ptp2");
-        val partitionedTopicsFullName = partitionedTopics.stream().map(a -> "tn1/ns1/" + a).collect(Collectors.toList());
+        String pulsarCatalog1 = "pulsarcatalog1";
+        List<String> namespaces = Arrays.asList("tn1/ns1", "tn1/ns2");
+        List<String> topics = Arrays.asList("tp1", "tp2");
+        List<String> topicsFullName = topics.stream().map(a -> "tn1/ns1/" + a).collect(Collectors.toList());
+        List<String> partitionedTopics = Arrays.asList("ptp1", "ptp2");
+        List<String> partitionedTopicsFullName = partitionedTopics.stream().map(a -> "tn1/ns1/" + a).collect(Collectors.toList());
 
-        val context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE, getStreamingConfs());
-        val tableEnv = context.createEnvironmentInstance().getTableEnvironment();
+        ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE, getStreamingConfs());
+        TableEnvironment tableEnv = context.createEnvironmentInstance().getTableEnvironment();
 
         tableEnv.useCatalog(pulsarCatalog1);
         assertEquals(tableEnv.getCurrentDatabase(), "public/default");
@@ -144,23 +146,23 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
     @Test
     public void testTableReadStartFromLatestByDefault() throws Exception {
-        val pulsarCatalog1 = "pulsarcatalog1";
+        String pulsarCatalog1 = "pulsarcatalog1";
 
-        val tableName = newTopic();
+        String tableName = newTopic();
 
         sendTypedMessages(tableName, SchemaType.INT32, int32List, Optional.empty());
 
-        val context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE, getStreamingConfs());
-        val tableEnv = context.createEnvironmentInstance().getTableEnvironment();
+        ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE, getStreamingConfs());
+        TableEnvironment tableEnv = context.createEnvironmentInstance().getTableEnvironment();
 
         tableEnv.useCatalog(pulsarCatalog1);
 
         Table t = tableEnv.scan(TopicName.get(tableName).getLocalName()).select("value");
-        val stream = ((StreamTableEnvironment) ((TableImpl) t).getTableEnvironment()).toAppendStream(t, Row.class);
+        DataStream stream = ((StreamTableEnvironment) ((TableImpl) t).getTableEnvironment()).toAppendStream(t, Row.class);
         stream.map(new FailingIdentityMapper<Row>(int32List.size()))
             .addSink(new StreamITCase.StringSink<>()).setParallelism(1);
 
-        val runner = new Thread("runner") {
+        Thread runner = new Thread("runner") {
             @Override
             public void run() {
                 try {
@@ -182,24 +184,24 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
     @Test
     public void testTableReadStartFromEarliest() throws Exception {
-        val tableName = newTopic();
+        String tableName = newTopic();
 
         sendTypedMessages(tableName, SchemaType.INT32, int32List, Optional.empty());
 
-        val conf = getStreamingConfs();
+        Map<String, String> conf = getStreamingConfs();
         conf.put("$VAR_STARTING", "earliest");
 
-        val context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
-        val tableEnv = context.createEnvironmentInstance().getTableEnvironment();
+        ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
+        TableEnvironment tableEnv = context.createEnvironmentInstance().getTableEnvironment();
 
         tableEnv.useCatalog("pulsarCatalog1");
 
         Table t = tableEnv.scan(TopicName.get(tableName).getLocalName()).select("value");
-        val stream = ((StreamTableEnvironment) ((TableImpl) t).getTableEnvironment()).toAppendStream(t, Row.class);
+        DataStream stream = ((StreamTableEnvironment) ((TableImpl) t).getTableEnvironment()).toAppendStream(t, Row.class);
         stream.map(new FailingIdentityMapper<Row>(int32List.size()))
             .addSink(new StreamITCase.StringSink<>()).setParallelism(1);
 
-        val runner = new Thread("runner") {
+        Thread runner = new Thread("runner") {
             @Override
             public void run() {
                 try {
@@ -218,26 +220,26 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
     @Test
     public void testTableSink() throws Exception {
-        val tp = newTopic();
-        val tableName = TopicName.get(tp).getLocalName();
+        String tp = newTopic();
+        String tableName = TopicName.get(tp).getLocalName();
 
         sendTypedMessages(tp, SchemaType.INT32, int32List, Optional.empty());
 
-        val conf = getStreamingConfs();
+        Map<String, String> conf = getStreamingConfs();
         conf.put("$VAR_STARTING", "earliest");
 
-        val context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
-        val tableEnv = context.createEnvironmentInstance().getTableEnvironment();
+        ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
+        TableEnvironment tableEnv = context.createEnvironmentInstance().getTableEnvironment();
 
         tableEnv.useCatalog("pulsarcatalog1");
 
-        val sinkDDL = "create table tableSink(v int)";
-        val insertQ = "INSERT INTO tableSink SELECT * FROM " + tableName;
+        String sinkDDL = "create table tableSink(v int)";
+        String insertQ = "INSERT INTO tableSink SELECT * FROM " + tableName;
 
         tableEnv.sqlUpdate(sinkDDL);
         tableEnv.sqlUpdate(insertQ);
 
-        val runner = new Thread("write to table") {
+        Thread runner = new Thread("write to table") {
             @Override
             public void run() {
                 try {
@@ -250,20 +252,20 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
         runner.start();
 
-        val conf1 = getStreamingConfs();
+        Map<String, String> conf1 = getStreamingConfs();
         conf1.put("$VAR_STARTING", "earliest");
 
-        val context1 = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf1);
-        val tableEnv1 = context.createEnvironmentInstance().getTableEnvironment();
+        ExecutionContext context1 = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf1);
+        TableEnvironment tableEnv1 = context.createEnvironmentInstance().getTableEnvironment();
 
         tableEnv1.useCatalog("pulsarcatalog1");
 
-        val t = tableEnv1.scan("tableSink").select("value");
-        val stream = ((StreamTableEnvironment) ((TableImpl) t).getTableEnvironment()).toAppendStream(t, Row.class);
+        Table t = tableEnv1.scan("tableSink").select("value");
+        DataStream stream = ((StreamTableEnvironment) ((TableImpl) t).getTableEnvironment()).toAppendStream(t, Row.class);
         stream.map(new FailingIdentityMapper<Row>(int32List.size()))
             .addSink(new StreamITCase.StringSink<>()).setParallelism(1);
 
-        val reader = new Thread("read") {
+        Thread reader = new Thread("read") {
             @Override
             public void run() {
                 try {
@@ -282,25 +284,25 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
     @Test
     public void testSinkToExistingTopic() throws Exception {
 
-        val tp = newTopic();
-        val tableName = TopicName.get(tp).getLocalName();
+        String tp = newTopic();
+        String tableName = TopicName.get(tp).getLocalName();
 
         sendTypedMessages(tp, SchemaType.INT32, int32List, Optional.empty());
         sendTypedMessages("tableSink1", SchemaType.INT32, Arrays.asList(-1), Optional.empty());
 
-        val conf = getStreamingConfs();
+        Map<String, String> conf = getStreamingConfs();
         conf.put("$VAR_STARTING", "earliest");
 
-        val context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
-        val tableEnv = context.createEnvironmentInstance().getTableEnvironment();
+        ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
+        TableEnvironment tableEnv = context.createEnvironmentInstance().getTableEnvironment();
 
         tableEnv.useCatalog("pulsarcatalog1");
 
-        val insertQ = "INSERT INTO tableSink1 SELECT * FROM " + tableName;
+        String insertQ = "INSERT INTO tableSink1 SELECT * FROM " + tableName;
 
         tableEnv.sqlUpdate(insertQ);
 
-        val runner = new Thread("write to table") {
+        Thread runner = new Thread("write to table") {
             @Override
             public void run() {
                 try {
@@ -313,20 +315,20 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
         runner.start();
 
-        val conf1 = getStreamingConfs();
+        Map<String, String> conf1 = getStreamingConfs();
         conf1.put("$VAR_STARTING", "earliest");
 
-        val context1 = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf1);
-        val tableEnv1 = context.createEnvironmentInstance().getTableEnvironment();
+        ExecutionContext context1 = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf1);
+        TableEnvironment tableEnv1 = context.createEnvironmentInstance().getTableEnvironment();
 
         tableEnv1.useCatalog("pulsarcatalog1");
 
-        val t = tableEnv1.scan("tableSink1").select("value");
-        val stream = ((StreamTableEnvironment) ((TableImpl) t).getTableEnvironment()).toAppendStream(t, Row.class);
+        Table t = tableEnv1.scan("tableSink1").select("value");
+        DataStream stream = ((StreamTableEnvironment) ((TableImpl) t).getTableEnvironment()).toAppendStream(t, Row.class);
         stream.map(new FailingIdentityMapper<Row>(int32List.size()))
             .addSink(new StreamITCase.StringSink<>()).setParallelism(1);
 
-        val reader = new Thread("read") {
+        Thread reader = new Thread("read") {
             @Override
             public void run() {
                 try {

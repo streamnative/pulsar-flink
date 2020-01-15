@@ -13,7 +13,6 @@
  */
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
-import lombok.val;
 import org.apache.flink.core.testutils.CheckedThread;
 import org.apache.flink.core.testutils.OneShotLatch;
 import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
@@ -34,6 +33,7 @@ import org.mockito.internal.util.collections.Sets;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -69,7 +69,7 @@ public class PulsarFetcherTest extends TestLogger {
             null);
 
         synchronized (sourceContext.getCheckpointLock()) {
-            val current = fetcher.snapshotCurrentState();
+            Map<String, MessageId> current = fetcher.snapshotCurrentState();
             fetcher.commitOffsetToPulsar(current, new PulsarCommitCallback() {
                 @Override
                 public void onSuccess() {
@@ -89,10 +89,10 @@ public class PulsarFetcherTest extends TestLogger {
 
     @Test
     public void testSkipCorruptedRecord() throws Exception {
-        val testTopic = "tp";
-        val offset = Collections.singletonMap(topicName(testTopic, 1), MessageId.latest);
+        String testTopic = "tp";
+        Map<String, MessageId> offset = Collections.singletonMap(topicName(testTopic, 1), MessageId.latest);
 
-        val sourceContext = new TestSourceContext<Long>();
+        TestSourceContext<Long> sourceContext = new TestSourceContext<Long>();
         TestFetcher<Long> fetcher = new TestFetcher<>(
             sourceContext,
             offset,
@@ -103,7 +103,7 @@ public class PulsarFetcherTest extends TestLogger {
             null,
             null);
 
-        val stateHolder = fetcher.getSubscribedTopicStates().get(0);
+        PulsarTopicState stateHolder = fetcher.getSubscribedTopicStates().get(0);
         fetcher.emitRecord(1L, stateHolder, dummyMessageId(1));
         fetcher.emitRecord(2L, stateHolder, dummyMessageId(2));
         assertEquals(2L, sourceContext.getLatestElement().getValue().longValue());
@@ -117,12 +117,12 @@ public class PulsarFetcherTest extends TestLogger {
 
     @Test
     public void testSkipCorruptedRecordWithPeriodicWatermarks() throws Exception {
-        val testTopic = "tp";
-        val offset = Collections.singletonMap(topicName(testTopic, 1), MessageId.latest);
+        String testTopic = "tp";
+        Map<String, MessageId> offset = Collections.singletonMap(topicName(testTopic, 1), MessageId.latest);
 
         TestProcessingTimeService processingTimeProvider = new TestProcessingTimeService();
 
-        val sourceContext = new TestSourceContext<Long>();
+        TestSourceContext<Long> sourceContext = new TestSourceContext<Long>();
         TestFetcher<Long> fetcher = new TestFetcher<>(
             sourceContext,
             offset,
@@ -133,7 +133,7 @@ public class PulsarFetcherTest extends TestLogger {
             null,
             null);
 
-        val stateHolder = fetcher.getSubscribedTopicStates().get(0);
+        PulsarTopicState stateHolder = fetcher.getSubscribedTopicStates().get(0);
 
         fetcher.emitRecord(1L, stateHolder, dummyMessageId(1));
         fetcher.emitRecord(2L, stateHolder, dummyMessageId(2));
@@ -162,12 +162,12 @@ public class PulsarFetcherTest extends TestLogger {
 
     @Test
     public void testSkipCorruptedRecordWithPunctuatedWatermarks() throws Exception {
-        val testTopic = "tp";
-        val offset = Collections.singletonMap(topicName(testTopic, 1), MessageId.latest);
+        String testTopic = "tp";
+        Map<String, MessageId> offset = Collections.singletonMap(topicName(testTopic, 1), MessageId.latest);
 
         TestProcessingTimeService processingTimeProvider = new TestProcessingTimeService();
 
-        val sourceContext = new TestSourceContext<Long>();
+        TestSourceContext<Long> sourceContext = new TestSourceContext<Long>();
         TestFetcher<Long> fetcher = new TestFetcher<>(
             sourceContext,
             offset,
@@ -178,7 +178,7 @@ public class PulsarFetcherTest extends TestLogger {
             null,
             null);
 
-        val stateHolder = fetcher.getSubscribedTopicStates().get(0);
+        PulsarTopicState stateHolder = fetcher.getSubscribedTopicStates().get(0);
 
         // elements generate a watermark if the timestamp is a multiple of three
         fetcher.emitRecord(1L, stateHolder, dummyMessageId(1));
@@ -209,7 +209,7 @@ public class PulsarFetcherTest extends TestLogger {
         offset.put(topicName(testTopic, 2), MessageId.latest);
         offset.put(topicName(testTopic, 3), MessageId.latest);
 
-        val sourceContext = new TestSourceContext<Long>();
+        TestSourceContext<Long> sourceContext = new TestSourceContext<Long>();
         TestProcessingTimeService processingTimeProvider = new TestProcessingTimeService();
         TestFetcher<Long> fetcher = new TestFetcher<>(
             sourceContext,
@@ -221,9 +221,9 @@ public class PulsarFetcherTest extends TestLogger {
             null,
             null);
 
-        val part1 = fetcher.getSubscribedTopicStates().get(0);
-        val part2 = fetcher.getSubscribedTopicStates().get(1);
-        val part3 = fetcher.getSubscribedTopicStates().get(2);
+        PulsarTopicState part1 = fetcher.getSubscribedTopicStates().get(0);
+        PulsarTopicState part2 = fetcher.getSubscribedTopicStates().get(1);
+        PulsarTopicState part3 = fetcher.getSubscribedTopicStates().get(2);
 
         // elements for partition 1
         fetcher.emitRecord(1L, part1, dummyMessageId(1));
@@ -270,21 +270,21 @@ public class PulsarFetcherTest extends TestLogger {
         fetcher.emitRecord(15L, part2, dummyMessageId(4));
 
         processingTimeProvider.setCurrentTime(30);
-        val watermarkTs = sourceContext.getLatestWatermark().getTimestamp();
+        long watermarkTs = sourceContext.getLatestWatermark().getTimestamp();
         assertTrue(watermarkTs >= 13L && watermarkTs <= 15L);
 
     }
 
     @Test
     public void testPunctuatedWatermarks() throws Exception {
-        val testTopic = "tp";
+        String testTopic = "tp";
         Map<String, MessageId> offset = new HashMap<>();
         offset.put(topicName(testTopic, 1), MessageId.latest);
         offset.put(topicName(testTopic, 2), MessageId.latest);
         offset.put(topicName(testTopic, 3), MessageId.latest);
 
-        val sourceContext = new TestSourceContext<Long>();
-        val processingTimeService = new TestProcessingTimeService();
+        TestSourceContext<Long> sourceContext = new TestSourceContext<Long>();
+        TestProcessingTimeService processingTimeService = new TestProcessingTimeService();
 
         TestFetcher<Long> fetcher = new TestFetcher<>(
             sourceContext,
@@ -296,9 +296,9 @@ public class PulsarFetcherTest extends TestLogger {
             null,
             null);
 
-        val part1 = fetcher.getSubscribedTopicStates().get(0);
-        val part2 = fetcher.getSubscribedTopicStates().get(1);
-        val part3 = fetcher.getSubscribedTopicStates().get(2);
+        PulsarTopicState part1 = fetcher.getSubscribedTopicStates().get(0);
+        PulsarTopicState part2 = fetcher.getSubscribedTopicStates().get(1);
+        PulsarTopicState part3 = fetcher.getSubscribedTopicStates().get(2);
 
         // elements generate a watermark if the timestamp is a multiple of three
 
@@ -352,11 +352,11 @@ public class PulsarFetcherTest extends TestLogger {
 
     @Test
     public void testPeriodicWatermarksWithNoSubscribedPartitionsShouldYieldNoWatermarks() throws Exception {
-        val testTopic = "tp";
-        val sourceContext = new TestSourceContext<Long>();
-        val processingTimeService = new TestProcessingTimeService();
+        String testTopic = "tp";
+        TestSourceContext<Long> sourceContext = new TestSourceContext<Long>();
+        TestProcessingTimeService processingTimeService = new TestProcessingTimeService();
 
-        val offset = new HashMap<String, MessageId>();
+        Map<String, MessageId> offset = new HashMap<>();
 
         TestFetcher<Long> fetcher = new TestFetcher<>(
             sourceContext,
@@ -379,14 +379,14 @@ public class PulsarFetcherTest extends TestLogger {
 
     @Test
     public void testConcurrentPartitionsDiscoveryAndLoopFetching() throws Exception {
-        val tp = topicName("test", 2);
-        val sourceContext = new TestSourceContext<Long>();
-        val offset = Collections.singletonMap(topicName(tp, 1), MessageId.latest);
+        String tp = topicName("test", 2);
+        TestSourceContext<Long> sourceContext = new TestSourceContext<Long>();
+        Map<String, MessageId> offset = Collections.singletonMap(topicName(tp, 1), MessageId.latest);
 
-        val fetchLoopWaitLatch = new OneShotLatch();
-        val stateIterationBlockLatch = new OneShotLatch();
+        OneShotLatch fetchLoopWaitLatch = new OneShotLatch();
+        OneShotLatch stateIterationBlockLatch = new OneShotLatch();
 
-        val fetcher = new TestFetcher(
+        TestFetcher fetcher = new TestFetcher(
             sourceContext,
             offset,
             null,

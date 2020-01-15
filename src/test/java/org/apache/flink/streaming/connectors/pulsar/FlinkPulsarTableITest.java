@@ -48,9 +48,9 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
 
     @Test
     public void testBasicFunctioning() throws Exception {
-        val see = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.setParallelism(1);
-        val tEnv = StreamTableEnvironment.create(see);
+        StreamTableEnvironment tEnv = StreamTableEnvironment.create(see);
 
         String table = newTopic();
 
@@ -103,7 +103,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         env.getConfig().disableSysoutLogging();
         env.setParallelism(1);
 
-        val tEnv = StreamTableEnvironment.create(env);
+        StreamTableEnvironment tEnv = StreamTableEnvironment.create(env);
         tEnv.connect(getPulsarDescriptor(tp))
             .inAppendMode()
             .registerTableSource(tp);
@@ -119,9 +119,9 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
 
     @Test
     public void testStructTypesInAvro() throws Exception {
-        val see = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.setParallelism(1);
-        val tEnv = StreamTableEnvironment.create(see);
+        StreamTableEnvironment tEnv = StreamTableEnvironment.create(see);
 
         String table = newTopic();
 

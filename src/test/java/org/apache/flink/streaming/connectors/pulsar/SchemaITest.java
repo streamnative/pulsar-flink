@@ -13,11 +13,12 @@
  */
 package org.apache.flink.streaming.connectors.pulsar;
 
-import lombok.val;
+import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper;
 import org.apache.flink.table.api.DataTypes;
+import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.descriptors.ConnectorDescriptor;
@@ -52,7 +53,6 @@ import static org.apache.flink.streaming.connectors.pulsar.SchemaData.stringList
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.timestampList;
 import static org.junit.Assert.assertEquals;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.booleanList;
-import static org.apache.flink.streaming.connectors.pulsar.SchemaData.fooList;
 
 public class SchemaITest extends PulsarTestBaseWithFlink {
 
@@ -139,13 +139,13 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
     @Test
     public void testDateRead() throws Exception {
-        val dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         checkRead(SchemaType.DATE, dateList, t -> dateFormat.format(t), null);
     }
 
     @Test
     public void testDateWrite() throws Exception {
-        val dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         checkWrite(SchemaType.DATE,
             DataTypes.DATE().bridgedTo(java.sql.Date.class),
             dateList.stream().map(t -> new java.sql.Date(t.getTime())).collect(Collectors.toList()),
@@ -174,23 +174,23 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
     }
 
     private <T> void checkRead(SchemaType type, List<T> datas, Function<T, String> toStr, Class<T> tClass) throws Exception {
-        val see = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.setParallelism(1);
-        val tEnv = StreamTableEnvironment.create(see);
+        StreamTableEnvironment tEnv = StreamTableEnvironment.create(see);
 
-        val table = newTopic();
+        String table = newTopic();
         sendTypedMessages(table, type, datas, Optional.empty(), tClass);
 
         tEnv.connect(getPulsarSourceDescriptor(table))
             .inAppendMode()
             .registerTableSource(table);
 
-        val t = tEnv.scan(table).select("value");
+        Table t = tEnv.scan(table).select("value");
         tEnv.toAppendStream(t, Row.class)
             .map(new FailingIdentityMapper<>(datas.size()))
             .addSink(new StreamITCase.StringSink<>()).setParallelism(1);
 
-        val reader = new Thread("read") {
+        Thread reader = new Thread("read") {
             @Override
             public void run() {
                 try {
@@ -214,16 +214,16 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
     }
 
     private <T> void checkWrite(SchemaType type, DataType dt, List<T> datas, Function<T, String> toStr, Class<T> tClass) throws Exception {
-        val see = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.setParallelism(1);
-        val tEnv = StreamTableEnvironment.create(see);
+        StreamTableEnvironment tEnv = StreamTableEnvironment.create(see);
 
-        val table = newTopic();
-        val tableName = TopicName.get(table).getLocalName();
+        String table = newTopic();
+        String tableName = TopicName.get(table).getLocalName();
 
-        val tSchema = TableSchema.builder().field("value", dt).build();
+        TableSchema tSchema = TableSchema.builder().field("value", dt).build();
 
-        val stream = see.fromCollection(datas);
+        DataStream stream = see.fromCollection(datas);
         tEnv.registerDataStream("origin", stream);
 
         tEnv.connect(getPulsarSinkDescriptor(table))
@@ -233,7 +233,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
         tEnv.sqlUpdate("insert into " + tableName + " select * from origin");
 
-        val sinkThread = new Thread("sink") {
+        Thread sinkThread = new Thread("sink") {
             @Override
             public void run() {
                 try {
@@ -247,21 +247,21 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
         sinkThread.start();
         sinkThread.join();
 
-        val se2 = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment se2 = StreamExecutionEnvironment.getExecutionEnvironment();
         se2.setParallelism(1);
-        val tEnv2 = StreamTableEnvironment.create(se2);
+        StreamTableEnvironment tEnv2 = StreamTableEnvironment.create(se2);
 
         tEnv2.connect(getPulsarSourceDescriptor(table))
             .inAppendMode()
             .registerTableSource(table);
 
 
-        val t = tEnv2.scan(table).select("value");
+        Table t = tEnv2.scan(table).select("value");
         tEnv2.toAppendStream(t, Row.class)
             .map(new FailingIdentityMapper<>(datas.size()))
             .addSink(new StreamITCase.StringSink<>()).setParallelism(1);
 
-        val reader = new Thread("read") {
+        Thread reader = new Thread("read") {
             @Override
             public void run() {
                 try {

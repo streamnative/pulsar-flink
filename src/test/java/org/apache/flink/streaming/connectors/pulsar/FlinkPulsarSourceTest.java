@@ -15,7 +15,6 @@ package org.apache.flink.streaming.connectors.pulsar;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
-import lombok.val;
 import org.apache.commons.collections.MapUtils;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.state.BroadcastState;
@@ -191,11 +190,11 @@ public class FlinkPulsarSourceTest extends TestLogger {
     @Test
     @SuppressWarnings("unchecked")
     public void testSnapshotStateWithCommitOnCheckpoint() throws Exception {
-        val state1 = ImmutableMap.of("abc", dummyMessageId(5), "def", dummyMessageId(90));
-        val state2 = ImmutableMap.of("abc", dummyMessageId(10), "def", dummyMessageId(95));
-        val state3 = ImmutableMap.of("abc", dummyMessageId(15), "def", dummyMessageId(100));
+        Map<String, MessageId> state1 = ImmutableMap.of("abc", dummyMessageId(5), "def", dummyMessageId(90));
+        Map<String, MessageId> state2 = ImmutableMap.of("abc", dummyMessageId(10), "def", dummyMessageId(95));
+        Map<String, MessageId> state3 = ImmutableMap.of("abc", dummyMessageId(15), "def", dummyMessageId(100));
 
-        val fetcher = new MockFetcher<String>(state1, state2, state3);
+        MockFetcher<String> fetcher = new MockFetcher<>(state1, state2, state3);
         
         final FlinkPulsarSource<String> source = new DummyFlinkPulsarSource<>(
             fetcher,
@@ -796,7 +795,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
         }
 
         public Map<String, MessageId> getAndClearLastCommittedOffsets() {
-            val off = this.lastCommittedOffsets;
+            Map<String, MessageId> off = this.lastCommittedOffsets;
             this.lastCommittedOffsets = null;
             return off;
         }

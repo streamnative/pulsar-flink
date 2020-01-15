@@ -337,7 +337,7 @@ public class FlinkPulsarSource<T>
                 ownedTopicStarts.remove(goneTopic);
             }
 
-            log.info("Source %d will start reading %d topics in restored state %s",
+            log.info("Source {} will start reading %d topics in restored state {}",
                     taskIndex, ownedTopicStarts.size(), StringUtils.join(ownedTopicStarts.entrySet()));
         } else {
             Map<String, MessageId> allTopicOffsets =
@@ -348,9 +348,9 @@ public class FlinkPulsarSource<T>
                     .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue())));
 
             if (ownedTopicStarts.isEmpty()) {
-                log.info("Source %d initially has no topics to read from.", taskIndex);
+                log.info("Source {} initially has no topics to read from.", taskIndex);
             } else {
-                log.info("Source %d will start reading %d topics from initialized positions",
+                log.info("Source {} will start reading {} topics from initialized positions",
                         taskIndex, ownedTopicStarts.size());
             }
         }
@@ -384,7 +384,7 @@ public class FlinkPulsarSource<T>
 
             @Override
             public void onException(Throwable cause) {
-                log.warn("source %d failed commit by %s", taskIndex, cause.toString());
+                log.warn("source {} failed commit by {}", taskIndex, cause.toString());
                 failedCommits.inc();
             }
         };
@@ -393,7 +393,7 @@ public class FlinkPulsarSource<T>
             ctx.markAsTemporarilyIdle();
         }
 
-        log.info("Source %d creating fetcher with offsets %s",
+        log.info("Source {} creating fetcher with offsets {}",
                 taskIndex,
                 StringUtils.join(ownedTopicStarts.entrySet()));
 
@@ -573,11 +573,11 @@ public class FlinkPulsarSource<T>
         if (context.isRestored()) {
             restoredState = new TreeMap<>();
             unionOffsetStates.get().forEach(e -> restoredState.put(e.f0, e.f1));
-            log.info("Source subtask %d restored state %s",
+            log.info("Source subtask {} restored state {}",
                     taskIndex,
                     StringUtils.join(restoredState.entrySet()));
         } else {
-            log.info("Source subtask %d has no restore state", taskIndex);
+            log.info("Source subtask {} has no restore state", taskIndex);
         }
     }
 
@@ -625,13 +625,13 @@ public class FlinkPulsarSource<T>
             return;
         }
 
-        log.debug("Source %d received confirmation for unknown checkpoint id %d",
+        log.debug("Source {} received confirmation for unknown checkpoint id {}",
                 taskIndex, checkpointId);
 
         try {
             int posInMap = pendingOffsetsToCommit.indexOf(checkpointId);
             if (posInMap == -1) {
-                log.warn("Source %d received confirmation for unknown checkpoint id %d",
+                log.warn("Source {} received confirmation for unknown checkpoint id {}",
                         taskIndex, checkpointId);
                 return;
             }
@@ -644,7 +644,7 @@ public class FlinkPulsarSource<T>
             }
 
             if (offset == null || offset.size() == 0) {
-                log.debug("Source %d has empty checkpoint state", taskIndex);
+                log.debug("Source {} has empty checkpoint state", taskIndex);
                 return;
             }
             fetcher.commitOffsetToPulsar(offset, offsetCommitCallback);

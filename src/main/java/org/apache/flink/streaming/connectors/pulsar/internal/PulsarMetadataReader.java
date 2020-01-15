@@ -220,8 +220,7 @@ public class PulsarMetadataReader implements AutoCloseable {
                 if (e instanceof PulsarAdminException &&
                         (((PulsarAdminException) e).getStatusCode() == 404 ||
                                 ((PulsarAdminException) e).getStatusCode() == 412)) {
-                    log.info(
-                            String.format("Cannot commit cursor since the topic %s has been deleted during execution", tp));
+                    log.info("Cannot commit cursor since the topic {} has been deleted during execution", tp);
                 } else {
                     throw new RuntimeException(
                             String.format("Failed to commit cursor for %s", tp), e);
@@ -236,8 +235,7 @@ public class PulsarMetadataReader implements AutoCloseable {
                 admin.topics().deleteSubscription(topic, driverGroupIdPrefix);
             } catch (Throwable e) {
                 if (e instanceof PulsarAdminException && ((PulsarAdminException) e).getStatusCode() == 404) {
-                    log.info(
-                            String.format("Cannot remove cursor since the topic %s has been deleted during execution", topic));
+                    log.info("Cannot remove cursor since the topic {} has been deleted during execution", topic);
                 } else {
                     throw new RuntimeException(
                             String.format("Failed to remove cursor for %s", topic), e);

@@ -140,7 +140,7 @@ public class PulsarDeserializer {
             }
 
         } catch (SchemaUtils.IncompatibleSchemaException e) {
-            log.error("Failed to convert pulsar schema to flink data type %s",
+            log.error("Failed to convert pulsar schema to flink data type {}",
                     ExceptionUtils.getFullStackTrace(e));
             throw new RuntimeException(e);
         }

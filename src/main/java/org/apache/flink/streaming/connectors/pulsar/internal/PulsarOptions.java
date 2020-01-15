@@ -39,8 +39,8 @@ public class PulsarOptions {
             TOPIC_PATTERN_OPTION_KEY);
 
 
-    public static final String SERVICE_URL_OPTION_KEY = "serviceurl";
-    public static final String ADMIN_URL_OPTION_KEY = "adminurl";
+    public static final String SERVICE_URL_OPTION_KEY = "service-url";
+    public static final String ADMIN_URL_OPTION_KEY = "admin-url";
     public static final String STARTING_OFFSETS_OPTION_KEY = "startingoffsets";
     public static final String ENDING_OFFSETS_OPTION_KEY = "endingoffsets";
 

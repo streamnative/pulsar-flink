@@ -256,7 +256,7 @@ public class PulsarTableSourceSinkFactory
                                 try {
                                     specificOffsets.put(partition, MessageId.fromByteArray(offset.getBytes()));
                                 } catch (IOException e) {
-                                    log.error("Failed to decode message id from properties %s", ExceptionUtils.getFullStackTrace(e));
+                                    log.error("Failed to decode message id from properties {}", ExceptionUtils.getFullStackTrace(e));
                                     throw new RuntimeException(e);
                                 }
                             });

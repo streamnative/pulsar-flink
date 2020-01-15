@@ -472,7 +472,7 @@ public class PulsarFetcher<T> {
             readerT.setName(String.format("Pulsar Reader for %s in task %s", state.getTopic(), runtimeContext.getTaskName()));
             readerT.setDaemon(true);
             readerT.start();
-            log.info(String.format("Starting Thread %s", readerT.getName()));
+            log.info("Starting Thread {}", readerT.getName());
             topic2Threads.put(state.getTopic(), readerT);
         }
         return topic2Threads;

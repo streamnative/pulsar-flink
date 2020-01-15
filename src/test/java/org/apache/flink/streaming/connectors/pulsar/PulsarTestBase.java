@@ -195,7 +195,7 @@ public abstract class PulsarTestBase extends TestLogger {
 
             for (T message : messages) {
                 MessageId mid = producer.send(message);
-                log.info("Sent %s of mid: %s", message.toString(), mid.toString());
+                log.info("Sent {} of mid: {}", message.toString(), mid.toString());
                 mids.add(mid);
             }
 

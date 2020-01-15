@@ -68,14 +68,14 @@ public class ReaderThread<T> extends Thread {
 
     @Override
     public void run() {
-        log.info(String.format("Starting to fetch from %s at %s", topic, startMessageId));
+        log.info("Starting to fetch from {} at {}", topic, startMessageId);
 
         try {
             createActualReader();
 
             skipFirstMessageIfNeeded();
 
-            log.info(String.format("Starting to read %s with reader thread %s", topic, getName()));
+            log.info("Starting to read {} with reader thread {}", topic, getName());
 
             while (running) {
                 Message message = reader.readNext(pollTimeoutMs, TimeUnit.MILLISECONDS);

@@ -130,7 +130,7 @@ public class JacksonRecordParser {
     }
 
     private void suroundWithRuntimeE(Exception e) {
-        log.error("Failed to parse json due to %s", ExceptionUtils.getFullStackTrace(e));
+        log.error("Failed to parse json due to {}", ExceptionUtils.getFullStackTrace(e));
         throw new RuntimeException(e);
     }
 

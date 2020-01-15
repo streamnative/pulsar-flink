@@ -192,7 +192,7 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
         } else {
             this.sendCallback = (t, u) -> {
                 if (failedWrite == null && u != null) {
-                    log.error("Error while sending message to Pulsar: %s", ExceptionUtils.getFullStackTrace(u));
+                    log.error("Error while sending message to Pulsar: {}", ExceptionUtils.getFullStackTrace(u));
                 }
                 acknowledgeMessage();
             };
@@ -242,7 +242,7 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
                     .loadConf(producerConf)
                     .create();
         } catch (PulsarClientException e) {
-            log.error("Failed to create producer for topic %s", topic);
+            log.error("Failed to create producer for topic {}", topic);
             throw new RuntimeException(e);
         } catch (ExecutionException e) {
             log.error("Failed to getOrCreate a PulsarClient");

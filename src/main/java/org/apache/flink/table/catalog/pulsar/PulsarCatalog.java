@@ -62,7 +62,7 @@ public class PulsarCatalog extends AbstractCatalog {
         this.adminUrl = adminUrl;
         this.properties = properties;
 
-        log.info("Created PulsarCatalog %s", catalogName);
+        log.info("Created Pulsar Catalog {}", catalogName);
     }
 
     @Override

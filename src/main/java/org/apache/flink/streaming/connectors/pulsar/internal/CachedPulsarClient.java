@@ -50,7 +50,7 @@ public class CachedPulsarClient {
     private static RemovalListener<ClientConfigurationData, PulsarClientImpl> removalListener = notification -> {
         ClientConfigurationData config = notification.getKey();
         PulsarClientImpl client = notification.getValue();
-        log.debug("Evicting pulsar client %s with config %s, due to %s",
+        log.debug("Evicting pulsar client {} with config {}, due to {}",
                 client.toString(), config.toString(), notification.getCause().toString());
         close(config, client);
     };
@@ -63,11 +63,11 @@ public class CachedPulsarClient {
         PulsarClientImpl client;
         try {
             client = new PulsarClientImpl(clientConfig);
-            log.debug(String.format("Created a new instance of PulsarClientImpl for clientConf = %s",
-                    clientConfig.toString()));
+            log.debug("Created a new instance of PulsarClientImpl for clientConf = {}",
+                    clientConfig.toString());
         } catch (PulsarClientException e) {
-            log.error(String.format("Failed to create PulsarClientImpl for clientConf = %s",
-                    clientConfig.toString()));
+            log.error("Failed to create PulsarClientImpl for clientConf = {}",
+                    clientConfig.toString());
             throw e;
         }
         return client;
@@ -79,10 +79,10 @@ public class CachedPulsarClient {
 
     private static void close(ClientConfigurationData clientConfig, PulsarClientImpl client) {
         try {
-            log.info(String.format("Closing the Pulsar client with conifg %s", clientConfig.toString()));
+            log.info("Closing the Pulsar client with conifg {}", clientConfig.toString());
             client.close();
         } catch (PulsarClientException e) {
-            log.warn(String.format("Error while closing the Pulsar client ", clientConfig.toString()), e);
+            log.warn(String.format("Error while closing the Pulsar client %s", clientConfig.toString()), e);
         }
     }
 

@@ -47,7 +47,7 @@ public class FlinkPulsarRowSource extends FlinkPulsarSource<Row> {
             FieldsDataType schema = reader.getSchema(topics);
             return (TypeInformation<Row>) LegacyTypeInfoDataTypeConverter.toLegacyTypeInfo(schema);
         } catch (Exception e) {
-            log.error("Failed to get schema for source with exception %s", ExceptionUtils.getStackTrace(e));
+            log.error("Failed to get schema for source with exception {}", ExceptionUtils.getStackTrace(e));
             return null;
         }
     }

@@ -228,7 +228,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         see.execute("write with topics");
     }
 
-    @Ignore
+    @Test
     public void testProduceConsumeMultipleTopics() throws Exception {
         int numTopic = 5;
         int numElements = 20;
@@ -252,7 +252,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         env.getConfig().disableSysoutLogging();
         Properties sourceProp = sourceProperties();
         sourceProp.setProperty(TOPIC_MULTI_OPTION_KEY, StringUtils.join(topics.toArray(), ','));
-        DataStream<Row> stream1 = env.addSource(new FlinkPulsarRowSource(serviceUrl, adminUrl, sourceProp));
+        DataStream<Row> stream1 = env.addSource(new FlinkPulsarRowSource(serviceUrl, adminUrl, sourceProp).setStartFromEarliest());
 
         stream1.flatMap(new CountMessageNumberFM(numElements)).setParallelism(1);
         TestUtils.tryExecute(env, "count elements from topics");

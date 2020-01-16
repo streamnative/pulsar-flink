@@ -36,20 +36,26 @@ import java.util.Properties;
 @Slf4j
 public class FlinkPulsarRowSource extends FlinkPulsarSource<Row> {
 
+    private TypeInformation<Row> typeInformation;
+
     public FlinkPulsarRowSource(String serviceUrl, String adminUrl, Properties properties) {
         super(serviceUrl, adminUrl, null, properties);
     }
 
     @Override
     public TypeInformation<Row> getProducedType() {
-        try (PulsarMetadataReader reader = new PulsarMetadataReader(adminUrl, "", caseInsensitiveParams, -1, -1)) {
-            List<String> topics = reader.getTopics();
-            FieldsDataType schema = reader.getSchema(topics);
-            return (TypeInformation<Row>) LegacyTypeInfoDataTypeConverter.toLegacyTypeInfo(schema);
-        } catch (Exception e) {
-            log.error("Failed to get schema for source with exception {}", ExceptionUtils.getStackTrace(e));
-            return null;
+        if (typeInformation == null) {
+            try (PulsarMetadataReader reader = new PulsarMetadataReader(adminUrl, "", caseInsensitiveParams, -1, -1)) {
+                List<String> topics = reader.getTopics();
+                FieldsDataType schema = reader.getSchema(topics);
+                typeInformation = (TypeInformation<Row>) LegacyTypeInfoDataTypeConverter.toLegacyTypeInfo(schema);
+            } catch (Exception e) {
+                log.error("Failed to get schema for source with exception {}", ExceptionUtils.getStackTrace(e));
+                typeInformation = null;
+            }
         }
+
+        return typeInformation;
     }
 
     @Override

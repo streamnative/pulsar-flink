@@ -29,7 +29,7 @@ import static org.apache.flink.table.catalog.pulsar.descriptors.PulsarCatalogVal
 import static org.apache.flink.table.catalog.pulsar.descriptors.PulsarCatalogValidator.CATALOG_DEFAULT_PARTITIONS;
 import static org.apache.flink.table.catalog.pulsar.descriptors.PulsarCatalogValidator.CATALOG_PULSAR_VERSION;
 import static org.apache.flink.table.catalog.pulsar.descriptors.PulsarCatalogValidator.CATALOG_SERVICE_URL;
-import static org.apache.flink.table.catalog.pulsar.descriptors.PulsarCatalogValidator.CATALOG_STARTING_POS;
+import static org.apache.flink.table.catalog.pulsar.descriptors.PulsarCatalogValidator.CATALOG_STARTUP_MODE;
 import static org.apache.flink.table.catalog.pulsar.descriptors.PulsarCatalogValidator.CATALOG_TYPE_VALUE_PULSAR;
 import static org.apache.flink.table.descriptors.CatalogDescriptorValidator.CATALOG_DEFAULT_DATABASE;
 import static org.apache.flink.table.descriptors.CatalogDescriptorValidator.CATALOG_PROPERTY_VERSION;
@@ -61,7 +61,7 @@ public class PulsarCatalogFactory implements CatalogFactory {
         props.add(CATALOG_PULSAR_VERSION);
         props.add(CATALOG_SERVICE_URL);
         props.add(CATALOG_ADMIN_URL);
-        props.add(CATALOG_STARTING_POS);
+        props.add(CATALOG_STARTUP_MODE);
         props.add(CATALOG_DEFAULT_PARTITIONS);
         return props;
     }

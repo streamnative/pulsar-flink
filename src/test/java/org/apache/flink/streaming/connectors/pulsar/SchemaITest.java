@@ -201,9 +201,6 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
                 .map(new FailingIdentityMapper<>(datas.size()))
                 .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
 
-        FailingIdentityMapper.failedBefore = false;
-        SingletonStreamSink.clear();
-
         Thread reader = new Thread("read") {
             @Override
             public void run() {

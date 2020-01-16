@@ -121,7 +121,7 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
         if (name2Type.containsKey(KEY_ATTRIBUTE_NAME)) {
             Tuple2<LogicalTypeRoot, Integer> value = name2Type.get(KEY_ATTRIBUTE_NAME);
             if (value.f0 == LogicalTypeRoot.VARBINARY) {
-                metas[0] = value.f1;
+                metas[1] = value.f1;
             } else {
                 throw new IllegalStateException(
                         String.format("%s attribute unsupported type %s", KEY_ATTRIBUTE_NAME, value.f0.toString()));
@@ -134,7 +134,7 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
         if (name2Type.containsKey(EVENT_TIME_NAME)) {
             Tuple2<LogicalTypeRoot, Integer> value = name2Type.get(EVENT_TIME_NAME);
             if (value.f0 == LogicalTypeRoot.TIMESTAMP_WITHOUT_TIME_ZONE) {
-                metas[0] = value.f1;
+                metas[2] = value.f1;
             } else {
                 throw new IllegalStateException(
                         String.format("%s attribute unsupported type %s", EVENT_TIME_NAME, value.f0.toString()));

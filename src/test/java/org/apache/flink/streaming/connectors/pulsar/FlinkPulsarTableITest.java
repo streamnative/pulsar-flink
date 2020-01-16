@@ -68,9 +68,6 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
                 .map(new FailingIdentityMapper<>(booleanList.size()))
                 .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
 
-        FailingIdentityMapper.failedBefore = false;
-        SingletonStreamSink.clear();
-
         try {
             see.execute("basic functionality");
         } catch (Exception e) {

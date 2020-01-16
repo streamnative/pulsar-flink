@@ -15,6 +15,7 @@
 package org.apache.flink.streaming.connectors.pulsar;
 
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import org.apache.commons.cli.Options;
 import org.apache.flink.client.cli.DefaultCLI;
 import org.apache.flink.configuration.Configuration;
@@ -37,8 +38,8 @@ import org.apache.pulsar.common.policies.data.TenantInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.junit.Before;
 import org.junit.Test;
-import org.testcontainers.shaded.com.google.common.collect.Sets;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -46,7 +47,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.int32List;
@@ -195,7 +195,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
         TableEnvironment tableEnv = context.createEnvironmentInstance().getTableEnvironment();
 
-        tableEnv.useCatalog("pulsarCatalog1");
+        tableEnv.useCatalog("pulsarcatalog1");
 
         Table t = tableEnv.scan(TopicName.get(tableName).getLocalName()).select("value");
         DataStream stream = ((StreamTableEnvironment) tableEnv).toAppendStream(t, t.getSchema().toRowType());
@@ -257,12 +257,12 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         conf1.put("$VAR_STARTING", "earliest");
 
         ExecutionContext context1 = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf1);
-        TableEnvironment tableEnv1 = context.createEnvironmentInstance().getTableEnvironment();
+        TableEnvironment tableEnv1 = context1.createEnvironmentInstance().getTableEnvironment();
 
         tableEnv1.useCatalog("pulsarcatalog1");
 
         Table t = tableEnv1.scan("tableSink").select("value");
-        DataStream stream = ((StreamTableEnvironment) tableEnv).toAppendStream(t, t.getSchema().toRowType());
+        DataStream stream = ((StreamTableEnvironment) tableEnv1).toAppendStream(t, t.getSchema().toRowType());
         stream.map(new FailingIdentityMapper<Row>(int32List.size()))
                 .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
 
@@ -270,7 +270,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
             @Override
             public void run() {
                 try {
-                    tableEnv.execute("read from earliest");
+                    tableEnv1.execute("read from earliest");
                 } catch (Throwable e) {
                     // do nothing
                 }
@@ -320,12 +320,12 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         conf1.put("$VAR_STARTING", "earliest");
 
         ExecutionContext context1 = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf1);
-        TableEnvironment tableEnv1 = context.createEnvironmentInstance().getTableEnvironment();
+        TableEnvironment tableEnv1 = context1.createEnvironmentInstance().getTableEnvironment();
 
         tableEnv1.useCatalog("pulsarcatalog1");
 
         Table t = tableEnv1.scan("tableSink1").select("value");
-        DataStream stream = ((StreamTableEnvironment) tableEnv).toAppendStream(t, t.getSchema().toRowType());
+        DataStream stream = ((StreamTableEnvironment) tableEnv1).toAppendStream(t, t.getSchema().toRowType());
         stream.map(new FailingIdentityMapper<Row>(int32List.size()))
                 .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
 
@@ -333,7 +333,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
             @Override
             public void run() {
                 try {
-                    tableEnv.execute("read from earliest");
+                    tableEnv1.execute("read from earliest");
                 } catch (Throwable e) {
                     // do nothing
                 }
@@ -342,8 +342,10 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
         reader.start();
         reader.join();
-        SingletonStreamSink.compareWithList(
-                int32List.subList(0, int32List.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
+        List<String> expectedOutput = new ArrayList<>();
+        expectedOutput.add("-1");
+        expectedOutput.addAll(int32List.subList(0, int32List.size() - 2).stream().map(Objects::toString).collect(Collectors.toList()));
+        SingletonStreamSink.compareWithList(expectedOutput);
     }
 
     private <T> ExecutionContext<T> createExecutionContext(String file, Map<String, String> replaceVars) throws Exception {

@@ -228,7 +228,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         see.execute("write with topics");
     }
 
-    @Test
+    @Ignore
     public void testProduceConsumeMultipleTopics() throws Exception {
         int numTopic = 5;
         int numElements = 20;

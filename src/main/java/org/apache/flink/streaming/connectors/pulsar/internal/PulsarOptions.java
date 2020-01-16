@@ -41,8 +41,7 @@ public class PulsarOptions {
 
     public static final String SERVICE_URL_OPTION_KEY = "service-url";
     public static final String ADMIN_URL_OPTION_KEY = "admin-url";
-    public static final String STARTING_OFFSETS_OPTION_KEY = "startingoffsets";
-    public static final String ENDING_OFFSETS_OPTION_KEY = "endingoffsets";
+    public static final String STARTUP_MODE_OPTION_KEY = "startup-mode";
 
     public static final String PARTITION_DISCOVERY_INTERVAL_MS_OPTION_KEY = "partitiondiscoveryintervalmillis";
     public static final String CLIENT_CACHE_SIZE_OPTION_KEY = "clientcachesize";

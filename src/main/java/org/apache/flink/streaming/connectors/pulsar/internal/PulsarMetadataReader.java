@@ -172,7 +172,6 @@ public class PulsarMetadataReader implements AutoCloseable {
     public void createTopic(ObjectPath objectPath, int defaultPartitionNum, CatalogBaseTable table) throws PulsarAdminException, IncompatibleSchemaException {
         String topicName = objectPath2TopicName(objectPath);
         admin.topics().createPartitionedTopic(topicName, defaultPartitionNum);
-        SchemaInfo si = SchemaUtils.sqlType2PulsarSchema(table.getSchema().toRowDataType()).getSchemaInfo();
     }
 
     public void putSchema(ObjectPath tablePath, CatalogBaseTable table) throws IncompatibleSchemaException {

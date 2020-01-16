@@ -25,7 +25,7 @@ public class PulsarCatalogValidator extends CatalogDescriptorValidator {
     public static final String CATALOG_PULSAR_VERSION = "pulsar-version";
     public static final String CATALOG_SERVICE_URL = PulsarOptions.SERVICE_URL_OPTION_KEY;
     public static final String CATALOG_ADMIN_URL = PulsarOptions.ADMIN_URL_OPTION_KEY;
-    public static final String CATALOG_STARTING_POS = PulsarOptions.STARTING_OFFSETS_OPTION_KEY;
+    public static final String CATALOG_STARTUP_MODE = PulsarOptions.STARTUP_MODE_OPTION_KEY;
     public static final String CATALOG_DEFAULT_PARTITIONS = PulsarOptions.DEFAULT_PARTITIONS;
 
     @Override
@@ -36,14 +36,14 @@ public class PulsarCatalogValidator extends CatalogDescriptorValidator {
         properties.validateString(CATALOG_SERVICE_URL, false, 1);
         properties.validateString(CATALOG_ADMIN_URL, false, 1);
         properties.validateInt(CATALOG_DEFAULT_PARTITIONS, true, 1);
-        // validateStartingOffsets(properties);
+        validateStartingOffsets(properties);
     }
 
     private void validateStartingOffsets(DescriptorProperties properties) {
-        if (properties.containsKey(CATALOG_STARTING_POS)) {
-            String v = properties.getString(CATALOG_STARTING_POS);
+        if (properties.containsKey(CATALOG_STARTUP_MODE)) {
+            String v = properties.getString(CATALOG_STARTUP_MODE);
             if (!v.equals("earliest") && !v.equals("latest")) {
-                throw new ValidationException(CATALOG_STARTING_POS + " should be either earliest or latest");
+                throw new ValidationException(CATALOG_STARTUP_MODE + " should be either earliest or latest");
             }
         }
     }

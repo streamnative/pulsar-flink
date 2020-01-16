@@ -24,16 +24,17 @@ import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOption
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.TOPIC_SINGLE_OPTION_KEY;
 import static org.apache.flink.table.descriptors.DescriptorProperties.noValidation;
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.SERVICE_URL_OPTION_KEY;
+import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.STARTUP_MODE_OPTION_KEY;
 
 public class PulsarValidator extends ConnectorDescriptorValidator {
 
     public static final String CONNECTOR_TYPE_VALUE_PULSAR = "pulsar";
-    public static final String CONNECTOR_SERVICE_URL = SERVICE_URL_OPTION_KEY;
-    public static final String CONNECTOR_ADMIN_URL = ADMIN_URL_OPTION_KEY;
-    public static final String CONNECTOR_TOPIC = TOPIC_SINGLE_OPTION_KEY;
-    public static final String CONNECTOR_STARTUP_MODE = "connector.startup-mode";
-    public static final String CONNECTOR_STARTUP_MODE_VALUE_EARLIEST = "earliest-offset";
-    public static final String CONNECTOR_STARTUP_MODE_VALUE_LATEST = "latest-offset";
+    public static final String CONNECTOR_SERVICE_URL = CONNECTOR + "." + SERVICE_URL_OPTION_KEY;
+    public static final String CONNECTOR_ADMIN_URL = CONNECTOR + "." + ADMIN_URL_OPTION_KEY;
+    public static final String CONNECTOR_TOPIC = CONNECTOR + "." + TOPIC_SINGLE_OPTION_KEY;
+    public static final String CONNECTOR_STARTUP_MODE = CONNECTOR + "." + STARTUP_MODE_OPTION_KEY;
+    public static final String CONNECTOR_STARTUP_MODE_VALUE_EARLIEST = "earliest";
+    public static final String CONNECTOR_STARTUP_MODE_VALUE_LATEST = "latest";
     public static final String CONNECTOR_STARTUP_MODE_VALUE_SPECIFIC_OFFSETS = "specific-offsets";
     public static final String CONNECTOR_SPECIFIC_OFFSETS = "connector.specific-offsets";
     public static final String CONNECTOR_SPECIFIC_OFFSETS_PARTITION = "partition";

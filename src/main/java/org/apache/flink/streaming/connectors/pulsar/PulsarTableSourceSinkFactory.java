@@ -45,6 +45,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 
+import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CONNECTOR;
 import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CONNECTOR_PROPERTY_VERSION;
 import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CONNECTOR_TYPE;
 import static org.apache.flink.table.descriptors.FormatDescriptorValidator.FORMAT;
@@ -119,9 +120,11 @@ public class PulsarTableSourceSinkFactory
         } else {
             sinkProp = getPulsarProperties(dp);
         }
-        sinkProp.put(PulsarOptions.TOPIC_SINGLE_OPTION_KEY, topic);
+        sinkProp.put(CONNECTOR_TOPIC, topic);
 
-        return new PulsarTableSink(serviceUrl, adminUrl, schema, Optional.of(topic), sinkProp);
+        Properties result = removeConnectorPrefix(sinkProp);
+
+        return new PulsarTableSink(serviceUrl, adminUrl, schema, Optional.of(topic), result);
     }
 
     @Override
@@ -130,7 +133,7 @@ public class PulsarTableSourceSinkFactory
 
         Map<String, String> props = new HashMap<String, String>();
         props.putAll(table.toProperties());
-        props.put(PulsarOptions.TOPIC_SINGLE_OPTION_KEY, topic);
+        props.put(CONNECTOR_TOPIC, topic);
 
         return createStreamTableSink(props);
     }
@@ -157,7 +160,9 @@ public class PulsarTableSourceSinkFactory
         } else {
             sourceProp = getPulsarProperties(descriptorProperties);
         }
-        sourceProp.put(PulsarOptions.TOPIC_SINGLE_OPTION_KEY, topic);
+        sourceProp.put(CONNECTOR_TOPIC, topic);
+
+        Properties result = removeConnectorPrefix(sourceProp);
 
         return new PulsarTableSource(
                 schema,
@@ -165,7 +170,7 @@ public class PulsarTableSourceSinkFactory
                 SchemaValidator.deriveRowtimeAttributes(descriptorProperties),
                 serviceUrl,
                 adminUrl,
-                sourceProp,
+                result,
                 startupOptions.startupMode,
                 startupOptions.specificOffsets);
     }
@@ -176,9 +181,25 @@ public class PulsarTableSourceSinkFactory
 
         Map<String, String> props = new HashMap<>();
         props.putAll(table.toProperties());
-        props.put(PulsarOptions.TOPIC_SINGLE_OPTION_KEY, topic);
+        props.put(CONNECTOR_TOPIC, topic);
 
         return createStreamTableSource(props);
+    }
+
+    private static Properties removeConnectorPrefix(Properties in) {
+        String connectorPrefix = CONNECTOR + ".";
+
+        Properties out = new Properties();
+        for (Map.Entry<Object, Object> kv : in.entrySet()) {
+            String k = (String) kv.getKey();
+            String v = (String) kv.getValue();
+            if (k.startsWith(connectorPrefix)) {
+                out.put(k.substring(connectorPrefix.length()), v);
+            } else {
+                out.put(k, v);
+            }
+        }
+        return out;
     }
 
     @Override

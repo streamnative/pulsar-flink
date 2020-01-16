@@ -26,11 +26,7 @@ public class SourceSinkUtils {
 
     public static Map<String, String> validateStreamSourceOptions(Map<String, String> parameters) {
         Map<String, String> caseInsensitiveParams = parameters.entrySet().stream()
-                .collect(Collectors.toMap(t -> t.getKey(), t -> t.getValue().toLowerCase(Locale.ROOT)));
-
-        if (caseInsensitiveParams.containsKey(PulsarOptions.ENDING_OFFSETS_OPTION_KEY)) {
-            throw new IllegalArgumentException("ending offset not valid in streaming queries");
-        }
+                .collect(Collectors.toMap(t -> t.getKey().toLowerCase(Locale.ROOT), t -> t.getValue()));
 
         return validateSourceOptions(caseInsensitiveParams);
     }

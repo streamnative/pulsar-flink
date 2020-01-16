@@ -121,6 +121,8 @@ public class FlinkPulsarSource<T>
 
     protected final Properties properties;
 
+    protected final UUID uuid = UUID.randomUUID();
+
     // ------------------------------------------------------------------------
     //  runtime state (used individually by each parallel subtask)
     // ------------------------------------------------------------------------
@@ -356,10 +358,14 @@ public class FlinkPulsarSource<T>
         }
     }
 
+    protected String getSubscriptionPrefix() {
+        return "flink-pulsar-" + uuid.toString();
+    }
+
     protected PulsarMetadataReader createTopicDiscoverer() throws PulsarClientException {
         return new PulsarMetadataReader(
                 adminUrl,
-                String.format("flink-pulsar-%s", UUID.randomUUID()),
+                getSubscriptionPrefix(),
                 caseInsensitiveParams,
                 taskIndex,
                 numParallelTasks);

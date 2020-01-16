@@ -14,6 +14,7 @@
 package org.apache.flink.table.catalog.pulsar;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.flink.streaming.connectors.pulsar.PulsarTableSourceSinkFactory;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils;
@@ -41,12 +42,15 @@ import org.apache.flink.table.catalog.exceptions.TableNotPartitionedException;
 import org.apache.flink.table.catalog.exceptions.TablePartitionedException;
 import org.apache.flink.table.catalog.stats.CatalogColumnStatistics;
 import org.apache.flink.table.catalog.stats.CatalogTableStatistics;
+import org.apache.flink.table.factories.TableFactory;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.PulsarClientException;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Properties;
 
 @Slf4j
 public class PulsarCatalog extends AbstractCatalog {
@@ -63,6 +67,13 @@ public class PulsarCatalog extends AbstractCatalog {
         this.properties = properties;
 
         log.info("Created Pulsar Catalog {}", catalogName);
+    }
+
+    @Override
+    public Optional<TableFactory> getTableFactory() {
+        Properties props = new Properties();
+        props.putAll(properties);
+        return Optional.of(new PulsarTableSourceSinkFactory(props));
     }
 
     @Override
@@ -105,7 +116,7 @@ public class PulsarCatalog extends AbstractCatalog {
         try {
             return metadataReader.namespaceExists(databaseName);
         } catch (PulsarAdminException e) {
-            throw new CatalogException(String.format("Failed to check existence of databases %s", databaseName), e);
+            return false;
         }
     }
 

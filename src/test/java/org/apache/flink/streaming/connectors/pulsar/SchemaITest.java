@@ -14,10 +14,12 @@
 
 package org.apache.flink.streaming.connectors.pulsar;
 
+import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper;
+import org.apache.flink.streaming.connectors.pulsar.testutils.SingletonStreamSink;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.TableSchema;
@@ -25,9 +27,8 @@ import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.descriptors.ConnectorDescriptor;
 import org.apache.flink.table.descriptors.Pulsar;
 import org.apache.flink.table.descriptors.Schema;
-import org.apache.flink.table.runtime.utils.StreamITCase;
 import org.apache.flink.table.types.DataType;
-import org.apache.flink.types.Row;
+import org.apache.flink.table.types.utils.LegacyTypeInfoDataTypeConverter;
 import org.apache.flink.util.StringUtils;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.schema.SchemaType;
@@ -39,7 +40,6 @@ import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -50,16 +50,16 @@ import static org.apache.flink.streaming.connectors.pulsar.SchemaData.doubleList
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.floatList;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.int16List;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.int32List;
+import static org.apache.flink.streaming.connectors.pulsar.SchemaData.int64List;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.int8List;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.stringList;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.timestampList;
-import static org.junit.Assert.assertEquals;
 
 public class SchemaITest extends PulsarTestBaseWithFlink {
 
     @Before
     public void clearState() {
-        StreamITCase.testResults().clear();
+        SingletonStreamSink.clear();
         FailingIdentityMapper.failedBefore = false;
     }
 
@@ -81,6 +81,16 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
     @Test
     public void testINT32Write() throws Exception {
         checkWrite(SchemaType.INT32, DataTypes.INT(), int32List, null, null);
+    }
+
+    @Test
+    public void testINT64Read() throws Exception {
+        checkRead(SchemaType.INT64, int64List, null, null);
+    }
+
+    @Test
+    public void testINT64Write() throws Exception {
+        checkWrite(SchemaType.INT64, DataTypes.BIGINT(), int64List, null, null);
     }
 
 
@@ -187,9 +197,12 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
                 .registerTableSource(table);
 
         Table t = tEnv.scan(table).select("value");
-        tEnv.toAppendStream(t, Row.class)
+        tEnv.toAppendStream(t, t.getSchema().toRowType())
                 .map(new FailingIdentityMapper<>(datas.size()))
-                .addSink(new StreamITCase.StringSink<>()).setParallelism(1);
+                .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
+
+        FailingIdentityMapper.failedBefore = false;
+        SingletonStreamSink.clear();
 
         Thread reader = new Thread("read") {
             @Override
@@ -206,11 +219,9 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
         reader.join();
 
         if (toStr == null) {
-            assertEquals(StreamITCase.testResults(),
-                    datas.subList(0, datas.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
+            SingletonStreamSink.compareWithList(datas.subList(0, datas.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
         } else {
-            assertEquals(StreamITCase.testResults(),
-                    datas.subList(0, datas.size() - 1).stream().map(e -> toStr.apply(e)).collect(Collectors.toList()));
+            SingletonStreamSink.compareWithList(datas.subList(0, datas.size() - 1).stream().map(e -> toStr.apply(e)).collect(Collectors.toList()));
         }
     }
 
@@ -224,7 +235,8 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
         TableSchema tSchema = TableSchema.builder().field("value", dt).build();
 
-        DataStream stream = see.fromCollection(datas);
+        TypeInformation<T> ti = (TypeInformation<T>) LegacyTypeInfoDataTypeConverter.toLegacyTypeInfo(dt);
+        DataStream stream = see.fromCollection(datas, ti);
         tEnv.registerDataStream("origin", stream);
 
         tEnv.connect(getPulsarSinkDescriptor(table))
@@ -232,7 +244,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
                 .inAppendMode()
                 .registerTableSink(tableName);
 
-        tEnv.sqlUpdate("insert into " + tableName + " select * from origin");
+        tEnv.sqlUpdate("insert into `" + tableName + "` select * from origin");
 
         Thread sinkThread = new Thread("sink") {
             @Override
@@ -258,15 +270,18 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
 
         Table t = tEnv2.scan(table).select("value");
-        tEnv2.toAppendStream(t, Row.class)
+        tEnv2.toAppendStream(t, t.getSchema().toRowType())
                 .map(new FailingIdentityMapper<>(datas.size()))
-                .addSink(new StreamITCase.StringSink<>()).setParallelism(1);
+                .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
+
+        FailingIdentityMapper.failedBefore = false;
+        SingletonStreamSink.clear();
 
         Thread reader = new Thread("read") {
             @Override
             public void run() {
                 try {
-                    see.execute("read");
+                    se2.execute("read");
                 } catch (Throwable e) {
                     // do nothing
                 }
@@ -277,11 +292,9 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
         reader.join();
 
         if (toStr == null) {
-            assertEquals(StreamITCase.testResults(),
-                    datas.subList(0, datas.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
+            SingletonStreamSink.compareWithList(datas.subList(0, datas.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
         } else {
-            assertEquals(StreamITCase.testResults(),
-                    datas.subList(0, datas.size() - 1).stream().map(e -> toStr.apply(e)).collect(Collectors.toList()));
+            SingletonStreamSink.compareWithList(datas.subList(0, datas.size() - 1).stream().map(e -> toStr.apply(e)).collect(Collectors.toList()));
         }
     }
 
@@ -300,11 +313,5 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
                 .topic(tableName)
                 .property(PulsarOptions.FLUSH_ON_CHECKPOINT_OPTION_KEY, "true")
                 .property(PulsarOptions.FAIL_ON_WRITE_OPTION_KEY, "true");
-    }
-
-    private final AtomicInteger topicId = new AtomicInteger(0);
-
-    private String newTopic() {
-        return TopicName.get("topic-" + topicId.getAndIncrement()).toString();
     }
 }

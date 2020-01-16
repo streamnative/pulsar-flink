@@ -364,7 +364,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
                 "invalid test case for Pulsar repartitioning; Pulsar only allows increasing partitions.");
 
         List<String> startupTopics =
-                IntStream.rangeClosed(0, numPartitions).mapToObj(i -> topicName("test-topic", i)).collect(Collectors.toList());
+                IntStream.range(0, numPartitions).mapToObj(i -> topicName("test-topic", i)).collect(Collectors.toList());
 
 
         DummyFlinkPulsarSource<String>[] sources =
@@ -614,6 +614,8 @@ public class FlinkPulsarSourceTest extends TestLogger {
                 PulsarMetadataReader discoverer,
                 Properties properties) {
             super("a", "b", mock(DeserializationSchema.class), properties);
+            this.testFetcherSupplier = testFetcherSupplier;
+            this.discoverer = discoverer;
         }
 
         public DummyFlinkPulsarSource(

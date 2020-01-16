@@ -35,7 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.EVENT_TIME_NAME;
@@ -46,17 +45,15 @@ import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOption
 @Slf4j
 public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
 
-    protected DataType dataType;
+    protected final DataType dataType;
 
     private DataType valueType;
 
-    private Function<Row, Row> valueProjection;
+    private SerializableFunction<Row, Row> valueProjection;
 
-    private Function<Row, Row> metaProjection;
+    private SerializableFunction<Row, Row> metaProjection;
 
-    private PulsarSerializer serializer;
-
-    private boolean valueIsStruct;
+    private transient PulsarSerializer serializer;
 
     public FlinkPulsarRowSink(
             String adminUrl,
@@ -71,7 +68,8 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
                 properties,
                 TopicKeyExtractor.DUMMY_FOR_ROW);
 
-        dataType = this.dataType;
+        this.dataType = dataType;
+        createProjection();
     }
 
     public FlinkPulsarRowSink(
@@ -86,7 +84,6 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
     @Override
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
-        createProjection();
         this.serializer = new PulsarSerializer(valueType, false);
     }
 
@@ -181,8 +178,6 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
             }
             return result;
         };
-
-        valueIsStruct = nonInternalFields.size() == 1;
     }
 
     @Override
@@ -220,7 +215,7 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
             return;
         }
 
-        TypedMessageBuilder builder = getProducer(topic).newMessage().value((Row) v);
+        TypedMessageBuilder builder = getProducer(topic).newMessage().value(v);
 
         if (key != null) {
             builder.keyBytes(key.getBytes());

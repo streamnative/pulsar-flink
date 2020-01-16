@@ -123,7 +123,7 @@ public class PulsarSerializer {
                 (tpe == LogicalTypeRoot.VARBINARY && atpe == Schema.Type.BYTES) ||
                 (tpe == LogicalTypeRoot.DATE && atpe == Schema.Type.INT)) {
             return (getter, ordinal) -> getter.getField(ordinal);
-        } else if (tpe == LogicalTypeRoot.TIMESTAMP_WITH_TIME_ZONE && atpe == Schema.Type.LONG) {
+        } else if (tpe == LogicalTypeRoot.TIMESTAMP_WITHOUT_TIME_ZONE && atpe == Schema.Type.LONG) {
             LogicalType altpe = avroType.getLogicalType();
             if (altpe instanceof LogicalTypes.TimestampMillis || altpe instanceof LogicalTypes.TimestampMicros) {
                 return (getter, ordinal) -> getter.getField(ordinal);

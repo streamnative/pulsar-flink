@@ -36,7 +36,7 @@ catalogs:
     service-url: "$VAR_SERVICEURL"
     admin-url: "$VAR_ADMINURL"
     startingOffsets: "$VAR_STARTING"
-    table.partitions: 5
+    table-default-partitions: 5
   - name: pulsarcatalog2
     type: pulsar
     default-database: tn/ns

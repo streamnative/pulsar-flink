@@ -77,7 +77,7 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
 
     protected transient volatile Throwable failedWrite;
 
-    protected PulsarAdmin admin;
+    protected transient PulsarAdmin admin;
 
     protected transient BiConsumer<MessageId, Throwable> sendCallback;
 
@@ -105,6 +105,8 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
                     topicKeyExtractor, ExecutionConfig.ClosureCleanerLevel.RECURSIVE, true);
             this.topicKeyExtractor = checkNotNull(topicKeyExtractor);
         }
+
+        this.clientConfigurationData = clientConf;
 
         this.properties = checkNotNull(properties);
 
@@ -210,18 +212,18 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
         checkErroneous();
     }
 
-    protected Producer<T> getProducer(String topic) {
-        if (singleProducer != null) {
-            return (Producer<T>) singleProducer;
+    protected <R> Producer<R> getProducer(String topic) {
+        if (forcedTopic) {
+            return (Producer<R>) singleProducer;
         }
 
         if (topic2Producer.containsKey(topic)) {
-            return (Producer<T>) topic2Producer.get(topic);
+            return (Producer<R>) topic2Producer.get(topic);
         } else {
             uploadSchema(topic);
             Producer p = createProducer(clientConfigurationData, producerConf, topic, getPulsarSchema());
             topic2Producer.put(topic, p);
-            return (Producer<T>) p;
+            return (Producer<R>) p;
         }
     }
 
@@ -251,7 +253,7 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
     }
 
     public void producerFlush() throws Exception {
-        if (singleProducer != null) {
+        if (forcedTopic) {
             singleProducer.flush();
         } else {
             for (Producer<?> p : topic2Producer.values()) {
@@ -280,8 +282,8 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
             for (Producer<?> p : topic2Producer.values()) {
                 p.close();
             }
+            topic2Producer.clear();
         }
-        topic2Producer.clear();
     }
 
     protected void checkErroneous() throws Exception {

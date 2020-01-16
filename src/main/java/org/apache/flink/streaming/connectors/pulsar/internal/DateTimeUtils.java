@@ -100,7 +100,7 @@ public class DateTimeUtils {
         DateFormat timestampFormat = getThreadLocalTimestampFormat(timeZone);
         String formatted = timestampFormat.format(ts);
 
-        if (timestampString.length() > 19 && timestampString.substring(19) != ".0") {
+        if (timestampString.length() > 19 && !timestampString.substring(19).equals(".0")) {
             return formatted + timestampString.substring(19);
         } else {
             return formatted;

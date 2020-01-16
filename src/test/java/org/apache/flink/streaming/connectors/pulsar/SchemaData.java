@@ -69,6 +69,11 @@ public class SchemaData {
         public int i;
         public float f;
         public Bar bar;
+
+        @Override
+        public String toString() {
+            return "" + i + "," + f + "," + (bar == null ? "null" : bar.toString());
+        }
     }
 
     @Data
@@ -77,5 +82,10 @@ public class SchemaData {
     public static class Bar {
         public boolean b;
         public String s;
+
+        @Override
+        public String toString() {
+            return "" + b + "," + s;
+        }
     }
 }

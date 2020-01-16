@@ -76,5 +76,5 @@ public class PulsarOptions {
             PUBLISH_TIME_NAME,
             EVENT_TIME_NAME);
 
-    public static final String DEFAULT_PARTITIONS = "tabledefaultpartitions";
+    public static final String DEFAULT_PARTITIONS = "table-default-partitions";
 }

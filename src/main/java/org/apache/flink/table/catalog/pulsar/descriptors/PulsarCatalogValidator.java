@@ -36,13 +36,13 @@ public class PulsarCatalogValidator extends CatalogDescriptorValidator {
         properties.validateString(CATALOG_SERVICE_URL, false, 1);
         properties.validateString(CATALOG_ADMIN_URL, false, 1);
         properties.validateInt(CATALOG_DEFAULT_PARTITIONS, true, 1);
-        validateStartingOffsets(properties);
+        // validateStartingOffsets(properties);
     }
 
     private void validateStartingOffsets(DescriptorProperties properties) {
         if (properties.containsKey(CATALOG_STARTING_POS)) {
             String v = properties.getString(CATALOG_STARTING_POS);
-            if (v != "earliest" && v != "latest") {
+            if (!v.equals("earliest") && !v.equals("latest")) {
                 throw new ValidationException(CATALOG_STARTING_POS + " should be either earliest or latest");
             }
         }

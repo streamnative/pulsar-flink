@@ -20,14 +20,17 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.ADMIN_URL_OPTION_KEY;
+import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.TOPIC_SINGLE_OPTION_KEY;
 import static org.apache.flink.table.descriptors.DescriptorProperties.noValidation;
+import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.SERVICE_URL_OPTION_KEY;
 
 public class PulsarValidator extends ConnectorDescriptorValidator {
 
     public static final String CONNECTOR_TYPE_VALUE_PULSAR = "pulsar";
-    public static final String CONNECTOR_SERVICE_URL = "connector.service-url";
-    public static final String CONNECTOR_ADMIN_URL = "connector.admin-url";
-    public static final String CONNECTOR_TOPIC = "connector.topic";
+    public static final String CONNECTOR_SERVICE_URL = SERVICE_URL_OPTION_KEY;
+    public static final String CONNECTOR_ADMIN_URL = ADMIN_URL_OPTION_KEY;
+    public static final String CONNECTOR_TOPIC = TOPIC_SINGLE_OPTION_KEY;
     public static final String CONNECTOR_STARTUP_MODE = "connector.startup-mode";
     public static final String CONNECTOR_STARTUP_MODE_VALUE_EARLIEST = "earliest-offset";
     public static final String CONNECTOR_STARTUP_MODE_VALUE_LATEST = "latest-offset";
@@ -47,8 +50,6 @@ public class PulsarValidator extends ConnectorDescriptorValidator {
 
     @Override
     public void validate(DescriptorProperties properties) {
-        super.validate(properties);
-
         properties.validateString(CONNECTOR_TOPIC, false, 1, Integer.MAX_VALUE);
         properties.validateString(CONNECTOR_SERVICE_URL, false, 1, Integer.MAX_VALUE);
         properties.validateString(CONNECTOR_ADMIN_URL, false, 1, Integer.MAX_VALUE);

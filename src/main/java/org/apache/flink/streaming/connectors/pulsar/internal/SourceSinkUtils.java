@@ -37,7 +37,7 @@ public class SourceSinkUtils {
 
     private static Map<String, String> validateSourceOptions(Map<String, String> caseInsensitiveParams) {
         Map<String, String> topicOptions = caseInsensitiveParams.entrySet().stream()
-                .filter(t -> PulsarOptions.TOPIC_OPTION_KEYS.contains(t))
+                .filter(t -> PulsarOptions.TOPIC_OPTION_KEYS.contains(t.getKey()))
                 .collect(Collectors.toMap(map -> map.getKey(), map -> map.getValue()));
 
         if (topicOptions.isEmpty() || topicOptions.size() > 1) {

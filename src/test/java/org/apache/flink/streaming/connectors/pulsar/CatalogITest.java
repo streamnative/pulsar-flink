@@ -21,16 +21,15 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.connectors.pulsar.testutils.EnvironmentFileUtil;
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper;
+import org.apache.flink.streaming.connectors.pulsar.testutils.SingletonStreamSink;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.TableEnvironment;
-import org.apache.flink.table.api.internal.TableImpl;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.catalog.Catalog;
 import org.apache.flink.table.catalog.pulsar.PulsarCatalog;
 import org.apache.flink.table.client.config.Environment;
 import org.apache.flink.table.client.gateway.SessionContext;
 import org.apache.flink.table.client.gateway.local.ExecutionContext;
-import org.apache.flink.table.runtime.utils.StreamITCase;
 import org.apache.flink.types.Row;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.common.naming.TopicName;
@@ -45,6 +44,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -62,7 +62,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
     @Before
     public void clearStates() {
-        StreamITCase.testResults().clear();
+        SingletonStreamSink.clear();
         FailingIdentityMapper.failedBefore = false;
     }
 
@@ -159,9 +159,9 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         tableEnv.useCatalog(pulsarCatalog1);
 
         Table t = tableEnv.scan(TopicName.get(tableName).getLocalName()).select("value");
-        DataStream stream = ((StreamTableEnvironment) ((TableImpl) t).getTableEnvironment()).toAppendStream(t, Row.class);
+        DataStream stream = ((StreamTableEnvironment) tableEnv).toAppendStream(t, t.getSchema().toRowType());
         stream.map(new FailingIdentityMapper<Row>(int32List.size()))
-                .addSink(new StreamITCase.StringSink<>()).setParallelism(1);
+                .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
 
         Thread runner = new Thread("runner") {
             @Override
@@ -180,7 +180,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         sendTypedMessages(tableName, SchemaType.INT32, int32List, Optional.empty());
 
         Thread.sleep(2000);
-        assertEquals(StreamITCase.testResults(), int32List.subList(0, int32List.size() - 1));
+        SingletonStreamSink.compareWithList(int32List.subList(0, int32List.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
     }
 
     @Test
@@ -198,9 +198,9 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         tableEnv.useCatalog("pulsarCatalog1");
 
         Table t = tableEnv.scan(TopicName.get(tableName).getLocalName()).select("value");
-        DataStream stream = ((StreamTableEnvironment) ((TableImpl) t).getTableEnvironment()).toAppendStream(t, Row.class);
+        DataStream stream = ((StreamTableEnvironment) tableEnv).toAppendStream(t, t.getSchema().toRowType());
         stream.map(new FailingIdentityMapper<Row>(int32List.size()))
-                .addSink(new StreamITCase.StringSink<>()).setParallelism(1);
+                .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
 
         Thread runner = new Thread("runner") {
             @Override
@@ -216,7 +216,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         runner.start();
 
         Thread.sleep(2000);
-        assertEquals(StreamITCase.testResults(), int32List.subList(0, int32List.size() - 1));
+        SingletonStreamSink.compareWithList(int32List.subList(0, int32List.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
     }
 
     @Test
@@ -235,7 +235,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         tableEnv.useCatalog("pulsarcatalog1");
 
         String sinkDDL = "create table tableSink(v int)";
-        String insertQ = "INSERT INTO tableSink SELECT * FROM " + tableName;
+        String insertQ = "INSERT INTO tableSink SELECT * FROM `" + tableName + "`";
 
         tableEnv.sqlUpdate(sinkDDL);
         tableEnv.sqlUpdate(insertQ);
@@ -262,9 +262,9 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         tableEnv1.useCatalog("pulsarcatalog1");
 
         Table t = tableEnv1.scan("tableSink").select("value");
-        DataStream stream = ((StreamTableEnvironment) ((TableImpl) t).getTableEnvironment()).toAppendStream(t, Row.class);
+        DataStream stream = ((StreamTableEnvironment) tableEnv).toAppendStream(t, t.getSchema().toRowType());
         stream.map(new FailingIdentityMapper<Row>(int32List.size()))
-                .addSink(new StreamITCase.StringSink<>()).setParallelism(1);
+                .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
 
         Thread reader = new Thread("read") {
             @Override
@@ -279,7 +279,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
         reader.start();
         reader.join();
-        assertEquals(StreamITCase.testResults(), int32List.subList(0, int32List.size() - 1));
+        SingletonStreamSink.compareWithList(int32List.subList(0, int32List.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
     }
 
     @Test
@@ -299,7 +299,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
         tableEnv.useCatalog("pulsarcatalog1");
 
-        String insertQ = "INSERT INTO tableSink1 SELECT * FROM " + tableName;
+        String insertQ = "INSERT INTO tableSink1 SELECT * FROM `" + tableName + "`";
 
         tableEnv.sqlUpdate(insertQ);
 
@@ -325,9 +325,9 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         tableEnv1.useCatalog("pulsarcatalog1");
 
         Table t = tableEnv1.scan("tableSink1").select("value");
-        DataStream stream = ((StreamTableEnvironment) ((TableImpl) t).getTableEnvironment()).toAppendStream(t, Row.class);
+        DataStream stream = ((StreamTableEnvironment) tableEnv).toAppendStream(t, t.getSchema().toRowType());
         stream.map(new FailingIdentityMapper<Row>(int32List.size()))
-                .addSink(new StreamITCase.StringSink<>()).setParallelism(1);
+                .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
 
         Thread reader = new Thread("read") {
             @Override
@@ -342,7 +342,8 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
         reader.start();
         reader.join();
-        assertEquals(StreamITCase.testResults(), int32List.subList(0, int32List.size() - 1));
+        SingletonStreamSink.compareWithList(
+                int32List.subList(0, int32List.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
     }
 
     private <T> ExecutionContext<T> createExecutionContext(String file, Map<String, String> replaceVars) throws Exception {
@@ -368,11 +369,5 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         replaceVars.put("$VAR_SERVICEURL", getServiceUrl());
         replaceVars.put("$VAR_ADMINURL", getAdminUrl());
         return replaceVars;
-    }
-
-    private final AtomicInteger topicId = new AtomicInteger(0);
-
-    private String newTopic() {
-        return TopicName.get("topic-" + topicId.getAndIncrement()).toString();
     }
 }

@@ -17,13 +17,20 @@ package org.apache.flink.streaming.connectors.pulsar;
 import com.google.common.collect.Iterables;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.RichFlatMapFunction;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
+import org.apache.flink.api.common.serialization.DeserializationSchema;
+import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.common.typeutils.TypeSerializer;
+import org.apache.flink.api.scala.typeutils.Types;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.core.memory.DataInputView;
+import org.apache.flink.core.memory.DataInputViewStreamWrapper;
 import org.apache.flink.runtime.client.JobCancellationException;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.JobStatus;
@@ -57,9 +64,12 @@ import org.apache.pulsar.client.impl.MessageIdImpl;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.policies.data.PersistentTopicInternalStats;
 import org.apache.pulsar.common.schema.SchemaType;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -105,7 +115,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
             see.setParallelism(1);
 
             FlinkPulsarSource<String> source =
-                    new FlinkPulsarSource<String>("sev", "admin", null, props).setStartFromEarliest();
+                    new FlinkPulsarSource<String>("sev", "admin", new SimpleStringSchema(), props).setStartFromEarliest();
 
             DataStream<String> stream = see.addSource(source);
             stream.print();
@@ -113,7 +123,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         } catch (Exception e) {
             final Optional<Throwable> optionalThrowable = ExceptionUtils.findThrowableWithMessage(e, "authority component is missing");
             assertTrue(optionalThrowable.isPresent());
-            assertTrue(optionalThrowable.get() instanceof RuntimeException);
+            assertTrue(optionalThrowable.get() instanceof PulsarClientException);
         }
     }
 
@@ -121,7 +131,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
     public void testCaseSensitiveReaderConf() throws Exception {
         String tp = newTopic();
         List<Integer> messages =
-                IntStream.rangeClosed(0, 50).mapToObj(t -> Integer.valueOf(t)).collect(Collectors.toList());
+                IntStream.range(0, 50).mapToObj(t -> Integer.valueOf(t)).collect(Collectors.toList());
 
         sendTypedMessages(tp, SchemaType.INT32, messages, Optional.empty());
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
@@ -131,7 +141,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         props.setProperty("pulsar.reader.receiverQueueSize", "1000000");
 
         FlinkPulsarSource<Integer> source =
-                new FlinkPulsarSource<Integer>(serviceUrl, adminUrl, null, props)
+                new FlinkPulsarSource<Integer>(serviceUrl, adminUrl, new IntegerDeserializer(), props)
                         .setStartFromEarliest();
 
         DataStream<Integer> stream = see.addSource(source);
@@ -273,7 +283,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         sourceProps.setProperty(TOPIC_MULTI_OPTION_KEY, StringUtils.join(topics, ','));
 
         DataStream stream = see.addSource(
-                new FlinkPulsarRowSource(serviceUrl, adminUrl, sourceProps).setStartFromEarliest());
+                new FlinkPulsarRowSourceSub(subName, serviceUrl, adminUrl, sourceProps).setStartFromEarliest());
         stream.addSink(new DiscardingSink());
 
         AtomicReference<Throwable> error = new AtomicReference<>();
@@ -685,12 +695,6 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
 
     }
 
-    private final AtomicInteger topicId = new AtomicInteger(0);
-
-    private String newTopic() {
-        return TopicName.get("topic-" + topicId.getAndIncrement()).toString();
-    }
-
     public static boolean isCause(
             Class<? extends Throwable> expected,
             Throwable exc) {
@@ -1074,6 +1078,51 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
 
         public Throwable getError() {
             return error;
+        }
+    }
+
+    private static class IntegerDeserializer implements DeserializationSchema<Integer> {
+        private final TypeInformation<Integer> ti;
+        private final TypeSerializer<Integer> ser;
+
+        public IntegerDeserializer() {
+            this.ti = Types.INT();
+            this.ser = ti.createSerializer(new ExecutionConfig());
+        }
+
+
+        @Override
+        public Integer deserialize(byte[] message) throws IOException {
+
+            DataInputView in = new DataInputViewStreamWrapper(new ByteArrayInputStream(message));
+            Integer i = ser.deserialize(in);
+
+            return i;
+        }
+
+        @Override
+        public boolean isEndOfStream(Integer nextElement) {
+            return false;
+        }
+
+        @Override
+        public TypeInformation<Integer> getProducedType() {
+            return ti;
+        }
+    }
+
+    private static class FlinkPulsarRowSourceSub extends FlinkPulsarRowSource {
+
+        private final String sub;
+
+        public FlinkPulsarRowSourceSub(String sub, String serviceUrl, String adminUrl, Properties properties) {
+            super(serviceUrl, adminUrl, properties);
+            this.sub = sub;
+        }
+
+        @Override
+        protected String getSubscriptionPrefix() {
+            return "flink-pulsar-" + sub;
         }
     }
 }

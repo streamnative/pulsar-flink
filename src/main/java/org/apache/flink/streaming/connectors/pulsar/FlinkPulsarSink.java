@@ -54,6 +54,7 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
     @Override
     public void invoke(T value, Context context) throws Exception {
         checkErroneous();
+        initializeSendCallback();
 
         TypedMessageBuilder<T> mb;
 

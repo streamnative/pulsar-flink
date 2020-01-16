@@ -14,10 +14,12 @@
 
 package org.apache.flink.streaming.connectors.pulsar;
 
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.testutils.CheckedThread;
 import org.apache.flink.core.testutils.MultiShotLatch;
 import org.apache.flink.runtime.state.FunctionSnapshotContext;
 import org.apache.flink.streaming.api.operators.StreamSink;
+import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
 import org.apache.flink.streaming.util.OneInputStreamOperatorTestHarness;
 import org.apache.flink.util.TestLogger;
@@ -37,6 +39,7 @@ import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -59,12 +62,18 @@ public class FlinkPulsarSinkTest extends TestLogger {
         return clientConf;
     }
 
+    public static Properties dummyProperties() {
+        Properties pros = new Properties();
+        pros.setProperty("failonwrite", "true");
+        return pros;
+    }
+
     /**
      * Test ensuring that if an invoke call happens right after an async exception is caught, it should be rethrown.
      */
     @Test
     public void testAsyncErrorRethrownOnInvoke() throws Throwable {
-        DummyFlinkPulsarSink<String> sink = new DummyFlinkPulsarSink<>(dummyClientConf(), new Properties(), null, null);
+        DummyFlinkPulsarSink<String> sink = new DummyFlinkPulsarSink<>(dummyClientConf(), dummyProperties(), mock(TopicKeyExtractor.class), null);
 
         OneInputStreamOperatorTestHarness<String, Object> testHarness =
                 new OneInputStreamOperatorTestHarness<>(new StreamSink<>(sink));
@@ -95,7 +104,7 @@ public class FlinkPulsarSinkTest extends TestLogger {
     @Test
     public void testAsyncErrorRethrownOnCheckpoint() throws Throwable {
         final DummyFlinkPulsarSink<String> producer = new DummyFlinkPulsarSink<>(
-                dummyClientConf(), new Properties(), null, null);
+                dummyClientConf(), dummyProperties(), mock(TopicKeyExtractor.class), null);
 
         OneInputStreamOperatorTestHarness<String, Object> testHarness =
                 new OneInputStreamOperatorTestHarness<>(new StreamSink<>(producer));
@@ -128,9 +137,9 @@ public class FlinkPulsarSinkTest extends TestLogger {
      * The test for that is covered in testAtLeastOnceProducer.
      */
     @SuppressWarnings("unchecked")
-    @Test(timeout = 5000)
+    @Test//(timeout = 5000)
     public void testAsyncErrorRethrownOnCheckpointAfterFlush() throws Throwable {
-        final DummyFlinkPulsarSink<String> sink = new DummyFlinkPulsarSink<>(dummyClientConf(), new Properties(), null, null);
+        final DummyFlinkPulsarSink<String> sink = new DummyFlinkPulsarSink<>(dummyClientConf(), dummyProperties(), mock(TopicKeyExtractor.class), null);
         Producer mockProducer = sink.getProducer("tp");
 
         final OneInputStreamOperatorTestHarness<String, Object> testHarness =
@@ -180,7 +189,7 @@ public class FlinkPulsarSinkTest extends TestLogger {
     @SuppressWarnings("unchecked")
     @Test(timeout = 10000)
     public void testAtLeastOnceProducer() throws Throwable {
-        final DummyFlinkPulsarSink<String> sink = new DummyFlinkPulsarSink<>(dummyClientConf(), new Properties(), null, null);
+        final DummyFlinkPulsarSink<String> sink = new DummyFlinkPulsarSink<>(dummyClientConf(), dummyProperties(), mock(TopicKeyExtractor.class), null);
 
         final Producer mockProducer = sink.getProducer("tp");
 
@@ -236,12 +245,12 @@ public class FlinkPulsarSinkTest extends TestLogger {
      * we set a timeout because the test will not finish if the logic is broken.
      */
     @SuppressWarnings("unchecked")
-    @Test(timeout = 5000)
+    @Test//(timeout = 5000)
     public void testDoesNotWaitForPendingRecordsIfFlushingDisabled() throws Throwable {
-        Properties props = new Properties();
+        Properties props = dummyProperties();
         props.setProperty("flushoncheckpoint", "false");
 
-        final DummyFlinkPulsarSink<String> sink = new DummyFlinkPulsarSink<>(dummyClientConf(), props, null, null);
+        final DummyFlinkPulsarSink<String> sink = new DummyFlinkPulsarSink<>(dummyClientConf(), props, mock(TopicKeyExtractor.class), null);
 
         final Producer mockProducer = sink.getProducer("tp");
 
@@ -306,12 +315,12 @@ public class FlinkPulsarSinkTest extends TestLogger {
                         return null;
                     }
                 });
-                return null;
+                return mockFuture;
             });
 
             when(mockMessageBuilder.value(any())).thenReturn(mockMessageBuilder);
             when(mockMessageBuilder.keyBytes(any())).thenReturn(mockMessageBuilder);
-            when(mockMessageBuilder.eventTime(any())).thenReturn(mockMessageBuilder);
+            when(mockMessageBuilder.eventTime(anyLong())).thenReturn(mockMessageBuilder);
 
             when(mockProducer.newMessage()).thenAnswer(new Answer<TypedMessageBuilderImpl<T>>() {
                 @Override
@@ -330,6 +339,13 @@ public class FlinkPulsarSinkTest extends TestLogger {
             if (flushOnCheckpoint && !isFlushed) {
                 throw new RuntimeException("Flushing is enabled; snapshots should be blocked" +
                         " until all pending records are flushed");
+            }
+        }
+
+        @Override
+        public void open(Configuration parameters) throws Exception {
+            if (flushOnCheckpoint && !((StreamingRuntimeContext) this.getRuntimeContext()).isCheckpointingEnabled()) {
+                flushOnCheckpoint = false;
             }
         }
 

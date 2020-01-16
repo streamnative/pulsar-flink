@@ -180,6 +180,12 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
         } else {
             topic2Producer = new HashMap<>();
         }
+    }
+
+    protected void initializeSendCallback() {
+        if (sendCallback != null) {
+            return;
+        }
 
         if (failOnWrite) {
             this.sendCallback = (t, u) -> {
@@ -253,11 +259,13 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
     }
 
     public void producerFlush() throws Exception {
-        if (forcedTopic) {
+        if (singleProducer != null) {
             singleProducer.flush();
         } else {
-            for (Producer<?> p : topic2Producer.values()) {
-                p.flush();
+            if (topic2Producer != null) {
+                for (Producer<?> p : topic2Producer.values()) {
+                    p.flush();
+                }
             }
         }
         synchronized (pendingRecordsLock) {
@@ -275,14 +283,18 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
 
     protected void producerClose() throws Exception {
         producerFlush();
-        admin.close();
+        if (admin != null) {
+            admin.close();
+        }
         if (singleProducer != null) {
             singleProducer.close();
         } else {
-            for (Producer<?> p : topic2Producer.values()) {
-                p.close();
+            if (topic2Producer != null) {
+                for (Producer<?> p : topic2Producer.values()) {
+                    p.close();
+                }
+                topic2Producer.clear();
             }
-            topic2Producer.clear();
         }
     }
 

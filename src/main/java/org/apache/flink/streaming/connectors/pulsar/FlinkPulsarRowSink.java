@@ -193,6 +193,7 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
     @Override
     public void invoke(Row value, Context context) throws Exception {
         checkErroneous();
+        initializeSendCallback();
 
         Row metaRow = metaProjection.apply(value);
         Row valueRow = valueProjection.apply(value);

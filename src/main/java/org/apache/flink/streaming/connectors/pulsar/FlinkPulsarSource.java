@@ -117,7 +117,11 @@ public class FlinkPulsarSource<T>
     private StartupMode startupMode = StartupMode.LATEST;
 
     /** Specific startup offsets; only relevant when startup mode is {@link StartupMode#SPECIFIC_OFFSETS}. */
-    private Map<String, MessageId> specificStartupOffsets;
+    private transient Map<String, MessageId> specificStartupOffsets;
+
+    // TODO: remove this when MessageId is serializable itself.
+    // see: https://github.com/apache/pulsar/pull/6064
+    private Map<String, byte[]> specificStartupOffsetsAsBytes;
 
     protected final Properties properties;
 
@@ -301,6 +305,10 @@ public class FlinkPulsarSource<T>
     public FlinkPulsarSource<T> setStartFromSpecificOffsets(Map<String, MessageId> specificStartupOffsets) {
         this.startupMode = StartupMode.SPECIFIC_OFFSETS;
         this.specificStartupOffsets = checkNotNull(specificStartupOffsets);
+        this.specificStartupOffsetsAsBytes = new HashMap<>();
+        for (Map.Entry<String, MessageId> entry : specificStartupOffsets.entrySet()) {
+            specificStartupOffsetsAsBytes.put(entry.getKey(), entry.getValue().toByteArray());
+        }
         return this;
     }
 
@@ -342,6 +350,12 @@ public class FlinkPulsarSource<T>
             log.info("Source {} will start reading %d topics in restored state {}",
                     taskIndex, ownedTopicStarts.size(), StringUtils.join(ownedTopicStarts.entrySet()));
         } else {
+            if (specificStartupOffsets == null && specificStartupOffsetsAsBytes != null) {
+                specificStartupOffsets = new HashMap<>();
+                for (Map.Entry<String, byte[]> entry : specificStartupOffsetsAsBytes.entrySet()) {
+                    specificStartupOffsets.put(entry.getKey(), MessageId.fromByteArray(entry.getValue()));
+                }
+            }
             Map<String, MessageId> allTopicOffsets =
                     offsetForEachTopic(allTopics, startupMode, specificStartupOffsets);
 
@@ -684,7 +698,7 @@ public class FlinkPulsarSource<T>
 
                 Map<String, MessageId> specificOffsets = new HashMap<>();
                 for (String topic : topics) {
-                    if (specificOffsets.containsKey(topic)) {
+                    if (specificStartupOffsets.containsKey(topic)) {
                         specificOffsets.put(topic, specificStartupOffsets.get(topic));
                     } else {
                         specificOffsets.put(topic, MessageId.latest);

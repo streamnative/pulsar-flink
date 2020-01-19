@@ -84,8 +84,6 @@
     <maven-shade-plugin.version>3.1.0</maven-shade-plugin.version>
     <maven-source-plugin.version>2.2.1</maven-source-plugin.version>
     <maven-surefire-plugin.version>2.21.0</maven-surefire-plugin.version>
-    <scala-maven-plugin.version>4.0.2</scala-maven-plugin.version>
-    <scalatest-maven-plugin.version>2.0.0</scalatest-maven-plugin.version>
   </properties>
 
   <!-- dependencies for all modules -->
@@ -419,6 +417,48 @@
           <excludeFilterFile>tools/maven/spotbugs-exclude.xml</excludeFilterFile>
           <failOnError>true</failOnError>
         </configuration>
+      </plugin>
+
+      <!--surefire for unit tests and integration tests-->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>${maven-surefire-plugin.version}</version>
+        <configuration>
+          <systemPropertyVariables>
+            <log4j.configuration>log4j-test.properties</log4j.configuration>
+          </systemPropertyVariables>
+          <argLine>-Xms256m -Xmx2048m -Dmvn.forkNumber=${surefire.forkNumber} -XX:+UseG1GC</argLine>
+        </configuration>
+        <executions>
+          <!--execute all the unit tests-->
+          <execution>
+            <id>default-test</id>
+            <phase>test</phase>
+            <goals>
+              <goal>test</goal>
+            </goals>
+            <configuration>
+              <includes>
+                <include>**/*Test.*</include>
+              </includes>
+            </configuration>
+          </execution>
+          <!--execute all the integration tests-->
+          <execution>
+            <id>integration-tests</id>
+            <phase>integration-test</phase>
+            <goals>
+              <goal>test</goal>
+            </goals>
+            <configuration>
+              <includes>
+                <include>**/*ITest.*</include>
+              </includes>
+              <reuseForks>false</reuseForks>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

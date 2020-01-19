@@ -250,16 +250,6 @@ public class PulsarSerializer {
             };
         } else if (tpe == LogicalTypeRoot.MAP && atpe == MAP &&
                 ((KeyValueDataType) dataType).getKeyDataType().getLogicalType().getTypeRoot() == LogicalTypeRoot.VARCHAR) {
-
-            KeyValueDataType kvt = (KeyValueDataType) dataType;
-            org.apache.flink.table.types.logical.LogicalType ktl = kvt.getKeyDataType().getLogicalType();
-            DataType vt = kvt.getValueDataType();
-            org.apache.flink.table.types.logical.LogicalType vtl = kvt.getValueDataType().getLogicalType();
-            boolean valueContainsNull = vt.getLogicalType().isNullable();
-
-            BiFunction<PositionedGetter, Integer, Object> valueConverter =
-                    newConverter(vt, resolveNullableType(avroType.getValueType(), valueContainsNull));
-
             return (getter, ordinal) -> getter.getField(ordinal);
         } else if (tpe == LogicalTypeRoot.ROW && atpe == RECORD) {
             FieldsDataType st = (FieldsDataType) dataType;

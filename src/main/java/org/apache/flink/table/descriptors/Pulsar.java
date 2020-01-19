@@ -197,9 +197,7 @@ public class Pulsar extends ConnectorDescriptor {
 
         if (sinkExtractorClass != null) {
             properties.putString(CONNECTOR_SINK_EXTRACTOR, sinkExtractorType);
-            if (sinkExtractorClass != null) {
-                properties.putClass(CONNECTOR_SINK_EXTRACTOR_CLASS, sinkExtractorClass);
-            }
+            properties.putClass(CONNECTOR_SINK_EXTRACTOR_CLASS, sinkExtractorClass);
         }
 
         return properties.asMap();

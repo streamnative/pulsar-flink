@@ -178,7 +178,7 @@ public class SchemaUtils {
         return (FieldsDataType) DataTypes.ROW(mainSchema.toArray(new DataTypes.Field[0]));
     }
 
-    public static List<DataTypes.Field> metadataFields = ImmutableList.of(
+    public static final List<DataTypes.Field> metadataFields = ImmutableList.of(
             DataTypes.FIELD(
                     KEY_ATTRIBUTE_NAME,
                     DataTypes.BYTES()),

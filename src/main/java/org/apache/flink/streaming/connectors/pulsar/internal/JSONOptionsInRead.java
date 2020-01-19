@@ -20,12 +20,15 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Read JSON Options.
+ */
 public class JSONOptionsInRead extends JSONOptions {
     private static final List<Charset> blackList = Arrays.asList(
             StandardCharsets.UTF_16,
             Charset.forName("UTF-32"));
 
-    private transient final Map<String, String> parameters;
+    private final transient Map<String, String> parameters;
     private final String defaultTimeZoneId;
     private final String defaultColumnNameOfCorruptRecord;
 
@@ -46,7 +49,7 @@ public class JSONOptionsInRead extends JSONOptions {
         }
 
         boolean isLineSepRequired =
-                multiLine || Charset.forName(enc) == StandardCharsets.UTF_8 || lineSeparator.isPresent();
+                multiLine || Charset.forName(enc) == StandardCharsets.UTF_8 || lineSeparator != null;
 
         if (!isLineSepRequired) {
             throw new IllegalArgumentException(String.format(

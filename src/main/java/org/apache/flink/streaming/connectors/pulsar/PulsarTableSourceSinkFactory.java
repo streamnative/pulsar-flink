@@ -14,11 +14,8 @@
 
 package org.apache.flink.streaming.connectors.pulsar;
 
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
-import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.table.api.TableException;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.catalog.CatalogTable;
@@ -34,6 +31,9 @@ import org.apache.flink.table.sources.RowtimeAttributeDescriptor;
 import org.apache.flink.table.sources.StreamTableSource;
 import org.apache.flink.table.sources.TableSource;
 import org.apache.flink.types.Row;
+import org.apache.flink.util.ExceptionUtils;
+
+import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.MessageId;
 
 import java.io.IOException;
@@ -78,6 +78,9 @@ import static org.apache.flink.table.descriptors.Schema.SCHEMA_TYPE;
 import static org.apache.flink.table.descriptors.StreamTableDescriptorValidator.UPDATE_MODE;
 import static org.apache.flink.table.descriptors.StreamTableDescriptorValidator.UPDATE_MODE_VALUE_APPEND;
 
+/**
+ * Pulsar Table source sink factory.
+ */
 @Slf4j
 public class PulsarTableSourceSinkFactory
         implements StreamTableSourceFactory<Row>, StreamTableSinkFactory<Row> {
@@ -277,7 +280,7 @@ public class PulsarTableSourceSinkFactory
                                 try {
                                     specificOffsets.put(partition, MessageId.fromByteArray(offset.getBytes()));
                                 } catch (IOException e) {
-                                    log.error("Failed to decode message id from properties {}", ExceptionUtils.getFullStackTrace(e));
+                                    log.error("Failed to decode message id from properties {}", ExceptionUtils.stringifyException(e));
                                     throw new RuntimeException(e);
                                 }
                             });

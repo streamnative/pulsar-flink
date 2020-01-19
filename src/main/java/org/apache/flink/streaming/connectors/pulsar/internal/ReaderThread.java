@@ -14,8 +14,9 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
-import lombok.extern.slf4j.Slf4j;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
+
+import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.Reader;
@@ -28,6 +29,11 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Actual working thread that read a specific Pulsar topic.
+ *
+ * @param <T> the record type that read from each Pulsar message.
+ */
 @Slf4j
 public class ReaderThread<T> extends Thread {
 

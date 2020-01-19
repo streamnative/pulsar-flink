@@ -31,7 +31,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-// copied from org.apache.flink.streaming.connectors.kafka.internals.ClosableBlockingQueueTest
+/**
+ * copied from org.apache.flink.streaming.connectors.kafka.internals.ClosableBlockingQueueTest.
+ */
 public class ClosableBlockingQueueTest {
 
     // ------------------------------------------------------------------------

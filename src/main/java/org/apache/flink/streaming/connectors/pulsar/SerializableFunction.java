@@ -11,10 +11,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.pulsar;
 
 import java.io.Serializable;
 import java.util.function.Function;
 
+/**
+ * Represents a serializable function that accepts one argument and produces a result.
+ *
+ * @param <T> the type of the input to the function
+ * @param <R> the type of the result of the function
+ */
 public interface SerializableFunction<T, R> extends Function<T, R>, Serializable {
 }

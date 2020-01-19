@@ -397,15 +397,6 @@
             <version>8.14</version>
           </dependency>
         </dependencies>
-        <executions>
-          <execution>
-            <id>validate</id>
-            <phase>validate</phase>
-            <goals>
-              <goal>check</goal>
-            </goals>
-          </execution>
-        </executions>
         <configuration>
           <suppressionsLocation>/tools/maven/suppressions.xml</suppressionsLocation>
           <includeTestSourceDirectory>true</includeTestSourceDirectory>
@@ -419,6 +410,15 @@
         <groupId>com.github.spotbugs</groupId>
         <artifactId>spotbugs-maven-plugin</artifactId>
         <version>3.1.12</version>
+
+        <configuration>
+          <xmlOutput>true</xmlOutput>
+          <threshold>Low</threshold>
+          <effort>default</effort>
+          <findbugsXmlOutputDirectory>${project.build.directory}/spotbugs</findbugsXmlOutputDirectory>
+          <excludeFilterFile>tools/maven/spotbugs-exclude.xml</excludeFilterFile>
+          <failOnError>true</failOnError>
+        </configuration>
       </plugin>
     </plugins>
   </build>

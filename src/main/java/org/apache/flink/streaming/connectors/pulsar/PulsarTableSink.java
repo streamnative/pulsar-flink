@@ -14,7 +14,6 @@
 
 package org.apache.flink.streaming.connectors.pulsar;
 
-import lombok.EqualsAndHashCode;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSink;
@@ -24,6 +23,8 @@ import org.apache.flink.table.sinks.AppendStreamTableSink;
 import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.table.utils.TableConnectorUtils;
 import org.apache.flink.types.Row;
+
+import lombok.EqualsAndHashCode;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 
 import java.util.Arrays;
@@ -32,6 +33,9 @@ import java.util.Properties;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
+/**
+ * Pulsar Table Sink.
+ */
 @EqualsAndHashCode
 public class PulsarTableSink implements AppendStreamTableSink<Row> {
 

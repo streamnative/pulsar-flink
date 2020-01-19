@@ -11,10 +11,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.pulsar;
 
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.connectors.pulsar.internal.DateTimeUtils;
@@ -26,6 +25,9 @@ import org.apache.flink.table.types.FieldsDataType;
 import org.apache.flink.table.types.logical.LogicalTypeRoot;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.types.Row;
+import org.apache.flink.util.ExceptionUtils;
+
+import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
@@ -42,6 +44,9 @@ import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOption
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.META_FIELD_NAMES;
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.TOPIC_ATTRIBUTE_NAME;
 
+/**
+ * Write Flink Row to Pulsar.
+ */
 @Slf4j
 public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
 
@@ -185,7 +190,7 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
         try {
             return SchemaUtils.sqlType2PulsarSchema(valueType);
         } catch (SchemaUtils.IncompatibleSchemaException e) {
-            log.error(ExceptionUtils.getFullStackTrace(e));
+            log.error(ExceptionUtils.stringifyException(e));
             throw new RuntimeException(e);
         }
     }

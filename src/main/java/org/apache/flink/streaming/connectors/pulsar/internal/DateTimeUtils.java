@@ -17,6 +17,7 @@ package org.apache.flink.streaming.connectors.pulsar.internal;
 import org.apache.flink.api.java.tuple.Tuple2;
 
 import javax.xml.bind.DatatypeConverter;
+
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -25,6 +26,9 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
 
+/**
+ * Utils for various date related conversions.
+ */
 public class DateTimeUtils {
 
     private static final long SECONDS_PER_DAY = 60 * 60 * 24L;
@@ -201,7 +205,7 @@ public class DateTimeUtils {
      * Calculates the year and the number of the day in the year for the given
      * number of days. The given days is the number of days since 1.1.1970.
      *
-     * The calculation uses the fact that the period 1.1.2001 until 31.12.2400 is
+     * <p>The calculation uses the fact that the period 1.1.2001 until 31.12.2400 is
      * equals to the period 1.1.1601 until 31.12.2000.
      */
     private static Tuple2<Integer, Integer> getYearAndDayInYear(int daysSince1970) {

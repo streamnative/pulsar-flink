@@ -11,10 +11,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections.ListUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils.IncompatibleSchemaException;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.api.TableSchema;
@@ -22,6 +21,9 @@ import org.apache.flink.table.catalog.CatalogBaseTable;
 import org.apache.flink.table.catalog.ObjectPath;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.FieldsDataType;
+
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.ListUtils;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.MessageId;
@@ -46,7 +48,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * A Helper class that responsible for:
+ * A Helper class that talks to Pulsar Admin API.
  * - getEarliest / Latest / Specific MessageIds
  * - guarantee message existence using subscription by setup, move and remove
  */
@@ -352,6 +354,9 @@ public class PulsarMetadataReader implements AutoCloseable {
         return fullName.toString();
     }
 
+    /**
+     * Designate the close of the metadata reader.
+     */
     public static class ClosedException extends Exception {
 
     }

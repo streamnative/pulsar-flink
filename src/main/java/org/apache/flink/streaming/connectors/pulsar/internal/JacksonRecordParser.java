@@ -14,18 +14,19 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
+import org.apache.flink.table.types.DataType;
+import org.apache.flink.table.types.FieldsDataType;
+import org.apache.flink.table.types.logical.LogicalTypeRoot;
+import org.apache.flink.table.types.logical.RowType;
+import org.apache.flink.types.Row;
+import org.apache.flink.util.ExceptionUtils;
+
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang.exception.ExceptionUtils;
-import org.apache.flink.table.types.DataType;
-import org.apache.flink.table.types.FieldsDataType;
-import org.apache.flink.table.types.logical.LogicalTypeRoot;
-import org.apache.flink.table.types.logical.RowType;
-import org.apache.flink.types.Row;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -37,6 +38,9 @@ import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+/**
+ * JSON record parser.
+ */
 @Slf4j
 public class JacksonRecordParser {
 
@@ -130,10 +134,9 @@ public class JacksonRecordParser {
     }
 
     private void suroundWithRuntimeE(Exception e) {
-        log.error("Failed to parse json due to {}", ExceptionUtils.getFullStackTrace(e));
+        log.error("Failed to parse json due to {}", ExceptionUtils.stringifyException(e));
         throw new RuntimeException(e);
     }
-
 
     private boolean nextUntil(JsonParser parser, JsonToken stopOn) throws IOException {
         JsonToken token = parser.nextToken();
@@ -143,7 +146,6 @@ public class JacksonRecordParser {
             return token != stopOn;
         }
     }
-
 
     private Function<JsonParser, Object> makeConverter(DataType dataType) {
         LogicalTypeRoot tpe = dataType.getLogicalType().getTypeRoot();
@@ -533,7 +535,6 @@ public class JacksonRecordParser {
         }
     }
 
-
     /**
      * This method skips `FIELD_NAME`s at the beginning, and handles nulls ahead before trying
      * to parse the JSON token using given function `f`. If the `f` failed to parse and convert the
@@ -556,7 +557,6 @@ public class JacksonRecordParser {
             parser.nextToken();
         }
     }
-
 
     interface PartialFunc {
         boolean isDefinedAt(JsonToken token);
@@ -583,12 +583,10 @@ public class JacksonRecordParser {
         R apply(T t, U u) throws BadRecordException;
     }
 
-
     static class FailureSafeRecordParser {
         private final BiFunctionWithException<String, Row, Row> rawParser;
         private final ParseMode mode;
         private final FieldsDataType schema;
-
 
         FailureSafeRecordParser(BiFunctionWithException<String, Row, Row> rawParser, ParseMode mode, FieldsDataType schema) {
             this.rawParser = rawParser;

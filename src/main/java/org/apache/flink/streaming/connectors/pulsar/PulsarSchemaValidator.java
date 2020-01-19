@@ -28,6 +28,10 @@ import static org.apache.flink.table.descriptors.Schema.SCHEMA_NAME;
 import static org.apache.flink.table.descriptors.Schema.SCHEMA_PROCTIME;
 import static org.apache.flink.table.descriptors.Schema.SCHEMA_TYPE;
 
+/**
+ * Pulsar validator that allows to only specify protime or rowtime in schema.
+ * Other fields could be inferred from Pulsar schema.
+ */
 public class PulsarSchemaValidator extends SchemaValidator {
 
     private final boolean isStreamEnvironment;

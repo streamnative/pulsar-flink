@@ -14,9 +14,11 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
-import com.google.common.collect.Sets;
 import org.apache.flink.streaming.connectors.pulsar.testutils.TestMetadataReader;
 import org.apache.flink.util.TestLogger;
+
+import org.apache.flink.shaded.guava18.com.google.common.collect.Sets;
+
 import org.apache.pulsar.common.naming.TopicName;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -34,6 +36,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+/**
+ * Unit tests on pulsar topic discoverer.
+ */
 @RunWith(Parameterized.class)
 public class DiscovererTest extends TestLogger {
 
@@ -56,7 +61,6 @@ public class DiscovererTest extends TestLogger {
     String topicName(String topic, int partition) {
         return TopicName.get(topic).getPartition(partition).toString();
     }
-
 
     @Test
     public void testPartitionEqualConsumerNumber() {

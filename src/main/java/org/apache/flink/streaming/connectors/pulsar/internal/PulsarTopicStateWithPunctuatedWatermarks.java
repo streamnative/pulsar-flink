@@ -19,6 +19,10 @@ import org.apache.flink.streaming.api.watermark.Watermark;
 
 import javax.annotation.Nullable;
 
+/**
+ * A special version of the per-pulsar-partition-state that additionally holds
+ * a periodic watermark generator (and timestamp extractor) per partition.
+ */
 public class PulsarTopicStateWithPunctuatedWatermarks<T> extends PulsarTopicState {
 
     /** The timestamp assigner and watermark generator for the partition. */

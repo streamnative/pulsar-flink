@@ -11,6 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.pulsar.testutils;
 
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
@@ -20,25 +21,31 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
+/**
+ * Test results collector.
+ */
 public class SingletonStreamSink {
-    public static final List<String> sinkedResults = new ArrayList<>();
+    public static final List<String> SINKED_RESULTS = new ArrayList<>();
 
     public static void clear() {
-        sinkedResults.clear();
+        SINKED_RESULTS.clear();
     }
 
+    /**
+     * Collector sink for string.
+     */
     public static final class StringSink<T> extends RichSinkFunction<T> {
         @Override
         public void invoke(T value, Context context) throws Exception {
-            synchronized (sinkedResults) {
-                sinkedResults.add(value.toString());
+            synchronized (SINKED_RESULTS) {
+                SINKED_RESULTS.add(value.toString());
             }
         }
     }
 
     public static void compareWithList(List<String> expected) {
         expected.sort(null);
-        SingletonStreamSink.sinkedResults.sort(null);
-        assertEquals(expected, sinkedResults);
+        SingletonStreamSink.SINKED_RESULTS.sort(null);
+        assertEquals(expected, SINKED_RESULTS);
     }
 }

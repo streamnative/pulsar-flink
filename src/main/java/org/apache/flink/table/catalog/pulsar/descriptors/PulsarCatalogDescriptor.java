@@ -24,6 +24,9 @@ import java.util.Map;
 import static org.apache.flink.table.catalog.pulsar.descriptors.PulsarCatalogValidator.CATALOG_PULSAR_VERSION;
 import static org.apache.flink.table.catalog.pulsar.descriptors.PulsarCatalogValidator.CATALOG_TYPE_VALUE_PULSAR;
 
+/**
+ * Pulsar {@CatalogDescriptor}.
+ */
 public class PulsarCatalogDescriptor extends CatalogDescriptor {
 
     private String pulsarVersion;

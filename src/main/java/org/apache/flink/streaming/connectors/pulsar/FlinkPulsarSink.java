@@ -21,6 +21,11 @@ import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import java.util.Optional;
 import java.util.Properties;
 
+/**
+ * Write Pojo class to Flink.
+ *
+ * @param <T> Type of the Pojo class.
+ */
 public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
 
     private final Class<T> recordClazz;

@@ -14,10 +14,6 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonParser;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.types.CollectionDataType;
 import org.apache.flink.table.types.DataType;
@@ -27,6 +23,11 @@ import org.apache.flink.table.types.logical.DecimalType;
 import org.apache.flink.table.types.logical.LogicalTypeRoot;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.types.Row;
+import org.apache.flink.util.ExceptionUtils;
+
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParser;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.impl.schema.generic.GenericAvroRecord;
 import org.apache.pulsar.common.schema.SchemaInfo;
@@ -64,6 +65,9 @@ import static org.apache.pulsar.shade.org.apache.avro.Schema.Type.MAP;
 import static org.apache.pulsar.shade.org.apache.avro.Schema.Type.NULL;
 import static org.apache.pulsar.shade.org.apache.avro.Schema.Type.UNION;
 
+/**
+ * Deserialize Pulsar message into Flink row.
+ */
 @Slf4j
 public class PulsarDeserializer {
 
@@ -141,7 +145,7 @@ public class PulsarDeserializer {
 
         } catch (SchemaUtils.IncompatibleSchemaException e) {
             log.error("Failed to convert pulsar schema to flink data type {}",
-                    ExceptionUtils.getFullStackTrace(e));
+                    ExceptionUtils.stringifyException(e));
             throw new RuntimeException(e);
         }
     }
@@ -183,7 +187,6 @@ public class PulsarDeserializer {
                 return (rowUpdater, ordinal, value) -> rowUpdater.set(ordinal, value);
         }
     }
-
 
     private TriFunction<FlinkDataUpdater, Integer, Object> newWriter(Schema avroType, DataType flinkType, List<String> path) throws SchemaUtils.IncompatibleSchemaException {
         LogicalTypeRoot tpe = flinkType.getLogicalType().getTypeRoot();
@@ -449,13 +452,18 @@ public class PulsarDeserializer {
         };
     }
 
-
+    /**
+     * Update flink data object.
+     */
     interface FlinkDataUpdater {
         void set(int ordinal, Object value);
 
         void setNullAt(int ordinal);
     }
 
+    /**
+     * Flink Row field updater.
+     */
     public static final class RowUpdater implements FlinkDataUpdater {
 
         private Row row;
@@ -475,6 +483,9 @@ public class PulsarDeserializer {
         }
     }
 
+    /**
+     * Flink array field updater.
+     */
     public static final class ArrayDataUpdater implements FlinkDataUpdater {
 
         private final Object[] array;
@@ -494,22 +505,31 @@ public class PulsarDeserializer {
         }
     }
 
+    /**
+     * Trinary function interface that takes three arguments and returns nothing.
+     *
+     * @param <A> type of the first argument.
+     * @param <B> type of the second argument.
+     * @param <C> type of the third argument.
+     */
     public interface TriFunction<A, B, C> {
 
         /**
          * Applies this function to the given arguments.
-         *
-         * @return the function result
          */
         void apply(A a, B b, C c);
     }
 
+    /**
+     * Binary function interface that takes three arguments and returns nothing.
+     *
+     * @param <A> type of the first argument.
+     * @param <B> type of the second argument.
+     */
     public interface BinFunction<A, B> {
 
         /**
          * Applies this function to the given arguments.
-         *
-         * @return the function result
          */
         void apply(A a, B b);
     }

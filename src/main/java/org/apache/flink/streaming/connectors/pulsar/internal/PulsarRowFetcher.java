@@ -14,7 +14,6 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
-import lombok.extern.slf4j.Slf4j;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
 import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
@@ -23,6 +22,8 @@ import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.SerializedValue;
+
+import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.common.schema.SchemaInfo;
@@ -30,6 +31,9 @@ import org.apache.pulsar.common.schema.SchemaInfo;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Pulsar Fetcher that specific to Row emitting.
+ */
 @Slf4j
 public class PulsarRowFetcher extends PulsarFetcher<Row> {
 

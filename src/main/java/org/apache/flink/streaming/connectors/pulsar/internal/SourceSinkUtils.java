@@ -22,6 +22,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Utilities for source sink options parsing.
+ */
 public class SourceSinkUtils {
 
     public static Map<String, String> validateStreamSourceOptions(Map<String, String> parameters) {

@@ -21,7 +21,7 @@ PRJ_HOME=`cd ${JENKINS_DIR}/..;pwd`
 
 cd ${PRJ_HOME}
 
-mvn clean license:check scalastyle:check install
+mvn clean license:check install checkstyle:check spotbugs:check
 retcode=$?
 cat target/surefire-reports/ConnectorTestSuite.txt
 exit $retcode

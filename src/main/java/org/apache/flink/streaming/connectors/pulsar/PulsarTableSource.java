@@ -14,9 +14,6 @@
 
 package org.apache.flink.streaming.connectors.pulsar;
 
-import avro.shaded.com.google.common.collect.Maps;
-import lombok.EqualsAndHashCode;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -35,6 +32,11 @@ import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.FieldsDataType;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
+
+import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
+
+import lombok.EqualsAndHashCode;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.PulsarClientException;
@@ -47,6 +49,9 @@ import java.util.Properties;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
+/**
+ * Pulsar {@StreamTableSource}.
+ */
 @Slf4j
 @EqualsAndHashCode
 public class PulsarTableSource

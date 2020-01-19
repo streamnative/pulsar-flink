@@ -35,6 +35,9 @@ import static org.apache.flink.table.descriptors.CatalogDescriptorValidator.CATA
 import static org.apache.flink.table.descriptors.CatalogDescriptorValidator.CATALOG_PROPERTY_VERSION;
 import static org.apache.flink.table.descriptors.CatalogDescriptorValidator.CATALOG_TYPE;
 
+/**
+ * Pulsar {@CatalogFactory}.
+ */
 public class PulsarCatalogFactory implements CatalogFactory {
 
     @Override

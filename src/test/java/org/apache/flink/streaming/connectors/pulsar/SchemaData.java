@@ -26,17 +26,20 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+/**
+ * Data for various test cases.
+ */
 public class SchemaData {
 
-    public static final List<Boolean> booleanList = Arrays.asList(true, false, true, true, false);
-    public static final List<Integer> int32List = Arrays.asList(1, 2, 3, 4, 5);
-    public static final List<byte[]> bytesList = int32List.stream().map(i -> i.toString().getBytes()).collect(Collectors.toList());
-    public static final List<Byte> int8List = int32List.stream().map(Integer::byteValue).collect(Collectors.toList());
-    public static final List<Short> int16List = int32List.stream().map(Integer::shortValue).collect(Collectors.toList());
-    public static final List<Long> int64List = int32List.stream().map(Integer::longValue).collect(Collectors.toList());
-    public static final List<Double> doubleList = int32List.stream().map(Integer::doubleValue).collect(Collectors.toList());
-    public static final List<Float> floatList = int32List.stream().map(Integer::floatValue).collect(Collectors.toList());
-    public static final List<String> stringList = int32List.stream().map(Objects::toString).collect(Collectors.toList());
+    public static final List<Boolean> BOOLEAN_LIST = Arrays.asList(true, false, true, true, false);
+    public static final List<Integer> INTEGER_LIST = Arrays.asList(1, 2, 3, 4, 5);
+    public static final List<byte[]> BYTES_LIST = INTEGER_LIST.stream().map(i -> i.toString().getBytes()).collect(Collectors.toList());
+    public static final List<Byte> INT_8_LIST = INTEGER_LIST.stream().map(Integer::byteValue).collect(Collectors.toList());
+    public static final List<Short> INT_16_LIST = INTEGER_LIST.stream().map(Integer::shortValue).collect(Collectors.toList());
+    public static final List<Long> INT_64_LIST = INTEGER_LIST.stream().map(Integer::longValue).collect(Collectors.toList());
+    public static final List<Double> DOUBLE_LIST = INTEGER_LIST.stream().map(Integer::doubleValue).collect(Collectors.toList());
+    public static final List<Float> FLOAT_LIST = INTEGER_LIST.stream().map(Integer::floatValue).collect(Collectors.toList());
+    public static final List<String> STRING_LIST = INTEGER_LIST.stream().map(Objects::toString).collect(Collectors.toList());
     public static List<Date> dateList;
     public static List<Timestamp> timestampList;
     public static List<Foo> fooList;
@@ -44,13 +47,13 @@ public class SchemaData {
     static {
         Calendar cal = Calendar.getInstance();
         cal.clear();
-        dateList = int32List.stream().map(i -> {
+        dateList = INTEGER_LIST.stream().map(i -> {
             cal.set(2019, 0, i);
             return cal.getTime();
         }).collect(Collectors.toList());
 
         cal.clear();
-        timestampList = int32List.stream().map(i -> {
+        timestampList = INTEGER_LIST.stream().map(i -> {
             cal.set(2019, 0, i, 20, 35, 40);
             return new Timestamp(cal.getTimeInMillis());
         }).collect(Collectors.toList());
@@ -62,6 +65,9 @@ public class SchemaData {
                 new Foo(0, 0, null));
     }
 
+    /**
+     * Foo type.
+     */
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
@@ -76,6 +82,9 @@ public class SchemaData {
         }
     }
 
+    /**
+     * Bar type.
+     */
     @Data
     @AllArgsConstructor
     @NoArgsConstructor

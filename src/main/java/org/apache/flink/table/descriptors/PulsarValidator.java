@@ -21,11 +21,14 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.ADMIN_URL_OPTION_KEY;
-import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.TOPIC_SINGLE_OPTION_KEY;
-import static org.apache.flink.table.descriptors.DescriptorProperties.noValidation;
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.SERVICE_URL_OPTION_KEY;
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.STARTUP_MODE_OPTION_KEY;
+import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.TOPIC_SINGLE_OPTION_KEY;
+import static org.apache.flink.table.descriptors.DescriptorProperties.noValidation;
 
+/**
+ * Pulsar Connector validator.
+ */
 public class PulsarValidator extends ConnectorDescriptorValidator {
 
     public static final String CONNECTOR_TYPE_VALUE_PULSAR = "pulsar";

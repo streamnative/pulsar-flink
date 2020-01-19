@@ -19,6 +19,9 @@ import org.apache.flink.table.api.ValidationException;
 import org.apache.flink.table.descriptors.CatalogDescriptorValidator;
 import org.apache.flink.table.descriptors.DescriptorProperties;
 
+/**
+ * Pulsar {@CatalogDescriptorValidator}.
+ */
 public class PulsarCatalogValidator extends CatalogDescriptorValidator {
 
     public static final String CATALOG_TYPE_VALUE_PULSAR = "pulsar";

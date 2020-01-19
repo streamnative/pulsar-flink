@@ -25,7 +25,7 @@ import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.descriptors.ConnectorDescriptor;
 import org.apache.flink.table.descriptors.Pulsar;
 import org.apache.flink.types.Row;
-import org.apache.pulsar.common.naming.TopicName;
+
 import org.apache.pulsar.common.schema.SchemaType;
 import org.junit.Before;
 import org.junit.Test;
@@ -33,12 +33,14 @@ import org.junit.Test;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import static org.apache.flink.streaming.connectors.pulsar.SchemaData.booleanList;
+import static org.apache.flink.streaming.connectors.pulsar.SchemaData.BOOLEAN_LIST;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.fooList;
 
+/**
+ * Table API related Integration tests.
+ */
 public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
 
     @Before
@@ -55,7 +57,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
 
         String table = newTopic();
 
-        sendTypedMessages(table, SchemaType.BOOLEAN, booleanList, Optional.empty());
+        sendTypedMessages(table, SchemaType.BOOLEAN, BOOLEAN_LIST, Optional.empty());
 
         tEnv.connect(getPulsarDescriptor(table))
                 .inAppendMode()
@@ -65,7 +67,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         t.printSchema();
 
         tEnv.toAppendStream(t, BasicTypeInfo.BOOLEAN_TYPE_INFO)
-                .map(new FailingIdentityMapper<>(booleanList.size()))
+                .map(new FailingIdentityMapper<>(BOOLEAN_LIST.size()))
                 .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
 
         try {
@@ -75,7 +77,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         }
 
         SingletonStreamSink.compareWithList(
-                booleanList.subList(0, booleanList.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
+                BOOLEAN_LIST.subList(0, BOOLEAN_LIST.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
     }
 
     @Test

@@ -30,6 +30,7 @@ import org.apache.flink.table.descriptors.Schema;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.utils.LegacyTypeInfoDataTypeConverter;
 import org.apache.flink.util.StringUtils;
+
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.junit.Before;
@@ -43,18 +44,21 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static org.apache.flink.streaming.connectors.pulsar.SchemaData.booleanList;
-import static org.apache.flink.streaming.connectors.pulsar.SchemaData.bytesList;
+import static org.apache.flink.streaming.connectors.pulsar.SchemaData.BOOLEAN_LIST;
+import static org.apache.flink.streaming.connectors.pulsar.SchemaData.BYTES_LIST;
+import static org.apache.flink.streaming.connectors.pulsar.SchemaData.DOUBLE_LIST;
+import static org.apache.flink.streaming.connectors.pulsar.SchemaData.FLOAT_LIST;
+import static org.apache.flink.streaming.connectors.pulsar.SchemaData.INTEGER_LIST;
+import static org.apache.flink.streaming.connectors.pulsar.SchemaData.INT_16_LIST;
+import static org.apache.flink.streaming.connectors.pulsar.SchemaData.INT_64_LIST;
+import static org.apache.flink.streaming.connectors.pulsar.SchemaData.INT_8_LIST;
+import static org.apache.flink.streaming.connectors.pulsar.SchemaData.STRING_LIST;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.dateList;
-import static org.apache.flink.streaming.connectors.pulsar.SchemaData.doubleList;
-import static org.apache.flink.streaming.connectors.pulsar.SchemaData.floatList;
-import static org.apache.flink.streaming.connectors.pulsar.SchemaData.int16List;
-import static org.apache.flink.streaming.connectors.pulsar.SchemaData.int32List;
-import static org.apache.flink.streaming.connectors.pulsar.SchemaData.int64List;
-import static org.apache.flink.streaming.connectors.pulsar.SchemaData.int8List;
-import static org.apache.flink.streaming.connectors.pulsar.SchemaData.stringList;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.timestampList;
 
+/**
+ * Schema related integration tests.
+ */
 public class SchemaITest extends PulsarTestBaseWithFlink {
 
     @Before
@@ -65,87 +69,82 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
     @Test
     public void testBooleanRead() throws Exception {
-        checkRead(SchemaType.BOOLEAN, booleanList, null, null);
+        checkRead(SchemaType.BOOLEAN, BOOLEAN_LIST, null, null);
     }
 
     @Test
     public void testBooleanWrite() throws Exception {
-        checkWrite(SchemaType.BOOLEAN, DataTypes.BOOLEAN(), booleanList, null, null);
+        checkWrite(SchemaType.BOOLEAN, DataTypes.BOOLEAN(), BOOLEAN_LIST, null, null);
     }
 
     @Test
     public void testINT32Read() throws Exception {
-        checkRead(SchemaType.INT32, int32List, null, null);
+        checkRead(SchemaType.INT32, INTEGER_LIST, null, null);
     }
 
     @Test
     public void testINT32Write() throws Exception {
-        checkWrite(SchemaType.INT32, DataTypes.INT(), int32List, null, null);
+        checkWrite(SchemaType.INT32, DataTypes.INT(), INTEGER_LIST, null, null);
     }
 
     @Test
     public void testINT64Read() throws Exception {
-        checkRead(SchemaType.INT64, int64List, null, null);
+        checkRead(SchemaType.INT64, INT_64_LIST, null, null);
     }
 
     @Test
     public void testINT64Write() throws Exception {
-        checkWrite(SchemaType.INT64, DataTypes.BIGINT(), int64List, null, null);
+        checkWrite(SchemaType.INT64, DataTypes.BIGINT(), INT_64_LIST, null, null);
     }
-
 
     @Test
     public void testStringRead() throws Exception {
-        checkRead(SchemaType.STRING, stringList, null, null);
+        checkRead(SchemaType.STRING, STRING_LIST, null, null);
     }
 
     @Test
     public void testStringWrite() throws Exception {
-        checkWrite(SchemaType.STRING, DataTypes.STRING(), stringList, null, null);
+        checkWrite(SchemaType.STRING, DataTypes.STRING(), STRING_LIST, null, null);
     }
-
 
     @Test
     public void testByteRead() throws Exception {
-        checkRead(SchemaType.INT8, int8List, null, null);
+        checkRead(SchemaType.INT8, INT_8_LIST, null, null);
     }
 
     @Test
     public void testByteWrite() throws Exception {
-        checkWrite(SchemaType.INT8, DataTypes.TINYINT(), int8List, null, null);
+        checkWrite(SchemaType.INT8, DataTypes.TINYINT(), INT_8_LIST, null, null);
     }
-
 
     @Test
     public void testShortRead() throws Exception {
-        checkRead(SchemaType.INT16, int16List, null, null);
+        checkRead(SchemaType.INT16, INT_16_LIST, null, null);
     }
 
     @Test
     public void testShortWrite() throws Exception {
-        checkWrite(SchemaType.INT16, DataTypes.SMALLINT(), int16List, null, null);
+        checkWrite(SchemaType.INT16, DataTypes.SMALLINT(), INT_16_LIST, null, null);
     }
-
 
     @Test
     public void testFloatRead() throws Exception {
-        checkRead(SchemaType.FLOAT, floatList, null, null);
+        checkRead(SchemaType.FLOAT, FLOAT_LIST, null, null);
     }
 
     @Test
     public void testFloatWrite() throws Exception {
-        checkWrite(SchemaType.FLOAT, DataTypes.FLOAT(), floatList, null, null);
+        checkWrite(SchemaType.FLOAT, DataTypes.FLOAT(), FLOAT_LIST, null, null);
     }
-
 
     @Test
     public void testDoubleRead() throws Exception {
-        checkRead(SchemaType.DOUBLE, doubleList, null, null);
+        checkRead(SchemaType.DOUBLE, DOUBLE_LIST, null, null);
     }
 
     @Test
     public void testDoubleWrite() throws Exception {
-        checkWrite(SchemaType.DOUBLE, DataTypes.DOUBLE(), doubleList, null, null);
+        checkWrite(SchemaType.DOUBLE, DataTypes.DOUBLE(), DOUBLE_LIST, null, null);
     }
 
     @Test
@@ -176,12 +175,12 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
     @Test
     public void testByteArrayRead() throws Exception {
-        checkRead(SchemaType.BYTES, bytesList, t -> StringUtils.arrayAwareToString(t), null);
+        checkRead(SchemaType.BYTES, BYTES_LIST, t -> StringUtils.arrayAwareToString(t), null);
     }
 
     @Test
     public void testByteArrayWrite() throws Exception {
-        checkWrite(SchemaType.BYTES, DataTypes.BYTES(), bytesList, t -> StringUtils.arrayAwareToString(t), null);
+        checkWrite(SchemaType.BYTES, DataTypes.BYTES(), BYTES_LIST, t -> StringUtils.arrayAwareToString(t), null);
     }
 
     private <T> void checkRead(SchemaType type, List<T> datas, Function<T, String> toStr, Class<T> tClass) throws Exception {
@@ -265,7 +264,6 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
                 .inAppendMode()
                 .registerTableSource(table);
 
-
         Table t = tEnv2.scan(table).select("value");
         tEnv2.toAppendStream(t, t.getSchema().toRowType())
                 .map(new FailingIdentityMapper<>(datas.size()))
@@ -294,7 +292,6 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
             SingletonStreamSink.compareWithList(datas.subList(0, datas.size() - 1).stream().map(e -> toStr.apply(e)).collect(Collectors.toList()));
         }
     }
-
 
     private ConnectorDescriptor getPulsarSourceDescriptor(String tableName) {
         return new Pulsar()

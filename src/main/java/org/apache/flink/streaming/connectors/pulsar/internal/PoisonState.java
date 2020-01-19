@@ -14,6 +14,9 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
+/**
+ * A sign state that used to stop fetcher earlier.
+ */
 public class PoisonState extends PulsarTopicState {
 
     static final PoisonState INSTANCE = new PoisonState();

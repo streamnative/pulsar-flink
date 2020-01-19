@@ -26,6 +26,9 @@ import org.apache.pulsar.shade.com.google.common.cache.RemovalListener;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 
+/**
+ * Enable the sharing of same PulsarClient among tasks in a same process.
+ */
 @Slf4j
 public class CachedPulsarClient {
 

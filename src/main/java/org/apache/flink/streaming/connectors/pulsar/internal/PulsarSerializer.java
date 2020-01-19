@@ -14,7 +14,6 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
-import lombok.extern.slf4j.Slf4j;
 import org.apache.flink.table.types.CollectionDataType;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.FieldsDataType;
@@ -23,6 +22,8 @@ import org.apache.flink.table.types.logical.DecimalType;
 import org.apache.flink.table.types.logical.LogicalTypeRoot;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.types.Row;
+
+import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.schema.Field;
 import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.apache.pulsar.client.api.schema.GenericRecordBuilder;
@@ -53,6 +54,9 @@ import static org.apache.pulsar.shade.org.apache.avro.Schema.Type.MAP;
 import static org.apache.pulsar.shade.org.apache.avro.Schema.Type.RECORD;
 import static org.apache.pulsar.shade.org.apache.avro.Schema.Type.STRING;
 
+/**
+ * Serializer that converts Flink row to Pulsar message payload.
+ */
 @Slf4j
 public class PulsarSerializer {
 
@@ -279,10 +283,12 @@ public class PulsarSerializer {
         }
     }
 
+    /**
+     * Get element from specific position.
+     */
     public static class PositionedGetter {
         private final Object[] array;
         private final Row row;
-
 
         public PositionedGetter(Object[] array, Row row) {
             this.array = array;

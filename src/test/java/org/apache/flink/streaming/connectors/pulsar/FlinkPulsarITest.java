@@ -14,9 +14,6 @@
 
 package org.apache.flink.streaming.connectors.pulsar;
 
-import com.google.common.collect.Iterables;
-import org.apache.commons.collections.MapUtils;
-import org.apache.commons.lang.StringUtils;
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.common.functions.FlatMapFunction;
@@ -55,6 +52,11 @@ import org.apache.flink.testutils.junit.RetryRule;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.ExceptionUtils;
+
+import org.apache.flink.shaded.guava18.com.google.common.collect.Iterables;
+
+import org.apache.commons.collections.MapUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.MessageId;
@@ -64,7 +66,6 @@ import org.apache.pulsar.client.impl.MessageIdImpl;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.policies.data.PersistentTopicInternalStats;
 import org.apache.pulsar.common.schema.SchemaType;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -82,7 +83,6 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -98,6 +98,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+/**
+ * Pulsar source sink integration tests.
+ */
 public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
 
     @Rule
@@ -363,7 +366,6 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         List<Integer> newMessages = IntStream.range(50, 60).boxed().collect(Collectors.toList());
         Map<String, Set<Integer>> expectedData = new HashMap<>();
 
-
         List<String> topics = new ArrayList<>();
 
         for (int i = 0; i < numTopic; i++) {
@@ -376,7 +378,6 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.getConfig().disableSysoutLogging();
         see.setParallelism(3);
-
 
         Properties sourceProps = sourceProperties();
         sourceProps.setProperty(TOPIC_MULTI_OPTION_KEY, StringUtils.join(topics, ','));
@@ -611,7 +612,6 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
             }
         };
         jobRunner.start();
-        ;
 
         Thread.sleep(2000);
         Throwable failureCause = jobError.get();
@@ -640,7 +640,6 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
             }
         }
     }
-
 
     @Test
     public void testOnEmptyInput() throws Exception {
@@ -677,7 +676,6 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
             }
         };
         jobRunner.start();
-        ;
 
         Thread.sleep(2000);
         Throwable failureCause = jobError.get();
@@ -703,12 +701,10 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         );
     }
 
-
     private static class MultiTopicSource extends RichParallelSourceFunction<Row> {
         private final List<String> topics;
         private final int numElements;
         private final int base;
-
 
         public MultiTopicSource(List<String> topics, int numElements, int base) {
             this.topics = topics;
@@ -830,7 +826,6 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
             Map<String, MessageId> results = new HashMap<>();
             String subName = "flink-pulsar-" + prefix;
 
-
             for (String topic : topics) {
                 int index = TopicName.get(topic).getPartitionIndex();
                 MessageId mid = null;
@@ -874,13 +869,15 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         }
     }
 
+    /**
+     * Check if all message exist.
+     */
     public static class CheckAllMessageExist extends RichFlatMapFunction<Row, Row> {
         private final Map<String, Set<Integer>> expected;
         private final int total;
 
         private Map<String, List<Integer>> map = new HashMap<>();
         private int count = 0;
-
 
         public CheckAllMessageExist(Map<String, Set<Integer>> expected, int total) {
             this.expected = expected;
@@ -947,7 +944,6 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
             this.randomizedOrder = randomizedOrder;
         }
 
-
         @Override
         public void run(SourceContext<Row> ctx) throws Exception {
             int subIndex = getRuntimeContext().getIndexOfThisSubtask();
@@ -994,7 +990,6 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
 
         private HashSet<String> myTopics;
 
-
         private PartitionValidationMapper(int numPartitions, int maxPartitions) {
             this.numPartitions = numPartitions;
             this.maxPartitions = maxPartitions;
@@ -1019,7 +1014,6 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
 
         private volatile boolean running = true;
         private volatile Throwable error = null;
-
 
         public InfiniteStringGenerator(String tp) {
             this.tp = tp;
@@ -1089,7 +1083,6 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
             this.ti = Types.INT();
             this.ser = ti.createSerializer(new ExecutionConfig());
         }
-
 
         @Override
         public Integer deserialize(byte[] message) throws IOException {

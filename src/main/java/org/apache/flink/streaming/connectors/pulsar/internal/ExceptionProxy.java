@@ -11,9 +11,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import javax.annotation.Nullable;
+
 import java.util.concurrent.atomic.AtomicReference;
 
 /**

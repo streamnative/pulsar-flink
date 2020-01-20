@@ -14,7 +14,6 @@
 
 package org.apache.flink.table.catalog.pulsar;
 
-import lombok.extern.slf4j.Slf4j;
 import org.apache.flink.streaming.connectors.pulsar.PulsarTableSourceSinkFactory;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
@@ -44,6 +43,8 @@ import org.apache.flink.table.catalog.exceptions.TablePartitionedException;
 import org.apache.flink.table.catalog.stats.CatalogColumnStatistics;
 import org.apache.flink.table.catalog.stats.CatalogTableStatistics;
 import org.apache.flink.table.factories.TableFactory;
+
+import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.PulsarClientException;
 
@@ -55,6 +56,9 @@ import java.util.Properties;
 
 import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CONNECTOR;
 
+/**
+ * Expose a Pulsar instance as a database catalog.
+ */
 @Slf4j
 public class PulsarCatalog extends AbstractCatalog {
 

@@ -23,6 +23,7 @@ import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
 import org.apache.flink.streaming.util.OneInputStreamOperatorTestHarness;
 import org.apache.flink.util.TestLogger;
+
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.impl.TypedMessageBuilderImpl;
@@ -46,6 +47,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/**
+ * Unit tests for sink.
+ */
 public class FlinkPulsarSinkTest extends TestLogger {
 
     /**
@@ -270,7 +274,6 @@ public class FlinkPulsarSinkTest extends TestLogger {
         testHarness.close();
     }
 
-
     private static class DummyFlinkPulsarSink<T> extends FlinkPulsarSink<T> {
 
         private static final long serialVersionUID = 1L;
@@ -287,7 +290,6 @@ public class FlinkPulsarSinkTest extends TestLogger {
         private transient List<BiConsumer<MessageId, Throwable>> pendingCallbacks;
         private transient MultiShotLatch flushLatch;
         private boolean isFlushed;
-
 
         public DummyFlinkPulsarSink(ClientConfigurationData clientConf, Properties properties, TopicKeyExtractor<T> topicKeyExtractor, Class<T> recordClazz) {
             super(

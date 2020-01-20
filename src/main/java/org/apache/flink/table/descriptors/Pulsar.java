@@ -17,6 +17,7 @@ package org.apache.flink.table.descriptors;
 import org.apache.flink.streaming.connectors.pulsar.TopicKeyExtractor;
 import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
 import org.apache.flink.util.Preconditions;
+
 import org.apache.pulsar.client.api.MessageId;
 
 import java.util.ArrayList;
@@ -43,6 +44,9 @@ import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_START
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_TOPIC;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_TYPE_VALUE_PULSAR;
 
+/**
+ * Pulsar {@ConnectorDescriptor}.
+ */
 public class Pulsar extends ConnectorDescriptor {
 
     private String topic;
@@ -197,9 +201,7 @@ public class Pulsar extends ConnectorDescriptor {
 
         if (sinkExtractorClass != null) {
             properties.putString(CONNECTOR_SINK_EXTRACTOR, sinkExtractorType);
-            if (sinkExtractorClass != null) {
-                properties.putClass(CONNECTOR_SINK_EXTRACTOR_CLASS, sinkExtractorClass);
-            }
+            properties.putClass(CONNECTOR_SINK_EXTRACTOR_CLASS, sinkExtractorClass);
         }
 
         return properties.asMap();

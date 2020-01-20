@@ -19,6 +19,9 @@ import org.apache.pulsar.shade.com.google.common.collect.ImmutableSet;
 
 import java.util.Set;
 
+/**
+ * A collection of constants to talk to Pulsar.
+ */
 public class PulsarOptions {
 
     // option key prefix for different modules

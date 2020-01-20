@@ -25,6 +25,7 @@ import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
 import org.apache.flink.streaming.runtime.tasks.TestProcessingTimeService;
 import org.apache.flink.util.SerializedValue;
 import org.apache.flink.util.TestLogger;
+
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.impl.MessageIdImpl;
 import org.apache.pulsar.common.naming.TopicName;
@@ -32,6 +33,7 @@ import org.junit.Test;
 import org.mockito.internal.util.collections.Sets;
 
 import javax.annotation.Nullable;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -41,6 +43,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+/**
+ * Pulsar Fetcher unit tests.
+ */
 public class PulsarFetcherTest extends TestLogger {
 
     String topicName(String topic, int partition) {
@@ -86,7 +91,6 @@ public class PulsarFetcherTest extends TestLogger {
             assertEquals(fetcher.lastCommittedOffsets.get().size(), 0);
         }
     }
-
 
     @Test
     public void testSkipCorruptedRecord() throws Exception {
@@ -396,7 +400,6 @@ public class PulsarFetcherTest extends TestLogger {
                 10,
                 fetchLoopWaitLatch,
                 stateIterationBlockLatch);
-
 
         // ----- run the fetcher -----
 

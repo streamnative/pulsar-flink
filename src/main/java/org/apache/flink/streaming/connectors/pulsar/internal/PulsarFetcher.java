@@ -14,7 +14,6 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
-import lombok.extern.slf4j.Slf4j;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
 import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
@@ -25,6 +24,8 @@ import org.apache.flink.streaming.api.watermark.Watermark;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeCallback;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
 import org.apache.flink.util.SerializedValue;
+
+import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 
@@ -38,6 +39,13 @@ import java.util.stream.Collectors;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
+/**
+ * Implements the logic around emitting records and tracking offsets,
+ * as well as around the optional timestamp assignment and watermark generation.
+ *
+ * @param <T> The type of elements deserialized from Pulsar messages, and emitted into
+ *           the Flink data stream.
+ */
 @Slf4j
 public class PulsarFetcher<T> {
 
@@ -419,7 +427,6 @@ public class PulsarFetcher<T> {
         return result;
     }
 
-
     public void addDiscoveredTopics(Set<String> newTopics) throws IOException, ClassNotFoundException {
         List<PulsarTopicState> newStates = createPartitionStateHolders(
                 newTopics.stream().collect(Collectors.toMap(t -> t, t -> MessageId.earliest)),
@@ -616,7 +623,6 @@ public class PulsarFetcher<T> {
             timerService.registerTimer(timerService.getCurrentProcessingTime() + interval, this);
         }
     }
-
 
     private static class BreakingException extends Exception {
         static final BreakingException INSTANCE = new BreakingException();

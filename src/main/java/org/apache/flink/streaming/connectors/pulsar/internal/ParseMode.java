@@ -18,6 +18,9 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Parse mode for the JSON record deserializer.
+ */
 public enum ParseMode {
 
     PERMISSIVE("PERMISSIVE"),

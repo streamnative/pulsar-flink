@@ -14,11 +14,6 @@
 
 package org.apache.flink.streaming.connectors.pulsar;
 
-import avro.shaded.com.google.common.collect.Sets;
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections.map.LinkedMap;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.state.ListState;
@@ -49,6 +44,12 @@ import org.apache.flink.streaming.connectors.pulsar.internal.SourceSinkUtils;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
 import org.apache.flink.util.ExceptionUtils;
 import org.apache.flink.util.SerializedValue;
+
+import org.apache.flink.shaded.guava18.com.google.common.collect.Sets;
+
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.map.LinkedMap;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
@@ -68,7 +69,11 @@ import static org.apache.flink.streaming.connectors.pulsar.internal.metrics.Puls
 import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
-
+/**
+ * Pulsar data source.
+ *
+ * @param <T> The type of records produced by this data source.
+ */
 @Slf4j
 public class FlinkPulsarSource<T>
         extends RichParallelSourceFunction<T>
@@ -184,7 +189,7 @@ public class FlinkPulsarSource<T>
         this.caseInsensitiveParams =
                 SourceSinkUtils.validateStreamSourceOptions(Maps.fromProperties(properties));
         this.readerConf =
-                SourceSinkUtils.getReaderParams(caseInsensitiveParams);
+                SourceSinkUtils.getReaderParams(Maps.fromProperties(properties));
         this.discoveryIntervalMillis =
                 SourceSinkUtils.getPartitionDiscoveryIntervalInMillis(caseInsensitiveParams);
         this.pollTimeoutMs =
@@ -551,7 +556,6 @@ public class FlinkPulsarSource<T>
         }
     }
 
-    @SneakyThrows
     @Override
     public void cancel() {
         running = false;
@@ -561,7 +565,12 @@ public class FlinkPulsarSource<T>
         }
 
         if (pulsarFetcher != null) {
-            pulsarFetcher.cancel();
+            try {
+                pulsarFetcher.cancel();
+            } catch (Exception e) {
+                log.error("Failed to cancel the Pulsar Fetcher {}", ExceptionUtils.stringifyException(e));
+                throw new RuntimeException(e);
+            }
         }
     }
 

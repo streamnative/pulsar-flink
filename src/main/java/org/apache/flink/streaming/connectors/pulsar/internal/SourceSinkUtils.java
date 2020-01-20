@@ -22,6 +22,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Utilities for source sink options parsing.
+ */
 public class SourceSinkUtils {
 
     public static Map<String, String> validateStreamSourceOptions(Map<String, String> parameters) {
@@ -103,7 +106,7 @@ public class SourceSinkUtils {
 
     public static Map<String, String> toCaceInsensitiveParams(Map<String, String> parameters) {
         return parameters.entrySet().stream()
-                .collect(Collectors.toMap(t -> t.getKey(), t -> t.getValue().toLowerCase(Locale.ROOT)));
+                .collect(Collectors.toMap(t -> t.getKey().toLowerCase(Locale.ROOT), t -> t.getValue()));
     }
 
     public static Map<String, Object> getProducerParams(Map<String, String> parameters) {

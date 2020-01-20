@@ -14,21 +14,24 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
+import org.apache.flink.util.Preconditions;
+
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 import lombok.Getter;
 import org.apache.commons.lang3.time.FastDateFormat;
-import org.apache.flink.util.Preconditions;
 
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
+/**
+ * Various options for decoding a JSON record.
+ */
 @Getter
 public class JSONOptions implements Serializable {
 
@@ -50,12 +53,12 @@ public class JSONOptions implements Serializable {
     private final FastDateFormat dateFormat;
     private final FastDateFormat timestampFormat;
     protected final boolean multiLine;
-    protected final Optional<String> lineSeparator;
-    private final Optional<String> encoding;
-    private final Optional<byte[]> lineSeparatorInRead;
+    protected final String lineSeparator;
+    private final String encoding;
+    private final byte[] lineSeparatorInRead;
     private final String lineSeparatorInWrite;
 
-    private transient final Map<String, String> parameters;
+    private final transient Map<String, String> parameters;
     private final String defaultTimeZoneId;
     private final String defaultColumnNameOfCorruptRecord;
 
@@ -96,31 +99,30 @@ public class JSONOptions implements Serializable {
 
         if (parameters.containsKey("encoding") || parameters.containsKey("charset")) {
             String enc = parameters.getOrDefault("encoding", parameters.getOrDefault("charset", null));
-            if (enc == null) {
-                this.encoding = Optional.empty();
+            if (enc != null) {
+                this.encoding = checkEncoding(enc);
             } else {
-                this.encoding = Optional.of(checkEncoding(enc));
+                this.encoding = null;
             }
         } else {
-            this.encoding = Optional.empty();
+            this.encoding = null;
         }
 
         if (parameters.containsKey("lineSep")) {
             String lineSep = parameters.get("lineSep");
             Preconditions.checkArgument(!lineSep.isEmpty());
-            this.lineSeparator = Optional.of(lineSep);
+            this.lineSeparator = lineSep;
             try {
-                this.lineSeparatorInRead = Optional.of(lineSep.getBytes(encoding.orElse("UTF-8")));
+                this.lineSeparatorInRead = encoding == null ? lineSep.getBytes("UTF-8") : lineSep.getBytes(encoding);
             } catch (UnsupportedEncodingException e) {
                 throw new RuntimeException(e);
             }
             this.lineSeparatorInWrite = lineSep;
         } else {
-            this.lineSeparator = Optional.empty();
-            this.lineSeparatorInRead = Optional.empty();
+            this.lineSeparator = null;
+            this.lineSeparatorInRead = null;
             this.lineSeparatorInWrite = "\n";
         }
-
 
         this.computedTimeZones = new ConcurrentHashMap<>();
         this.computeTimeZone = timezoneId -> TimeZone.getTimeZone(timezoneId);

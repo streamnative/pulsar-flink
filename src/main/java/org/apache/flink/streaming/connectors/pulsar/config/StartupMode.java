@@ -14,6 +14,9 @@
 
 package org.apache.flink.streaming.connectors.pulsar.config;
 
+/**
+ * Startup modes for the Pulsar Source.
+ */
 public enum StartupMode {
 
     EARLIEST,

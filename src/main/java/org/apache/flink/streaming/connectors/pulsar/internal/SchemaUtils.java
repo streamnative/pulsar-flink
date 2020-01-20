@@ -24,6 +24,7 @@ import org.apache.flink.table.types.KeyValueDataType;
 import org.apache.flink.table.types.logical.DecimalType;
 import org.apache.flink.table.types.logical.LogicalTypeRoot;
 import org.apache.flink.table.types.logical.RowType;
+
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.schema.GenericRecord;
@@ -50,7 +51,6 @@ import org.apache.pulsar.shade.org.apache.avro.LogicalType;
 import org.apache.pulsar.shade.org.apache.avro.LogicalTypes;
 import org.apache.pulsar.shade.org.apache.avro.Schema;
 import org.apache.pulsar.shade.org.apache.avro.SchemaBuilder;
-import scala.NotImplementedError;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -66,6 +66,9 @@ import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOption
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.TOPIC_ATTRIBUTE_NAME;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
+/**
+ * Various utilities to working with Pulsar Schema and Flink type system.
+ */
 public class SchemaUtils {
 
     public static TableSchema toTableSchema(FieldsDataType schema) {
@@ -122,7 +125,9 @@ public class SchemaUtils {
     public static boolean compatibleSchema(SchemaInfo s1, SchemaInfo s2) {
         if (s1.getType() == SchemaType.NONE && s2.getType() == SchemaType.BYTES) {
             return true;
-        } else return s1.getType() == SchemaType.BYTES && s2.getType() == SchemaType.NONE;
+        } else {
+            return s1.getType() == SchemaType.BYTES && s2.getType() == SchemaType.NONE;
+        }
     }
 
     public static org.apache.pulsar.client.api.Schema<?> getPulsarSchema(SchemaInfo schemaInfo) {
@@ -174,11 +179,11 @@ public class SchemaUtils {
             mainSchema.add(DataTypes.FIELD("value", dataType));
         }
 
-        mainSchema.addAll(metadataFields);
+        mainSchema.addAll(METADATA_FIELDS);
         return (FieldsDataType) DataTypes.ROW(mainSchema.toArray(new DataTypes.Field[0]));
     }
 
-    public static List<DataTypes.Field> metadataFields = ImmutableList.of(
+    public static final List<DataTypes.Field> METADATA_FIELDS = ImmutableList.of(
             DataTypes.FIELD(
                     KEY_ATTRIBUTE_NAME,
                     DataTypes.BYTES()),
@@ -195,7 +200,7 @@ public class SchemaUtils {
                     EVENT_TIME_NAME,
                     DataTypes.TIMESTAMP(3).bridgedTo(java.sql.Timestamp.class)));
 
-    public static DataType si2SqlType(SchemaInfo si) throws IncompatibleSchemaException, NotImplementedError {
+    public static DataType si2SqlType(SchemaInfo si) throws IncompatibleSchemaException {
         switch (si.getType()) {
             case NONE:
             case BYTES:
@@ -226,7 +231,7 @@ public class SchemaUtils {
                         new Schema.Parser().parse(new String(si.getSchema(), StandardCharsets.UTF_8));
                 return avro2SqlType(avroSchema, Collections.emptySet());
             default:
-                throw new NotImplementedError(String.format("We do not support %s currently.", si.getType()));
+                throw new UnsupportedOperationException(String.format("We do not support %s currently.", si.getType()));
         }
     }
 
@@ -479,7 +484,7 @@ public class SchemaUtils {
                 .build();
     }
 
-    private static Schema NULL_SCHEMA = Schema.create(Schema.Type.NULL);
+    private static final Schema NULL_SCHEMA = Schema.create(Schema.Type.NULL);
 
     private static int[] minBytesForPrecision = new int[39];
 
@@ -497,6 +502,9 @@ public class SchemaUtils {
         return numBytes;
     }
 
+    /**
+     * Exception designates the incompatibility between pulsar and flink type.
+     */
     public static class IncompatibleSchemaException extends Exception {
         public IncompatibleSchemaException(String message, Throwable e) {
             super(message, e);

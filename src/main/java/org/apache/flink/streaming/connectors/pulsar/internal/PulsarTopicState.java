@@ -18,6 +18,9 @@ import lombok.Getter;
 import lombok.Setter;
 import org.apache.pulsar.client.api.MessageId;
 
+/**
+ * The state that the Flink Pulsar Source holds for each Pulsar partition.
+ */
 @Getter
 @Setter
 public class PulsarTopicState {

@@ -14,9 +14,6 @@
 
 package org.apache.flink.streaming.connectors.pulsar;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
-import org.apache.commons.collections.MapUtils;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.state.BroadcastState;
 import org.apache.flink.api.common.state.KeyedStateStore;
@@ -53,6 +50,11 @@ import org.apache.flink.util.SerializedValue;
 import org.apache.flink.util.TestLogger;
 import org.apache.flink.util.function.SupplierWithException;
 import org.apache.flink.util.function.ThrowingRunnable;
+
+import org.apache.flink.shaded.guava18.com.google.common.collect.ImmutableMap;
+import org.apache.flink.shaded.guava18.com.google.common.collect.Sets;
+
+import org.apache.commons.collections.MapUtils;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.PulsarClientException;
@@ -91,6 +93,9 @@ import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 
+/**
+ * Source unit tests.
+ */
 public class FlinkPulsarSourceTest extends TestLogger {
 
     private static final int maxParallelism = Short.MAX_VALUE / 2;
@@ -366,7 +371,6 @@ public class FlinkPulsarSourceTest extends TestLogger {
         List<String> startupTopics =
                 IntStream.range(0, numPartitions).mapToObj(i -> topicName("test-topic", i)).collect(Collectors.toList());
 
-
         DummyFlinkPulsarSource<String>[] sources =
                 new DummyFlinkPulsarSource[initialParallelism];
 
@@ -456,7 +460,6 @@ public class FlinkPulsarSourceTest extends TestLogger {
         assertThat(restoredTopics, everyItem(isIn(restoredGlobalSubscribedPartitions.keySet())));
 
     }
-
 
     private void testFailingSourceLifecycle(FlinkPulsarSource<String> source, Exception e) throws Exception {
         try {
@@ -557,7 +560,6 @@ public class FlinkPulsarSourceTest extends TestLogger {
     private static <T, S> void setupSource(FlinkPulsarSource<T> source) throws Exception {
         setupSource(source, false, null, false, 0, 1);
     }
-
 
     private static <T, S> void setupSource(FlinkPulsarSource<T> source, boolean isRestored, ListState<S> restoredListState, boolean isCheckpointEnabled, int subtaskIndex, int totalNumberSubtasks) throws Exception {
         source.setRuntimeContext(new MockStreamingRuntimeContext(isCheckpointEnabled, totalNumberSubtasks, subtaskIndex));

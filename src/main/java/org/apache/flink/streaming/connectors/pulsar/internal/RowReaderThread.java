@@ -14,8 +14,9 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
-import lombok.extern.slf4j.Slf4j;
 import org.apache.flink.types.Row;
+
+import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.PulsarClientException;
@@ -27,6 +28,9 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
+/**
+ * Specific reader thread to read flink rows from a Pulsar partition.
+ */
 @Slf4j
 public class RowReaderThread extends ReaderThread<Row> {
 

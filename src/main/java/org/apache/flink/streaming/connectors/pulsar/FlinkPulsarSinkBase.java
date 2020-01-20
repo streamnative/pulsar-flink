@@ -14,9 +14,6 @@
 
 package org.apache.flink.streaming.connectors.pulsar;
 
-import avro.shaded.com.google.common.collect.Maps;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.java.ClosureCleaner;
 import org.apache.flink.configuration.Configuration;
@@ -28,7 +25,12 @@ import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
 import org.apache.flink.streaming.connectors.pulsar.internal.CachedPulsarClient;
 import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.SourceSinkUtils;
+import org.apache.flink.util.ExceptionUtils;
 import org.apache.flink.util.SerializableObject;
+
+import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
+
+import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.Producer;
@@ -46,6 +48,15 @@ import java.util.function.BiConsumer;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
+/**
+ * Flink Sink to produce data into Pulsar topics.
+ *
+ * <p>Please note that this producer provides at-least-once reliability guarantees when
+ * checkpoints are enabled and setFlushOnCheckpoint(true) is set.
+ * Otherwise, the producer doesn't provide any reliability guarantees.
+ *
+ * @param <T> Type of the messages to write into Kafka.
+ */
 @Slf4j
 abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements CheckpointedFunction {
 
@@ -114,7 +125,7 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
                 SourceSinkUtils.toCaceInsensitiveParams(Maps.fromProperties(properties));
 
         this.producerConf =
-                SourceSinkUtils.getProducerParams(caseInsensitiveParams);
+                SourceSinkUtils.getProducerParams(Maps.fromProperties(properties));
 
         this.flushOnCheckpoint =
                 SourceSinkUtils.flushOnCheckpoint(caseInsensitiveParams);
@@ -200,7 +211,7 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
         } else {
             this.sendCallback = (t, u) -> {
                 if (failedWrite == null && u != null) {
-                    log.error("Error while sending message to Pulsar: {}", ExceptionUtils.getFullStackTrace(u));
+                    log.error("Error while sending message to Pulsar: {}", ExceptionUtils.stringifyException(u));
                 }
                 acknowledgeMessage();
             };

@@ -15,6 +15,7 @@
 package org.apache.flink.streaming.connectors.pulsar.testutils;
 
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
+
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.mockito.stubbing.Answer;
 
@@ -26,6 +27,9 @@ import static org.mockito.Matchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+/**
+ * Mock for metadata reader.
+ */
 public class TestMetadataReader extends PulsarMetadataReader {
 
     private final List<Set<String>> mockGetAllTopicsReturnSequence;

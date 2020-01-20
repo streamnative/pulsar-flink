@@ -14,10 +14,6 @@
 
 package org.apache.flink.streaming.connectors.pulsar;
 
-import io.streamnative.tests.pulsar.service.PulsarService;
-import io.streamnative.tests.pulsar.service.PulsarServiceFactory;
-import io.streamnative.tests.pulsar.service.PulsarServiceSpec;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.TaskManagerOptions;
@@ -25,6 +21,12 @@ import org.apache.flink.metrics.jmx.JMXReporter;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.streaming.util.TestStreamEnvironment;
 import org.apache.flink.util.TestLogger;
+
+import io.streamnative.tests.pulsar.service.PulsarService;
+import io.streamnative.tests.pulsar.service.PulsarServiceFactory;
+import io.streamnative.tests.pulsar.service.PulsarServiceSpec;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.Producer;
@@ -35,7 +37,6 @@ import org.apache.pulsar.common.schema.SchemaType;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.testcontainers.shaded.com.google.common.collect.Sets;
-import org.testcontainers.shaded.org.apache.commons.lang.NotImplementedException;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -43,6 +44,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Start / stop a Pulsar cluster.
+ */
 @Slf4j
 public abstract class PulsarTestBase extends TestLogger {
 
@@ -92,7 +96,6 @@ public abstract class PulsarTestBase extends TestLogger {
         log.info("-------------------------------------------------------------------------");
 
     }
-
 
     @AfterClass
     public static void shutDownServices() throws Exception {
@@ -190,7 +193,7 @@ public abstract class PulsarTestBase extends TestLogger {
                     break;
 
                 default:
-                    throw new NotImplementedException();
+                    throw new NotImplementedException("Unsupported type " + type);
             }
 
             for (T message : messages) {

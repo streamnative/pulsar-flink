@@ -14,6 +14,11 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal.metrics;
 
+/**
+ * A collection of Pulsar consumer metrics related constant strings.
+ *
+ * <p>The names must not be changed, as that would break backward compatibility for the consumer's metrics.
+ */
 public class PulsarSourceMetrics {
 
     public static final String PULSAR_CONSUMER_METRICS_GROUP = "PulsarConsumer";

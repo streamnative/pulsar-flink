@@ -189,7 +189,7 @@ public class FlinkPulsarSource<T>
         this.caseInsensitiveParams =
                 SourceSinkUtils.validateStreamSourceOptions(Maps.fromProperties(properties));
         this.readerConf =
-                SourceSinkUtils.getReaderParams(caseInsensitiveParams);
+                SourceSinkUtils.getReaderParams(Maps.fromProperties(properties));
         this.discoveryIntervalMillis =
                 SourceSinkUtils.getPartitionDiscoveryIntervalInMillis(caseInsensitiveParams);
         this.pollTimeoutMs =

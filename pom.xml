@@ -428,37 +428,7 @@
           <systemPropertyVariables>
             <log4j.configuration>log4j-test.properties</log4j.configuration>
           </systemPropertyVariables>
-          <argLine>-Xms256m -Xmx2048m -XX:+UseG1GC</argLine>
         </configuration>
-        <executions>
-          <!--execute all the unit tests-->
-          <execution>
-            <id>default-test</id>
-            <phase>test</phase>
-            <goals>
-              <goal>test</goal>
-            </goals>
-            <configuration>
-              <includes>
-                <include>**/*Test.*</include>
-              </includes>
-            </configuration>
-          </execution>
-          <!--execute all the integration tests-->
-          <execution>
-            <id>integration-tests</id>
-            <phase>integration-test</phase>
-            <goals>
-              <goal>test</goal>
-            </goals>
-            <configuration>
-              <includes>
-                <include>**/*ITest.*</include>
-              </includes>
-              <reuseForks>false</reuseForks>
-            </configuration>
-          </execution>
-        </executions>
       </plugin>
     </plugins>
   </build>

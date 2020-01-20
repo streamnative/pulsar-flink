@@ -428,7 +428,7 @@
           <systemPropertyVariables>
             <log4j.configuration>log4j-test.properties</log4j.configuration>
           </systemPropertyVariables>
-          <argLine>-Xms256m -Xmx2048m -Dmvn.forkNumber=${surefire.forkNumber} -XX:+UseG1GC</argLine>
+          <argLine>-Xms256m -Xmx2048m -XX:+UseG1GC</argLine>
         </configuration>
         <executions>
           <!--execute all the unit tests-->

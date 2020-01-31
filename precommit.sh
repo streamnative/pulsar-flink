@@ -17,7 +17,7 @@
 set -e
 
 JENKINS_DIR=`dirname "$0"`
-PRJ_HOME=`cd ${JENKINS_DIR}/..;pwd`
+PRJ_HOME=`cd ${JENKINS_DIR};pwd`
 
 cd ${PRJ_HOME}
 

@@ -42,7 +42,9 @@ public class SchemaData {
     public static final List<String> STRING_LIST = INTEGER_LIST.stream().map(Objects::toString).collect(Collectors.toList());
     public static List<Date> dateList;
     public static List<Timestamp> timestampList;
+    public static List<FA> faList;
     public static List<Foo> fooList;
+    public static List<FL> flList;
 
     static {
         Calendar cal = Calendar.getInstance();
@@ -63,6 +65,20 @@ public class SchemaData {
                 new Foo(2, 2.0f, new Bar(false, "b")),
                 new Foo(3, 0, null),
                 new Foo(0, 0, null));
+
+        flList = Arrays.asList(
+                new FL(Arrays.asList(
+                        new Bar(true, "a"))),
+                new FL(Arrays.asList(
+                        new Bar(false, "b"))),
+                new FL(Arrays.asList(
+                        new Bar(true, "b")))
+                );
+
+        faList = Arrays.asList(
+                new FA(new Bar[]{new Bar(true, "a")}),
+                new FA(new Bar[]{new Bar(false, "b")}),
+                new FA(new Bar[]{new Bar(true, "b")}));
     }
 
     /**
@@ -95,6 +111,66 @@ public class SchemaData {
         @Override
         public String toString() {
             return "" + b + "," + s;
+        }
+    }
+
+    /**
+     * FL type.
+     */
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class FL {
+        public List<Bar> l;
+
+        @Override
+        public String toString() {
+            if (l == null) {
+                return "null";
+            } else {
+                StringBuilder sb = new StringBuilder();
+
+                for (int i = 0; i < l.size(); i++) {
+                    if (i != 0) {
+                        sb.append(",");
+                    }
+                    sb.append("[");
+                    sb.append(l.get(i));
+                    sb.append("]");
+                }
+
+                return sb.toString();
+            }
+        }
+    }
+
+    /**
+     * FA type.
+     */
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class FA {
+        public Bar[] l;
+
+        @Override
+        public String toString() {
+            if (l == null) {
+                return "null";
+            } else {
+                StringBuilder sb = new StringBuilder();
+
+                for (int i = 0; i < l.length; i++) {
+                    if (i != 0) {
+                        sb.append(",");
+                    }
+                    sb.append("[");
+                    sb.append(l[i]);
+                    sb.append("]");
+                }
+
+                return sb.toString();
+            }
         }
     }
 }

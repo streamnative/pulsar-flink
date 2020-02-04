@@ -36,6 +36,8 @@ import java.util.Properties;
 import java.util.stream.Collectors;
 
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.BOOLEAN_LIST;
+import static org.apache.flink.streaming.connectors.pulsar.SchemaData.faList;
+import static org.apache.flink.streaming.connectors.pulsar.SchemaData.flList;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.fooList;
 
 /**
@@ -157,6 +159,66 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         }
         SingletonStreamSink.compareWithList(
                 fooList.subList(0, fooList.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
+    }
+
+    @Test
+    public void testStructTypesWithJavaList() throws Exception {
+        StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
+        see.setParallelism(1);
+        StreamTableEnvironment tEnv = StreamTableEnvironment.create(see);
+
+        String table = newTopic();
+
+        sendTypedMessages(table, SchemaType.AVRO, flList, Optional.empty(), SchemaData.FL.class);
+
+        tEnv
+                .connect(getPulsarDescriptor(table))
+                .inAppendMode()
+                .registerTableSource(table);
+
+        Table t = tEnv.scan(table).select("l");
+        t.printSchema();
+        tEnv.toAppendStream(t, t.getSchema().toRowType())
+                .map(new FailingIdentityMapper<Row>(flList.size()))
+                .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
+
+        try {
+            see.execute("test struct in avro");
+        } catch (Exception e) {
+
+        }
+        SingletonStreamSink.compareWithList(
+                flList.subList(0, flList.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
+    }
+
+    @Test
+    public void testStructTypesWithJavaArray() throws Exception {
+        StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
+        see.setParallelism(1);
+        StreamTableEnvironment tEnv = StreamTableEnvironment.create(see);
+
+        String table = newTopic();
+
+        sendTypedMessages(table, SchemaType.AVRO, faList, Optional.empty(), SchemaData.FA.class);
+
+        tEnv
+                .connect(getPulsarDescriptor(table))
+                .inAppendMode()
+                .registerTableSource(table);
+
+        Table t = tEnv.scan(table).select("l");
+        t.printSchema();
+        tEnv.toAppendStream(t, t.getSchema().toRowType())
+                .map(new FailingIdentityMapper<Row>(faList.size()))
+                .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
+
+        try {
+            see.execute("test struct in avro");
+        } catch (Exception e) {
+
+        }
+        SingletonStreamSink.compareWithList(
+                faList.subList(0, faList.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
     }
 
     private ConnectorDescriptor getPulsarDescriptor(String tableName) {

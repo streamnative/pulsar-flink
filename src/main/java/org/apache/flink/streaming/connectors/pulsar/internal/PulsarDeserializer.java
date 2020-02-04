@@ -295,13 +295,13 @@ public class PulsarDeserializer {
             boolean containsNull = et.getLogicalType().isNullable();
             TriFunction<FlinkDataUpdater, Integer, Object> elementWriter = newWriter(avroType.getElementType(), et, path);
             return (rowUpdater, ordinal, value) -> {
-                Object[] array = (Object[]) value;
-                int len = array.length;
+                List array = (List) value;
+                int len = array.size();
                 Object[] result = new Object[len];
                 ArrayDataUpdater elementUpdater = new ArrayDataUpdater(result);
 
                 for (int i = 0; i < len; i++) {
-                    Object element = array[i];
+                    Object element = array.get(i);
                     if (element == null) {
                         if (!containsNull) {
                             throw new RuntimeException(String.format(

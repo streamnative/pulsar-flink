@@ -36,8 +36,8 @@ import java.util.Properties;
 import java.util.stream.Collectors;
 
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.BOOLEAN_LIST;
-import static org.apache.flink.streaming.connectors.pulsar.SchemaData.FLList;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.faList;
+import static org.apache.flink.streaming.connectors.pulsar.SchemaData.flList;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.fooList;
 
 /**
@@ -169,7 +169,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
 
         String table = newTopic();
 
-        sendTypedMessages(table, SchemaType.AVRO, FLList, Optional.empty(), SchemaData.FL.class);
+        sendTypedMessages(table, SchemaType.AVRO, flList, Optional.empty(), SchemaData.FL.class);
 
         tEnv
                 .connect(getPulsarDescriptor(table))
@@ -179,7 +179,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         Table t = tEnv.scan(table).select("l");
         t.printSchema();
         tEnv.toAppendStream(t, t.getSchema().toRowType())
-                .map(new FailingIdentityMapper<Row>(FLList.size()))
+                .map(new FailingIdentityMapper<Row>(flList.size()))
                 .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
 
         try {
@@ -188,7 +188,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
 
         }
         SingletonStreamSink.compareWithList(
-                FLList.subList(0, FLList.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
+                flList.subList(0, flList.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
     }
 
     @Test

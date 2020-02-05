@@ -12,7 +12,7 @@ Pulsar Flink connector is an elastic data processing with [Apache Pulsar](https:
 ### Link
 
 #### Client library  
-For Java/Java applications using SBT/Maven project definitions, link your application with the following artifact:
+For Scala/Java applications using SBT/Maven project definitions, link your application with the following artifact:
 
 ```
     groupId = io.streamnative.connectors
@@ -98,13 +98,13 @@ $ ./bin/flink run
   ...
 ```
 
-#### Java REPL  
-For experimenting on the interactive Java shell `bin/start-java-shell.sh`, you can use `--addclasspath` to add `pulsar-flink-connector_{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar` directly.
+#### Scala REPL  
+For experimenting on the interactive Scala shell `bin/start-scala-shell.sh`, you can use `--addclasspath` to add `pulsar-flink-connector_{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar` directly.
 
 Example
 
 ```
-$ ./bin/start-java-shell.sh remote <hostname> <portnumber>
+$ ./bin/start-scala-shell.sh remote <hostname> <portnumber>
   --addclasspath pulsar-flink-connector_{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar
 ```
 For more information about **submitting applications with CLI**, see [Command-Line Interface](https://ci.apache.org/projects/flink/flink-docs-release-1.9/ops/cli.html).

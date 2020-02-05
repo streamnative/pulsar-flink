@@ -124,343 +124,284 @@ catalogs:
 - name: pulsarcatalog
     type: pulsar
     default-database: tn/ns
-    service.url: "pulsar://localhost:6650"
-    admin.url: "http://localhost:8080"
+    service-url: "pulsar://localhost:6650"
+    admin-url: "http://localhost:8080"
 ```
 
-## Usage
+## Read data from Pulsar
 
-### Read data from Pulsar
+Flink's Pulsar consumer is called `FlinkPulsarSource<T>`
+or just `FlinkPulsarRowSource` with data schema auto-inferring). It provides access to one or more Pulsar topics.
 
-#### Create a Pulsar source for streaming queries
-The following examples are in Scala.
+The constructor accepts the following arguments:
 
-```scala
-val env = StreamExecutionEnvironment.getExecutionEnvironment
-val props = new Properties()
-props.setProperty("service.url", "pulsar://...")
-props.setProperty("admin.url", "http://...")
-props.setProperty("partitionDiscoveryIntervalMillis", "5000")
-props.setProperty("startingOffsets", "earliest")
+1. The service url and admin url for the Pulsar instance to connect to.
+2. A DeserializationSchema for deserializing the data from Pulsar when using `FlinkPulsarSource`
+3. Properties for the Pulsar Source.
+  The following properties are required:
+  - One of "topic", "topics" or "topicsPattern" to denote topic(s) to consume. (**topics is a comma-separated list of topics, and topicsPattern is a Java regex string used to pattern matching topic names **)
+
+Example:
+
+```java
+StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
+Properties props = new Properties();
 props.setProperty("topic", "test-source-topic")
-val source = new FlinkPulsarSource(props)
-// you don't need to provide a type information to addSource since FlinkPulsarSource is ResultTypeQueryable
-val dataStream = env.addSource(source)(null)
+FlinkPulsarSource<String> source = new FlinkPulsarSource<>(serviceUrl, adminUrl, new SimpleStringSchema(), props);
 
-// chain operations on dataStream of Row and sink the output
+DataStream<String> stream = see.addSource(source);
+
+// chain operations on dataStream of String and sink the output
 // end method chaining
 
-env.execute()
+see.execute();
 ```
 
-#### Register topics in Pulsar as streaming tables
-The following examples are in Scala.
+### The `DeserializationSchema`
 
-```scala
-val env = StreamExecutionEnvironment.getExecutionEnvironment
-val tEnv = StreamTableEnvironment.create(env)
-val props = new Properties()
-props.setProperty("service.url", "pulsar://...")
-props.setProperty("admin.url", "http://...")
-props.setProperty("partitionDiscoveryIntervalMillis", "5000")
-props.setProperty("startingOffsets", "earliest")
-props.setProperty("topic", "test-source-topic")
-tEnv
-  .connect(new Pulsar().properties(props))
-  .inAppendMode()
-  .registerTableSource("pulsar-test-table")
+When `FlinkPulsarSource<T>` is used, it needs to know how to turn the binary data in Pulsar into Java/Scala objects. The
+`DeserializationSchema` allows users to specify such a schema. The `T deserialize(byte[] message)`
+method gets called for each Pulsar message, passing the value from Pulsar.
+
+
+It is usually helpful to start from the `AbstractDeserializationSchema`, which takes care of describing the
+produced Java/Scala type to Flink's type system. Users that implement a vanilla `DeserializationSchema` need
+to implement the `getProducedType(...)` method themselves.
+
+For convenience, Flink provides the following schemas:
+
+1. `TypeInformationSerializationSchema` (and `TypeInformationKeyValueSerializationSchema`) which creates
+    a schema based on a Flink's `TypeInformation`. This is useful if the data is both written and read by Flink.
+    This schema is a performant Flink-specific alternative to other generic serialization approaches.
+
+2. `JsonDeserializationSchema` (and `JSONKeyValueDeserializationSchema`) which turns the serialized JSON
+    into an ObjectNode object, from which fields can be accessed using `objectNode.get("field").as(Int/String/...)()`.
+    The KeyValue objectNode contains a "key" and "value" field which contain all fields, as well as
+    an optional "metadata" field that exposes the offset/partition/topic for this message.
+
+3. `AvroDeserializationSchema` which reads data serialized with Avro format using a statically provided schema. It can
+    infer the schema from Avro generated classes (`AvroDeserializationSchema.forSpecific(...)`) or it can work with `GenericRecords`
+    with a manually provided schema (with `AvroDeserializationSchema.forGeneric(...)`). This deserialization schema expects that
+    the serialized records DO NOT contain embedded schema.
+
+    <br>To use this deserialization schema one has to add the following additional dependency:
+
+    ```xml
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-avro</artifactId>
+      <version>{{site.version }}</version>
+    </dependency>
+    ```
+
+### Schema for FlinkPulsarRowSource
+
+  - For topics without schema or with primitive schema in Pulsar, messages payload
+  is loaded to a `value` column with the corresponding type with Pulsar schema.
+
+  - For topics with Avro or JSON schema, their field names and field types are kept in the result rows.
+
+  Besides, each row in the source has the following metadata fields as well.
+  <table class="table">
+  <tr><th>Column</th><th>Type</th></tr>
+  <tr>
+    <td>`__key`</td>
+    <td>Bytes</td>
+  </tr>
+  <tr>
+    <td>`__topic`</td>
+    <td>String</td>
+  </tr>
+  <tr>
+    <td>`__messageId`</td>
+    <td>Bytes</td>
+  </tr>
+  <tr>
+    <td>`__publishTime`</td>
+    <td>Timestamp</td>
+  </tr>
+  <tr>
+    <td>`__eventTime`</td>
+    <td>Timestamp</td>
+  </tr>
+  </table>
+
+  - Example
+
+  The Pulsar topic of AVRO schema s (example 1) converted to a Flink table has the following schema (example 2).
+
+  Example 1
+
+  ```java
+  @Data
+  @AllArgsConstructor
+  @NoArgsConstructor
+  public static class Foo {
+      public int i;
+      public float f;
+      public Bar bar;
+  }
+
+  @Data
+  @AllArgsConstructor
+  @NoArgsConstructor
+  public static class Bar {
+      public boolean b;
+      public String s;
+  }
+
+  Schema s = Schema.AVRO(Foo.getClass());
+  ```
+
+  ```
+  root
+   |-- i: INT
+   |-- f: FLOAT
+   |-- bar: ROW<`b` BOOLEAN, `s` STRING>
+   |-- __key: BYTES
+   |-- __topic: STRING
+   |-- __messageId: BYTES
+   |-- __publishTime: TIMESTAMP(3)
+   |-- __eventTime: TIMESTAMP(3)
+   ```
+
+   Example 2
+
+   The following is the schema of a Pulsar topic with `Schema.DOUBLE`:
+   ```
+   root
+   |-- value: DOUBLE
+   |-- __key: BYTES
+   |-- __topic: STRING
+   |-- __messageId: BYTES
+   |-- __publishTime: TIMESTAMP(3)
+   |-- __eventTime: TIMESTAMP(3)
+
+### Pulsar Sources Start Position Configuration
+
+The Flink Pulsar Source allows configuring how the start position for Pulsar
+partitions are determined.
+
+Example:
+
+```java
+final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+
+FlinkPulsarSource<String> myConsumer = new FlinkPulsarSource<>(...);
+myConsumer.setStartFromEarliest();     // start from the earliest record possible
+myConsumer.setStartFromLatest();       // start from the latest record (the default behaviour)
+
+DataStream<String> stream = env.addSource(myConsumer);
 ```
 
-The following options must be set for the Pulsar source.
-
-<table class="table">
-<tr><th>Option</th><th>Value</th><th>Description</th></tr>
-<tr>
-  <td>`topic`</td>
-  <td>A topic name string</td>
-  <td>The topic to be consumed.
-  Only one of `topic`, `topics` or `topicsPattern`
-  options can be specified for Pulsar source.</td>
-</tr>
-<tr>
-  <td>`topics`</td>
-  <td>A comma-separated list of topics</td>
-  <td>The topic list to be consumed.
-  Only one of `topic`, `topics` or `topicsPattern`
-  options can be specified for Pulsar source.</td>
-</tr>
-<tr>
-  <td>`topicsPattern`</td>
-  <td>A Java regex string</td>
-  <td>The pattern used to subscribe to topic(s).
-  Only one of `topic`, `topics` or `topicsPattern`
-  options can be specified for Pulsar source.</td>
-</tr>
-<tr>
-  <td>`service.url`</td>
-  <td>A service URL of your Pulsar cluster</td>
-  <td>The Pulsar `serviceUrl` configuration.</td>
-</tr>
-<tr>
-  <td>`admin.url`</td>
-  <td>A service HTTP URL of your Pulsar cluster</td>
-  <td>The Pulsar `serviceHttpUrl` configuration.</td>
-</tr>
-</table>
-
-The following configurations are optional.
-
-<table class="table">
-
-<tr><th>Option</th><th>Value</th><th>Default</th><th>Description</th></tr>
-
-<tr>
-
-  <td>`startingOffsets`</td>
-
-  <td>The following are valid values:<br>
-
-  * "earliest"(streaming and batch queries)<br>
-
-  * "latest" (streaming query)<br>
-
-  * A JSON string<br>
-
-    **Example**<br>
-
-    """ {"topic-1":[8,11,16,101,24,1,32,1],"topic-5":[8,15,16,105,24,5,32,5]} """
-  </td>
-
-  <td>"latest"</td>
+Both `FlinkPulsarSource` and `FlinkPulsarRowSource` have the above explicit configuration methods for start position.
 
 
-  <td>
+You can also specify the exact offsets the source should start from for each partition:
 
-  `startingOffsets` option controls where a consumer reads data from.
+```java
+Map<String, MessageId> offset = new HashMap<>();
+offset.put("topic1-partition-0", mid1);
+offset.put("topic1-partition-1", mid2);
+offset.put("topic1-partition-2", mid3);
 
-  * "earliest": lacks a valid offset, the consumer reads all the data in the partition, starting from the very beginning.<br>
-
-*  "latest": lacks a valid offset, the consumer reads from the newest records written after the consumer starts running.<br>
-
-* A JSON string: specifies a starting offset for each Topic. <br>
-You can use `org.apache.flink.pulsar.JsonUtils.topicOffsets(Map[String, MessageId])` to convert a message offset to a JSON string. <br>
-
-**Note**: <br>
-
-* "latest" only applies when a new query is started, and the resuming will
-  always pick up from where the query left off. Newly discovered partitions during a query will start at
-  "earliest".</td>
-
-</tr>
-
-<tr>
-
-  <td>`partitionDiscoveryIntervalMillis`</td>
-
-  <td> A long value or a string which can be converted to long
-
-  </td>
-
-  <td>-1</td>
-
-  <td>
-
-  `partitionDiscoveryIntervalMillis` option controls whether the source discovers newly added topics or partitions match the topic options
-  while executing the streaming job.
-  A positive long `l` would trigger the discoverer run every `l` milliseconds,
-  and negative values would turn off a topic or a partition discoverer. <br>
-
-</tr>
-
-</table>
-
-#### Schema of Pulsar source
-* For topics without schema or with primitive schema in Pulsar, messages payload
-is loaded to a `value` column with the corresponding type with Pulsar schema.
-
-* For topics with Avro or JSON schema, their field names and field types are kept in the result rows.
-
-Besides, each row in the source has the following metadata fields as well.
-<table class="table">
-<tr><th>Column</th><th>Type</th></tr>
-<tr>
-  <td>`__key`</td>
-  <td>Bytes</td>
-</tr>
-<tr>
-  <td>`__topic`</td>
-  <td>String</td>
-</tr>
-<tr>
-  <td>`__messageId`</td>
-  <td>Bytes</td>
-</tr>
-<tr>
-  <td>`__publishTime`</td>
-  <td>Timestamp</td>
-</tr>
-<tr>
-  <td>`__eventTime`</td>
-  <td>Timestamp</td>
-</tr>
-</table>
-
-**Example**
-
-The Pulsar topic of AVRO schema s (example 1) converted to a Flink table has the following schema (example 2).
-
-Example 1
-
-```scala
-  case class Foo(@BeanProperty i: Int, @BeanProperty f: Float, @BeanProperty bar: Bar)
-  case class Bar(@BeanProperty b: Boolean, @BeanProperty s: String)
-  val s = Schema.AVRO(Foo.getClass)
+myConsumer.setStartFromSpecificOffsets(specificStartOffsets);
 ```
 
-Example 2
+The above example configures the consumer to start from the specified offsets for
+partitions 0, 1, and 2 of topic `topic1`. The offset values should be the
+next record that the consumer should read for each partition. Note that
+if the consumer needs to read a partition which does not have a specified
+offset within the provided offsets map, it will fallback to the default
+offsets behaviour (i.e. `setStartLatest()`) for that
+particular partition.
 
-```
-root
- |-- i: INT
- |-- f: FLOAT
- |-- bar: ROW<`b` BOOLEAN, `s` STRING>
- |-- __key: BYTES
- |-- __topic: STRING
- |-- __messageId: BYTES
- |-- __publishTime: TIMESTAMP(3)
- |-- __eventTime: TIMESTAMP(3)
- ```
+Note that these start position configuration methods do not affect the start position when the job is
+automatically restored from a failure or manually restored using a savepoint.
+On restore, the start position of each Kafka partition is determined by the
+offsets stored in the savepoint or checkpoint
+(please see the next section for information about checkpointing to enable
+fault tolerance for the consumer).
 
- The following is the schema of a Pulsar topic with `Schema.DOUBLE`:
- ```
- root
- |-- value: DOUBLE
- |-- __key: BYTES
- |-- __topic: STRING
- |-- __messageId: BYTES
- |-- __publishTime: TIMESTAMP(3)
- |-- __eventTime: TIMESTAMP(3)
- ```
+### Pulsar Source and Fault Tolerance
 
-### Write data to Pulsar
+With Flink's checkpointing enabled, the Flink Pulsar Source will consume records from a topic and periodically checkpoint all
+its Pulsar offsets, together with the state of other operations, in a consistent manner. In case of a job failure, Flink will restore
+the streaming program to the state of the latest checkpoint and re-consume the records from Pulsar, starting from the offsets that were
+stored in the checkpoint.
 
-The DataStream written to Pulsar can have an arbitrary type.
+The interval of drawing checkpoints therefore defines how much the program may have to go back at most, in case of a failure.
 
-For DataStream[Row], `__topic` field is used to identify the topic this message will be sent to, `__key` is encoded as metadata of Pulsar message, and all the other fields are grouped and encoded using AVRO and put in `value()`:
+To use fault tolerant Pulsar Sources, checkpointing of the topology needs to be enabled at the execution environment:
 
-```scala
-producer.newMessage().key(__key).value(avro_encoded_fields)
-```
-For DataStream[T] where T is a POJO type, each record in data stream will be encoded using AVRO and put in Pulsar messages `value()`, optionally, you could provide an extra `topicKeyExtractor` that identify topic and key for each record.
-
-#### Create a Pulsar sink for streaming queries
-The following examples are in Scala.
-```scala
-val env = StreamExecutionEnvironment.getExecutionEnvironment
-val stream = .....
-
-val prop = new Properties()
-prop.setProperty("service.url", serviceUrl)
-prop.setProperty("admin.url", adminUrl)
-prop.setProperty("flushOnCheckpoint", "true")
-prop.setProperty("failOnWrite", "true")
-props.setProperty("topic", "test-sink-topic")
-
-stream.addSink(new FlinkPulsarSink(prop, DummyTopicKeyExtractor))
-env.execute()
+```java
+final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+env.enableCheckpointing(5000); // checkpoint every 5000 msecs
 ```
 
-#### Write a streaming table to Pulsar
-The following examples are in Scala.
-```scala
-val env = StreamExecutionEnvironment.getExecutionEnvironment
-val tEnv = StreamTableEnvironment.create(env)
+Also note that Flink can only restart the topology if enough processing slots are available to restart the topology.
+So if the topology fails due to loss of a TaskManager, there must still be enough slots available afterwards.
+Flink on YARN supports automatic restart of lost YARN containers.
 
-val prop = new Properties()
-prop.setProperty("service.url", serviceUrl)
-prop.setProperty("admin.url", adminUrl)
-prop.setProperty("flushOnCheckpoint", "true")
-prop.setProperty("failOnWrite", "true")
-props.setProperty("topic", "test-sink-topic")
 
-tEnv
-  .connect(new Pulsar().properties(props))
-  .inAppendMode()
-  .registerTableSource("sink-table")
+### Pulsar Sources Topic and Partition Discovery
 
-val sql = "INSERT INTO sink-table ....."
-tEnv.sqlUpdate(sql)
-env.execute()
+#### Topic/Partition discovery
+
+The Flink Pulsar Source supports discovering dynamically created Pulsar partitions, and consumes them with
+exactly-once guarantees. All partitions discovered after the initial retrieval of partition metadata (i.e., when the
+job starts running) will be consumed from the earliest possible offset.
+
+By default, partition discovery is disabled. To enable it, set a non-negative value
+for `partitionDiscoveryIntervalMillis` in the provided properties config,
+representing the discovery interval in milliseconds.
+
+### Pulsar Source and Timestamp Extraction/Watermark Emission
+
+In many scenarios, the timestamp of a record is embedded (explicitly or implicitly) in the record itself.
+In addition, the user may want to emit watermarks either periodically, or in an irregular fashion, e.g. based on
+special records in the Pulsar stream that contain the current event-time watermark. For these cases, the Flink Pulsar Source allows the specification of an `AssignerWithPeriodicWatermarks` or an `AssignerWithPunctuatedWatermarks`.
+
+Internally, an instance of the assigner is executed per Pulsar partition.
+When such an assigner is specified, for each record read from Pulsar, the
+`extractTimestamp(T element, long previousElementTimestamp)` is called to assign a timestamp to the record and
+the `Watermark getCurrentWatermark()` (for periodic) or the
+`Watermark checkAndGetNextWatermark(T lastElement, long extractedTimestamp)` (for punctuated) is called to determine
+if a new watermark should be emitted and with which timestamp.
+
+
+## Pulsar Sink
+
+Flink’s Pulsar Sink is called `FlinkPulsarSink` for POJO class and `FlinkPulsarRowSink` for Flink Row type.
+It allows writing a stream of records to one or more Pulsar topics.
+
+Example:
+
+```java
+FlinkPulsarSink<Person> sink = new FlinkPulsarSink(
+  serviceUrl,
+  adminUrl,
+  Optional.of(topic),      // mandatory target topic or use `Optional.empty()` if sink to different topics for each record
+  props,
+  TopicKeyExtractor.NULL,  // replace this to extract key or topic for each record
+  Person.class);
+
+stream.addSink(sink);
 ```
 
-The following options must be set for a Pulsar sink.
+### Pulsar Sink and Fault Tolerance
 
-<table class="table">
-<tr><th>Option</th><th>Value</th><th>Description</th></tr>
-<tr>
-  <td>`service.url`</td>
-  <td>A service URL of your Pulsar cluster</td>
-  <td>The Pulsar `serviceUrl` configuration.</td>
-</tr>
-<tr>
-  <td>`admin.url`</td>
-  <td>A service HTTP URL of your Pulsar cluster</td>
-  <td>The Pulsar `serviceHttpUrl` configuration.</td>
-</tr>
-</table>
+With Flink's checkpointing enabled, the `FlinkPulsarSink` and `FlinkPulsarRowSink`
+can provide at-least-once delivery guarantees.
 
-The following configurations are optional.
+Besides enabling Flink's checkpointing, you should also configure the setter
+methods `setLogFailuresOnly(boolean)` and `setFlushOnCheckpoint(boolean)` appropriately.
 
-<table class="table">
-
-<tr><th>Option</th><th>Value</th><th>Default</th><th>Description</th></tr>
-<tr>
-  <td>`topic`</td>
-  <td>A topic name string</td>
-  <td>None</td>
-  <td>The topic to be write to. If this option is not set, DataStreams or tables write to Pulsar must contain a TopicKeyExtractor that return nonNull topics or `__topic` field.</td>
-</tr>
-
-<tr>
-
-  <td>`flushOnCheckpoint`</td>
-
-  <td> Whether flush all records write until checkpoint and wait for confirms.
-
-  </td>
-
-  <td>true</td>
-
-  <td>
-
-  At-least-once semantic is achieved when `flushOnCheckpoint` is set to `true` and checkpoint is enabled on execution environment. Otherwise, you get no write guarantee.<br>
-  </td>
-
-</tr>
-
-<tr>
-
-  <td>`failOnWrite`</td>
-
-  <td> Whether fail the sink while sending records to Pulsar fail.
-
-  </td>
-
-  <td>false</td>
-
-  <td>
-  None
-  </td>
-
-</tr>
-
-
-</table>
-
-#### Limitations
-
-Currently, we provide at-least-once semantic when `flushOnCheckpoint` is set to `true`. Consequently, when writing streams to Pulsar, some records may be duplicated.
-We would provide exactly-once sink semantic when Pulsar has transaction supports.
+ * `setFlushOnCheckpoint(boolean)`: by default, this is set to `true`.
+ With this enabled, Flink's checkpoints will wait for any
+ on-the-fly records at the time of the checkpoint to be acknowledged by Pulsar before
+ succeeding the checkpoint. This ensures that all records before the checkpoint have
+ been written to Pulsar. This must be enabled for at-least-once.
 
 ### Pulsar specific configurations
 
@@ -478,7 +419,7 @@ For possible Pulsar parameters, see
 
 Flink always searches for tables, views, and UDFs in the current catalog and database. To use Pulsar catalog and treat topics in Pulsar as tables in Flink, you should use `pulsarcatalog` that has been defined in `./conf/sql-client-defaults.yaml`.
 
-```scala
+```java
 tableEnv.useCatalog("pulsarcatalog")
 tableEnv.useDatabase("public/default")
 tableEnv.scan("topic0")
@@ -504,26 +445,26 @@ The following configurations are optional in environment file or can be overridd
 
 <tr>
 
-  <td>`startingOffsets`</td>
+  <td>`startup-mode`</td>
 
   <td> The following are valid values:<br>
-       
+
    * "earliest"(streaming and batch queries)<br>
-       
+
    * "latest" (streaming query)<br>
 
   </td>
 
   <td>"latest"</td>
 
-  <td> `startingOffsets` option controls where a table reads data from.
+  <td> `startup-mode` option controls where a table reads data from.
   </td>
 
 </tr>
 
 <tr>
 
-  <td>`table.partitions`</td>
+  <td>`table-default-partitions`</td>
 
   <td> The default number of partitions when a table is created in Table API.
 
@@ -550,11 +491,11 @@ If you want to build a Pulsar Flink connector reading data from Pulsar and writi
 2. Install Docker.
 
     Pulsar-flink connector is using [Testcontainers](https://www.testcontainers.org/) for integration tests. In order to run the integration tests, make sure you have installed [Docker](https://docs.docker.com/docker-for-mac/install/).
-3. Set a Scala version.
+3. Set a Java version.
 
-    Change `scala.version` and `scala.binary.version` in `pom.xml`.
+    Change `java.version` and `java.binary.version` in `pom.xml`.
     > #### Note
-    > Scala version should be consistent with the Scala version of flink you use.
+    > Java version should be consistent with the Java version of flink you use.
 4. Build the project.
     ```bash
     $ mvn clean install -DskipTests

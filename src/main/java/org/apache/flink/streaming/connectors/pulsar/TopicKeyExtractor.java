@@ -35,6 +35,18 @@ public interface TopicKeyExtractor<T> extends Serializable {
         }
     };
 
+    TopicKeyExtractor NULL = new TopicKeyExtractor<Object>() {
+        @Override
+        public byte[] serializeKey(Object element) {
+            return null;
+        }
+
+        @Override
+        public String getTopic(Object element) {
+            return null;
+        }
+    };
+
     byte[] serializeKey(T element);
 
     String getTopic(T element);

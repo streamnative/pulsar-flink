@@ -92,19 +92,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         DataStreamSource ds = see.fromCollection(fooList);
         ds.addSink(
                 new FlinkPulsarSink(
-                        serviceUrl, adminUrl, Optional.of(tp), getSinkProperties(),
-                        new TopicKeyExtractor<SchemaData.Foo>() {
-
-                            @Override
-                            public byte[] serializeKey(SchemaData.Foo element) {
-                                return new byte[0];
-                            }
-
-                            @Override
-                            public String getTopic(SchemaData.Foo element) {
-                                return null;
-                            }
-                        },
+                        serviceUrl, adminUrl, Optional.of(tp), getSinkProperties(), TopicKeyExtractor.NULL,
                         SchemaData.Foo.class));
 
         see.execute("write first");

@@ -276,6 +276,7 @@ For convenience, Flink provides the following schemas:
    |-- __messageId: BYTES
    |-- __publishTime: TIMESTAMP(3)
    |-- __eventTime: TIMESTAMP(3)
+   ```
 
 ### Pulsar Sources Start Position Configuration
 

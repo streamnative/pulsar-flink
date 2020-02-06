@@ -21,8 +21,11 @@ import lombok.NoArgsConstructor;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -45,6 +48,7 @@ public class SchemaData {
     public static List<FA> faList;
     public static List<Foo> fooList;
     public static List<FL> flList;
+    public static List<FM> fmList;
 
     static {
         Calendar cal = Calendar.getInstance();
@@ -79,6 +83,12 @@ public class SchemaData {
                 new FA(new Bar[]{new Bar(true, "a")}),
                 new FA(new Bar[]{new Bar(false, "b")}),
                 new FA(new Bar[]{new Bar(true, "b")}));
+
+        fmList = Arrays.asList(
+                new FM(Collections.singletonMap("a", new Bar(true, "a"))),
+                new FM(Collections.singletonMap("b", new Bar(false, "b"))),
+                new FM(Collections.singletonMap("c", new Bar(true, "a")))
+        );
     }
 
     /**
@@ -173,4 +183,39 @@ public class SchemaData {
             }
         }
     }
+
+    /**
+     * FM type.
+     */
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class FM {
+        public Map<String, Bar> m;
+
+        @Override
+        public String toString() {
+            if (m == null) {
+                return "null";
+            } else {
+                StringBuilder sb = new StringBuilder();
+
+                Iterator<Map.Entry<String, Bar>> iterator = m.entrySet().iterator();
+                int i = 0;
+                while (iterator.hasNext()) {
+                    if (i != 0) {
+                        sb.append(",");
+                    }
+
+                    sb.append("{");
+                    sb.append(iterator.next());
+                    sb.append("}");
+                    i += 1;
+                }
+
+                return sb.toString();
+            }
+        }
+    }
+
 }

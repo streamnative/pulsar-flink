@@ -36,6 +36,7 @@ import org.apache.pulsar.shade.org.apache.avro.Conversions;
 import org.apache.pulsar.shade.org.apache.avro.LogicalType;
 import org.apache.pulsar.shade.org.apache.avro.LogicalTypes;
 import org.apache.pulsar.shade.org.apache.avro.Schema;
+import org.apache.pulsar.shade.org.apache.avro.SchemaBuilder;
 import org.apache.pulsar.shade.org.apache.avro.generic.GenericData;
 import org.apache.pulsar.shade.org.apache.avro.generic.GenericFixed;
 import org.apache.pulsar.shade.org.apache.avro.generic.GenericRecord;
@@ -48,6 +49,8 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -322,22 +325,46 @@ public class PulsarDeserializer {
 
             KeyValueDataType kvt = (KeyValueDataType) flinkType;
             DataType kt = kvt.getKeyDataType();
+            TriFunction<FlinkDataUpdater, Integer, Object> keyWriter = newWriter(SchemaBuilder.builder().stringType(), kt, path);
             DataType vt = kvt.getValueDataType();
+            TriFunction<FlinkDataUpdater, Integer, Object> valueWriter = newWriter(avroType.getValueType(), vt, path);
             boolean valueContainsNull = vt.getLogicalType().isNullable();
 
             return (rowUpdater, ordinal, value) -> {
                 Map<Object, Object> map = (Map<Object, Object>) value;
-                for (Map.Entry<Object, Object> entry : map.entrySet()) {
+                String[] keys = new String[map.size()];
+                Object[] values = new Object[map.size()];
+                ArrayDataUpdater keyUpdater = new ArrayDataUpdater(keys);
+                ArrayDataUpdater valueUpdater = new ArrayDataUpdater(values);
+
+                Iterator<Map.Entry<Object, Object>> iterator = map.entrySet().iterator();
+                int i = 0;
+                while (iterator.hasNext()) {
+                    Map.Entry entry = iterator.next();
                     assert entry.getKey() != null;
+                    keyWriter.apply(keyUpdater, i, entry.getKey());
+
                     if (entry.getValue() == null) {
                         if (!valueContainsNull) {
                             throw new RuntimeException(String.format(
                                     "Map value at path %s is not allowed to be null", path.toString()));
+                        } else {
+                            valueUpdater.setNullAt(i);
                         }
+                    } else {
+                        valueWriter.apply(valueUpdater, i, entry.getValue());
                     }
+                    i += 1;
                 }
-                rowUpdater.set(ordinal, map);
+
+                Map<String, Object> result = new HashMap<>(map.size());
+                for (int j = 0; j < map.size(); j++) {
+                    result.put(keys[j], values[j]);
+                }
+
+                rowUpdater.set(ordinal, result);
             };
+
         } else if (atpe == UNION) {
             List<Schema> allTypes = avroType.getTypes();
             List<Schema> nonNullTypes = allTypes.stream().filter(t -> t.getType() != NULL).collect(Collectors.toList());

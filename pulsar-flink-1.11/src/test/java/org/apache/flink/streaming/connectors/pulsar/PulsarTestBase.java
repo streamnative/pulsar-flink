@@ -22,9 +22,8 @@ import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.streaming.util.TestStreamEnvironment;
 import org.apache.flink.util.TestLogger;
 
-import io.streamnative.tests.pulsar.service.PulsarService;
-import io.streamnative.tests.pulsar.service.PulsarServiceFactory;
 import io.streamnative.tests.pulsar.service.PulsarServiceSpec;
+import io.streamnative.tests.pulsar.service.testcontainers.PulsarStandaloneContainerService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.pulsar.client.api.MessageId;
@@ -49,11 +48,13 @@ import java.util.UUID;
 @Slf4j
 public abstract class PulsarTestBase extends TestLogger {
 
-    protected static PulsarService pulsarService;
+    protected static PulsarStandaloneContainerService pulsarService;
 
     protected static String serviceUrl;
 
     protected static String adminUrl;
+
+    protected static String zkUrl;
 
     public static String getServiceUrl() {
         return serviceUrl;
@@ -76,7 +77,7 @@ public abstract class PulsarTestBase extends TestLogger {
                 .enableContainerLogging(false)
                 .build();
 
-        pulsarService = PulsarServiceFactory.createPulsarService(spec);
+        pulsarService = new PulsarStandaloneContainerService(spec);
         pulsarService.start();
 
         for (URI uri : pulsarService.getServiceUris()) {
@@ -86,6 +87,7 @@ public abstract class PulsarTestBase extends TestLogger {
                 adminUrl = uri.toString();
             }
         }
+        zkUrl = pulsarService.getZkUrl();
         Thread.sleep(80 * 1000L);
 
         log.info("-------------------------------------------------------------------------");

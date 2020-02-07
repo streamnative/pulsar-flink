@@ -22,9 +22,8 @@ import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.streaming.util.TestStreamEnvironment;
 import org.apache.flink.util.TestLogger;
 
-import io.streamnative.tests.pulsar.service.PulsarService;
-import io.streamnative.tests.pulsar.service.PulsarServiceFactory;
 import io.streamnative.tests.pulsar.service.PulsarServiceSpec;
+import io.streamnative.tests.pulsar.service.testcontainers.PulsarStandaloneContainerService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.pulsar.client.admin.PulsarAdmin;
@@ -50,11 +49,13 @@ import java.util.UUID;
 @Slf4j
 public abstract class PulsarTestBase extends TestLogger {
 
-    protected static PulsarService pulsarService;
+    protected static PulsarStandaloneContainerService pulsarService;
 
     protected static String serviceUrl;
 
     protected static String adminUrl;
+
+    protected static String zkUrl;
 
     public static String getServiceUrl() {
         return serviceUrl;
@@ -75,8 +76,7 @@ public abstract class PulsarTestBase extends TestLogger {
                 .clusterName("standalone-" + UUID.randomUUID())
                 .enableContainerLogging(false)
                 .build();
-
-        pulsarService = PulsarServiceFactory.createPulsarService(spec);
+        pulsarService = new PulsarStandaloneContainerService(spec);
         pulsarService.start();
 
         log.info("Pulsar Service Uris: {}", pulsarService.getServiceUris());
@@ -88,6 +88,7 @@ public abstract class PulsarTestBase extends TestLogger {
                 adminUrl = uri.toString();
             }
         }
+        zkUrl = pulsarService.getZkUrl();
 
         try (PulsarAdmin admin = PulsarAdmin.builder().serviceHttpUrl(adminUrl).build()) {
             admin.namespaces().createNamespace("public/default", Sets.newHashSet("standalone"));

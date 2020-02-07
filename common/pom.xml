@@ -30,6 +30,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>io.streamnative.connectors</groupId>
+            <artifactId>managed-ledger-shaded</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-table-runtime-blink_${scala.binary.version}</artifactId>
             <version>${flink.version}</version>

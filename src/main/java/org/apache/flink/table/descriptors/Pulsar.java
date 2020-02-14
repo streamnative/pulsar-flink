@@ -59,6 +59,8 @@ public class Pulsar extends ConnectorDescriptor {
 
     private Map<String, MessageId> specificOffsets;
 
+    private String externalSubscriptionName;
+
     private Map<String, String> pulsarProperties;
 
     private String sinkExtractorType;
@@ -143,6 +145,12 @@ public class Pulsar extends ConnectorDescriptor {
             this.specificOffsets = new HashMap<>();
         }
         this.specificOffsets.put(partition, specificOffset);
+        return this;
+    }
+
+    public Pulsar startFromExternalSubscription(String externalSubscriptionName) {
+        this.startupMode = StartupMode.EXTERNAL_SUBSCRIPTION;
+        this.externalSubscriptionName = externalSubscriptionName;
         return this;
     }
 

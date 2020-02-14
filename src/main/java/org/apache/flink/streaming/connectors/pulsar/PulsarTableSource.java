@@ -67,6 +67,8 @@ public class PulsarTableSource
 
     private final Map<String, MessageId> specificStartupOffsets;
 
+    private final String externalSubscriptionName;
+
     private final Map<String, String> caseInsensitiveParams;
 
     private final Optional<TableSchema> providedSchema;
@@ -84,7 +86,8 @@ public class PulsarTableSource
             String adminUrl,
             Properties properties,
             StartupMode startupMode,
-            Map<String, MessageId> specificStartupOffsets) {
+            Map<String, MessageId> specificStartupOffsets,
+            String externalSubscriptionName) {
 
         this.providedSchema = providedSchema;
         this.serviceUrl = checkNotNull(serviceUrl);
@@ -92,6 +95,7 @@ public class PulsarTableSource
         this.properties = checkNotNull(properties);
         this.startupMode = startupMode;
         this.specificStartupOffsets = specificStartupOffsets;
+        this.externalSubscriptionName = externalSubscriptionName;
 
         this.caseInsensitiveParams =
                 SourceSinkUtils.validateStreamSourceOptions(Maps.fromProperties(properties));
@@ -114,7 +118,8 @@ public class PulsarTableSource
                 adminUrl,
                 properties,
                 StartupMode.LATEST,
-                Collections.emptyMap());
+                Collections.emptyMap(),
+                null);
     }
 
     @Override
@@ -150,6 +155,8 @@ public class PulsarTableSource
             case SPECIFIC_OFFSETS:
                 source.setStartFromSpecificOffsets(specificStartupOffsets);
                 break;
+            case EXTERNAL_SUBSCRIPTION:
+                source.setStartFromSubscription(externalSubscriptionName);
         }
 
         return execEnv.addSource(source).name(explainSource());

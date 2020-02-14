@@ -1198,7 +1198,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         }
 
         @Override
-        protected String getSubscriptionPrefix() {
+        protected String getSubscriptionName() {
             return "flink-pulsar-" + sub;
         }
     }

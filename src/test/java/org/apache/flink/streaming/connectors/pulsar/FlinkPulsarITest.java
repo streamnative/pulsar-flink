@@ -69,6 +69,7 @@ import org.apache.pulsar.client.impl.MessageIdImpl;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.policies.data.PersistentTopicInternalStats;
 import org.apache.pulsar.common.schema.SchemaType;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -111,7 +112,13 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
     @Rule
     public RetryRule retryRule = new RetryRule();
 
-    @Test()
+	@Before
+	public void clearState() {
+		SingletonStreamSink.clear();
+		FailingIdentityMapper.failedBefore = false;
+	}
+
+    @Test
     public void testRunFailedOnWrongServiceUrl() {
 
         try {
@@ -338,15 +345,12 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
 
     @Test
     public void testAvro() throws Exception {
-        FailingIdentityMapper.failedBefore = false;
-        SingletonStreamSink.clear();
-
         String topic = newTopic();
 
         sendTypedMessages(topic, SchemaType.AVRO, fooList, Optional.empty(), SchemaData.Foo.class);
 
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
-        see.setParallelism(3);
+        see.setParallelism(1);
         see.getConfig().disableSysoutLogging();
         see.setRestartStrategy(RestartStrategies.noRestart());
 
@@ -377,15 +381,12 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
 
     @Test
     public void testJson() throws Exception {
-        FailingIdentityMapper.failedBefore = false;
-        SingletonStreamSink.clear();
-
         String topic = newTopic();
 
         sendTypedMessages(topic, SchemaType.JSON, fooList, Optional.empty(), SchemaData.Foo.class);
 
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
-        see.setParallelism(3);
+        see.setParallelism(1);
         see.getConfig().disableSysoutLogging();
         see.setRestartStrategy(RestartStrategies.noRestart());
 

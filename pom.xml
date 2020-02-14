@@ -409,7 +409,6 @@
           <xmlOutput>true</xmlOutput>
           <threshold>Low</threshold>
           <effort>default</effort>
-          <findbugsXmlOutputDirectory>${project.build.directory}/spotbugs</findbugsXmlOutputDirectory>
           <excludeFilterFile>tools/maven/spotbugs-exclude.xml</excludeFilterFile>
           <failOnError>true</failOnError>
         </configuration>
@@ -422,7 +421,7 @@
         <version>${maven-surefire-plugin.version}</version>
         <configuration>
           <systemPropertyVariables>
-            <log4j.configuration>log4j-test.properties</log4j.configuration>
+            <log4j.configuration>${project.basedir}/src/test/resources/log4j-tests.properties</log4j.configuration>
           </systemPropertyVariables>
         </configuration>
       </plugin>

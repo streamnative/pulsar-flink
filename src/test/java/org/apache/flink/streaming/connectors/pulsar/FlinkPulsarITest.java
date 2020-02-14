@@ -37,9 +37,12 @@ import org.apache.flink.streaming.api.functions.sink.DiscardingSink;
 import org.apache.flink.streaming.api.functions.source.RichParallelSourceFunction;
 import org.apache.flink.streaming.api.graph.StreamingJobGraphGenerator;
 import org.apache.flink.streaming.api.operators.StreamSink;
+import org.apache.flink.streaming.connectors.pulsar.internal.AvroDeser;
 import org.apache.flink.streaming.connectors.pulsar.internal.CachedPulsarClient;
+import org.apache.flink.streaming.connectors.pulsar.internal.JsonDeser;
 import org.apache.flink.streaming.connectors.pulsar.internal.ReaderThread;
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper;
+import org.apache.flink.streaming.connectors.pulsar.testutils.SingletonStreamSink;
 import org.apache.flink.streaming.connectors.pulsar.testutils.ValidatingExactlyOnceSink;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
 import org.apache.flink.streaming.util.OneInputStreamOperatorTestHarness;
@@ -78,6 +81,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Random;
@@ -87,6 +91,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static org.apache.flink.streaming.connectors.pulsar.SchemaData.fooList;
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.CLIENT_CACHE_SIZE_OPTION_KEY;
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.FAIL_ON_WRITE_OPTION_KEY;
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.FLUSH_ON_CHECKPOINT_OPTION_KEY;
@@ -329,6 +334,84 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         }
 
         assertTrue(gotLast);
+    }
+
+    @Test
+    public void testAvro() throws Exception {
+        FailingIdentityMapper.failedBefore = false;
+        SingletonStreamSink.clear();
+
+        String topic = newTopic();
+
+        sendTypedMessages(topic, SchemaType.AVRO, fooList, Optional.empty(), SchemaData.Foo.class);
+
+        StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
+        see.setParallelism(3);
+        see.getConfig().disableSysoutLogging();
+        see.setRestartStrategy(RestartStrategies.noRestart());
+
+        String subName = UUID.randomUUID().toString();
+
+        Properties sourceProps = sourceProperties();
+        sourceProps.setProperty(TOPIC_SINGLE_OPTION_KEY, topic);
+
+        FlinkPulsarSource<SchemaData.Foo> source =
+                new FlinkPulsarSource<>(serviceUrl, adminUrl, AvroDeser.of(SchemaData.Foo.class), sourceProps)
+                .setStartFromEarliest();
+
+        DataStream<Integer> ds = see.addSource(source)
+                    .map(SchemaData.Foo::getI);
+
+        ds.map(new FailingIdentityMapper<>(fooList.size()))
+                .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
+
+        try {
+            see.execute("test read data of POJO using avro");
+        } catch (Exception e) {
+
+        }
+
+        SingletonStreamSink.compareWithList(
+                fooList.subList(0, fooList.size() - 1).stream().map(SchemaData.Foo::getI).map(Objects::toString).collect(Collectors.toList()));
+    }
+
+    @Test
+    public void testJson() throws Exception {
+        FailingIdentityMapper.failedBefore = false;
+        SingletonStreamSink.clear();
+
+        String topic = newTopic();
+
+        sendTypedMessages(topic, SchemaType.JSON, fooList, Optional.empty(), SchemaData.Foo.class);
+
+        StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
+        see.setParallelism(3);
+        see.getConfig().disableSysoutLogging();
+        see.setRestartStrategy(RestartStrategies.noRestart());
+
+        String subName = UUID.randomUUID().toString();
+
+        Properties sourceProps = sourceProperties();
+        sourceProps.setProperty(TOPIC_SINGLE_OPTION_KEY, topic);
+
+        FlinkPulsarSource<SchemaData.Foo> source =
+                new FlinkPulsarSource<>(serviceUrl, adminUrl, JsonDeser.of(SchemaData.Foo.class), sourceProps)
+                        .setStartFromEarliest();
+
+        DataStream<Integer> ds = see.addSource(source)
+                .map(SchemaData.Foo::getI);
+
+        ds.map(new FailingIdentityMapper<>(fooList.size()))
+                .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
+
+        try {
+            see.execute("test read data of POJO using JSON");
+        } catch (Exception e) {
+
+        }
+
+        SingletonStreamSink.compareWithList(
+                fooList.subList(0, fooList.size() - 1).stream().map(SchemaData.Foo::getI).map(Objects::toString).collect(Collectors.toList()));
     }
 
     @Test

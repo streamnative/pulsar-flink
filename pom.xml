@@ -421,7 +421,7 @@
         <version>${maven-surefire-plugin.version}</version>
         <configuration>
           <systemPropertyVariables>
-            <log4j.configuration>${project.basedir}/src/test/resources/log4j-tests.properties</log4j.configuration>
+            <log4j.configuration>file:${project.build.testOutputDirectory}/log4j-tests.properties</log4j.configuration>
           </systemPropertyVariables>
         </configuration>
       </plugin>

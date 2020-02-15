@@ -67,7 +67,6 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
                 .registerTableSource(table);
 
         Table t = tEnv.scan(table).select("value");
-        t.printSchema();
 
         tEnv.toAppendStream(t, BasicTypeInfo.BOOLEAN_TYPE_INFO)
                 .map(new FailingIdentityMapper<>(BOOLEAN_LIST.size()))
@@ -136,7 +135,6 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
                 .registerTableSource(table);
 
         Table t = tEnv.scan(table).select("i, f, bar");
-        t.printSchema();
         tEnv.toAppendStream(t, t.getSchema().toRowType())
                 .map(new FailingIdentityMapper<Row>(fooList.size()))
                 .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
@@ -166,7 +164,6 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
                 .registerTableSource(table);
 
         Table t = tEnv.scan(table).select("l");
-        t.printSchema();
         tEnv.toAppendStream(t, t.getSchema().toRowType())
                 .map(new FailingIdentityMapper<Row>(flList.size()))
                 .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
@@ -196,7 +193,6 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
                 .registerTableSource(table);
 
         Table t = tEnv.scan(table).select("l");
-        t.printSchema();
         tEnv.toAppendStream(t, t.getSchema().toRowType())
                 .map(new FailingIdentityMapper<Row>(faList.size()))
                 .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
@@ -226,7 +222,6 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
                 .registerTableSource(table);
 
         Table t = tEnv.scan(table).select("m");
-        t.printSchema();
         tEnv.toAppendStream(t, t.getSchema().toRowType())
                 .map(new FailingIdentityMapper<Row>(faList.size()))
                 .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);

@@ -31,6 +31,7 @@ import org.apache.flink.core.memory.DataInputViewStreamWrapper;
 import org.apache.flink.runtime.client.JobCancellationException;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.runtime.jobgraph.JobStatus;
+import org.apache.flink.shaded.guava18.com.google.common.collect.Sets;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.DiscardingSink;
@@ -538,6 +539,39 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         stream.flatMap(new CheckAllMessageExist(expectedData, 5)).setParallelism(1);
 
         TestUtils.tryExecute(see, "start from specific");
+    }
+
+    @Test
+    public void testStartFromExternalSubscription() throws Exception {
+        String topic = newTopic();
+        List<MessageId> mids = sendTypedMessages(topic, SchemaType.INT32, Arrays.asList(
+                //  0,   1,   2, 3, 4, 5,  6,  7,  8
+                -20, -21, -22, 1, 2, 3, 10, 11, 12), Optional.empty());
+
+        String subName = "sub-1";
+
+        PulsarAdmin admin = PulsarAdmin.builder().serviceHttpUrl(adminUrl).build();
+
+        admin.topics().createSubscription(TopicName.get(topic).toString(), subName, mids.get(3));
+
+        Map<String, Set<Integer>> expectedData = new HashMap<>();
+        expectedData.put(topic, new HashSet<>(Arrays.asList(2, 3, 10, 11, 12)));
+
+        StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
+        see.getConfig().disableSysoutLogging();
+        see.setParallelism(1);
+
+        Properties sourceProps = sourceProperties();
+        sourceProps.setProperty(TOPIC_SINGLE_OPTION_KEY, topic);
+        DataStream stream = see.addSource(
+                new FlinkPulsarRowSource(serviceUrl, adminUrl, sourceProps).setStartFromSubscription(subName));
+        stream.flatMap(new CheckAllMessageExist(expectedData, 5)).setParallelism(1);
+
+        TestUtils.tryExecute(see, "start from specific");
+
+        assertTrue(Sets.newHashSet(admin.topics().getSubscriptions(topic)).contains(subName));
+
+        admin.close();
     }
 
     @Test

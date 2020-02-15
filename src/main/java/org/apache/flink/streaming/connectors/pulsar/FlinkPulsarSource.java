@@ -737,6 +737,7 @@ public class FlinkPulsarSource<T>
                 for (String topic : topics) {
                     offsetsFromSubs.put(topic, metadataReader.getPositionFromSubscription(topic, MessageId.latest));
                 }
+                return offsetsFromSubs;
         }
         return null;
     }

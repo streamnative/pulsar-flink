@@ -600,7 +600,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
         }
 
         @Override
-        protected PulsarMetadataReader createTopicDiscoverer() throws PulsarClientException {
+        protected PulsarMetadataReader createMetadataReader() throws PulsarClientException {
             return discoverer;
         }
     }
@@ -649,7 +649,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
         }
 
         @Override
-        protected PulsarMetadataReader createTopicDiscoverer() throws PulsarClientException {
+        protected PulsarMetadataReader createMetadataReader() throws PulsarClientException {
             return discoverer;
         }
     }

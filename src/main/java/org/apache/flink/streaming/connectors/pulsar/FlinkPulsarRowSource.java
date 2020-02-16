@@ -87,6 +87,6 @@ public class FlinkPulsarRowSource extends FlinkPulsarSource<Row> {
                 readerConf,
                 pollTimeoutMs,
                 null,
-                topicDiscoverer);
+				metadataReader);
     }
 }

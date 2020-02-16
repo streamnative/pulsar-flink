@@ -23,5 +23,7 @@ public enum StartupMode {
 
     LATEST,
 
-    SPECIFIC_OFFSETS
+    SPECIFIC_OFFSETS,
+
+    EXTERNAL_SUBSCRIPTION
 }

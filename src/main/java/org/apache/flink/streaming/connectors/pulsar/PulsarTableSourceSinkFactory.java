@@ -50,6 +50,7 @@ import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CO
 import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CONNECTOR_TYPE;
 import static org.apache.flink.table.descriptors.FormatDescriptorValidator.FORMAT;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_ADMIN_URL;
+import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_EXTERNAL_SUB_NAME;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_PROPERTIES;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_PROPERTIES_KEY;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_PROPERTIES_VALUE;
@@ -175,7 +176,8 @@ public class PulsarTableSourceSinkFactory
                 adminUrl,
                 result,
                 startupOptions.startupMode,
-                startupOptions.specificOffsets);
+                startupOptions.specificOffsets,
+                startupOptions.externalSubscriptionName);
     }
 
     @Override
@@ -260,6 +262,7 @@ public class PulsarTableSourceSinkFactory
 
     private StartupOptions getStartupOptions(DescriptorProperties descriptorProperties) {
         final Map<String, MessageId> specificOffsets = new HashMap<>();
+        final List<String> subName = new ArrayList<>(1);
         final StartupMode startupMode = descriptorProperties
                 .getOptionalString(CONNECTOR_STARTUP_MODE)
                 .map(modeString -> {
@@ -285,6 +288,11 @@ public class PulsarTableSourceSinkFactory
                                 }
                             });
                             return StartupMode.SPECIFIC_OFFSETS;
+
+                        case PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_EXETERNAL_SUB:
+                            subName.add(descriptorProperties.getString(CONNECTOR_EXTERNAL_SUB_NAME));
+                            return StartupMode.EXTERNAL_SUBSCRIPTION;
+
                         default:
                             throw new TableException("Unsupported startup mode. Validator should have checked that.");
                     }
@@ -292,6 +300,9 @@ public class PulsarTableSourceSinkFactory
         final StartupOptions options = new StartupOptions();
         options.startupMode = startupMode;
         options.specificOffsets = specificOffsets;
+        if (subName.size() != 0) {
+            options.externalSubscriptionName = subName.get(0);
+        }
         return options;
     }
 
@@ -327,5 +338,6 @@ public class PulsarTableSourceSinkFactory
     private static class StartupOptions {
         private StartupMode startupMode;
         private Map<String, MessageId> specificOffsets;
+        private String externalSubscriptionName;
     }
 }

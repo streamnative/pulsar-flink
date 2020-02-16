@@ -28,10 +28,14 @@ import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.PulsarClientException;
+import org.apache.pulsar.client.impl.MessageIdImpl;
 import org.apache.pulsar.client.impl.schema.BytesSchema;
 import org.apache.pulsar.common.naming.NamespaceName;
 import org.apache.pulsar.common.naming.TopicDomain;
 import org.apache.pulsar.common.naming.TopicName;
+import org.apache.pulsar.common.policies.data.PersistentTopicInternalStats;
+import org.apache.pulsar.common.policies.data.SubscriptionStats;
+import org.apache.pulsar.common.policies.data.TopicStats;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.shade.com.google.common.collect.Iterables;
 import org.apache.pulsar.shade.com.google.common.collect.Sets;
@@ -57,7 +61,7 @@ public class PulsarMetadataReader implements AutoCloseable {
 
     private final String adminUrl;
 
-    private final String driverGroupIdPrefix;
+    private final String subscriptionName;
 
     private final Map<String, String> caseInsensitiveParams;
 
@@ -71,19 +75,33 @@ public class PulsarMetadataReader implements AutoCloseable {
 
     private Set<String> seenTopics = new HashSet<>();
 
+    private final boolean useExternalSubscription;
+
     public PulsarMetadataReader(
             String adminUrl,
-            String driverGroupIdPrefix,
+            String subscriptionName,
+            Map<String, String> caseInsensitiveParams,
+            int indexOfThisSubtask,
+            int numParallelSubtasks,
+            boolean useExternalSubscription) throws PulsarClientException {
+
+        this.adminUrl = adminUrl;
+        this.subscriptionName = subscriptionName;
+        this.caseInsensitiveParams = caseInsensitiveParams;
+        this.indexOfThisSubtask = indexOfThisSubtask;
+        this.numParallelSubtasks = numParallelSubtasks;
+        this.useExternalSubscription = useExternalSubscription;
+        this.admin = PulsarAdmin.builder().serviceHttpUrl(adminUrl).build();
+    }
+
+    public PulsarMetadataReader(
+            String adminUrl,
+            String subscriptionName,
             Map<String, String> caseInsensitiveParams,
             int indexOfThisSubtask,
             int numParallelSubtasks) throws PulsarClientException {
 
-        this.adminUrl = adminUrl;
-        this.driverGroupIdPrefix = driverGroupIdPrefix;
-        this.caseInsensitiveParams = caseInsensitiveParams;
-        this.indexOfThisSubtask = indexOfThisSubtask;
-        this.numParallelSubtasks = numParallelSubtasks;
-        this.admin = PulsarAdmin.builder().serviceHttpUrl(adminUrl).build();
+        this(adminUrl, subscriptionName, caseInsensitiveParams, indexOfThisSubtask, numParallelSubtasks, false);
     }
 
     @Override
@@ -202,12 +220,14 @@ public class PulsarMetadataReader implements AutoCloseable {
     }
 
     public void setupCursor(Map<String, MessageId> offset) {
-        for (Map.Entry<String, MessageId> entry : offset.entrySet()) {
-            try {
-                admin.topics().createSubscription(entry.getKey(), driverGroupIdPrefix, entry.getValue());
-            } catch (PulsarAdminException e) {
-                throw new RuntimeException(
-                        String.format("Failed to set up cursor for %s", TopicName.get(entry.getKey()).toString()), e);
+        if (!useExternalSubscription) {
+            for (Map.Entry<String, MessageId> entry : offset.entrySet()) {
+                try {
+                    admin.topics().createSubscription(entry.getKey(), subscriptionName, entry.getValue());
+                } catch (PulsarAdminException e) {
+                    throw new RuntimeException(
+                            String.format("Failed to set up cursor for %s", TopicName.get(entry.getKey()).toString()), e);
+                }
             }
         }
     }
@@ -216,7 +236,7 @@ public class PulsarMetadataReader implements AutoCloseable {
         for (Map.Entry<String, MessageId> entry : offset.entrySet()) {
             String tp = entry.getKey();
             try {
-                admin.topics().resetCursor(tp, driverGroupIdPrefix, entry.getValue());
+                admin.topics().resetCursor(tp, subscriptionName, entry.getValue());
             } catch (Throwable e) {
                 if (e instanceof PulsarAdminException &&
                         (((PulsarAdminException) e).getStatusCode() == 404 ||
@@ -231,17 +251,46 @@ public class PulsarMetadataReader implements AutoCloseable {
     }
 
     public void removeCursor(Set<String> topics) {
-        for (String topic : topics) {
-            try {
-                admin.topics().deleteSubscription(topic, driverGroupIdPrefix);
-            } catch (Throwable e) {
-                if (e instanceof PulsarAdminException && ((PulsarAdminException) e).getStatusCode() == 404) {
-                    log.info("Cannot remove cursor since the topic {} has been deleted during execution", topic);
-                } else {
-                    throw new RuntimeException(
-                            String.format("Failed to remove cursor for %s", topic), e);
+        if (!useExternalSubscription) {
+            for (String topic : topics) {
+                try {
+                    admin.topics().deleteSubscription(topic, subscriptionName);
+                } catch (Throwable e) {
+                    if (e instanceof PulsarAdminException && ((PulsarAdminException) e).getStatusCode() == 404) {
+                        log.info("Cannot remove cursor since the topic {} has been deleted during execution", topic);
+                    } else {
+                        throw new RuntimeException(
+                                String.format("Failed to remove cursor for %s", topic), e);
+                    }
                 }
             }
+        }
+    }
+
+    public MessageId getPositionFromSubscription(String topic, MessageId defaultPosition) {
+        try {
+            TopicStats topicStats = admin.topics().getStats(topic);
+            if (topicStats.subscriptions.containsKey(subscriptionName)) {
+                SubscriptionStats subStats = topicStats.subscriptions.get(subscriptionName);
+                if (subStats.consumers.size() != 0) {
+                    throw new RuntimeException("Subscription been actively used by other consumers, " +
+                            "in this situation, the exactly-once semantics cannot be guaranteed.");
+                } else {
+                    PersistentTopicInternalStats.CursorStats c =
+                            admin.topics().getInternalStats(topic).cursors.get(subscriptionName);
+                    String[] ids = c.markDeletePosition.split(":", 2);
+                    long ledgerId = Long.parseLong(ids[0]);
+                    long entryId = Long.parseLong(ids[1]);
+                    int partitionIdx = TopicName.getPartitionIndex(topic);
+                    return new MessageIdImpl(ledgerId, entryId + 1, partitionIdx);
+                }
+            } else {
+                // create sub on topic
+                admin.topics().createSubscription(topic, subscriptionName, defaultPosition);
+                return defaultPosition;
+            }
+        } catch (PulsarAdminException e) {
+            throw new RuntimeException("Failed to get stats for topic " + topic, e);
         }
     }
 

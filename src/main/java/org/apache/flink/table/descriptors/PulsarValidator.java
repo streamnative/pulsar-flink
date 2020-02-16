@@ -39,9 +39,11 @@ public class PulsarValidator extends ConnectorDescriptorValidator {
     public static final String CONNECTOR_STARTUP_MODE_VALUE_EARLIEST = "earliest";
     public static final String CONNECTOR_STARTUP_MODE_VALUE_LATEST = "latest";
     public static final String CONNECTOR_STARTUP_MODE_VALUE_SPECIFIC_OFFSETS = "specific-offsets";
+    public static final String CONNECTOR_STARTUP_MODE_VALUE_EXETERNAL_SUB = "external-subscription";
     public static final String CONNECTOR_SPECIFIC_OFFSETS = "connector.specific-offsets";
     public static final String CONNECTOR_SPECIFIC_OFFSETS_PARTITION = "partition";
     public static final String CONNECTOR_SPECIFIC_OFFSETS_OFFSET = "offset";
+    public static final String CONNECTOR_EXTERNAL_SUB_NAME = "connector.sub-name";
 
     public static final String CONNECTOR_PROPERTIES = "connector.properties";
     public static final String CONNECTOR_PROPERTIES_KEY = "key";

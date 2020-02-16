@@ -124,6 +124,12 @@ public class FlinkPulsarSource<T>
     /** Specific startup offsets; only relevant when startup mode is {@link StartupMode#SPECIFIC_OFFSETS}. */
     private transient Map<String, MessageId> specificStartupOffsets;
 
+    /** The subscription name to be used; only relevant when startup mode is {@link StartupMode#EXTERNAL_SUBSCRIPTION}
+     * If the subscription exists for a partition, we would start reading this partition from the subscription cursor.
+     * At the same time, checkpoint for the job would made progress on the subscription.
+     */
+    private String externalSubscriptionName;
+
     // TODO: remove this when MessageId is serializable itself.
     // see: https://github.com/apache/pulsar/pull/6064
     private Map<String, byte[]> specificStartupOffsetsAsBytes;
@@ -143,7 +149,7 @@ public class FlinkPulsarSource<T>
     private transient volatile PulsarFetcher<T> pulsarFetcher;
 
     /** The partition discoverer, used to find new partitions. */
-    protected transient volatile PulsarMetadataReader topicDiscoverer;
+    protected transient volatile PulsarMetadataReader metadataReader;
 
     /**
      * The offsets to restore to, if the consumer restores state from a checkpoint.
@@ -317,6 +323,12 @@ public class FlinkPulsarSource<T>
         return this;
     }
 
+    public FlinkPulsarSource<T> setStartFromSubscription(String externalSubscriptionName) {
+        this.startupMode = StartupMode.EXTERNAL_SUBSCRIPTION;
+        this.externalSubscriptionName = checkNotNull(externalSubscriptionName);
+        return this;
+    }
+
 
     // ------------------------------------------------------------------------
     //  Work methods
@@ -328,10 +340,10 @@ public class FlinkPulsarSource<T>
         this.taskIndex = getRuntimeContext().getIndexOfThisSubtask();
         this.numParallelTasks = getRuntimeContext().getNumberOfParallelSubtasks();
 
-        this.topicDiscoverer = createTopicDiscoverer();
+        this.metadataReader = createMetadataReader();
 
         ownedTopicStarts = new HashMap<>();
-        Set<String> allTopics = topicDiscoverer.discoverTopicChanges();
+        Set<String> allTopics = metadataReader.discoverTopicChanges();
 
         if (restoredState != null) {
             allTopics.stream()
@@ -377,17 +389,23 @@ public class FlinkPulsarSource<T>
         }
     }
 
-    protected String getSubscriptionPrefix() {
-        return "flink-pulsar-" + uuid.toString();
+    protected String getSubscriptionName() {
+        if (startupMode == StartupMode.EXTERNAL_SUBSCRIPTION) {
+            checkNotNull(externalSubscriptionName);
+            return externalSubscriptionName;
+        } else {
+            return "flink-pulsar-" + uuid.toString();
+        }
     }
 
-    protected PulsarMetadataReader createTopicDiscoverer() throws PulsarClientException {
+    protected PulsarMetadataReader createMetadataReader() throws PulsarClientException {
         return new PulsarMetadataReader(
                 adminUrl,
-                getSubscriptionPrefix(),
+                getSubscriptionName(),
                 caseInsensitiveParams,
                 taskIndex,
-                numParallelTasks);
+                numParallelTasks,
+                startupMode == StartupMode.EXTERNAL_SUBSCRIPTION);
     }
 
     @Override
@@ -474,7 +492,7 @@ public class FlinkPulsarSource<T>
                 readerConf,
                 pollTimeoutMs,
                 deserializer,
-                topicDiscoverer);
+                metadataReader);
     }
 
     public void joinDiscoveryLoopThread() throws InterruptedException {
@@ -502,7 +520,7 @@ public class FlinkPulsarSource<T>
                 () -> {
                     try {
                         while (running) {
-                            Set<String> added = topicDiscoverer.discoverTopicChanges();
+                            Set<String> added = metadataReader.discoverTopicChanges();
 
                             if (running && !added.isEmpty()) {
                                 pulsarFetcher.addDiscoveredTopics(added);
@@ -537,9 +555,9 @@ public class FlinkPulsarSource<T>
 
         Exception exception = null;
 
-        if (topicDiscoverer != null) {
+        if (metadataReader != null) {
             try {
-                topicDiscoverer.close();
+                metadataReader.close();
             } catch (Exception e) {
                 exception = e;
             }
@@ -714,6 +732,12 @@ public class FlinkPulsarSource<T>
                     }
                 }
                 return specificOffsets;
+            case EXTERNAL_SUBSCRIPTION:
+                Map<String, MessageId> offsetsFromSubs = new HashMap<>();
+                for (String topic : topics) {
+                    offsetsFromSubs.put(topic, metadataReader.getPositionFromSubscription(topic, MessageId.latest));
+                }
+                return offsetsFromSubs;
         }
         return null;
     }

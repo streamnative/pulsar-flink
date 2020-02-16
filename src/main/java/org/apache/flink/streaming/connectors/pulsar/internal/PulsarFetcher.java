@@ -105,6 +105,8 @@ public class PulsarFetcher<T> {
 
     protected final int pollTimeoutMs;
 
+    private final int commitMaxRetries;
+
     protected final PulsarMetadataReader metadataReader;
 
     /** Only relevant for punctuated watermarks: The current cross partition watermark. */
@@ -130,6 +132,38 @@ public class PulsarFetcher<T> {
             int pollTimeoutMs,
             DeserializationSchema<T> deserializer,
             PulsarMetadataReader metadataReader) throws Exception {
+        this(
+                sourceContext,
+                seedTopicsWithInitialOffsets,
+                watermarksPeriodic,
+                watermarksPunctuated,
+                processingTimeProvider,
+                autoWatermarkInterval,
+                userCodeClassLoader,
+                runtimeContext,
+                clientConf,
+                readerConf,
+                pollTimeoutMs,
+                3, // commit retries before fail
+                deserializer,
+                metadataReader);
+    }
+
+    public PulsarFetcher(
+            SourceContext<T> sourceContext,
+            Map<String, MessageId> seedTopicsWithInitialOffsets,
+            SerializedValue<AssignerWithPeriodicWatermarks<T>> watermarksPeriodic,
+            SerializedValue<AssignerWithPunctuatedWatermarks<T>> watermarksPunctuated,
+            ProcessingTimeService processingTimeProvider,
+            long autoWatermarkInterval,
+            ClassLoader userCodeClassLoader,
+            StreamingRuntimeContext runtimeContext,
+            ClientConfigurationData clientConf,
+            Map<String, Object> readerConf,
+            int pollTimeoutMs,
+            int commitMaxRetries,
+            DeserializationSchema<T> deserializer,
+            PulsarMetadataReader metadataReader) throws Exception {
 
         this.sourceContext = sourceContext;
         this.seedTopicsWithInitialOffsets = seedTopicsWithInitialOffsets;
@@ -139,6 +173,7 @@ public class PulsarFetcher<T> {
         this.clientConf = clientConf;
         this.readerConf = readerConf;
         this.pollTimeoutMs = pollTimeoutMs;
+        this.commitMaxRetries = commitMaxRetries;
         this.deserializer = deserializer;
         this.metadataReader = metadataReader;
 
@@ -387,17 +422,31 @@ public class PulsarFetcher<T> {
 
     public void commitOffsetToPulsar(
             Map<String, MessageId> offset,
-            PulsarCommitCallback offsetCommitCallback) {
+            PulsarCommitCallback offsetCommitCallback) throws InterruptedException {
 
         doCommitOffsetToPulsar(removeEarliestAndLatest(offset), offsetCommitCallback);
     }
 
     public void doCommitOffsetToPulsar(
             Map<String, MessageId> offset,
-            PulsarCommitCallback offsetCommitCallback) {
+            PulsarCommitCallback offsetCommitCallback) throws InterruptedException {
 
         try {
-            metadataReader.commitCursorToOffset(offset);
+            int retries = 0;
+            while (true) {
+                try {
+                    metadataReader.commitCursorToOffset(offset);
+                    break;
+                } catch (Exception e) {
+                    log.warn("Failed to commit cursor to Pulsar.");
+                    if (retries >= commitMaxRetries) {
+                        log.error("Failed to commit cursor to Pulsar after {} attempts", retries);
+                        throw e;
+                    }
+                    retries += 1;
+                    Thread.sleep(1000);
+                }
+            }
             offsetCommitCallback.onSuccess();
         } catch (Exception e) {
             if (running) {

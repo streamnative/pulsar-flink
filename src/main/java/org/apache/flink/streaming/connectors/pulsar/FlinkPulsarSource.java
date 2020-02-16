@@ -118,6 +118,8 @@ public class FlinkPulsarSource<T>
 
     protected final int pollTimeoutMs;
 
+    protected final int commitMaxRetries;
+
     /** The startup mode for the reader (default is {@link StartupMode#LATEST}). */
     private StartupMode startupMode = StartupMode.LATEST;
 
@@ -200,6 +202,8 @@ public class FlinkPulsarSource<T>
                 SourceSinkUtils.getPartitionDiscoveryIntervalInMillis(caseInsensitiveParams);
         this.pollTimeoutMs =
                 SourceSinkUtils.getPollTimeoutMs(caseInsensitiveParams);
+        this.commitMaxRetries =
+                SourceSinkUtils.getCommitMaxRetries(caseInsensitiveParams);
 
         CachedPulsarClient.setCacheSize(SourceSinkUtils.getClientCacheSize(caseInsensitiveParams));
 
@@ -491,6 +495,7 @@ public class FlinkPulsarSource<T>
                 clientConfigurationData,
                 readerConf,
                 pollTimeoutMs,
+                commitMaxRetries,
                 deserializer,
                 metadataReader);
     }

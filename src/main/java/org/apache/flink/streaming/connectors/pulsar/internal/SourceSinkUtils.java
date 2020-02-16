@@ -83,6 +83,11 @@ public class SourceSinkUtils {
         return Integer.parseInt(interval);
     }
 
+    public static int getCommitMaxRetries(Map<String, String> parameters) {
+        String interval = parameters.getOrDefault(PulsarOptions.POLL_TIMEOUT_MS_OPTION_KEY, "120000");
+        return Integer.parseInt(interval);
+    }
+
     public static int getClientCacheSize(Map<String, String> parameters) {
         String size = parameters.getOrDefault(PulsarOptions.CLIENT_CACHE_SIZE_OPTION_KEY, "5");
         return Integer.parseInt(size);

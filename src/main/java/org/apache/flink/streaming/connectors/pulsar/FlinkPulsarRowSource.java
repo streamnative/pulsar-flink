@@ -30,6 +30,7 @@ import org.apache.flink.util.SerializedValue;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.MessageId;
+import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 
 import java.util.List;
 import java.util.Map;
@@ -43,6 +44,10 @@ public class FlinkPulsarRowSource extends FlinkPulsarSource<Row> {
 
     private TypeInformation<Row> typeInformation;
 
+    public FlinkPulsarRowSource(String adminUrl, ClientConfigurationData clientConf, Properties properties) {
+        super(adminUrl, clientConf, null, properties);
+    }
+
     public FlinkPulsarRowSource(String serviceUrl, String adminUrl, Properties properties) {
         super(serviceUrl, adminUrl, null, properties);
     }
@@ -50,7 +55,7 @@ public class FlinkPulsarRowSource extends FlinkPulsarSource<Row> {
     @Override
     public TypeInformation<Row> getProducedType() {
         if (typeInformation == null) {
-            try (PulsarMetadataReader reader = new PulsarMetadataReader(adminUrl, "", caseInsensitiveParams, -1, -1)) {
+            try (PulsarMetadataReader reader = new PulsarMetadataReader(adminUrl, clientConfigurationData, "", caseInsensitiveParams, -1, -1)) {
                 List<String> topics = reader.getTopics();
                 FieldsDataType schema = reader.getSchema(topics);
                 typeInformation = (TypeInformation<Row>) LegacyTypeInfoDataTypeConverter.toLegacyTypeInfo(schema);

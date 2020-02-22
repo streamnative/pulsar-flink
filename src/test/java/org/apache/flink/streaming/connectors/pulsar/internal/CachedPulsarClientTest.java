@@ -25,6 +25,7 @@ import java.util.concurrent.ConcurrentMap;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Unit test of {@link CachedPulsarClient}.
@@ -36,6 +37,18 @@ public class CachedPulsarClientTest {
     @Before
     public void clearCache() {
         CachedPulsarClient.clear();
+    }
+
+    @Test
+    public void testClientConfClone() {
+        ClientConfigurationData conf1 = new ClientConfigurationData();
+        conf1.setTlsTrustCertsFilePath("abc");
+        ClientConfigurationData conf2 = conf1.clone();
+        conf2.setTlsTrustCertsFilePath("def");
+
+        assertTrue(conf1 != conf2);
+        assertEquals(conf1.getTlsTrustCertsFilePath(), "abc");
+        assertEquals(conf2.getTlsTrustCertsFilePath(), "def");
     }
 
     @Test

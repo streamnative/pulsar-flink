@@ -29,6 +29,7 @@ import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.MessageIdImpl;
+import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.client.impl.schema.BytesSchema;
 import org.apache.pulsar.common.naming.NamespaceName;
 import org.apache.pulsar.common.naming.TopicDomain;
@@ -79,6 +80,7 @@ public class PulsarMetadataReader implements AutoCloseable {
 
     public PulsarMetadataReader(
             String adminUrl,
+            ClientConfigurationData clientConf,
             String subscriptionName,
             Map<String, String> caseInsensitiveParams,
             int indexOfThisSubtask,
@@ -91,17 +93,18 @@ public class PulsarMetadataReader implements AutoCloseable {
         this.indexOfThisSubtask = indexOfThisSubtask;
         this.numParallelSubtasks = numParallelSubtasks;
         this.useExternalSubscription = useExternalSubscription;
-        this.admin = PulsarAdmin.builder().serviceHttpUrl(adminUrl).build();
+        this.admin = PulsarAdminUtils.newAdminFromConf(adminUrl, clientConf);
     }
 
     public PulsarMetadataReader(
             String adminUrl,
+            ClientConfigurationData clientConf,
             String subscriptionName,
             Map<String, String> caseInsensitiveParams,
             int indexOfThisSubtask,
             int numParallelSubtasks) throws PulsarClientException {
 
-        this(adminUrl, subscriptionName, caseInsensitiveParams, indexOfThisSubtask, numParallelSubtasks, false);
+        this(adminUrl, clientConf, subscriptionName, caseInsensitiveParams, indexOfThisSubtask, numParallelSubtasks, false);
     }
 
     @Override

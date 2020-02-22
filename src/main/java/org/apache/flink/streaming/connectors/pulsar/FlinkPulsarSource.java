@@ -405,6 +405,7 @@ public class FlinkPulsarSource<T>
     protected PulsarMetadataReader createMetadataReader() throws PulsarClientException {
         return new PulsarMetadataReader(
                 adminUrl,
+                clientConfigurationData,
                 getSubscriptionName(),
                 caseInsensitiveParams,
                 taskIndex,

@@ -47,6 +47,7 @@ import org.apache.flink.table.factories.TableFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.PulsarClientException;
+import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 
 import java.util.HashMap;
 import java.util.List;
@@ -90,7 +91,7 @@ public class PulsarCatalog extends AbstractCatalog {
     public void open() throws CatalogException {
         if (metadataReader == null) {
             try {
-                metadataReader = new PulsarMetadataReader(adminUrl, "", new HashMap<>(), -1, -1);
+                metadataReader = new PulsarMetadataReader(adminUrl, new ClientConfigurationData(), "", new HashMap<>(), -1, -1);
             } catch (PulsarClientException e) {
                 throw new CatalogException("Failed to create Pulsar admin using " + adminUrl, e);
             }

@@ -40,6 +40,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.PulsarClientException;
+import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 
 import java.util.Collections;
 import java.util.List;
@@ -167,7 +168,7 @@ public class PulsarTableSource
             return providedSchema.get();
         } else {
             try {
-                PulsarMetadataReader reader = new PulsarMetadataReader(adminUrl, "", caseInsensitiveParams, -1, -1);
+                PulsarMetadataReader reader = new PulsarMetadataReader(adminUrl, new ClientConfigurationData(), "", caseInsensitiveParams, -1, -1);
                 List<String> topics = reader.getTopics();
                 FieldsDataType schema = reader.getSchema(topics);
                 return SchemaUtils.toTableSchema(schema);

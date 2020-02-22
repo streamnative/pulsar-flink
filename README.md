@@ -128,7 +128,7 @@ catalogs:
     admin-url: "http://localhost:8080"
 ```
 
-## Read data from Pulsar
+## Pulsar Source
 
 Flink's Pulsar consumer is called `FlinkPulsarSource<T>`
 or just `FlinkPulsarRowSource` with data schema auto-inferring). It provides access to one or more Pulsar topics.
@@ -168,31 +168,12 @@ It is usually helpful to start from the `AbstractDeserializationSchema`, which t
 produced Java/Scala type to Flink's type system. Users that implement a vanilla `DeserializationSchema` need
 to implement the `getProducedType(...)` method themselves.
 
-For convenience, Flink provides the following schemas:
+For convenience, we provides the following `DeserializationSchema`:
 
-1. `TypeInformationSerializationSchema` (and `TypeInformationKeyValueSerializationSchema`) which creates
-    a schema based on a Flink's `TypeInformation`. This is useful if the data is both written and read by Flink.
-    This schema is a performant Flink-specific alternative to other generic serialization approaches.
+1. `JsonDeser`: if the topic is of JSONSchema in Pulsar, you could use `JsonDeser.of(POJO_CLASS_NAME.class)` for `DeserializationSchema`.
 
-2. `JsonDeserializationSchema` (and `JSONKeyValueDeserializationSchema`) which turns the serialized JSON
-    into an ObjectNode object, from which fields can be accessed using `objectNode.get("field").as(Int/String/...)()`.
-    The KeyValue objectNode contains a "key" and "value" field which contain all fields, as well as
-    an optional "metadata" field that exposes the offset/partition/topic for this message.
+2. `AvroDeser`: if the topic is of AVROSchema in Pulsar, you could use `AvroDeser.of(POJO_CLASS_NAME.class)` for `DeserializationSchema`.
 
-3. `AvroDeserializationSchema` which reads data serialized with Avro format using a statically provided schema. It can
-    infer the schema from Avro generated classes (`AvroDeserializationSchema.forSpecific(...)`) or it can work with `GenericRecords`
-    with a manually provided schema (with `AvroDeserializationSchema.forGeneric(...)`). This deserialization schema expects that
-    the serialized records DO NOT contain embedded schema.
-
-    <br>To use this deserialization schema one has to add the following additional dependency:
-
-    ```xml
-    <dependency>
-      <groupId>org.apache.flink</groupId>
-      <artifactId>flink-avro</artifactId>
-      <version>{{site.version }}</version>
-    </dependency>
-    ```
 
 ### Schema for FlinkPulsarRowSource
 
@@ -403,11 +384,36 @@ methods `setLogFailuresOnly(boolean)` and `setFlushOnCheckpoint(boolean)` approp
  on-the-fly records at the time of the checkpoint to be acknowledged by Pulsar before
  succeeding the checkpoint. This ensures that all records before the checkpoint have
  been written to Pulsar. This must be enabled for at-least-once.
+ 
+## Advanced Configurations
+
+### Authentication configurations
+
+For Pulsar instance configured with Authentication, Pulsar Flink Connector could be set in similar way with the regular Pulsar Client.
+
+For FlinkPulsarSource, FlinkPulsarRowSource, FlinkPulsarSink and FlinkPulsarRowSink, they all comes with a constructor that enables you to
+pass in `ClientConfigurationData` as one of the parameters. You should construct a `ClientConfigurationData` first and pass it to the correspond constructor.
+
+For example:
+
+```java
+
+ClientConfigurationData conf = new ClientConfigurationData();
+conf.setServiceUrl(serviceUrl);
+conf.setAuthPluginClassName(className);
+conf.setAuthParams(params);
+
+Properties props = new Properties();
+props.setProperty("topic", "test-source-topic");
+
+FlinkPulsarSource<String> source = new FlinkPulsarSource<>(adminUrl, conf, new SimpleStringSchema(), props);
+
+```
 
 ### Pulsar specific configurations
 
-Client/producer/consumer configurations of Pulsar can be set in properties
-with `pulsar.client.`/`pulsar.producer.`/`pulsar.consumer.` prefix.
+Client/producer/reader configurations of Pulsar can be set in properties
+with `pulsar.client.`/`pulsar.producer.`/`pulsar.reader.` prefix.
 
 Example
 

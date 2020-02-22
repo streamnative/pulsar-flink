@@ -59,6 +59,7 @@ import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.MessageIdImpl;
+import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.common.naming.TopicName;
 import org.junit.Assert;
 import org.junit.Test;
@@ -498,7 +499,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
         private final RuntimeException failureCause;
 
         public FailingPartitionDiscoverer(RuntimeException failureCause) throws PulsarClientException {
-            super("", "", Collections.singletonMap("topic", "foo"), 0, 1);
+            super("", new ClientConfigurationData(), "", Collections.singletonMap("topic", "foo"), 0, 1);
             this.failureCause = failureCause;
         }
 
@@ -528,7 +529,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
         private static Set<String> allPartitions = Sets.newHashSet("foo");
 
         public DummyPartitionDiscoverer() throws PulsarClientException {
-            super("", "", Collections.singletonMap("topic", "foo"), 0, 1);
+            super("", new ClientConfigurationData(), "", Collections.singletonMap("topic", "foo"), 0, 1);
         }
 
         @Override

@@ -17,6 +17,7 @@ package org.apache.flink.streaming.connectors.pulsar.testutils;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
 
 import org.apache.pulsar.client.api.PulsarClientException;
+import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.mockito.stubbing.Answer;
 
 import java.util.List;
@@ -41,7 +42,7 @@ public class TestMetadataReader extends PulsarMetadataReader {
             int indexOfThisSubtask,
             int numParallelSubtasks,
             List<Set<String>> mockGetAllTopicsReturnSequence) throws PulsarClientException {
-        super("", "", caseInsensitiveParams, indexOfThisSubtask, numParallelSubtasks);
+        super("", new ClientConfigurationData(), "", caseInsensitiveParams, indexOfThisSubtask, numParallelSubtasks);
         this.mockGetAllTopicsReturnSequence = mockGetAllTopicsReturnSequence;
     }
 

@@ -38,7 +38,7 @@ public class PulsarRowFetcher extends PulsarFetcher<Row> {
 
     public PulsarRowFetcher(
             SourceFunction.SourceContext<Row> sourceContext,
-            Map<String, MessageId> seedTopicsWithInitialOffsets,
+            Map<TopicRange, MessageId> seedTopicsWithInitialOffsets,
             SerializedValue<AssignerWithPeriodicWatermarks<Row>> watermarksPeriodic,
             SerializedValue<AssignerWithPunctuatedWatermarks<Row>> watermarksPunctuated,
             ProcessingTimeService processingTimeProvider,
@@ -59,7 +59,10 @@ public class PulsarRowFetcher extends PulsarFetcher<Row> {
     private SchemaInfo getPulsarSchema() {
         try {
             return metadataReader.getPulsarSchema(
-                    seedTopicsWithInitialOffsets.keySet().stream().collect(Collectors.toList()));
+                    seedTopicsWithInitialOffsets.keySet().stream()
+                            .map(TopicRange::getTopic)
+                            .collect(Collectors.toList())
+            );
         } catch (IncompatibleSchemaException e) {
             log.error("Incompatible schema encountered while read multi topics {}", e.getMessage());
             throw new RuntimeException(e);

@@ -23,6 +23,7 @@ import org.apache.flink.streaming.connectors.pulsar.internal.PulsarDeserializer;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarFetcher;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarRowFetcher;
+import org.apache.flink.streaming.connectors.pulsar.internal.TopicRange;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.ExceptionUtils;
@@ -36,6 +37,7 @@ import org.apache.pulsar.common.schema.SchemaInfo;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.USE_EXTEND_FIELD;
 
@@ -75,7 +77,10 @@ public class FlinkPulsarRowSource extends FlinkPulsarSource<Row> {
         }
         boolean useExtendField = Boolean.parseBoolean(properties.getProperty(USE_EXTEND_FIELD, "true"));
         try (PulsarMetadataReader reader = new PulsarMetadataReader(adminUrl, clientConfigurationData, "", caseInsensitiveParams, -1, -1)) {
-            List<String> topics = reader.getTopics();
+            List<String> topics = reader.getTopics()
+                    .stream()
+                    .map(TopicRange::getTopic)
+                    .collect(Collectors.toList());
             SchemaInfo pulsarSchema = reader.getPulsarSchema(topics);
             synchronized (this) {
                 if (deserializer == null){
@@ -92,7 +97,7 @@ public class FlinkPulsarRowSource extends FlinkPulsarSource<Row> {
     @Override
     protected PulsarFetcher<Row> createFetcher(
             SourceContext sourceContext,
-            Map<String, MessageId> seedTopicsWithInitialOffsets,
+            Map<TopicRange, MessageId> seedTopicsWithInitialOffsets,
             SerializedValue<AssignerWithPeriodicWatermarks<Row>> watermarksPeriodic,
             SerializedValue<AssignerWithPunctuatedWatermarks<Row>> watermarksPunctuated,
             ProcessingTimeService processingTimeProvider,

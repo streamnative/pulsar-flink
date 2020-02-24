@@ -18,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.Reader;
+import org.apache.pulsar.client.api.ReaderBuilder;
 import org.apache.pulsar.client.impl.BatchMessageIdImpl;
 import org.apache.pulsar.client.impl.MessageIdImpl;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
@@ -41,7 +42,7 @@ public class ReaderThread<T> extends Thread {
     protected final Map<String, Object> readerConf;
     protected final int pollTimeoutMs;
     protected final ExceptionProxy exceptionProxy;
-    protected final String topic;
+    protected final TopicRange topicRange;
     protected final MessageId startMessageId;
     private boolean failOnDataLoss = true;
 
@@ -67,7 +68,7 @@ public class ReaderThread<T> extends Thread {
         this.pollTimeoutMs = pollTimeoutMs;
         this.exceptionProxy = exceptionProxy;
 
-        this.topic = state.getTopic();
+        this.topicRange = state.getTopicRange();
         this.startMessageId = state.getOffset();
     }
 
@@ -86,14 +87,14 @@ public class ReaderThread<T> extends Thread {
 
     @Override
     public void run() {
-        log.info("Starting to fetch from {} at {}, failOnDataLoss {}", topic, startMessageId, failOnDataLoss);
+        log.info("Starting to fetch from {} at {}, failOnDataLoss {}", topicRange, startMessageId, failOnDataLoss);
 
         try {
             createActualReader();
 
             skipFirstMessageIfNeeded();
 
-            log.info("Starting to read {} with reader thread {}", topic, getName());
+            log.info("Starting to read {} with reader thread {}", topicRange, getName());
 
             while (running) {
                 Message message = reader.readNext(pollTimeoutMs, TimeUnit.MILLISECONDS);
@@ -115,16 +116,20 @@ public class ReaderThread<T> extends Thread {
     }
 
     protected void createActualReader() throws org.apache.pulsar.client.api.PulsarClientException, ExecutionException {
-        reader = CachedPulsarClient
+        ReaderBuilder<?> readerBuilder = CachedPulsarClient
                 .getOrCreate(clientConf)
                 .newReader()
-                .topic(topic)
+                .topic(topicRange.getTopic())
                 .startMessageId(startMessageId)
                 .startMessageIdInclusive()
-                .loadConf(readerConf)
-                .create();
+                .loadConf(readerConf);
         log.info("Create a reader at topic {} starting from message {} (inclusive) : config = {}",
-            topic, startMessageId, readerConf);
+                topicRange, startMessageId, readerConf);
+        if (!topicRange.isFullRange()) {
+             readerBuilder.keyHashRange(topicRange.getPulsarRange());
+        }
+
+        reader = readerBuilder.create();
     }
 
     protected void skipFirstMessageIfNeeded() throws org.apache.pulsar.client.api.PulsarClientException {
@@ -161,7 +166,7 @@ public class ReaderThread<T> extends Thread {
             if (currentMessage == null) {
                 reportDataLoss(String.format("Cannot read data at offset %s from topic: %s",
                         startMessageId.toString(),
-                        topic));
+                        topicRange));
             } else {
                 currentId = currentMessage.getMessageId();
                 state.setOffset(currentId);
@@ -169,7 +174,7 @@ public class ReaderThread<T> extends Thread {
                     reportDataLoss(
                             String.format(
                                     "Potential Data Loss in reading %s: intended to start at %s, actually we get %s",
-                                    topic, startMessageId.toString(), currentId.toString()));
+                                    topicRange, startMessageId.toString(), currentId.toString()));
                 }
 
                 if (startMessageId instanceof BatchMessageIdImpl && currentId instanceof BatchMessageIdImpl) {

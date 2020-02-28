@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
+import org.apache.pulsar.shade.com.google.common.collect.ImmutableList;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
@@ -266,13 +267,8 @@ public class PulsarFetcher<T> {
 
                 }
 
-                if (topicToThread.size() == 0 && unassignedPartitionsQueue.isEmpty()) {
-                    if (unassignedPartitionsQueue.close()) {
-                        log.info("All reader threads are finished, " +
-                                "there are no more unassigned partitions. Stopping fetcher");
-                        throw BreakingException.INSTANCE;
-                    }
-                }
+                PulsarTopicState topicForBlocking = unassignedPartitionsQueue.getElementBlocking();
+                topicToThread.putAll(createAndStartReaderThread(ImmutableList.of(topicForBlocking), exceptionProxy));
             }
 
         } catch (BreakingException b) {

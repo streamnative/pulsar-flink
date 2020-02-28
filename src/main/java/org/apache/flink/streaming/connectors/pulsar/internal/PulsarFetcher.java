@@ -28,6 +28,7 @@ import org.apache.flink.util.SerializedValue;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
+import org.apache.pulsar.shade.com.google.common.collect.ImmutableList;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -36,7 +37,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
-import org.apache.pulsar.shade.com.google.common.collect.ImmutableList;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 

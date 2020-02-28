@@ -268,9 +268,14 @@ public class PulsarFetcher<T> {
                 }
 
                 if (topicToThread.size() == 0 && unassignedPartitionsQueue.isEmpty()) {
-                    PulsarTopicState topicForBlocking = unassignedPartitionsQueue.getElementBlocking();
-                    topicToThread.putAll(
-                        createAndStartReaderThread(ImmutableList.of(topicForBlocking), exceptionProxy));
+                    while (running) {
+                        PulsarTopicState topicForBlocking = unassignedPartitionsQueue.getElementBlocking();
+                        if (!topicForBlocking.equals(PoisonState.INSTANCE)) {
+                            topicToThread.putAll(
+                                createAndStartReaderThread(ImmutableList.of(topicForBlocking), exceptionProxy));
+                            break;
+                        }
+                    }
                 }
             }
 

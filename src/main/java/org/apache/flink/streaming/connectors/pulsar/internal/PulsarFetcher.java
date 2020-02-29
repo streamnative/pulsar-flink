@@ -28,6 +28,7 @@ import org.apache.flink.util.SerializedValue;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
+import org.apache.pulsar.shade.com.google.common.collect.ImmutableList;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -267,11 +268,12 @@ public class PulsarFetcher<T> {
                 }
 
                 if (topicToThread.size() == 0 && unassignedPartitionsQueue.isEmpty()) {
-                    if (unassignedPartitionsQueue.close()) {
-                        log.info("All reader threads are finished, " +
-                                "there are no more unassigned partitions. Stopping fetcher");
+                    PulsarTopicState topicForBlocking = unassignedPartitionsQueue.getElementBlocking();
+                    if (topicForBlocking.equals(PoisonState.INSTANCE)) {
                         throw BreakingException.INSTANCE;
                     }
+                    topicToThread.putAll(
+                            createAndStartReaderThread(ImmutableList.of(topicForBlocking), exceptionProxy));
                 }
             }
 

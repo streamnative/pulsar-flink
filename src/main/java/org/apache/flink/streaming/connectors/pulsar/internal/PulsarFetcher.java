@@ -471,7 +471,7 @@ public class PulsarFetcher<T> {
         Map<String, MessageId> result = new HashMap<>();
         for (Map.Entry<String, MessageId> entry : offset.entrySet()) {
             MessageId mid = entry.getValue();
-            if (mid != MessageId.earliest && mid != MessageId.latest) {
+            if (!mid.equals(MessageId.earliest) && !mid.equals(MessageId.latest)) {
                 result.put(entry.getKey(), mid);
             }
         }

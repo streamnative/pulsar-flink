@@ -283,9 +283,13 @@ public class PulsarMetadataReader implements AutoCloseable {
                             admin.topics().getInternalStats(topic).cursors.get(subscriptionName);
                     String[] ids = c.markDeletePosition.split(":", 2);
                     long ledgerId = Long.parseLong(ids[0]);
-                    long entryId = Long.parseLong(ids[1]);
+                    long entryIdInMarkDelete = Long.parseLong(ids[1]);
+                    // we are getting the next mid from sub position, if the entryId is -1,
+                    // it denotes we haven't read data from the ledger before,
+                    // therefore no need to skip the current entry for the next position
+                    long entryId = entryIdInMarkDelete == -1 ? -1 : entryIdInMarkDelete + 1;
                     int partitionIdx = TopicName.getPartitionIndex(topic);
-                    return new MessageIdImpl(ledgerId, entryId + 1, partitionIdx);
+                    return new MessageIdImpl(ledgerId, entryId, partitionIdx);
                 }
             } else {
                 // create sub on topic

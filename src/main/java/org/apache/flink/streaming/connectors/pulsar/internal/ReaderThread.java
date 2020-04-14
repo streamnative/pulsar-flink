@@ -116,7 +116,9 @@ public class ReaderThread<T> extends Thread {
     protected void skipFirstMessageIfNeeded() throws org.apache.pulsar.client.api.PulsarClientException {
         Message<?> currentMessage;
         MessageId currentId;
-        if (!startMessageId.equals(MessageId.earliest) && !startMessageId.equals(MessageId.latest)) {
+        if (!startMessageId.equals(MessageId.earliest)
+                && !startMessageId.equals(MessageId.latest)
+                && ((MessageIdImpl) startMessageId).getEntryId() != -1) {
             currentMessage = reader.readNext(pollTimeoutMs, TimeUnit.MILLISECONDS);
             if (currentMessage == null) {
                 reportDataLoss(String.format("Cannot read data at offset %s from topic: %s",

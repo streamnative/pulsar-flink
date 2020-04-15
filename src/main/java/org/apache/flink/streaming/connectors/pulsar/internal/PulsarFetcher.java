@@ -435,12 +435,14 @@ public class PulsarFetcher<T> {
 
         try {
             int retries = 0;
-            while (true) {
+            boolean success = false;
+            while (running) {
                 try {
                     metadataReader.commitCursorToOffset(offset);
+                    success = true;
                     break;
                 } catch (Exception e) {
-                    log.warn("Failed to commit cursor to Pulsar.");
+                    log.warn("Failed to commit cursor to Pulsar.", e);
                     if (retries >= commitMaxRetries) {
                         log.error("Failed to commit cursor to Pulsar after {} attempts", retries);
                         throw e;
@@ -449,7 +451,11 @@ public class PulsarFetcher<T> {
                     Thread.sleep(1000);
                 }
             }
-            offsetCommitCallback.onSuccess();
+            if (success) {
+                offsetCommitCallback.onSuccess();
+            } else {
+                return;
+            }
         } catch (Exception e) {
             if (running) {
                 offsetCommitCallback.onException(e);

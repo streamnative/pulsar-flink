@@ -226,7 +226,9 @@ public class PulsarMetadataReader implements AutoCloseable {
         if (!useExternalSubscription) {
             for (Map.Entry<String, MessageId> entry : offset.entrySet()) {
                 try {
+                    log.info("Setting up subscription {} on topic {} at position {}", subscriptionName, entry.getKey(), entry.getValue());
                     admin.topics().createSubscription(entry.getKey(), subscriptionName, entry.getValue());
+                    log.info("Subscription {} on topic {} at position {} finished", subscriptionName, entry.getKey(), entry.getValue());
                 } catch (PulsarAdminException e) {
                     throw new RuntimeException(
                             String.format("Failed to set up cursor for %s", TopicName.get(entry.getKey()).toString()), e);
@@ -239,7 +241,9 @@ public class PulsarMetadataReader implements AutoCloseable {
         for (Map.Entry<String, MessageId> entry : offset.entrySet()) {
             String tp = entry.getKey();
             try {
+                log.info("Committing offset {} to topic {}", entry.getValue(), tp);
                 admin.topics().resetCursor(tp, subscriptionName, entry.getValue());
+                log.info("Successfully committed offset {} to topic {}", entry.getValue(), tp);
             } catch (Throwable e) {
                 if (e instanceof PulsarAdminException &&
                         (((PulsarAdminException) e).getStatusCode() == 404 ||
@@ -257,7 +261,9 @@ public class PulsarMetadataReader implements AutoCloseable {
         if (!useExternalSubscription) {
             for (String topic : topics) {
                 try {
+                    log.info("Removing subscription {} from topic {}", subscriptionName, topic);
                     admin.topics().deleteSubscription(topic, subscriptionName);
+                    log.info("Successfully removed subscription {} from topic {}", subscriptionName, topic);
                 } catch (Throwable e) {
                     if (e instanceof PulsarAdminException && ((PulsarAdminException) e).getStatusCode() == 404) {
                         log.info("Cannot remove cursor since the topic {} has been deleted during execution", topic);

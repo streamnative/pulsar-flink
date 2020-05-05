@@ -159,7 +159,6 @@ public class ReaderThread<T> extends Thread {
                 failOnDataLoss = false;
             }
             while (currentMessage == null && running) {
-                log.info("read current msg..");
                 currentMessage = reader.readNext(pollTimeoutMs, TimeUnit.MILLISECONDS);
                 if (failOnDataLoss) {
                     break;

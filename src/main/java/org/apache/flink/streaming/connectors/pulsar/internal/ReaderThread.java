@@ -25,6 +25,7 @@ import org.apache.pulsar.client.impl.MessageIdImpl;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -52,6 +53,8 @@ public class ReaderThread<T> extends Thread {
 
     protected volatile Reader<?> reader = null;
 
+    private boolean failOnDataLoss = true;
+
     public ReaderThread(
             PulsarFetcher owner,
             PulsarTopicState state,
@@ -70,6 +73,19 @@ public class ReaderThread<T> extends Thread {
 
         this.topic = state.getTopic();
         this.startMessageId = state.getOffset();
+    }
+
+    public ReaderThread(
+            PulsarFetcher owner,
+            PulsarTopicState state,
+            ClientConfigurationData clientConf,
+            Map<String, Object> readerConf,
+            DeserializationSchema<T> deserializer,
+            int pollTimeoutMs,
+            ExceptionProxy exceptionProxy,
+            boolean failOnDataLoss) {
+        this(owner, state, clientConf, readerConf, deserializer, pollTimeoutMs, exceptionProxy);
+        this.failOnDataLoss = failOnDataLoss;
     }
 
     @Override
@@ -103,23 +119,52 @@ public class ReaderThread<T> extends Thread {
     }
 
     protected void createActualReader() throws org.apache.pulsar.client.api.PulsarClientException, ExecutionException {
+        Map<String, Object> readerConf0 = new HashMap<>();
+        readerConf.entrySet().stream().forEach(entry -> {
+            if (!PulsarOptions.FAIL_ON_DATA_LOSS_OPTION_KEY.equals(entry.getKey())) {
+                readerConf0.put(entry.getKey(), entry.getValue());
+            }
+        });
         reader = CachedPulsarClient
                 .getOrCreate(clientConf)
                 .newReader()
                 .topic(topic)
                 .startMessageId(startMessageId)
                 .startMessageIdInclusive()
-                .loadConf(readerConf)
+                .loadConf(readerConf0)
                 .create();
     }
 
     protected void skipFirstMessageIfNeeded() throws org.apache.pulsar.client.api.PulsarClientException {
-        Message<?> currentMessage;
+        Message<?> currentMessage = null;
         MessageId currentId;
+        boolean failOnDataLoss = this.failOnDataLoss;
         if (!startMessageId.equals(MessageId.earliest)
                 && !startMessageId.equals(MessageId.latest)
                 && ((MessageIdImpl) startMessageId).getEntryId() != -1) {
-            currentMessage = reader.readNext(pollTimeoutMs, TimeUnit.MILLISECONDS);
+            MessageIdImpl lastMessageId = (MessageIdImpl) this.owner.getMetadataReader().getLastMessageId(reader.getTopic());
+            if (!messageIdRoughEquals(startMessageId, lastMessageId) && !reader.hasMessageAvailable()) {
+                MessageIdImpl startMsgIdImpl = (MessageIdImpl) startMessageId;
+                long startMsgLedgerId = startMsgIdImpl.getLedgerId();
+                long startMsgEntryId = startMsgIdImpl.getEntryId();
+                if (startMsgLedgerId > lastMessageId.getLedgerId()
+                        || (startMsgLedgerId == lastMessageId.getLedgerId() && startMsgEntryId > lastMessageId.getEntryId())) {
+                    log.error("the start message id is beyond the last commit message id, with topic:{}", reader.getTopic());
+                    throw new RuntimeException("start message id beyond the last commit");
+                } else if (!failOnDataLoss) {
+                    log.info("reset message to valid offset");
+                    this.owner.getMetadataReader().resetCursor(reader.getTopic(), startMessageId);
+                }
+            } else {
+                failOnDataLoss = false;
+            }
+            while (currentMessage == null && running) {
+                log.info("read current msg..");
+                currentMessage = reader.readNext(pollTimeoutMs, TimeUnit.MILLISECONDS);
+                if (failOnDataLoss) {
+                    break;
+                }
+            }
             if (currentMessage == null) {
                 reportDataLoss(String.format("Cannot read data at offset %s from topic: %s",
                         startMessageId.toString(),

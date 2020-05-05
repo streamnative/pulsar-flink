@@ -547,6 +547,11 @@ public class PulsarFetcher<T> {
     }
 
     protected ReaderThread createReaderThread(ExceptionProxy exceptionProxy, PulsarTopicState state) {
+        boolean failOnDataLoss = true;
+        if (readerConf.containsKey(PulsarOptions.FAIL_ON_DATA_LOSS_OPTION_KEY)) {
+            String failOnDataLossVal = readerConf.getOrDefault(PulsarOptions.FAIL_ON_DATA_LOSS_OPTION_KEY, "true").toString();
+            failOnDataLoss = Boolean.parseBoolean(failOnDataLossVal);
+        }
         return new ReaderThread(
                 this,
                 state,
@@ -554,7 +559,7 @@ public class PulsarFetcher<T> {
                 readerConf,
                 deserializer,
                 pollTimeoutMs,
-                exceptionProxy);
+                exceptionProxy, failOnDataLoss);
     }
 
     /**
@@ -686,5 +691,9 @@ public class PulsarFetcher<T> {
 
         private BreakingException() {
         }
+    }
+
+    public PulsarMetadataReader getMetadataReader() {
+        return this.metadataReader;
     }
 }

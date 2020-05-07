@@ -416,6 +416,22 @@ public class PulsarMetadataReader implements AutoCloseable {
         return fullName.toString();
     }
 
+    public MessageId getLastMessageId(String topic) {
+        try {
+            return this.admin.topics().getLastMessageId(topic);
+        } catch (PulsarAdminException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void resetCursor(String topic, MessageId messageId) {
+        try {
+            this.admin.topics().resetCursor(topic, subscriptionName, messageId);
+        } catch (PulsarAdminException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     /**
      * Designate the close of the metadata reader.
      */

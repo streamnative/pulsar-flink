@@ -52,6 +52,7 @@ public class PulsarOptions {
     public static final String FAIL_ON_WRITE_OPTION_KEY = "failonwrite";
     public static final String POLL_TIMEOUT_MS_OPTION_KEY = "polltimeoutms";
     public static final String COMMIT_MAX_RETRIES = "commitmaxretries";
+    public static final String SUBSCRIPTION_ROLE_OPTION_KEY = "subscriptionRolePrefix";
     public static final String FAIL_ON_DATA_LOSS_OPTION_KEY = "failondataloss";
 
     public static final String INSTRUCTION_FOR_FAIL_ON_DATA_LOSS_FALSE =

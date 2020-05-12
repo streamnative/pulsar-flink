@@ -23,6 +23,7 @@ import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.ClosureCleaner;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.typeutils.ResultTypeQueryable;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.metrics.Counter;
@@ -164,7 +165,9 @@ public class FlinkPulsarSource<T>
     private transient volatile TreeMap<String, MessageId> restoredState;
 
     /** Accessor for state in the operator state backend. */
-    private transient ListState<Tuple2<String, MessageId>> unionOffsetStates;
+    private transient ListState<Tuple3<String, MessageId, String>> unionOffsetStates;
+
+    private volatile boolean stateSubEqualexternalSub = false;
 
     /** Discovery loop, executed in a separate thread. */
     private transient volatile Thread discoveryLoopThread;
@@ -349,7 +352,8 @@ public class FlinkPulsarSource<T>
         ownedTopicStarts = new HashMap<>();
         Set<String> allTopics = metadataReader.discoverTopicChanges();
 
-        if (restoredState != null) {
+        boolean usingRestoredState = (startupMode != StartupMode.EXTERNAL_SUBSCRIPTION) || stateSubEqualexternalSub;
+        if (restoredState != null && usingRestoredState) {
             allTopics.stream()
                     .filter(k -> !restoredState.containsKey(k))
                     .forEach(t -> restoredState.put(t, MessageId.earliest));
@@ -622,12 +626,19 @@ public class FlinkPulsarSource<T>
         unionOffsetStates = stateStore.getUnionListState(
                 new ListStateDescriptor<>(
                         OFFSETS_STATE_NAME,
-                        TypeInformation.of(new TypeHint<Tuple2<String, MessageId>>() {
+                        TypeInformation.of(new TypeHint<Tuple3<String, MessageId, String>>() {
                         })));
 
         if (context.isRestored()) {
             restoredState = new TreeMap<>();
             unionOffsetStates.get().forEach(e -> restoredState.put(e.f0, e.f1));
+            for (Tuple3<String, MessageId, String> e : unionOffsetStates.get()) {
+                if (e.f2 != null && e.f2.equals(getSubscriptionName())) {
+                    stateSubEqualexternalSub = true;
+                    log.info("Source restored state with subscriptionName {}", e.f2);
+                }
+                break;
+            }
             log.info("Source subtask {} restored state {}",
                     taskIndex,
                     StringUtils.join(restoredState.entrySet()));
@@ -649,14 +660,14 @@ public class FlinkPulsarSource<T>
                 // the fetcher has not yet been initialized, which means we need to return the
                 // originally restored offsets or the assigned partitions
                 for (Map.Entry<String, MessageId> entry : ownedTopicStarts.entrySet()) {
-                    unionOffsetStates.add(Tuple2.of(entry.getKey(), entry.getValue()));
+                    unionOffsetStates.add(Tuple3.of(entry.getKey(), entry.getValue(), getSubscriptionName()));
                 }
                 pendingOffsetsToCommit.put(context.getCheckpointId(), restoredState);
             } else {
                 Map<String, MessageId> currentOffsets = fetcher.snapshotCurrentState();
                 pendingOffsetsToCommit.put(context.getCheckpointId(), currentOffsets);
                 for (Map.Entry<String, MessageId> entry : currentOffsets.entrySet()) {
-                    unionOffsetStates.add(Tuple2.of(entry.getKey(), entry.getValue()));
+                    unionOffsetStates.add(Tuple3.of(entry.getKey(), entry.getValue(), getSubscriptionName()));
                 }
 
                 while (pendingOffsetsToCommit.size() > MAX_NUM_PENDING_CHECKPOINTS) {

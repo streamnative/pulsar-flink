@@ -16,6 +16,7 @@ package org.apache.flink.streaming.connectors.pulsar.testutils;
 
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
 
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.mockito.stubbing.Answer;
@@ -67,6 +68,15 @@ public class TestMetadataReader extends PulsarMetadataReader {
     }
 
     public static int getExpectedSubtaskIndex(String tp, int numTasks) {
-        return ((tp.hashCode() * 31) & 0x7FFFFFFF) % numTasks;
+        if (tp.contains(PulsarOptions.PARTITION_SUFFIX)) {
+            int pos = tp.lastIndexOf(PulsarOptions.PARTITION_SUFFIX);
+            String topicPrefix = tp.substring(0, pos);
+            String topicPartitionIndex = tp.substring(pos + PulsarOptions.PARTITION_SUFFIX.length());
+            if (topicPartitionIndex.matches("0|[1-9]\\d*")) {
+                int startIndex = (topicPrefix.hashCode() * 31 & Integer.MAX_VALUE) % numTasks;
+                return (startIndex + Integer.valueOf(topicPartitionIndex)) % numTasks;
+            }
+        }
+        return (tp.hashCode() * 31 & Integer.MAX_VALUE) % numTasks;
     }
 }

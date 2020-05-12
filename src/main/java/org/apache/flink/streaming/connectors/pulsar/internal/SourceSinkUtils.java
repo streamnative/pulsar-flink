@@ -74,8 +74,9 @@ public class SourceSinkUtils {
             int pos = topic.lastIndexOf(PulsarOptions.PARTITION_SUFFIX);
             String topicPrefix = topic.substring(0, pos);
             String topicPartitionIndex = topic.substring(pos + PulsarOptions.PARTITION_SUFFIX.length());
-            if (topicPartitionIndex.matches("-?(0|[1-9]\\d*)")) {
-                return ((topicPrefix.hashCode() * 31 & Integer.MAX_VALUE) + Integer.valueOf(topicPartitionIndex))
+            if (topicPartitionIndex.matches("0|[1-9]\\d*")) {
+                int startIndex = (topicPrefix.hashCode() * 31 & Integer.MAX_VALUE) % numParallelSubtasks;
+                return (startIndex + Integer.valueOf(topicPartitionIndex))
                         % numParallelSubtasks == index;
             }
         }

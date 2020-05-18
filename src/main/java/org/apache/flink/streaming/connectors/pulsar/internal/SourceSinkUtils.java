@@ -70,6 +70,16 @@ public class SourceSinkUtils {
     }
 
     public static boolean belongsTo(String topic, int numParallelSubtasks, int index) {
+        if (topic.contains(PulsarOptions.PARTITION_SUFFIX)) {
+            int pos = topic.lastIndexOf(PulsarOptions.PARTITION_SUFFIX);
+            String topicPrefix = topic.substring(0, pos);
+            String topicPartitionIndex = topic.substring(pos + PulsarOptions.PARTITION_SUFFIX.length());
+            if (topicPartitionIndex.matches("0|[1-9]\\d*")) {
+                int startIndex = (topicPrefix.hashCode() * 31 & Integer.MAX_VALUE) % numParallelSubtasks;
+                return (startIndex + Integer.valueOf(topicPartitionIndex))
+                        % numParallelSubtasks == index;
+            }
+        }
         return (topic.hashCode() * 31 & Integer.MAX_VALUE) % numParallelSubtasks == index;
     }
 

@@ -459,7 +459,6 @@ public class PulsarFetcher<T> {
         } catch (Exception e) {
             if (running) {
                 offsetCommitCallback.onException(e);
-                throw e;
             } else {
                 return;
             }

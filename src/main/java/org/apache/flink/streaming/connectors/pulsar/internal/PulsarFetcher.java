@@ -300,6 +300,7 @@ public class PulsarFetcher<T> {
                 do { // check whether threads are alive and cancel them
                     runningThreads = 0;
 
+                    // remove thread which is not alive
                     topicToThread.values().removeIf(t -> !t.isAlive());
 
                     for (ReaderThread t : topicToThread.values()) {

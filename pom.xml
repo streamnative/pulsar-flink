@@ -67,7 +67,7 @@
 
     <!-- dependencies -->
     <!-- use Pulsar stable version -->
-    <pulsar.version>2.5.1</pulsar.version>
+    <pulsar.version>2.5.2</pulsar.version>
     <scala.version>2.11.12</scala.version>
     <scala.binary.version>2.11</scala.binary.version>
     <scalatest.version>3.0.3</scalatest.version>

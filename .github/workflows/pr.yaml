@@ -20,8 +20,8 @@ on:
 
 jobs:
 
-  unit-tests-scala-2_11:
-    name:
+  unit-tests:
+    name: unit tests under scala 2.11
     runs-on: ubuntu-latest
     timeout-minutes: 120
 

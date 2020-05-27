@@ -20,8 +20,7 @@ on:
 
 jobs:
 
-  unit-tests:
-    name: unit tests under scala 2.11
+  unit-tests-scala-2_11:
     runs-on: ubuntu-latest
     timeout-minutes: 120
 
@@ -43,7 +42,6 @@ jobs:
         run: ./precommit.sh scala-2.11
 
   unit-tests-scala-2_12:
-    name:
     runs-on: ubuntu-latest
     timeout-minutes: 120
 

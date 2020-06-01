@@ -14,11 +14,6 @@
 
 package org.apache.flink.streaming.connectors.pulsar;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import lombok.Cleanup;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.common.functions.FlatMapFunction;
@@ -86,6 +81,8 @@ import org.apache.pulsar.common.schema.SchemaType;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -102,6 +99,9 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -124,8 +124,9 @@ import static org.junit.Assert.fail;
 /**
  * Pulsar source sink integration tests.
  */
-@Slf4j
 public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
+
+    private static final Logger log = LoggerFactory.getLogger(FlinkPulsarITest.class);
 
     @Rule
     public RetryRule retryRule = new RetryRule();
@@ -678,12 +679,10 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
 	    int numKeys = 3;
 	    int numMessagesPerKey = 10;
 
-	    @Cleanup
         PulsarAdmin admin = PulsarAdmin.builder().serviceHttpUrl(adminUrl).build();
         admin.topics().createNonPartitionedTopic(topic);
         admin.topics().createSubscription(topic, sub, MessageId.earliest);
 
-        @Cleanup
         PulsarClient client = PulsarClient.builder()
              .serviceUrl(serviceUrl)
              .build();
@@ -731,7 +730,6 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
 	    sourceProps.setProperty(
             TOPIC_SINGLE_OPTION_KEY, topic);
 
-	    @Cleanup
         Consumer<byte[]> outputConsumer = client.newConsumer()
             .topic(outputTopic)
             .subscriptionName(sub)
@@ -744,7 +742,6 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
                 new Properties(), null, String.class))
             .setParallelism(1);
 
-        @Cleanup("shutdown")
         ExecutorService executorService = Executors.newSingleThreadExecutor();
         executorService.submit(() -> {
             try {
@@ -769,6 +766,11 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
             assertNull(result.get(keyIdx));
             result.put(keyIdx, valIdx);
         }
+
+        executorService.shutdown();
+        outputConsumer.close();
+        client.close();
+        admin.close();
     }
 
     @Test

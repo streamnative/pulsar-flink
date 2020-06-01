@@ -359,6 +359,8 @@ public class FlinkPulsarSource<T>
         ownedTopicStarts = new HashMap<>();
         Set<String> allTopics = metadataReader.discoverTopicChanges();
 
+        log.info("Discovered topics : {}", allTopics);
+
         if (restoredState != null) {
             allTopics.stream()
                     .filter(k -> !restoredState.containsKey(k))
@@ -378,7 +380,7 @@ public class FlinkPulsarSource<T>
                 ownedTopicStarts.remove(goneTopic);
             }
 
-            log.info("Source {} will start reading %d topics in restored state {}",
+            log.info("Source {} will start reading {} topics in restored state {}",
                     taskIndex, ownedTopicStarts.size(), StringUtils.join(ownedTopicStarts.entrySet()));
         } else {
             if (specificStartupOffsets == null && specificStartupOffsetsAsBytes != null) {
@@ -397,8 +399,8 @@ public class FlinkPulsarSource<T>
             if (ownedTopicStarts.isEmpty()) {
                 log.info("Source {} initially has no topics to read from.", taskIndex);
             } else {
-                log.info("Source {} will start reading {} topics from initialized positions",
-                        taskIndex, ownedTopicStarts.size());
+                log.info("Source {} will start reading {} topics from initialized positions: {}",
+                        taskIndex, ownedTopicStarts.size(), ownedTopicStarts);
             }
         }
     }
@@ -541,6 +543,7 @@ public class FlinkPulsarSource<T>
                             Set<String> added = metadataReader.discoverTopicChanges();
 
                             if (running && !added.isEmpty()) {
+                                log.info("Discovered new topics : {}", added);
                                 pulsarFetcher.addDiscoveredTopics(added);
                             }
 

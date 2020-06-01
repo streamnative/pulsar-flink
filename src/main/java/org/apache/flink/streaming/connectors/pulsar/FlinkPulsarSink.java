@@ -63,19 +63,11 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
 
         TypedMessageBuilder<T> mb;
 
-        if (forcedTopic) {
-            mb = (TypedMessageBuilder<T>) getProducer(defaultTopic).newMessage().value(value);
+        if (null == topicKeyExtractor) {
+            mb = (TypedMessageBuilder<T>) getProducer(null).newMessage().value(value);
         } else {
             byte[] key = topicKeyExtractor.serializeKey(value);
             String topic = topicKeyExtractor.getTopic(value);
-
-            if (topic == null) {
-                if (failOnWrite) {
-                    throw new NullPointerException("no topic present in the data.");
-                }
-                return;
-            }
-
             mb = (TypedMessageBuilder<T>) getProducer(topic).newMessage().value(value);
             if (key != null) {
                 mb.keyBytes(key);

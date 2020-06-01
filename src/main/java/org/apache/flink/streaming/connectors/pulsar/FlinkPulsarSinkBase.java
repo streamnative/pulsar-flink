@@ -81,8 +81,6 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
     /** Number of unacknowledged records. */
     protected long pendingRecords = 0L;
 
-    protected final boolean forcedTopic;
-
     protected final String defaultTopic;
 
     protected final TopicKeyExtractor<T> topicKeyExtractor;
@@ -93,9 +91,9 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
 
     protected transient BiConsumer<MessageId, Throwable> sendCallback;
 
-    protected transient Producer<?> singleProducer;
+    protected transient Producer<?> defaultProducer;
 
-    protected transient Map<String, Producer<?>> topic2Producer;
+    protected transient Map<String, Producer<?>> topic2Producer = new HashMap<>();
 
     public FlinkPulsarSinkBase(
             String adminUrl,
@@ -105,18 +103,10 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
             TopicKeyExtractor<T> topicKeyExtractor) {
 
         this.adminUrl = checkNotNull(adminUrl);
-
-        if (defaultTopicName.isPresent()) {
-            this.forcedTopic = true;
-            this.defaultTopic = defaultTopicName.get();
-            this.topicKeyExtractor = null;
-        } else {
-            this.forcedTopic = false;
-            this.defaultTopic = null;
-            ClosureCleaner.clean(
-                    topicKeyExtractor, ExecutionConfig.ClosureCleanerLevel.RECURSIVE, true);
-            this.topicKeyExtractor = checkNotNull(topicKeyExtractor);
-        }
+        this.defaultTopic = defaultTopicName.orElse(null);
+        this.topicKeyExtractor = topicKeyExtractor;
+        ClosureCleaner.clean(
+            topicKeyExtractor, ExecutionConfig.ClosureCleanerLevel.RECURSIVE, true);
 
         this.clientConfigurationData = clientConf;
 
@@ -186,11 +176,10 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
 
         admin = PulsarAdminUtils.newAdminFromConf(adminUrl, clientConfigurationData);
 
-        if (forcedTopic) {
+        if (defaultTopic != null) {
             uploadSchema(defaultTopic);
-            singleProducer = createProducer(clientConfigurationData, producerConf, defaultTopic, getPulsarSchema());
-        } else {
-            topic2Producer = new HashMap<>();
+            defaultProducer = createProducer(clientConfigurationData, producerConf, defaultTopic, getPulsarSchema());
+            topic2Producer.put(defaultTopic, defaultProducer);
         }
     }
 
@@ -231,8 +220,8 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
     }
 
     protected <R> Producer<R> getProducer(String topic) {
-        if (forcedTopic) {
-            return (Producer<R>) singleProducer;
+        if (null == topic || topic.equals(defaultTopic)) {
+            return (Producer<R>) defaultProducer;
         }
 
         if (topic2Producer.containsKey(topic)) {
@@ -271,14 +260,8 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
     }
 
     public void producerFlush() throws Exception {
-        if (singleProducer != null) {
-            singleProducer.flush();
-        } else {
-            if (topic2Producer != null) {
-                for (Producer<?> p : topic2Producer.values()) {
-                    p.flush();
-                }
-            }
+        for (Producer<?> p : topic2Producer.values()) {
+            p.flush();
         }
         synchronized (pendingRecordsLock) {
             while (pendingRecords > 0) {
@@ -298,16 +281,10 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
         if (admin != null) {
             admin.close();
         }
-        if (singleProducer != null) {
-            singleProducer.close();
-        } else {
-            if (topic2Producer != null) {
-                for (Producer<?> p : topic2Producer.values()) {
-                    p.close();
-                }
-                topic2Producer.clear();
-            }
+        for (Producer<?> p : topic2Producer.values()) {
+            p.close();
         }
+        topic2Producer.clear();
     }
 
     protected void checkErroneous() throws Exception {

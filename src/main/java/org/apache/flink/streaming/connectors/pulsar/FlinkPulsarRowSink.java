@@ -115,7 +115,7 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
                         String.format("attribute unsupported type %s, %s must be a string", value.f0.toString(), TOPIC_ATTRIBUTE_NAME));
             }
         } else {
-            if (!forcedTopic) {
+            if (defaultTopic == null) {
                 throw new IllegalStateException(
                         String.format("topic option required when no %s attribute is present.", TOPIC_ATTRIBUTE_NAME));
             }
@@ -204,11 +204,9 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
         Row valueRow = valueProjection.apply(value);
         Object v = serializer.serialize(valueRow);
 
-        String topic;
-        if (forcedTopic) {
+        String topic = (String) metaRow.getField(0);
+        if (null == topic) {
             topic = defaultTopic;
-        } else {
-            topic = (String) metaRow.getField(0);
         }
 
         String key = (String) metaRow.getField(1);

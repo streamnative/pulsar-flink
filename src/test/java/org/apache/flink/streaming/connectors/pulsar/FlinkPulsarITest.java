@@ -14,6 +14,8 @@
 
 package org.apache.flink.streaming.connectors.pulsar;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
@@ -731,7 +733,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
 
 	    @Cleanup
         Consumer<byte[]> outputConsumer = client.newConsumer()
-            .topic(topic)
+            .topic(outputTopic)
             .subscriptionName(sub)
             .subscriptionType(SubscriptionType.Exclusive)
             .subscribe();
@@ -741,7 +743,16 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
             .addSink(new FlinkPulsarSink<>(serviceUrl, adminUrl, Optional.of(outputTopic),
                 new Properties(), null, String.class))
             .setParallelism(1);
-        TestUtils.tryExecute(env, "source task number > partition number");
+
+        @Cleanup("shutdown")
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        executorService.submit(() -> {
+            try {
+                TestUtils.tryExecute(env, "read from compacted topic");
+            } catch (Exception e) {
+                log.warn("Failed to execute a flink job", e);
+            }
+        });
 
         final Map<Integer, Integer> result = new HashMap<>();
 

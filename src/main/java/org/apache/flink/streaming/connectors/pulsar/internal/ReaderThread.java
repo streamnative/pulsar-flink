@@ -133,6 +133,8 @@ public class ReaderThread<T> extends Thread {
                 .startMessageIdInclusive()
                 .loadConf(readerConf0)
                 .create();
+        log.info("Create a reader at topic {} starting from message {} (inclusive) : config = {}",
+            topic, startMessageId, readerConf0);
     }
 
     protected void skipFirstMessageIfNeeded() throws org.apache.pulsar.client.api.PulsarClientException {

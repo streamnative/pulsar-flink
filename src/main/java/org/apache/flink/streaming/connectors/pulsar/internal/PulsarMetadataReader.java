@@ -299,7 +299,11 @@ public class PulsarMetadataReader implements AutoCloseable {
                 }
             } else {
                 // create sub on topic
+                log.info("Setting up subscription {} on topic {} at position {}",
+                    subscriptionName, topic, defaultPosition);
                 admin.topics().createSubscription(topic, subscriptionName, defaultPosition);
+                log.info("Subscription {} on topic {} at position {} finished",
+                    subscriptionName, topic, defaultPosition);
                 return defaultPosition;
             }
         } catch (PulsarAdminException e) {
@@ -356,8 +360,10 @@ public class PulsarMetadataReader implements AutoCloseable {
         for (String topic : topics) {
             int partNum = admin.topics().getPartitionedTopicMetadata(topic).partitions;
             if (partNum == 0) {
+                log.info("Add non-partitioned topic to the discovered topic list: {}", topic);
                 allTopics.add(topic);
             } else {
+                log.info("Add partitioned topic to the discovered topic list: {}", topic);
                 for (int i = 0; i < partNum; i++) {
                     allTopics.add(topic + PulsarOptions.PARTITION_SUFFIX + i);
                 }

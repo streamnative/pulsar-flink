@@ -176,6 +176,7 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
 
         admin = PulsarAdminUtils.newAdminFromConf(adminUrl, clientConfigurationData);
 
+        topic2Producer = new HashMap<>();
         if (defaultTopic != null) {
             uploadSchema(defaultTopic);
             defaultProducer = createProducer(clientConfigurationData, producerConf, defaultTopic, getPulsarSchema());
@@ -220,7 +221,7 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
     }
 
     protected <R> Producer<R> getProducer(String topic) {
-        if (null == topic || topic.equals(defaultTopic)) {
+        if (null == topic || topic.equals(defaultTopic) || null == topic2Producer) {
             return (Producer<R>) defaultProducer;
         }
 
@@ -260,8 +261,10 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
     }
 
     public void producerFlush() throws Exception {
-        for (Producer<?> p : topic2Producer.values()) {
-            p.flush();
+        if (null != topic2Producer) {
+            for (Producer<?> p : topic2Producer.values()) {
+                p.flush();
+            }
         }
         synchronized (pendingRecordsLock) {
             while (pendingRecords > 0) {
@@ -281,10 +284,12 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
         if (admin != null) {
             admin.close();
         }
-        for (Producer<?> p : topic2Producer.values()) {
-            p.close();
+        if (null != topic2Producer) {
+            for (Producer<?> p : topic2Producer.values()) {
+                p.close();
+            }
+            topic2Producer.clear();
         }
-        topic2Producer.clear();
     }
 
     protected void checkErroneous() throws Exception {

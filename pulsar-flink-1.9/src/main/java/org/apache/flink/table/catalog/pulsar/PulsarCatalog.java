@@ -23,9 +23,11 @@ import org.apache.flink.table.catalog.CatalogBaseTable;
 import org.apache.flink.table.catalog.CatalogDatabase;
 import org.apache.flink.table.catalog.CatalogDatabaseImpl;
 import org.apache.flink.table.catalog.CatalogFunction;
+import org.apache.flink.table.catalog.CatalogFunctionImpl;
 import org.apache.flink.table.catalog.CatalogPartition;
 import org.apache.flink.table.catalog.CatalogPartitionSpec;
 import org.apache.flink.table.catalog.CatalogTableImpl;
+import org.apache.flink.table.catalog.GenericInMemoryCatalog;
 import org.apache.flink.table.catalog.ObjectPath;
 import org.apache.flink.table.catalog.exceptions.CatalogException;
 import org.apache.flink.table.catalog.exceptions.DatabaseAlreadyExistException;
@@ -61,7 +63,7 @@ import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CO
  * Expose a Pulsar instance as a database catalog.
  */
 @Slf4j
-public class PulsarCatalog extends AbstractCatalog {
+public class PulsarCatalog extends GenericInMemoryCatalog {
 
     private String adminUrl;
     private Map<String, String> properties;
@@ -292,36 +294,6 @@ public class PulsarCatalog extends AbstractCatalog {
     }
 
     @Override
-    public List<String> listFunctions(String dbName) throws DatabaseNotExistException, CatalogException {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public CatalogFunction getFunction(ObjectPath functionPath) throws FunctionNotExistException, CatalogException {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean functionExists(ObjectPath functionPath) throws CatalogException {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void createFunction(ObjectPath functionPath, CatalogFunction function, boolean ignoreIfExists) throws FunctionAlreadyExistException, DatabaseNotExistException, CatalogException {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void alterFunction(ObjectPath functionPath, CatalogFunction newFunction, boolean ignoreIfNotExists) throws FunctionNotExistException, CatalogException {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void dropFunction(ObjectPath functionPath, boolean ignoreIfNotExists) throws FunctionNotExistException, CatalogException {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public CatalogTableStatistics getTableStatistics(ObjectPath tablePath) throws TableNotExistException, CatalogException {
         return CatalogTableStatistics.UNKNOWN;
     }
@@ -347,7 +319,7 @@ public class PulsarCatalog extends AbstractCatalog {
     }
 
     @Override
-    public void alterTableColumnStatistics(ObjectPath tablePath, CatalogColumnStatistics columnStatistics, boolean ignoreIfNotExists) throws TableNotExistException, CatalogException, TablePartitionedException {
+    public void alterTableColumnStatistics(ObjectPath tablePath, CatalogColumnStatistics columnStatistics, boolean ignoreIfNotExists) throws TableNotExistException, CatalogException {
         throw new UnsupportedOperationException();
     }
 

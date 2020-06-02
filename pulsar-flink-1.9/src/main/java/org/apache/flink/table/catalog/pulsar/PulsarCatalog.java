@@ -323,22 +323,22 @@ public class PulsarCatalog extends AbstractCatalog {
 
     @Override
     public CatalogTableStatistics getTableStatistics(ObjectPath tablePath) throws TableNotExistException, CatalogException {
-        throw new UnsupportedOperationException();
+        return CatalogTableStatistics.UNKNOWN;
     }
 
     @Override
     public CatalogColumnStatistics getTableColumnStatistics(ObjectPath tablePath) throws TableNotExistException, CatalogException {
-        throw new UnsupportedOperationException();
+        return CatalogColumnStatistics.UNKNOWN;
     }
 
     @Override
     public CatalogTableStatistics getPartitionStatistics(ObjectPath tablePath, CatalogPartitionSpec partitionSpec) throws PartitionNotExistException, CatalogException {
-        throw new UnsupportedOperationException();
+        return CatalogTableStatistics.UNKNOWN;
     }
 
     @Override
     public CatalogColumnStatistics getPartitionColumnStatistics(ObjectPath tablePath, CatalogPartitionSpec partitionSpec) throws PartitionNotExistException, CatalogException {
-        throw new UnsupportedOperationException();
+        return CatalogColumnStatistics.UNKNOWN;
     }
 
     @Override

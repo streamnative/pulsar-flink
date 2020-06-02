@@ -21,7 +21,7 @@ import org.apache.flink.api.common.state.ListState;
 import org.apache.flink.api.common.state.ListStateDescriptor;
 import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.state.OperatorStateStore;
-import org.apache.flink.api.java.tuple.Tuple3;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.testutils.CheckedThread;
 import org.apache.flink.core.testutils.OneShotLatch;
@@ -147,7 +147,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
                 mock(PulsarMetadataReader.class),
                 dummyProperties);
 
-        final TestingListState<Tuple3<String, MessageId, String>> listState = new TestingListState<>();
+        final TestingListState<Tuple2<String, MessageId>> listState = new TestingListState<>();
         setupSource(source, false, listState, true, 0, 1);
 
         // snapshot before the fetcher starts running
@@ -170,7 +170,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
     public void checkRestoredCheckpointWhenFetcherNotReady() throws Exception {
         @SuppressWarnings("unchecked") final FlinkPulsarSource<String> source = new DummyFlinkPulsarSource<>();
 
-        final TestingListState<Tuple3<String, MessageId, String>> restoredListState = new TestingListState<>();
+        final TestingListState<Tuple2<String, MessageId>> restoredListState = new TestingListState<>();
         setupSource(source, true, restoredListState, true, 0, 1);
 
         // snapshot before the fetcher starts running
@@ -230,8 +230,8 @@ public class FlinkPulsarSourceTest extends TestLogger {
         HashMap<String, MessageId> snapshot1 = new HashMap<>();
 
         for (Serializable serializable : listState.get()) {
-            Tuple3<String, MessageId, String> tuple3 = (Tuple3<String, MessageId, String>) serializable;
-            snapshot1.put(tuple3.f0, tuple3.f1);
+            Tuple2<String, MessageId> tuple2 = (Tuple2<String, MessageId>) serializable;
+            snapshot1.put(tuple2.f0, tuple2.f1);
         }
 
         assertEquals(state1, snapshot1);
@@ -244,8 +244,8 @@ public class FlinkPulsarSourceTest extends TestLogger {
         HashMap<String, MessageId> snapshot2 = new HashMap<>();
 
         for (Serializable serializable : listState.get()) {
-            Tuple3<String, MessageId, String> tuple3 = (Tuple3<String, MessageId, String>) serializable;
-            snapshot2.put(tuple3.f0, tuple3.f1);
+            Tuple2<String, MessageId> tuple2 = (Tuple2<String, MessageId>) serializable;
+            snapshot2.put(tuple2.f0, tuple2.f1);
         }
 
         assertEquals(state2, snapshot2);
@@ -265,8 +265,8 @@ public class FlinkPulsarSourceTest extends TestLogger {
         HashMap<String, MessageId> snapshot3 = new HashMap<>();
 
         for (Serializable serializable : listState.get()) {
-            Tuple3<String, MessageId, String> tuple3 = (Tuple3<String, MessageId, String>) serializable;
-            snapshot3.put(tuple3.f0, tuple3.f1);
+            Tuple2<String, MessageId> tuple2 = (Tuple2<String, MessageId>) serializable;
+            snapshot3.put(tuple2.f0, tuple2.f1);
         }
 
         assertEquals(state3, snapshot3);

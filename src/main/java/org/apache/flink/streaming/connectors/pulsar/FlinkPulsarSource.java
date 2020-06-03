@@ -365,8 +365,8 @@ public class FlinkPulsarSource<T>
 
         log.info("Discovered topics : {}", allTopics);
 
-        boolean canUsingRestoreState = ( startupMode != StartupMode.EXTERNAL_SUBSCRIPTION ) || unionSubEqualExternalSub;
-        if ((restoredState != null )  && canUsingRestoreState) {
+        boolean canUsingRestoreState = (startupMode != StartupMode.EXTERNAL_SUBSCRIPTION) || unionSubEqualExternalSub;
+        if ((restoredState != null) && canUsingRestoreState) {
             allTopics.stream()
                     .filter(k -> !restoredState.containsKey(k))
                     .forEach(t -> restoredState.put(t, MessageId.earliest));

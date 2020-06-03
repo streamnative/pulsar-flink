@@ -353,9 +353,7 @@ public class FlinkPulsarSource<T>
         ownedTopicStarts = new HashMap<>();
         Set<String> allTopics = metadataReader.discoverTopicChanges();
 
-
-        boolean canUsingRestoreState = ( startupMode != StartupMode.EXTERNAL_SUBSCRIPTION ) || unionSubEqualExternalSub;
-        if (restoredState != null && canUsingRestoreState) {
+        if (restoredState != null) {
             allTopics.stream()
                     .filter(k -> !restoredState.containsKey(k))
                     .forEach(t -> restoredState.put(t, MessageId.earliest));

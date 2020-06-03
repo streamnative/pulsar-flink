@@ -18,10 +18,11 @@ set -e
 
 JENKINS_DIR=`dirname "$0"`
 PRJ_HOME=`cd ${JENKINS_DIR};pwd`
+PROFILE=${1}
 
 cd ${PRJ_HOME}
 
-mvn clean license:check install checkstyle:check spotbugs:check
+mvn clean license:check install checkstyle:check spotbugs:check -P${PROFILE}
 cat target/surefire-reports/*.txt
 retcode=$?
 exit $retcode

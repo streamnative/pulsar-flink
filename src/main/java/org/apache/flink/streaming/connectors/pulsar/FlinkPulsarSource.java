@@ -132,6 +132,10 @@ public class FlinkPulsarSource<T>
      */
     private String externalSubscriptionName;
 
+    /** The subscription position to use when subscription does not exist (default is {@link MessageId#latest});
+     * Only relevant when startup mode is {@link StartupMode#EXTERNAL_SUBSCRIPTION}. */
+    private MessageId subscriptionPosition = MessageId.latest;
+
     // TODO: remove this when MessageId is serializable itself.
     // see: https://github.com/apache/pulsar/pull/6064
     private Map<String, byte[]> specificStartupOffsetsAsBytes;
@@ -337,6 +341,12 @@ public class FlinkPulsarSource<T>
         return this;
     }
 
+    public FlinkPulsarSource<T> setStartFromSubscription(String externalSubscriptionName, MessageId subscriptionPosition) {
+        this.startupMode = StartupMode.EXTERNAL_SUBSCRIPTION;
+        this.subscriptionPosition = subscriptionPosition;
+        this.externalSubscriptionName = checkNotNull(externalSubscriptionName);
+        return this;
+    }
 
     // ------------------------------------------------------------------------
     //  Work methods
@@ -394,8 +404,8 @@ public class FlinkPulsarSource<T>
             if (ownedTopicStarts.isEmpty()) {
                 log.info("Source {} initially has no topics to read from.", taskIndex);
             } else {
-                log.info("Source {} will start reading {} topics from initialized positions",
-                        taskIndex, ownedTopicStarts.size());
+                log.info("Source {} will start reading {} topics from initialized positions: {}",
+                        taskIndex, ownedTopicStarts.size(), ownedTopicStarts);
             }
         }
     }
@@ -538,6 +548,7 @@ public class FlinkPulsarSource<T>
                             Set<String> added = metadataReader.discoverTopicChanges();
 
                             if (running && !added.isEmpty()) {
+                                log.info("Discovered new topics : {}", added);
                                 pulsarFetcher.addDiscoveredTopics(added);
                             }
 
@@ -765,7 +776,7 @@ public class FlinkPulsarSource<T>
             case EXTERNAL_SUBSCRIPTION:
                 Map<String, MessageId> offsetsFromSubs = new HashMap<>();
                 for (String topic : topics) {
-                    offsetsFromSubs.put(topic, metadataReader.getPositionFromSubscription(topic, MessageId.latest));
+                    offsetsFromSubs.put(topic, metadataReader.getPositionFromSubscription(topic, subscriptionPosition));
                 }
                 return offsetsFromSubs;
         }

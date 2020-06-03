@@ -353,7 +353,6 @@ public class FlinkPulsarSource<T>
         ownedTopicStarts = new HashMap<>();
         Set<String> allTopics = metadataReader.discoverTopicChanges();
 
-        log.info("Discovered topics : {}", allTopics);
 
         boolean canUsingRestoreState = ( startupMode != StartupMode.EXTERNAL_SUBSCRIPTION ) || unionSubEqualExternalSub;
         if (restoredState != null && canUsingRestoreState) {

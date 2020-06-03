@@ -246,8 +246,10 @@ public class FlinkPulsarSourceTest extends TestLogger {
         HashMap<String, MessageId> snapshot2 = new HashMap<>();
 
         for (Serializable serializable : listState.get()) {
-            Tuple2<String, MessageId> tuple2 = (Tuple2<String, MessageId>) serializable;
-            snapshot2.put(tuple2.f0, tuple2.f1);
+            if (serializable instanceof Tuple2) {
+                Tuple2<String, MessageId> tuple2 = (Tuple2<String, MessageId>) serializable;
+                snapshot2.put(tuple2.f0, tuple2.f1);
+            }
         }
 
         assertEquals(state2, snapshot2);
@@ -267,8 +269,10 @@ public class FlinkPulsarSourceTest extends TestLogger {
         HashMap<String, MessageId> snapshot3 = new HashMap<>();
 
         for (Serializable serializable : listState.get()) {
-            Tuple2<String, MessageId> tuple2 = (Tuple2<String, MessageId>) serializable;
-            snapshot3.put(tuple2.f0, tuple2.f1);
+            if (serializable instanceof Tuple2) {
+                Tuple2<String, MessageId> tuple2 = (Tuple2<String, MessageId>) serializable;
+                snapshot3.put(tuple2.f0, tuple2.f1);
+            }
         }
 
         assertEquals(state3, snapshot3);

@@ -676,7 +676,10 @@ public class FlinkPulsarSource<T>
         } else {
             unionOffsetStates.clear();
 
-            unionSubscriptionNameStates.add(getSubscriptionName());
+            if (startupMode == StartupMode.EXTERNAL_SUBSCRIPTION) {
+                unionSubscriptionNameStates.add(getSubscriptionName());
+            }
+
             PulsarFetcher fetcher = this.pulsarFetcher;
             if (fetcher == null) {
                 // the fetcher has not yet been initialized, which means we need to return the

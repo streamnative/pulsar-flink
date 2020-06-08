@@ -14,8 +14,6 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
-import org.apache.flink.api.common.serialization.DeserializationSchema;
-
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageId;
@@ -49,7 +47,7 @@ public class ReaderThread<T> extends Thread {
 
     protected volatile boolean running = true;
 
-    private final DeserializationSchema<T> deserializer;
+    private final PulsarDeserializationSchema<T> deserializer;
 
     protected volatile Reader<?> reader = null;
 
@@ -60,7 +58,7 @@ public class ReaderThread<T> extends Thread {
             PulsarTopicState state,
             ClientConfigurationData clientConf,
             Map<String, Object> readerConf,
-            DeserializationSchema<T> deserializer,
+            PulsarDeserializationSchema<T> deserializer,
             int pollTimeoutMs,
             ExceptionProxy exceptionProxy) {
         this.owner = owner;
@@ -80,7 +78,7 @@ public class ReaderThread<T> extends Thread {
             PulsarTopicState state,
             ClientConfigurationData clientConf,
             Map<String, Object> readerConf,
-            DeserializationSchema<T> deserializer,
+            PulsarDeserializationSchema<T> deserializer,
             int pollTimeoutMs,
             ExceptionProxy exceptionProxy,
             boolean failOnDataLoss) {
@@ -196,7 +194,11 @@ public class ReaderThread<T> extends Thread {
 
     protected void emitRecord(Message<?> message) throws IOException {
         MessageId messageId = message.getMessageId();
-        T record = deserializer.deserialize(message.getData());
+        T record = deserializer.deserialize(message);
+        if (deserializer.isEndOfStream(record)) {
+            running = false;
+            return;
+        }
         owner.emitRecord(record, state, messageId);
     }
 

@@ -14,7 +14,6 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
-import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
 import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
@@ -102,7 +101,7 @@ public class PulsarFetcher<T> {
 
     protected final Map<String, Object> readerConf;
 
-    protected final DeserializationSchema<T> deserializer;
+    protected final PulsarDeserializationSchema<T> deserializer;
 
     protected final int pollTimeoutMs;
 
@@ -131,7 +130,7 @@ public class PulsarFetcher<T> {
             ClientConfigurationData clientConf,
             Map<String, Object> readerConf,
             int pollTimeoutMs,
-            DeserializationSchema<T> deserializer,
+            PulsarDeserializationSchema<T> deserializer,
             PulsarMetadataReader metadataReader) throws Exception {
         this(
                 sourceContext,
@@ -163,7 +162,7 @@ public class PulsarFetcher<T> {
             Map<String, Object> readerConf,
             int pollTimeoutMs,
             int commitMaxRetries,
-            DeserializationSchema<T> deserializer,
+            PulsarDeserializationSchema<T> deserializer,
             PulsarMetadataReader metadataReader) throws Exception {
 
         this.sourceContext = sourceContext;

@@ -37,6 +37,8 @@ import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
 import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
 import org.apache.flink.streaming.connectors.pulsar.internal.CachedPulsarClient;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarCommitCallback;
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarDeserializationSchema;
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarDeserializationSchemaWrapper;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarFetcher;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
@@ -99,7 +101,7 @@ public class FlinkPulsarSource<T>
 
     protected final Map<String, Object> readerConf;
 
-    protected final DeserializationSchema<T> deserializer;
+    protected final PulsarDeserializationSchema<T> deserializer;
 
     private Map<String, MessageId> ownedTopicStarts;
 
@@ -192,7 +194,7 @@ public class FlinkPulsarSource<T>
     public FlinkPulsarSource(
             String adminUrl,
             ClientConfigurationData clientConf,
-            DeserializationSchema<T> deserializer,
+            PulsarDeserializationSchema<T> deserializer,
             Properties properties) {
         this.adminUrl = checkNotNull(adminUrl);
         this.clientConfigurationData = checkNotNull(clientConf);
@@ -217,9 +219,25 @@ public class FlinkPulsarSource<T>
     }
 
     public FlinkPulsarSource(
+            String adminUrl,
+            ClientConfigurationData clientConf,
+            DeserializationSchema<T> deserializer,
+            Properties properties) {
+        this(adminUrl, clientConf, new PulsarDeserializationSchemaWrapper<>(deserializer), properties);
+    }
+
+    public FlinkPulsarSource(
             String serviceUrl,
             String adminUrl,
             DeserializationSchema<T> deserializer,
+            Properties properties) {
+        this(adminUrl, newClientConf(checkNotNull(serviceUrl)), deserializer, properties);
+    }
+
+    public FlinkPulsarSource(
+            String serviceUrl,
+            String adminUrl,
+            PulsarDeserializationSchema<T> deserializer,
             Properties properties) {
         this(adminUrl, newClientConf(checkNotNull(serviceUrl)), deserializer, properties);
     }

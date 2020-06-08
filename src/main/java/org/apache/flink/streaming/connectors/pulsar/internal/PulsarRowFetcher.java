@@ -14,7 +14,6 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
-import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
 import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
@@ -49,7 +48,7 @@ public class PulsarRowFetcher extends PulsarFetcher<Row> {
             ClientConfigurationData clientConf,
             Map<String, Object> readerConf,
             int pollTimeoutMs,
-            DeserializationSchema<Row> deserializer,
+            PulsarDeserializationSchema<Row> deserializer,
             PulsarMetadataReader metadataReader) throws Exception {
 
         super(sourceContext, seedTopicsWithInitialOffsets, watermarksPeriodic, watermarksPunctuated, processingTimeProvider, autoWatermarkInterval, userCodeClassLoader, runtimeContext, clientConf, readerConf, pollTimeoutMs, deserializer, metadataReader);

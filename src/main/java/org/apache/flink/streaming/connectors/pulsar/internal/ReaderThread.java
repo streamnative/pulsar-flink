@@ -152,7 +152,7 @@ public class ReaderThread<T> extends Thread {
                     log.error("the start message id is beyond the last commit message id, with topic:{}", reader.getTopic());
                     throw new RuntimeException("start message id beyond the last commit");
                 } else if (!failOnDataLoss) {
-                    log.info("reset message to valid offset");
+                    log.info("reset message to valid offset {}", startMessageId);
                     this.owner.getMetadataReader().resetCursor(reader.getTopic(), startMessageId);
                 }
             } else {
@@ -170,7 +170,7 @@ public class ReaderThread<T> extends Thread {
                         topic));
             } else {
                 currentId = currentMessage.getMessageId();
-                if (!messageIdRoughEquals(currentId, startMessageId)) {
+                if (!messageIdRoughEquals(currentId, startMessageId) && failOnDataLoss) {
                     reportDataLoss(
                             String.format(
                                     "Potential Data Loss in reading %s: intended to start at %s, actually we get %s",

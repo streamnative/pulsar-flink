@@ -210,7 +210,7 @@ public class PulsarSerializer {
             return (getter, ordinal) -> ByteBuffer.wrap((byte[]) getter.getField(ordinal));
         } else if (tpe == LogicalTypeRoot.DATE && atpe == Schema.Type.INT) {
             return (getter, ordinal) -> DateTimeUtils.fromJavaDate((java.sql.Date) getter.getField(ordinal));
-        } else if (tpe == LogicalTypeRoot.TIMESTAMP_WITH_TIME_ZONE && atpe == Schema.Type.LONG) {
+        } else if (tpe == LogicalTypeRoot.TIMESTAMP_WITHOUT_TIME_ZONE && atpe == Schema.Type.LONG) {
             LogicalType altpe = avroType.getLogicalType();
             if (altpe instanceof LogicalTypes.TimestampMillis) {
                 return (getter, ordinal) -> DateTimeUtils.fromJavaTimestamp((java.sql.Timestamp) getter.getField(ordinal)) / 1000;

@@ -551,6 +551,7 @@ public class PulsarFetcher<T> {
         if (readerConf.containsKey(PulsarOptions.FAIL_ON_DATA_LOSS_OPTION_KEY)) {
             String failOnDataLossVal = readerConf.getOrDefault(PulsarOptions.FAIL_ON_DATA_LOSS_OPTION_KEY, "true").toString();
             failOnDataLoss = Boolean.parseBoolean(failOnDataLossVal);
+            log.info("Create reader with failOnDataLoss {}", failOnDataLoss);
         }
         return new ReaderThread(
                 this,

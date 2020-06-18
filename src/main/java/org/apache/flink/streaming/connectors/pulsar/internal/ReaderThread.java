@@ -90,7 +90,7 @@ public class ReaderThread<T> extends Thread {
 
     @Override
     public void run() {
-        log.info("Starting to fetch from {} at {}", topic, startMessageId);
+        log.info("Starting to fetch from {} at {}, failOnDataLoss {}", topic, startMessageId, failOnDataLoss);
 
         try {
             createActualReader();

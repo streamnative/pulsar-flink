@@ -143,10 +143,13 @@ public class ReaderThread<T> extends Thread {
                 && !startMessageId.equals(MessageId.latest)
                 && ((MessageIdImpl) startMessageId).getEntryId() != -1) {
             MessageIdImpl lastMessageId = (MessageIdImpl) this.owner.getMetadataReader().getLastMessageId(reader.getTopic());
+
             if (!messageIdRoughEquals(startMessageId, lastMessageId) && !reader.hasMessageAvailable()) {
                 MessageIdImpl startMsgIdImpl = (MessageIdImpl) startMessageId;
                 long startMsgLedgerId = startMsgIdImpl.getLedgerId();
                 long startMsgEntryId = startMsgIdImpl.getEntryId();
+
+                // startMessageId is bigger than lastMessageId
                 if (startMsgLedgerId > lastMessageId.getLedgerId()
                         || (startMsgLedgerId == lastMessageId.getLedgerId() && startMsgEntryId > lastMessageId.getEntryId())) {
                     log.error("the start message id is beyond the last commit message id, with topic:{}", reader.getTopic());
@@ -155,9 +158,8 @@ public class ReaderThread<T> extends Thread {
                     log.info("reset message to valid offset {}", startMessageId);
                     this.owner.getMetadataReader().resetCursor(reader.getTopic(), startMessageId);
                 }
-            } else {
-                failOnDataLoss = false;
             }
+
             while (currentMessage == null && running) {
                 currentMessage = reader.readNext(pollTimeoutMs, TimeUnit.MILLISECONDS);
                 if (failOnDataLoss) {

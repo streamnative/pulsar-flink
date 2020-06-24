@@ -61,11 +61,19 @@ import org.apache.flink.shaded.guava18.com.google.common.collect.Sets;
 
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.pulsar.client.admin.LongRunningProcessStatus;
+import org.apache.pulsar.client.admin.LongRunningProcessStatus.Status;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
+import org.apache.pulsar.client.api.Consumer;
+import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageId;
+import org.apache.pulsar.client.api.Producer;
+import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
+import org.apache.pulsar.client.api.Reader;
 import org.apache.pulsar.client.api.Schema;
+import org.apache.pulsar.client.api.SubscriptionType;
 import org.apache.pulsar.client.impl.MessageIdImpl;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.policies.data.PersistentTopicInternalStats;
@@ -73,6 +81,8 @@ import org.apache.pulsar.common.schema.SchemaType;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -89,19 +99,25 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.fooList;
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.CLIENT_CACHE_SIZE_OPTION_KEY;
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.FAIL_ON_WRITE_OPTION_KEY;
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.FLUSH_ON_CHECKPOINT_OPTION_KEY;
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.PARTITION_DISCOVERY_INTERVAL_MS_OPTION_KEY;
+import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.PULSAR_READER_OPTION_KEY_PREFIX;
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.TOPIC_ATTRIBUTE_NAME;
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.TOPIC_MULTI_OPTION_KEY;
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.TOPIC_SINGLE_OPTION_KEY;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -109,6 +125,8 @@ import static org.junit.Assert.fail;
  * Pulsar source sink integration tests.
  */
 public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
+
+    private static final Logger log = LoggerFactory.getLogger(FlinkPulsarITest.class);
 
     @Rule
     public RetryRule retryRule = new RetryRule();
@@ -650,6 +668,109 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
 
         FailingIdentityMapper.failedBefore = false;
         TestUtils.tryExecute(env, "One-source-multi-partitions exactly once test");
+    }
+
+    @Test
+    public void testReadCompactedTopic() throws Exception {
+	    String topic = newTopic();
+	    String sub = "compacted-sub";
+	    String outputTopic = topic + "-output";
+
+	    int numKeys = 3;
+	    int numMessagesPerKey = 10;
+
+        PulsarAdmin admin = PulsarAdmin.builder().serviceHttpUrl(adminUrl).build();
+        admin.topics().createNonPartitionedTopic(topic);
+        admin.topics().createSubscription(topic, sub, MessageId.earliest);
+
+        PulsarClient client = PulsarClient.builder()
+             .serviceUrl(serviceUrl)
+             .build();
+
+        try (Producer<String> producer = client.newProducer(Schema.STRING)
+             .topic(topic)
+             .create()) {
+            for (int j = 0; j < numMessagesPerKey; j++) {
+                for (int i = 0; i < numKeys; i++) {
+                    producer.newMessage()
+                        .key("key-" + i)
+                        .value("value-" + i + "-" + j)
+                        .send();
+                }
+            }
+        }
+
+	    admin.topics().triggerCompaction(topic);
+	    LongRunningProcessStatus status = admin.topics().compactionStatus(topic);
+	    while (status.status == Status.RUNNING) {
+            TimeUnit.MILLISECONDS.sleep(500);
+            status = admin.topics().compactionStatus(topic);
+        }
+
+	    assertEquals(Status.SUCCESS, status.status);
+
+	    try (Reader<String> reader = client.newReader(Schema.STRING)
+             .topic(topic)
+             .startMessageId(MessageId.earliest)
+             .readCompacted(true)
+             .create()) {
+
+	        for (int i = 0; i < numKeys; i++) {
+	            Message<String> msg = reader.readNext();
+	            log.info("Received message : {} - {}", msg.getKey(), msg.getValue());
+            }
+        }
+
+	    StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+	    env.setParallelism(1);
+
+	    Properties sourceProps = sourceProperties();
+	    sourceProps.setProperty(
+            PULSAR_READER_OPTION_KEY_PREFIX + "readCompacted", "true");
+	    sourceProps.setProperty(
+            TOPIC_SINGLE_OPTION_KEY, topic);
+
+        Consumer<byte[]> outputConsumer = client.newConsumer()
+            .topic(outputTopic)
+            .subscriptionName(sub)
+            .subscriptionType(SubscriptionType.Exclusive)
+            .subscribe();
+
+        env.addSource(new FlinkPulsarSource<>(serviceUrl, adminUrl, new SimpleStringSchema(), sourceProps)
+                .setStartFromEarliest())
+            .addSink(new FlinkPulsarSink<>(serviceUrl, adminUrl, Optional.of(outputTopic),
+                new Properties(), null, String.class))
+            .setParallelism(1);
+
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        executorService.submit(() -> {
+            try {
+                TestUtils.tryExecute(env, "read from compacted topic");
+            } catch (Exception e) {
+                log.warn("Failed to execute a flink job", e);
+            }
+        });
+
+        final Map<Integer, Integer> result = new HashMap<>();
+
+        for (int i = 0; i < numKeys; i++) {
+            Message<byte[]> msg = outputConsumer.receive();
+
+            String value = new String(msg.getValue(), UTF_8);
+            String[] parts = value.split("-");
+
+            int keyIdx = Integer.parseInt(parts[1]);
+            int valIdx = Integer.parseInt(parts[2]);
+
+            assertEquals(numMessagesPerKey - 1, valIdx);
+            assertNull(result.get(keyIdx));
+            result.put(keyIdx, valIdx);
+        }
+
+        executorService.shutdown();
+        outputConsumer.close();
+        client.close();
+        admin.close();
     }
 
     @Test

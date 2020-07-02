@@ -170,6 +170,10 @@ public class FlinkPulsarSource<T>
     /** Accessor for state in the operator state backend. */
     private transient ListState<Tuple2<String, MessageId>> unionOffsetStates;
 
+    private transient ListState<String> unionSubscriptionNameStates;
+
+    private volatile boolean unionSubEqualExternalSub = true;
+
     /** Discovery loop, executed in a separate thread. */
     private transient volatile Thread discoveryLoopThread;
 
@@ -361,7 +365,8 @@ public class FlinkPulsarSource<T>
 
         log.info("Discovered topics : {}", allTopics);
 
-        if (restoredState != null) {
+        boolean canUsingRestoreState = (startupMode != StartupMode.EXTERNAL_SUBSCRIPTION) || unionSubEqualExternalSub;
+        if ((restoredState != null) && canUsingRestoreState) {
             allTopics.stream()
                     .filter(k -> !restoredState.containsKey(k))
                     .forEach(t -> restoredState.put(t, MessageId.earliest));
@@ -638,12 +643,27 @@ public class FlinkPulsarSource<T>
                         TypeInformation.of(new TypeHint<Tuple2<String, MessageId>>() {
                         })));
 
+        unionSubscriptionNameStates = stateStore.getUnionListState(
+                new ListStateDescriptor<>(
+                        OFFSETS_STATE_NAME + "_subName",
+                        TypeInformation.of(new TypeHint<String>() {
+                        })));
+
         if (context.isRestored()) {
             restoredState = new TreeMap<>();
             unionOffsetStates.get().forEach(e -> restoredState.put(e.f0, e.f1));
             log.info("Source subtask {} restored state {}",
                     taskIndex,
                     StringUtils.join(restoredState.entrySet()));
+            log.info("Source subtask {} restored subscriptionName {}",
+                    taskIndex,
+                    StringUtils.join(unionSubscriptionNameStates.get()));
+
+            unionSubscriptionNameStates.get().forEach(subName -> {
+                if (subName != null && !subName.equals(getSubscriptionName())) {
+                    unionSubEqualExternalSub = false;
+                }
+            });
         } else {
             log.info("Source subtask {} has no restore state", taskIndex);
         }
@@ -656,8 +676,11 @@ public class FlinkPulsarSource<T>
         } else {
             unionOffsetStates.clear();
 
-            PulsarFetcher fetcher = this.pulsarFetcher;
+            if (startupMode == StartupMode.EXTERNAL_SUBSCRIPTION) {
+                unionSubscriptionNameStates.add(getSubscriptionName());
+            }
 
+            PulsarFetcher fetcher = this.pulsarFetcher;
             if (fetcher == null) {
                 // the fetcher has not yet been initialized, which means we need to return the
                 // originally restored offsets or the assigned partitions

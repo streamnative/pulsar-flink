@@ -222,8 +222,8 @@ public class PulsarMetadataReader implements AutoCloseable {
         SchemaUtils.uploadPulsarSchema(admin, topic, si);
     }
 
-    public void setupCursor(Map<String, MessageId> offset) {
-        if (!useExternalSubscription) {
+    public void setupCursor(Map<String, MessageId> offset, boolean failOnDataLoss) {
+        if (!useExternalSubscription || !failOnDataLoss) {
             for (Map.Entry<String, MessageId> entry : offset.entrySet()) {
                 try {
                     log.info("Setting up subscription {} on topic {} at position {}", subscriptionName, entry.getKey(), entry.getValue());
@@ -235,6 +235,10 @@ public class PulsarMetadataReader implements AutoCloseable {
                 }
             }
         }
+    }
+
+    public void setupCursor(Map<String, MessageId> offset) {
+        setupCursor(offset, true);
     }
 
     public void commitCursorToOffset(Map<String, MessageId> offset) {

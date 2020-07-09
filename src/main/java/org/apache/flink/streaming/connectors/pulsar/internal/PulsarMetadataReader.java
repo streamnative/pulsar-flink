@@ -26,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.ListUtils;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
+import org.apache.pulsar.client.admin.PulsarAdminException.ConflictException;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.MessageIdImpl;
@@ -223,15 +224,18 @@ public class PulsarMetadataReader implements AutoCloseable {
     }
 
     public void setupCursor(Map<String, MessageId> offset, boolean failOnDataLoss) {
+        // if failOnDataLoss is false, we could continue, and re-create the sub.
         if (!useExternalSubscription || !failOnDataLoss) {
             for (Map.Entry<String, MessageId> entry : offset.entrySet()) {
                 try {
                     log.info("Setting up subscription {} on topic {} at position {}", subscriptionName, entry.getKey(), entry.getValue());
                     admin.topics().createSubscription(entry.getKey(), subscriptionName, entry.getValue());
                     log.info("Subscription {} on topic {} at position {} finished", subscriptionName, entry.getKey(), entry.getValue());
+                } catch (ConflictException e) {
+                    log.info("Subscription {} on topic {} already exists", subscriptionName, entry.getKey());
                 } catch (PulsarAdminException e) {
                     throw new RuntimeException(
-                            String.format("Failed to set up cursor for %s", TopicName.get(entry.getKey()).toString()), e);
+                            String.format("Failed to set up cursor for %s ", TopicName.get(entry.getKey()).toString()), e);
                 }
             }
         }

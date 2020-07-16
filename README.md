@@ -168,7 +168,7 @@ It is usually helpful to start from the `AbstractDeserializationSchema`, which t
 produced Java/Scala type to Flink's type system. Users that implement a vanilla `DeserializationSchema` need
 to implement the `getProducedType(...)` method themselves.
 
-For convenience, we provides the following `DeserializationSchema`:
+For convenience, we provide the following implementations of the `DeserializationSchema` interface:
 
 1. `JsonDeser`: if the topic is of JSONSchema in Pulsar, you could use `JsonDeser.of(POJO_CLASS_NAME.class)` for `DeserializationSchema`.
 
@@ -391,7 +391,7 @@ methods `setLogFailuresOnly(boolean)` and `setFlushOnCheckpoint(boolean)` approp
 
 For Pulsar instance configured with Authentication, Pulsar Flink Connector could be set in similar way with the regular Pulsar Client.
 
-For FlinkPulsarSource, FlinkPulsarRowSource, FlinkPulsarSink and FlinkPulsarRowSink, they all comes with a constructor that enables you to
+For FlinkPulsarSource, FlinkPulsarRowSource, FlinkPulsarSink and FlinkPulsarRowSink, they all come with a constructor that enables you to
 pass in `ClientConfigurationData` as one of the parameters. You should construct a `ClientConfigurationData` first and pass it to the correspond constructor.
 
 For example:

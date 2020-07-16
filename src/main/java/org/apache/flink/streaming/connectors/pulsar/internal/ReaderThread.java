@@ -154,11 +154,13 @@ public class ReaderThread<T> extends Thread {
                 // startMessageId is bigger than lastMessageId
                 if (startMsgLedgerId > lastMessageId.getLedgerId()
                         || (startMsgLedgerId == lastMessageId.getLedgerId() && startMsgEntryId > lastMessageId.getEntryId())) {
-                    log.error("the start message id is beyond the last commit message id, with topic:{}", reader.getTopic());
-                    throw new RuntimeException("start message id beyond the last commit");
-                } else if (!failOnDataLoss) {
-                    log.info("reset message to valid offset {}", startMessageId);
-                    this.owner.getMetadataReader().resetCursor(reader.getTopic(), startMessageId);
+                    if (failOnDataLoss) {
+                        log.error("the start message id is beyond the last commit message id, with topic:{}", reader.getTopic());
+                        throw new RuntimeException("start message id beyond the last commit");
+                    } else {
+                        log.info("reset message to valid offset {}", startMessageId);
+                        this.owner.getMetadataReader().resetCursor(reader.getTopic(), startMessageId);
+                    }
                 }
             }
 

@@ -24,7 +24,7 @@
 
   <groupId>io.streamnative.connectors</groupId>
   <artifactId>pulsar-flink-connector_${scala.binary.version}</artifactId>
-  <version>2.4.28-SNAPSHOT</version>
+  <version>2.4.28</version>
   <name>StreamNative :: Pulsar Flink Connector</name>
   <url>http://pulsar.apache.org</url>
   <inceptionYear>2019</inceptionYear>
@@ -40,7 +40,7 @@
     <developerConnection>scm:git:https://github.com/streamnative/pulsar-flink.git
     </developerConnection>
     <url>https://github.com/streamnative/pulsar-flink</url>
-    <tag>branch-2.4.28</tag>
+    <tag>release-2.4.28</tag>
   </scm>
   <issueManagement>
     <system>Github</system>

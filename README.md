@@ -139,7 +139,7 @@ The constructor accepts the following arguments:
 2. A DeserializationSchema for deserializing the data from Pulsar when using `FlinkPulsarSource`
 3. Properties for the Pulsar Source.
   The following properties are required:
-  - One of "topic", "topics" or "topicsPattern" to denote topic(s) to consume. (**topics is a comma-separated list of topics, and topicsPattern is a Java regex string used to pattern matching topic names **)
+  - One of "topic", "topics" or "topicsPattern" to denote topic(s) to consume. (**topics is a comma-separated list of topics, and topicsPattern is a Java regex string used to pattern matching topic names**)
 
 Example:
 

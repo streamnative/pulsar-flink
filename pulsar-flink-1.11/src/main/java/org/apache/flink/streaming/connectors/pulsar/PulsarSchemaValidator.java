@@ -23,7 +23,6 @@ import org.apache.flink.table.descriptors.SchemaValidator;
  */
 public class PulsarSchemaValidator extends SchemaValidator {
 
-
     public PulsarSchemaValidator(boolean isStreamEnvironment, boolean supportsSourceTimestamps, boolean supportsSourceWatermarks) {
         super(isStreamEnvironment, supportsSourceTimestamps, supportsSourceWatermarks);
     }

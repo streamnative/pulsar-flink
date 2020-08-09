@@ -24,8 +24,8 @@ import org.apache.flink.table.types.KeyValueDataType;
 import org.apache.flink.table.types.logical.DecimalType;
 import org.apache.flink.table.types.logical.LogicalTypeRoot;
 import org.apache.flink.table.types.logical.RowType;
-
 import org.apache.flink.table.types.utils.TypeConversions;
+
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.schema.GenericRecord;
@@ -175,7 +175,7 @@ public class SchemaUtils {
             FieldsDataType fieldsDataType = (FieldsDataType) dataType;
             RowType rowType = (RowType) fieldsDataType.getLogicalType();
             List<String> fieldNames  = rowType.getFieldNames();
-            for (int i=0;i<fieldNames.size();i++) {
+            for (int i = 0; i < fieldNames.size(); i++) {
                 org.apache.flink.table.types.logical.LogicalType logicalType = rowType.getTypeAt(i);
                 DataTypes.Field field = DataTypes.FIELD(fieldNames.get(i), TypeConversions.fromLogicalToDataType(logicalType));
                 mainSchema.add(field);

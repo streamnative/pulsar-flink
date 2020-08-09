@@ -437,6 +437,4 @@ public class PulsarMetadataReader implements AutoCloseable {
             throw new RuntimeException(e);
         }
     }
-
-
 }

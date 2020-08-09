@@ -14,7 +14,6 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
-import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
 import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
@@ -119,7 +118,7 @@ public class PulsarFetcher<T> {
     /** The threads that runs the actual reading and hand the records to this fetcher. */
     private Map<String, ReaderThread> topicToThread;
 
-    /** Failed or not when data loss **/
+    /** Failed or not when data loss. **/
     private boolean failOnDataLoss = true;
 
     public PulsarFetcher(

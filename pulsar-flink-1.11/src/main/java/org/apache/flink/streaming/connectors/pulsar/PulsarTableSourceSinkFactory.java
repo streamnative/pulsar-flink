@@ -52,6 +52,7 @@ import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CO
 import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CONNECTOR_PROPERTY_VERSION;
 import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CONNECTOR_TYPE;
 import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CONNECTOR_VERSION;
+import static org.apache.flink.table.descriptors.DescriptorProperties.EXPR;
 import static org.apache.flink.table.descriptors.FormatDescriptorValidator.FORMAT;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_ADMIN_URL;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_EXTERNAL_SUB_NAME;
@@ -67,7 +68,6 @@ import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_SPECI
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_STARTUP_MODE;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_TOPIC;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_TYPE_VALUE_PULSAR;
-import static org.apache.flink.table.descriptors.DescriptorProperties.EXPR;
 import static org.apache.flink.table.descriptors.Rowtime.ROWTIME_TIMESTAMPS_CLASS;
 import static org.apache.flink.table.descriptors.Rowtime.ROWTIME_TIMESTAMPS_FROM;
 import static org.apache.flink.table.descriptors.Rowtime.ROWTIME_TIMESTAMPS_SERIALIZED;
@@ -207,7 +207,7 @@ public class PulsarTableSourceSinkFactory
 
         isInDDL = props.size() != 0;
 
-        if (props.get(CONNECTOR_TOPIC) == null ) {
+        if (props.get(CONNECTOR_TOPIC) == null) {
             String topic = PulsarMetadataReader.objectPath2TopicName(tablePath);
             props.put(CONNECTOR_TOPIC, topic);
         }

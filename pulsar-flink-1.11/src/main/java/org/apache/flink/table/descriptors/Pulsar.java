@@ -29,6 +29,8 @@ import java.util.Properties;
 import java.util.stream.Collectors;
 
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_ADMIN_URL;
+import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_EXTERNAL_SUB_DEFAULT_OFFSET;
+import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_EXTERNAL_SUB_NAME;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_PROPERTIES;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_PROPERTIES_KEY;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_PROPERTIES_VALUE;
@@ -43,9 +45,6 @@ import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_SPECI
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_STARTUP_MODE;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_TOPIC;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_TYPE_VALUE_PULSAR;
-import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_EXTERNAL_SUB_NAME;
-import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_EXTERNAL_SUB_DEFAULT_OFFSET;
-
 
 /**
  * Pulsar {@ConnectorDescriptor}.

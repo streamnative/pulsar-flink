@@ -15,6 +15,7 @@
 package org.apache.flink.streaming.connectors.pulsar;
 
 import org.apache.flink.types.Row;
+
 import java.io.Serializable;
 import java.util.Random;
 
@@ -55,12 +56,15 @@ public interface TopicKeyExtractor<T> extends Serializable {
         return new RebalancedKeyExtractor(topic);
     }
 
+    /**
+     * RebalancedKeyExtractor.
+     */
     class RebalancedKeyExtractor implements TopicKeyExtractor<Object>{
-
         private Random rand = new Random(47);
         private String topic;
 
         public RebalancedKeyExtractor(){}
+
         public RebalancedKeyExtractor(String topic) {
             this.topic = topic;
         }

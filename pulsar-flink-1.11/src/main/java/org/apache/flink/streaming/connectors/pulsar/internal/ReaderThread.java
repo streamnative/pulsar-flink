@@ -71,7 +71,7 @@ public class ReaderThread<T> extends Thread {
         MessageIdImpl messageId = (MessageIdImpl) state.getOffset();
         if (messageId.getEntryId() == -1) {
             this.startMessageId = new MessageIdImpl(messageId.getLedgerId(),
-                    messageId.getEntryId()+1, messageId.getPartitionIndex());
+                    messageId.getEntryId() + 1, messageId.getPartitionIndex());
         } else {
             this.startMessageId = state.getOffset();
         }
@@ -222,7 +222,7 @@ public class ReaderThread<T> extends Thread {
     }
 
     /** used to check whether starting position and current message we got actually are equal
-     * we neglect the potential batchIdx deliberately while seeking to MessageIdImpl for batch entry
+     * we neglect the potential batchIdx deliberately while seeking to MessageIdImpl for batch entry.
      *
      */
     public static boolean messageIdRoughEquals(MessageId l, MessageId r) {

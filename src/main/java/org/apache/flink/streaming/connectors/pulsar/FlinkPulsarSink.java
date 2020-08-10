@@ -14,10 +14,10 @@
 
 package org.apache.flink.streaming.connectors.pulsar;
 
+import org.apache.flink.streaming.connectors.pulsar.config.RecordSchemaType;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
-
 import java.util.Optional;
 import java.util.Properties;
 
@@ -30,6 +30,24 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
 
     private final Class<T> recordClazz;
 
+    /**
+     * Type for serialized messages, default use AVRO.
+     */
+    private final Schema<T> schema;
+
+    public FlinkPulsarSink(
+            String adminUrl,
+            Optional<String> defaultTopicName,
+            ClientConfigurationData clientConf,
+            Properties properties,
+            TopicKeyExtractor<T> topicKeyExtractor,
+            Class<T> recordClazz,
+            RecordSchemaType recordSchemaType) {
+        super(adminUrl, defaultTopicName, clientConf, properties, topicKeyExtractor);
+        this.recordClazz = recordClazz;
+        this.schema = buildSchema(recordClazz, recordSchemaType);
+    }
+
     public FlinkPulsarSink(
             String adminUrl,
             Optional<String> defaultTopicName,
@@ -37,8 +55,7 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
             Properties properties,
             TopicKeyExtractor<T> topicKeyExtractor,
             Class<T> recordClazz) {
-        super(adminUrl, defaultTopicName, clientConf, properties, topicKeyExtractor);
-        this.recordClazz = recordClazz;
+        this(adminUrl, defaultTopicName, clientConf, properties, topicKeyExtractor, recordClazz, RecordSchemaType.AVRO);
     }
 
     public FlinkPulsarSink(
@@ -48,12 +65,25 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
             Properties properties,
             TopicKeyExtractor<T> topicKeyExtractor,
             Class<T> recordClazz) {
-        this(adminUrl, defaultTopicName, newClientConf(serviceUrl), properties, topicKeyExtractor, recordClazz);
+        this(adminUrl, defaultTopicName, newClientConf(serviceUrl), properties, topicKeyExtractor, recordClazz,
+                RecordSchemaType.AVRO);
+    }
+
+    public FlinkPulsarSink(
+            String serviceUrl,
+            String adminUrl,
+            Optional<String> defaultTopicName,
+            Properties properties,
+            TopicKeyExtractor<T> topicKeyExtractor,
+            Class<T> recordClazz,
+            RecordSchemaType recordSchemaType) {
+        this(adminUrl, defaultTopicName, newClientConf(serviceUrl), properties, topicKeyExtractor, recordClazz,
+                recordSchemaType);
     }
 
     @Override
     protected Schema<T> getPulsarSchema() {
-        return Schema.AVRO(recordClazz);
+        return schema;
     }
 
     @Override
@@ -89,4 +119,19 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
         }
         mb.sendAsync().whenComplete(sendCallback);
     }
+
+    private Schema<T> buildSchema(Class<T> recordClazz, RecordSchemaType recordSchemaType) {
+        if (recordSchemaType == null) {
+            return Schema.AVRO(recordClazz);
+        }
+        switch (recordSchemaType) {
+            case AVRO:
+                return Schema.AVRO(recordClazz);
+            case JSON:
+                return Schema.JSON(recordClazz);
+            default:
+                throw new IllegalArgumentException("not support schema type " + recordSchemaType);
+        }
+    }
+
 }

@@ -33,7 +33,7 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
     /**
      * Type for serialized messages, default use AVRO.
      */
-    private final Schema<T> schema;
+    private final RecordSchemaType schemaType;
 
     public FlinkPulsarSink(
             String adminUrl,
@@ -45,7 +45,7 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
             RecordSchemaType recordSchemaType) {
         super(adminUrl, defaultTopicName, clientConf, properties, topicKeyExtractor);
         this.recordClazz = recordClazz;
-        this.schema = buildSchema(recordClazz, recordSchemaType);
+        this.schemaType = recordSchemaType;
     }
 
     public FlinkPulsarSink(
@@ -83,7 +83,7 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
 
     @Override
     protected Schema<T> getPulsarSchema() {
-        return schema;
+        return buildSchema(recordClazz, schemaType);
     }
 
     @Override

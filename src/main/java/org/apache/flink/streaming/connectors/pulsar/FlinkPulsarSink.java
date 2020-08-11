@@ -15,9 +15,11 @@
 package org.apache.flink.streaming.connectors.pulsar;
 
 import org.apache.flink.streaming.connectors.pulsar.config.RecordSchemaType;
+
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
+
 import java.util.Optional;
 import java.util.Properties;
 

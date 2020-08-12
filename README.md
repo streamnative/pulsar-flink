@@ -366,7 +366,8 @@ FlinkPulsarSink<Person> sink = new FlinkPulsarSink(
   Optional.of(topic),      // mandatory target topic or use `Optional.empty()` if sink to different topics for each record
   props,
   TopicKeyExtractor.NULL,  // replace this to extract key or topic for each record
-  Person.class);
+  Person.class,
+  RecordSchemaType.AVRO);
 
 stream.addSink(sink);
 ```

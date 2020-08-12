@@ -20,6 +20,7 @@ import org.apache.flink.core.testutils.MultiShotLatch;
 import org.apache.flink.runtime.state.FunctionSnapshotContext;
 import org.apache.flink.streaming.api.operators.StreamSink;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
+import org.apache.flink.streaming.connectors.pulsar.config.RecordSchemaType;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
 import org.apache.flink.streaming.util.OneInputStreamOperatorTestHarness;
 import org.apache.flink.util.TestLogger;
@@ -57,7 +58,7 @@ public class FlinkPulsarSinkTest extends TestLogger {
      */
     @Test(expected = IllegalArgumentException.class)
     public void testInstantiationFailsWhenServiceUrlMissing() throws Exception {
-        new DummyFlinkPulsarSink<Long>(new ClientConfigurationData(), new Properties(), null, null);
+        new DummyFlinkPulsarSink<Long>(new ClientConfigurationData(), new Properties(), null, null, RecordSchemaType.JSON);
     }
 
     public static ClientConfigurationData dummyClientConf() {
@@ -77,7 +78,7 @@ public class FlinkPulsarSinkTest extends TestLogger {
      */
     @Test
     public void testAsyncErrorRethrownOnInvoke() throws Throwable {
-        DummyFlinkPulsarSink<String> sink = new DummyFlinkPulsarSink<>(dummyClientConf(), dummyProperties(), mock(TopicKeyExtractor.class), null);
+        DummyFlinkPulsarSink<String> sink = new DummyFlinkPulsarSink<>(dummyClientConf(), dummyProperties(), mock(TopicKeyExtractor.class), null, RecordSchemaType.JSON);
 
         OneInputStreamOperatorTestHarness<String, Object> testHarness =
                 new OneInputStreamOperatorTestHarness<>(new StreamSink<>(sink));
@@ -108,7 +109,7 @@ public class FlinkPulsarSinkTest extends TestLogger {
     @Test
     public void testAsyncErrorRethrownOnCheckpoint() throws Throwable {
         final DummyFlinkPulsarSink<String> producer = new DummyFlinkPulsarSink<>(
-                dummyClientConf(), dummyProperties(), mock(TopicKeyExtractor.class), null);
+                dummyClientConf(), dummyProperties(), mock(TopicKeyExtractor.class), null, RecordSchemaType.JSON);
 
         OneInputStreamOperatorTestHarness<String, Object> testHarness =
                 new OneInputStreamOperatorTestHarness<>(new StreamSink<>(producer));
@@ -143,7 +144,7 @@ public class FlinkPulsarSinkTest extends TestLogger {
     @SuppressWarnings("unchecked")
     @Test//(timeout = 5000)
     public void testAsyncErrorRethrownOnCheckpointAfterFlush() throws Throwable {
-        final DummyFlinkPulsarSink<String> sink = new DummyFlinkPulsarSink<>(dummyClientConf(), dummyProperties(), mock(TopicKeyExtractor.class), null);
+        final DummyFlinkPulsarSink<String> sink = new DummyFlinkPulsarSink<>(dummyClientConf(), dummyProperties(), mock(TopicKeyExtractor.class), null, RecordSchemaType.JSON);
         Producer mockProducer = sink.getProducer("tp");
 
         final OneInputStreamOperatorTestHarness<String, Object> testHarness =
@@ -193,7 +194,7 @@ public class FlinkPulsarSinkTest extends TestLogger {
     @SuppressWarnings("unchecked")
     @Test(timeout = 10000)
     public void testAtLeastOnceProducer() throws Throwable {
-        final DummyFlinkPulsarSink<String> sink = new DummyFlinkPulsarSink<>(dummyClientConf(), dummyProperties(), mock(TopicKeyExtractor.class), null);
+        final DummyFlinkPulsarSink<String> sink = new DummyFlinkPulsarSink<>(dummyClientConf(), dummyProperties(), mock(TopicKeyExtractor.class), null, RecordSchemaType.JSON);
 
         final Producer mockProducer = sink.getProducer("tp");
 
@@ -254,7 +255,7 @@ public class FlinkPulsarSinkTest extends TestLogger {
         Properties props = dummyProperties();
         props.setProperty("flushoncheckpoint", "false");
 
-        final DummyFlinkPulsarSink<String> sink = new DummyFlinkPulsarSink<>(dummyClientConf(), props, mock(TopicKeyExtractor.class), null);
+        final DummyFlinkPulsarSink<String> sink = new DummyFlinkPulsarSink<>(dummyClientConf(), props, mock(TopicKeyExtractor.class), null, RecordSchemaType.JSON);
 
         final Producer mockProducer = sink.getProducer("tp");
 
@@ -291,14 +292,15 @@ public class FlinkPulsarSinkTest extends TestLogger {
         private transient MultiShotLatch flushLatch;
         private boolean isFlushed;
 
-        public DummyFlinkPulsarSink(ClientConfigurationData clientConf, Properties properties, TopicKeyExtractor<T> topicKeyExtractor, Class<T> recordClazz) {
+        public DummyFlinkPulsarSink(ClientConfigurationData clientConf, Properties properties, TopicKeyExtractor<T> topicKeyExtractor, Class<T> recordClazz, RecordSchemaType recordSchemaType) {
             super(
                     "",
                     Optional.of(DUMMY_TOPIC),
                     clientConf,
                     properties,
                     topicKeyExtractor,
-                    recordClazz);
+                    recordClazz,
+                    recordSchemaType);
 
             this.mockProducer = mock(Producer.class);
             this.mockMessageBuilder = mock(TypedMessageBuilderImpl.class);

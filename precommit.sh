@@ -22,7 +22,7 @@ PROFILE=${1}
 
 cd ${PRJ_HOME}
 
-mvn clean license:check install checkstyle:check spotbugs:check -P${PROFILE}
+mvn -B -ntp -q clean license:check install checkstyle:check spotbugs:check -P${PROFILE}
 cat target/surefire-reports/*.txt
 retcode=$?
 exit $retcode

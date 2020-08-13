@@ -18,6 +18,7 @@ import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
 import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarDeserializationSchema;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarFetcher;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarRowFetcher;
@@ -45,11 +46,11 @@ public class FlinkPulsarRowSource extends FlinkPulsarSource<Row> {
     private TypeInformation<Row> typeInformation;
 
     public FlinkPulsarRowSource(String adminUrl, ClientConfigurationData clientConf, Properties properties) {
-        super(adminUrl, clientConf, null, properties);
+        super(adminUrl, clientConf, (PulsarDeserializationSchema<Row>) null, properties);
     }
 
     public FlinkPulsarRowSource(String serviceUrl, String adminUrl, Properties properties) {
-        super(serviceUrl, adminUrl, null, properties);
+        super(serviceUrl, adminUrl, (PulsarDeserializationSchema<Row>) null, properties);
     }
 
     @Override

@@ -37,9 +37,8 @@ jobs:
         uses: aahmed-se/setup-maven@v3
         with:
           maven-version: 3.6.1
-
       - name: run precommit script
-        run: ./precommit.sh scala-2.11
+        run: ./build/retry.sh `pwd`/precommit.sh scala-2.11
 
   unit-tests-scala-2_12:
     runs-on: ubuntu-latest
@@ -60,4 +59,4 @@ jobs:
           maven-version: 3.6.1
 
       - name: run precommit script
-        run: ./precommit.sh scala-2.12
+        run: ./build/retry.sh `pwd`/precommit.sh scala-2.12

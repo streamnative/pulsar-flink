@@ -68,6 +68,7 @@
     <javac.target>1.8</javac.target>
     <redirectTestOutputToFile>true</redirectTestOutputToFile>
     <testRetryCount>2</testRetryCount>
+    <scala.binary.version>2.11</scala.binary.version>
 
     <!-- use Pulsar stable version -->
     <pulsar.version>2.5.2-sn-3</pulsar.version>

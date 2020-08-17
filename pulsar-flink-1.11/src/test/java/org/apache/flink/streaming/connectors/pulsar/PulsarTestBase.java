@@ -116,6 +116,7 @@ public abstract class PulsarTestBase extends TestLogger {
 
     protected static Configuration getFlinkConfiguration() {
         Configuration flinkConfig = new Configuration();
+
         flinkConfig.setString(TaskManagerOptions.MANAGED_MEMORY_SIZE.key(), "16m");
         flinkConfig.setString(ConfigConstants.METRICS_REPORTER_PREFIX + "my_reporter." + ConfigConstants.METRICS_REPORTER_CLASS_SUFFIX, JMXReporter.class.getName());
         return flinkConfig;

@@ -47,7 +47,7 @@ public class RowReaderThread extends ReaderThread<Row> {
             JSONOptionsInRead jsonOptions,
             ExceptionProxy exceptionProxy) {
         super(owner, state, clientConf, readerConf,
-                deserializer == null? new PulsarDeserializer(pulsarSchema, jsonOptions) : deserializer,
+                deserializer == null ? new PulsarDeserializer(pulsarSchema, jsonOptions) : deserializer,
                 pollTimeoutMs, exceptionProxy);
         this.schema = SchemaUtils.getPulsarSchema(pulsarSchema);
     }

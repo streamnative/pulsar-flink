@@ -250,7 +250,7 @@ public class PulsarTableSource
     }
 
     public PulsarDeserializationSchema<Row> getDeserializationSchema() {
-        if (deserializationSchema==null){
+        if (deserializationSchema == null){
             return null;
         }
         return new PulsarDeserializationSchemaWrapper<>(deserializationSchema);

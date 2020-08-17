@@ -174,7 +174,7 @@ public class PulsarFetcher<T> {
         this.userCodeClassLoader = userCodeClassLoader;
         this.runtimeContext = runtimeContext;
         this.clientConf = clientConf;
-        this.readerConf = readerConf == null?new HashMap<>():readerConf;
+        this.readerConf = readerConf == null ? new HashMap<>() : readerConf;
 
         String failOnDataLossVal = this.readerConf.getOrDefault(PulsarOptions.FAIL_ON_DATA_LOSS_OPTION_KEY, "true").toString();
         this.failOnDataLoss = Boolean.parseBoolean(failOnDataLossVal);

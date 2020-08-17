@@ -15,8 +15,8 @@
 package org.apache.flink.streaming.connectors.pulsar.testutils;
 
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
-
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
+
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.mockito.stubbing.Answer;

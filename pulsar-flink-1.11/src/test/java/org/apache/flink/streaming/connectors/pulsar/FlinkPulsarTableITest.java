@@ -84,7 +84,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
 
         Table t = tEnv.scan(tableName).select("value");
 
-        tEnv.toAppendStream(t,t.getSchema().toRowType())
+        tEnv.toAppendStream(t, t.getSchema().toRowType())
                 .map(new FailingIdentityMapper<>(BOOLEAN_LIST.size()))
                 .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
 

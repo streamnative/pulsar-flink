@@ -87,7 +87,7 @@ public abstract class PulsarTestBaseWithFlink extends PulsarTestBase {
     public static String newTopic() {
         synchronized (TOPIC_ID) {
             int i = TOPIC_ID.getAndIncrement();
-            return TopicName.get("topic-" + i).toString();
+            return TopicName.get("topic" + i).toString();
         }
     }
 }

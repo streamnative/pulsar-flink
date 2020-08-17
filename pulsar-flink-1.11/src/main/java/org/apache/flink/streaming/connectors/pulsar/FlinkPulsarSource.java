@@ -224,9 +224,9 @@ public class FlinkPulsarSource<T>
     public FlinkPulsarSource(
             String serviceUrl,
             String adminUrl,
-            DeserializationSchema<T> deserializer,
+            PulsarDeserializationSchema<T> deserializer,
             Properties properties) {
-        this(adminUrl, newClientConf(checkNotNull(serviceUrl)), new PulsarDeserializationSchemaWrapper<>(deserializer), properties);
+        this(adminUrl, newClientConf(checkNotNull(serviceUrl)), deserializer, properties);
     }
 
     private static ClientConfigurationData newClientConf(String serviceUrl) {

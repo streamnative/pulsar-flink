@@ -40,6 +40,7 @@ import org.apache.flink.streaming.api.operators.StreamSink;
 import org.apache.flink.streaming.connectors.pulsar.internal.AvroDeser;
 import org.apache.flink.streaming.connectors.pulsar.internal.CachedPulsarClient;
 import org.apache.flink.streaming.connectors.pulsar.internal.JsonDeser;
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarDeserializationSchemaWrapper;
 import org.apache.flink.streaming.connectors.pulsar.internal.ReaderThread;
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper;
 import org.apache.flink.streaming.connectors.pulsar.testutils.SingletonStreamSink;
@@ -131,7 +132,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
             see.setParallelism(1);
 
             FlinkPulsarSource<String> source =
-                    new FlinkPulsarSource<String>("sev", "admin", new SimpleStringSchema(), props).setStartFromEarliest();
+                    new FlinkPulsarSource<String>("sev", "admin", new PulsarDeserializationSchemaWrapper(new SimpleStringSchema()), props).setStartFromEarliest();
 
             DataStream<String> stream = see.addSource(source);
             stream.print();
@@ -157,7 +158,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         props.setProperty("pulsar.reader.receiverQueueSize", "1000000");
 
         FlinkPulsarSource<Integer> source =
-                new FlinkPulsarSource<Integer>(serviceUrl, adminUrl, new IntegerDeserializer(), props)
+                new FlinkPulsarSource<Integer>(serviceUrl, adminUrl, new PulsarDeserializationSchemaWrapper(new IntegerDeserializer()), props)
                         .setStartFromEarliest();
 
         DataStream<Integer> stream = see.addSource(source);
@@ -192,7 +193,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
 
         client.cancel(jobID);
         runner.join();
-
+        Thread.sleep(3000);
         assertEquals(client.getJobStatus(jobID).get(), JobStatus.CANCELED);
     }
 
@@ -361,7 +362,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         sourceProps.setProperty(TOPIC_SINGLE_OPTION_KEY, topic);
 
         FlinkPulsarSource<SchemaData.Foo> source =
-                new FlinkPulsarSource<>(serviceUrl, adminUrl, AvroDeser.of(SchemaData.Foo.class), sourceProps)
+                new FlinkPulsarSource<>(serviceUrl, adminUrl, new PulsarDeserializationSchemaWrapper(AvroDeser.of(SchemaData.Foo.class)), sourceProps)
                 .setStartFromEarliest();
 
         DataStream<Integer> ds = see.addSource(source)
@@ -397,7 +398,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         sourceProps.setProperty(TOPIC_SINGLE_OPTION_KEY, topic);
 
         FlinkPulsarSource<SchemaData.Foo> source =
-                new FlinkPulsarSource<>(serviceUrl, adminUrl, JsonDeser.of(SchemaData.Foo.class), sourceProps)
+                new FlinkPulsarSource<>(serviceUrl, adminUrl, new PulsarDeserializationSchemaWrapper(JsonDeser.of(SchemaData.Foo.class)), sourceProps)
                         .setStartFromEarliest();
 
         DataStream<Integer> ds = see.addSource(source)
@@ -409,9 +410,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         try {
             see.execute("test read data of POJO using JSON");
         } catch (Exception e) {
-
         }
-
         SingletonStreamSink.compareWithList(
                 fooList.subList(0, fooList.size() - 1).stream().map(SchemaData.Foo::getI).map(Objects::toString).collect(Collectors.toList()));
     }
@@ -441,6 +440,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
                 new FlinkPulsarRowSource(serviceUrl, adminUrl, sourceProps).setStartFromEarliest());
 
         stream.flatMap(new CheckAllMessageExist(expectedData, 150)).setParallelism(1);
+
         TestUtils.tryExecute(see, "start from earliest");
     }
 
@@ -742,7 +742,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         client.cancel(jobid);
 
         jobRunner.join();
-
+        Thread.sleep(2000);
         assertEquals(client.getJobStatus(jobid).get(), JobStatus.CANCELED);
 
         if (generator.isAlive()) {
@@ -804,7 +804,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         }
 
         client.cancel(jobid);
-
+        Thread.sleep(3000);
         jobRunner.join();
 
         assertEquals(client.getJobStatus(jobid).get(), JobStatus.CANCELED);

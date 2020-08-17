@@ -165,6 +165,7 @@ public class PulsarCatalog extends AbstractCatalog {
 
     // ------------------------------------------------------------------------
     // Unsupported catalog operations for Pulsar
+    // There should not be such permission in the connector, it is very dangerous
     // ------------------------------------------------------------------------
 
     @Override

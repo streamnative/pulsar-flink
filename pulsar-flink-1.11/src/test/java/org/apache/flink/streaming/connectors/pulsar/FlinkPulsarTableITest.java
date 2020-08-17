@@ -14,22 +14,33 @@
 
 package org.apache.flink.streaming.connectors.pulsar;
 
-import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
+import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils;
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper;
 import org.apache.flink.streaming.connectors.pulsar.testutils.SingletonStreamSink;
 import org.apache.flink.table.api.Table;
+import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 import org.apache.flink.table.descriptors.ConnectorDescriptor;
 import org.apache.flink.table.descriptors.Pulsar;
+import org.apache.flink.table.descriptors.Schema;
+import org.apache.flink.table.types.FieldsDataType;
 import org.apache.flink.types.Row;
 
+import org.apache.pulsar.client.admin.PulsarAdminException;
+import org.apache.pulsar.client.api.PulsarClientException;
+import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
+import org.apache.pulsar.common.naming.TopicName;
+import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
@@ -40,6 +51,7 @@ import static org.apache.flink.streaming.connectors.pulsar.SchemaData.faList;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.flList;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.fmList;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.fooList;
+import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.TOPIC_SINGLE_OPTION_KEY;
 
 /**
  * Table API related Integration tests.
@@ -59,16 +71,18 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         StreamTableEnvironment tEnv = StreamTableEnvironment.create(see);
 
         String table = newTopic();
+        String tableName = TopicName.get(table).getLocalName();
 
         sendTypedMessages(table, SchemaType.BOOLEAN, BOOLEAN_LIST, Optional.empty());
-
+        TableSchema tSchema = getTableSchema(table);
         tEnv.connect(getPulsarDescriptor(table))
+                .withSchema(new Schema().schema(tSchema))
                 .inAppendMode()
-                .createTemporaryTable(table);
+                .createTemporaryTable(tableName);
 
-        Table t = tEnv.scan(table).select("value");
+        Table t = tEnv.scan(tableName).select("value");
 
-        tEnv.toAppendStream(t, BasicTypeInfo.BOOLEAN_TYPE_INFO)
+        tEnv.toAppendStream(t,t.getSchema().toRowType())
                 .map(new FailingIdentityMapper<>(BOOLEAN_LIST.size()))
                 .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
 
@@ -85,6 +99,8 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
     @Test
     public void testWriteThenRead() throws Exception {
         String tp = newTopic();
+        String tableName = TopicName.get(tp).getLocalName();
+
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.getConfig().disableSysoutLogging();
         see.setParallelism(1);
@@ -102,11 +118,14 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         env.setParallelism(1);
 
         StreamTableEnvironment tEnv = StreamTableEnvironment.create(env);
-        tEnv.connect(getPulsarDescriptor(tp))
-                .inAppendMode()
-                .createTemporaryTable(tp);
+        TableSchema tSchema = getTableSchema(tp);
 
-        Table t = tEnv.scan(tp).select("i, f, bar");
+        tEnv.connect(getPulsarDescriptor(tp))
+                .withSchema(new Schema().schema(tSchema))
+                .inAppendMode()
+                .createTemporaryTable(tableName);
+
+        Table t = tEnv.scan(tableName).select("i, f, bar");
         tEnv.toAppendStream(t, t.getSchema().toRowType())
                 .map(new FailingIdentityMapper<Row>(fooList.size()))
                 .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
@@ -126,15 +145,18 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         StreamTableEnvironment tEnv = StreamTableEnvironment.create(see);
 
         String table = newTopic();
+        String tableName = TopicName.get(table).getLocalName();
 
         sendTypedMessages(table, SchemaType.AVRO, fooList, Optional.empty(), SchemaData.Foo.class);
+        TableSchema tSchema = getTableSchema(table);
 
         tEnv
                 .connect(getPulsarDescriptor(table))
+                .withSchema(new Schema().schema(tSchema))
                 .inAppendMode()
-                .createTemporaryTable(table);
+                .createTemporaryTable(tableName);
 
-        Table t = tEnv.scan(table).select("i, f, bar");
+        Table t = tEnv.scan(tableName).select("i, f, bar");
         tEnv.toAppendStream(t, t.getSchema().toRowType())
                 .map(new FailingIdentityMapper<Row>(fooList.size()))
                 .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
@@ -155,15 +177,17 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         StreamTableEnvironment tEnv = StreamTableEnvironment.create(see);
 
         String table = newTopic();
+        String tableName = TopicName.get(table).getLocalName();
 
         sendTypedMessages(table, SchemaType.AVRO, flList, Optional.empty(), SchemaData.FL.class);
-
+        TableSchema tSchema = getTableSchema(table);
         tEnv
                 .connect(getPulsarDescriptor(table))
+                .withSchema(new Schema().schema(tSchema))
                 .inAppendMode()
-                .createTemporaryTable(table);
+                .createTemporaryTable(tableName);
 
-        Table t = tEnv.scan(table).select("l");
+        Table t = tEnv.scan(tableName).select("l");
         tEnv.toAppendStream(t, t.getSchema().toRowType())
                 .map(new FailingIdentityMapper<Row>(flList.size()))
                 .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
@@ -177,6 +201,15 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
                 flList.subList(0, flList.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
     }
 
+    private TableSchema getTableSchema(String topicName) throws PulsarClientException, PulsarAdminException, SchemaUtils.IncompatibleSchemaException {
+        Map<String, String> caseInsensitiveParams = new HashMap<>();
+        caseInsensitiveParams.put(TOPIC_SINGLE_OPTION_KEY, topicName);
+        PulsarMetadataReader reader = new PulsarMetadataReader(adminUrl, new ClientConfigurationData(), "", caseInsensitiveParams, -1, -1);
+        SchemaInfo pulsarSchema = reader.getPulsarSchema(topicName);
+        FieldsDataType fieldsDataType = SchemaUtils.pulsarSourceSchema(pulsarSchema);
+        return SchemaUtils.toTableSchema(fieldsDataType);
+    }
+
     @Test
     public void testStructTypesWithJavaArray() throws Exception {
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
@@ -184,15 +217,18 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         StreamTableEnvironment tEnv = StreamTableEnvironment.create(see);
 
         String table = newTopic();
+        String tableName = TopicName.get(table).getLocalName();
 
         sendTypedMessages(table, SchemaType.AVRO, faList, Optional.empty(), SchemaData.FA.class);
+        TableSchema tSchema = getTableSchema(table);
 
         tEnv
                 .connect(getPulsarDescriptor(table))
+                .withSchema(new Schema().schema(tSchema))
                 .inAppendMode()
-                .createTemporaryTable(table);
+                .createTemporaryTable(tableName);
 
-        Table t = tEnv.scan(table).select("l");
+        Table t = tEnv.scan(tableName).select("l");
         tEnv.toAppendStream(t, t.getSchema().toRowType())
                 .map(new FailingIdentityMapper<Row>(faList.size()))
                 .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
@@ -213,15 +249,19 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         StreamTableEnvironment tEnv = StreamTableEnvironment.create(see);
 
         String table = newTopic();
+        String tableName = TopicName.get(table).getLocalName();
 
         sendTypedMessages(table, SchemaType.AVRO, fmList, Optional.empty(), SchemaData.FM.class);
+        TableSchema tSchema = getTableSchema(table);
 
         tEnv
                 .connect(getPulsarDescriptor(table))
+                .withSchema(new Schema().schema(tSchema))
                 .inAppendMode()
-                .createTemporaryTable(table);
+                .createTemporaryTable(tableName);
 
-        Table t = tEnv.scan(table).select("m");
+        Table t = tEnv.scan(tableName).select("m");
+
         tEnv.toAppendStream(t, t.getSchema().toRowType())
                 .map(new FailingIdentityMapper<Row>(faList.size()))
                 .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);

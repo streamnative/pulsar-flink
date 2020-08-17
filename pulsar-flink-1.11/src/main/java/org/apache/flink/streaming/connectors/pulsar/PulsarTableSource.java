@@ -19,6 +19,8 @@ import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarDeserializationSchema;
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarDeserializationSchemaWrapper;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
 import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.SourceSinkUtils;
@@ -149,7 +151,7 @@ public class PulsarTableSource
 
     @Override
     public DataType getProducedDataType() {
-        if (deserializationSchema != null) {
+        if (getDeserializationSchema() != null) {
             TypeInformation<Row> legacyType = deserializationSchema.getProducedType();
             return TypeConversions.fromLegacyInfoToDataType(legacyType);
         }
@@ -168,9 +170,8 @@ public class PulsarTableSource
 
     @Override
     public DataStream<Row> getDataStream(StreamExecutionEnvironment execEnv) {
-        DeserializationSchema<Row> deserializationSchema = getDeserializationSchema();
-
-        FlinkPulsarRowSource source = new FlinkPulsarRowSource(serviceUrl, adminUrl, properties, deserializationSchema);
+        PulsarDeserializationSchema<Row> deserializer = getDeserializationSchema();
+        FlinkPulsarRowSource source = new FlinkPulsarRowSource(serviceUrl, adminUrl, properties, deserializer);
         switch (startupMode) {
             case EARLIEST:
                 source.setStartFromEarliest();
@@ -248,8 +249,11 @@ public class PulsarTableSource
         return rowtimeAttributeDescriptors;
     }
 
-    public DeserializationSchema<Row> getDeserializationSchema() {
-        return deserializationSchema;
+    public PulsarDeserializationSchema<Row> getDeserializationSchema() {
+        if (deserializationSchema==null){
+            return null;
+        }
+        return new PulsarDeserializationSchemaWrapper<>(deserializationSchema);
     }
 
 }

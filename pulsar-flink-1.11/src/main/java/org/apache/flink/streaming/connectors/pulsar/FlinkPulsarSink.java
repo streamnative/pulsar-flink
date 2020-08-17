@@ -71,7 +71,7 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
 
         TypedMessageBuilder<T> mb;
 
-        if (forcedTopic && topicKeyExtractor == null) {
+        if (forcedTopic) {
             mb = (TypedMessageBuilder<T>) getProducer(defaultTopic).newMessage().value(value);
         } else {
             byte[] key = topicKeyExtractor.serializeKey(value);

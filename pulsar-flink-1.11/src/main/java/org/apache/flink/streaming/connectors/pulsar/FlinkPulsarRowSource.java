@@ -14,12 +14,11 @@
 
 package org.apache.flink.streaming.connectors.pulsar;
 
-import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
 import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
-import org.apache.flink.streaming.connectors.pulsar.internal.PulsarDeserializationSchemaWrapper;
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarDeserializationSchema;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarFetcher;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarRowFetcher;
@@ -46,15 +45,15 @@ public class FlinkPulsarRowSource extends FlinkPulsarSource<Row> {
 
     private TypeInformation<Row> typeInformation;
 
-    public FlinkPulsarRowSource(String adminUrl, ClientConfigurationData clientConf, Properties properties, DeserializationSchema<Row> deserializer) {
-        super(adminUrl, clientConf, new PulsarDeserializationSchemaWrapper<>(deserializer), properties);
+    public FlinkPulsarRowSource(String adminUrl, ClientConfigurationData clientConf, Properties properties, PulsarDeserializationSchema<Row> deserializer) {
+        super(adminUrl, clientConf, deserializer, properties);
     }
 
     public FlinkPulsarRowSource(String adminUrl, ClientConfigurationData clientConf, Properties properties) {
         super(adminUrl, clientConf, null, properties);
     }
 
-    public FlinkPulsarRowSource(String serviceUrl, String adminUrl, Properties properties,  DeserializationSchema<Row> deserializer) {
+    public FlinkPulsarRowSource(String serviceUrl, String adminUrl, Properties properties,  PulsarDeserializationSchema<Row> deserializer) {
         super(serviceUrl, adminUrl, deserializer, properties);
     }
 

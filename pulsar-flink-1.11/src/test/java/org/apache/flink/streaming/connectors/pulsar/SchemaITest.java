@@ -17,7 +17,9 @@ package org.apache.flink.streaming.connectors.pulsar;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
+import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils;
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper;
 import org.apache.flink.streaming.connectors.pulsar.testutils.SingletonStreamSink;
 import org.apache.flink.table.api.DataTypes;
@@ -28,17 +30,23 @@ import org.apache.flink.table.descriptors.ConnectorDescriptor;
 import org.apache.flink.table.descriptors.Pulsar;
 import org.apache.flink.table.descriptors.Schema;
 import org.apache.flink.table.types.DataType;
+import org.apache.flink.table.types.FieldsDataType;
 import org.apache.flink.table.types.utils.LegacyTypeInfoDataTypeConverter;
 import org.apache.flink.util.StringUtils;
-
+import org.apache.pulsar.client.admin.PulsarAdminException;
+import org.apache.pulsar.client.api.PulsarClientException;
+import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.common.naming.TopicName;
+import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
@@ -55,6 +63,7 @@ import static org.apache.flink.streaming.connectors.pulsar.SchemaData.INT_8_LIST
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.STRING_LIST;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.dateList;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.timestampList;
+import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.TOPIC_SINGLE_OPTION_KEY;
 
 /**
  * Schema related integration tests.
@@ -69,7 +78,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
     @Test
     public void testBooleanRead() throws Exception {
-        checkRead(SchemaType.BOOLEAN, BOOLEAN_LIST, null, null);
+        checkRead(SchemaType.BOOLEAN, DataTypes.BOOLEAN(), BOOLEAN_LIST, null, null);
     }
 
     @Test
@@ -79,7 +88,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
     @Test
     public void testINT32Read() throws Exception {
-        checkRead(SchemaType.INT32, INTEGER_LIST, null, null);
+        checkRead(SchemaType.INT32, DataTypes.INT(), INTEGER_LIST, null, null);
     }
 
     @Test
@@ -89,7 +98,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
     @Test
     public void testINT64Read() throws Exception {
-        checkRead(SchemaType.INT64, INT_64_LIST, null, null);
+        checkRead(SchemaType.INT64, DataTypes.BIGINT(), INT_64_LIST, null, null);
     }
 
     @Test
@@ -99,7 +108,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
     @Test
     public void testStringRead() throws Exception {
-        checkRead(SchemaType.STRING, STRING_LIST, null, null);
+        checkRead(SchemaType.STRING, DataTypes.STRING(), STRING_LIST, null, null);
     }
 
     @Test
@@ -109,7 +118,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
     @Test
     public void testByteRead() throws Exception {
-        checkRead(SchemaType.INT8, INT_8_LIST, null, null);
+        checkRead(SchemaType.INT8, DataTypes.TINYINT(), INT_8_LIST, null, null);
     }
 
     @Test
@@ -119,7 +128,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
     @Test
     public void testShortRead() throws Exception {
-        checkRead(SchemaType.INT16, INT_16_LIST, null, null);
+        checkRead(SchemaType.INT16, DataTypes.SMALLINT(), INT_16_LIST, null, null);
     }
 
     @Test
@@ -129,7 +138,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
     @Test
     public void testFloatRead() throws Exception {
-        checkRead(SchemaType.FLOAT, FLOAT_LIST, null, null);
+        checkRead(SchemaType.FLOAT, DataTypes.FLOAT(), FLOAT_LIST, null, null);
     }
 
     @Test
@@ -139,7 +148,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
     @Test
     public void testDoubleRead() throws Exception {
-        checkRead(SchemaType.DOUBLE, DOUBLE_LIST, null, null);
+        checkRead(SchemaType.DOUBLE, DataTypes.DOUBLE(), DOUBLE_LIST, null, null);
     }
 
     @Test
@@ -150,7 +159,8 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
     @Test
     public void testDateRead() throws Exception {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-        checkRead(SchemaType.DATE, dateList, t -> dateFormat.format(t), null);
+        checkRead(SchemaType.DATE, DataTypes.DATE().bridgedTo(java.sql.Date.class),
+                dateList, t -> dateFormat.format(t), null);
     }
 
     @Test
@@ -164,7 +174,8 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
     @Test
     public void testTimestampRead() throws Exception {
-        checkRead(SchemaType.TIMESTAMP, timestampList, null, null);
+        checkRead(SchemaType.TIMESTAMP,
+                DataTypes.TIMESTAMP(3).bridgedTo(Timestamp.class), timestampList, null, null);
     }
 
     @Test
@@ -175,7 +186,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
     @Test
     public void testByteArrayRead() throws Exception {
-        checkRead(SchemaType.BYTES, BYTES_LIST, t -> StringUtils.arrayAwareToString(t), null);
+        checkRead(SchemaType.BYTES, DataTypes.BYTES(), BYTES_LIST, t -> StringUtils.arrayAwareToString(t), null);
     }
 
     @Test
@@ -183,19 +194,23 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
         checkWrite(SchemaType.BYTES, DataTypes.BYTES(), BYTES_LIST, t -> StringUtils.arrayAwareToString(t), null);
     }
 
-    private <T> void checkRead(SchemaType type, List<T> datas, Function<T, String> toStr, Class<T> tClass) throws Exception {
+    private <T> void checkRead(SchemaType type, DataType dt, List<T> datas, Function<T, String> toStr, Class<T> tClass) throws Exception {
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.setParallelism(1);
         StreamTableEnvironment tEnv = StreamTableEnvironment.create(see);
-
         String table = newTopic();
+        String tableName = TopicName.get(table).getLocalName();
         sendTypedMessages(table, type, datas, Optional.empty(), tClass);
+
+        TableSchema tSchema = TableSchema.builder().field("value", dt).build();
 
         tEnv.connect(getPulsarSourceDescriptor(table))
                 .inAppendMode()
-                .createTemporaryTable(table);
+                .withSchema(new Schema().schema(tSchema))
+                .createTemporaryTable(tableName);
 
-        Table t = tEnv.scan(table).select("value");
+        Table t = tEnv.sqlQuery("select `value` from " + tableName);
+
         tEnv.toAppendStream(t, t.getSchema().toRowType())
                 .map(new FailingIdentityMapper<>(datas.size()))
                 .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
@@ -221,6 +236,15 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
         }
     }
 
+    private TableSchema getTableSchema(String topicName) throws PulsarClientException, PulsarAdminException, SchemaUtils.IncompatibleSchemaException {
+        Map<String, String> caseInsensitiveParams = new HashMap<>();
+        caseInsensitiveParams.put(TOPIC_SINGLE_OPTION_KEY, topicName);
+        PulsarMetadataReader reader = new PulsarMetadataReader(adminUrl, new ClientConfigurationData(), "", caseInsensitiveParams, -1, -1);
+        SchemaInfo pulsarSchema = reader.getPulsarSchema(topicName);
+        FieldsDataType fieldsDataType = SchemaUtils.pulsarSourceSchema(pulsarSchema);
+        return SchemaUtils.toTableSchema(fieldsDataType);
+    }
+
     private <T> void checkWrite(SchemaType type, DataType dt, List<T> datas, Function<T, String> toStr, Class<T> tClass) throws Exception {
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.setParallelism(1);
@@ -240,13 +264,13 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
                 .inAppendMode()
                 .createTemporaryTable(tableName);
 
-        tEnv.sqlUpdate("insert into `" + tableName + "` select * from origin");
+        tEnv.executeSql("insert into `" + tableName + "` select * from origin");
 
         Thread sinkThread = new Thread("sink") {
             @Override
             public void run() {
                 try {
-                    see.execute("sink");
+                    tEnv.execute("sink");
                 } catch (Throwable e) {
                     // do nothing
                 }

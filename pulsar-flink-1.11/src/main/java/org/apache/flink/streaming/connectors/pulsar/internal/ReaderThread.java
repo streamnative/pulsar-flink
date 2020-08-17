@@ -68,13 +68,7 @@ public class ReaderThread<T> extends Thread {
         this.exceptionProxy = exceptionProxy;
 
         this.topic = state.getTopic();
-        MessageIdImpl messageId = (MessageIdImpl) state.getOffset();
-        if (messageId.getEntryId() == -1) {
-            this.startMessageId = new MessageIdImpl(messageId.getLedgerId(),
-                    messageId.getEntryId() + 1, messageId.getPartitionIndex());
-        } else {
-            this.startMessageId = state.getOffset();
-        }
+        this.startMessageId = state.getOffset();
     }
 
     public ReaderThread(

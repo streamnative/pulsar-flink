@@ -93,7 +93,7 @@ public class PulsarDeserializer {
             this.parsedOptions = parsedOptions;
             this.rootDataType = SchemaUtils.si2SqlType(schemaInfo);
 
-            switch (JSON) {
+            switch (schemaInfo.getType()) {
                 case AVRO:
                     FieldsDataType st = (FieldsDataType) rootDataType;
                     int fieldsNum = st.getChildren().size() + META_FIELD_NAMES.size();

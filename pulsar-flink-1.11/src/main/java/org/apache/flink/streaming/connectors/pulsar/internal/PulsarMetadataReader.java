@@ -222,19 +222,26 @@ public class PulsarMetadataReader implements AutoCloseable {
         SchemaUtils.uploadPulsarSchema(admin, topic, si);
     }
 
-    public void setupCursor(Map<String, MessageId> offset) {
-        if (!useExternalSubscription) {
+    public void setupCursor(Map<String, MessageId> offset, boolean failOnDataLoss) {
+        // if failOnDataLoss is false, we could continue, and re-create the sub.
+        if (!useExternalSubscription || !failOnDataLoss) {
             for (Map.Entry<String, MessageId> entry : offset.entrySet()) {
                 try {
                     log.info("Setting up subscription {} on topic {} at position {}", subscriptionName, entry.getKey(), entry.getValue());
                     admin.topics().createSubscription(entry.getKey(), subscriptionName, entry.getValue());
                     log.info("Subscription {} on topic {} at position {} finished", subscriptionName, entry.getKey(), entry.getValue());
+                } catch (PulsarAdminException.ConflictException e) {
+                    log.info("Subscription {} on topic {} already exists", subscriptionName, entry.getKey());
                 } catch (PulsarAdminException e) {
                     throw new RuntimeException(
-                            String.format("Failed to set up cursor for %s", TopicName.get(entry.getKey()).toString()), e);
+                            String.format("Failed to set up cursor for %s ", TopicName.get(entry.getKey()).toString()), e);
                 }
             }
         }
+    }
+
+    public void setupCursor(Map<String, MessageId> offset) {
+        setupCursor(offset, true);
     }
 
     public void commitCursorToOffset(Map<String, MessageId> offset) {
@@ -291,8 +298,9 @@ public class PulsarMetadataReader implements AutoCloseable {
                     long ledgerId = Long.parseLong(ids[0]);
                     long entryIdInMarkDelete = Long.parseLong(ids[1]);
                     // we are getting the next mid from sub position, if the entryId is -1,
-                    // it denotes we haven't read data from the ledger before
-                    long entryId = entryIdInMarkDelete + 1;
+                    // it denotes we haven't read data from the ledger before,
+                    // therefore no need to skip the current entry for the next position
+                    long entryId = entryIdInMarkDelete == -1 ? -1 : entryIdInMarkDelete + 1;
                     int partitionIdx = TopicName.getPartitionIndex(topic);
                     return new MessageIdImpl(ledgerId, entryId, partitionIdx);
                 }

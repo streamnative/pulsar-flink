@@ -534,7 +534,7 @@ public class PulsarFetcher<T> {
             ExceptionProxy exceptionProxy) {
 
         Map<String, MessageId> startingOffsets = states.stream().collect(Collectors.toMap(PulsarTopicState::getTopic, PulsarTopicState::getOffset));
-        metadataReader.setupCursor(startingOffsets);
+        metadataReader.setupCursor(startingOffsets, failOnDataLoss);
         Map<String, ReaderThread> topic2Threads = new HashMap<>();
 
         for (PulsarTopicState state : states) {

@@ -181,9 +181,9 @@ public class PulsarTableSourceSinkFactory
         Optional<Map<String, String>> fieldMapping = Optional.empty();
         if (isInDDL) {
             deserializationSchema = getDeserializationSchema(properties);
-            fieldMapping = Optional.of(SchemaValidator.deriveFieldMapping(
-                    descriptorProperties,
-                    Optional.of(deserializationSchema.getProducedType())));
+            fieldMapping = Optional.ofNullable(deserializationSchema)
+                    .map(DeserializationSchema::getProducedType)
+                    .map(type -> SchemaValidator.deriveFieldMapping(descriptorProperties, Optional.of(type)));
         }
 
         return new PulsarTableSource(

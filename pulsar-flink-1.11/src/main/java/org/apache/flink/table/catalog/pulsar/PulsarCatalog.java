@@ -16,8 +16,6 @@ package org.apache.flink.table.catalog.pulsar;
 
 import org.apache.flink.streaming.connectors.pulsar.PulsarTableSourceSinkFactory;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
-import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
-import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils;
 import org.apache.flink.table.catalog.AbstractCatalog;
 import org.apache.flink.table.catalog.CatalogBaseTable;
 import org.apache.flink.table.catalog.CatalogDatabase;
@@ -133,34 +131,6 @@ public class PulsarCatalog extends AbstractCatalog {
     }
 
     @Override
-    public void createDatabase(String name, CatalogDatabase database, boolean ignoreIfExists) throws DatabaseAlreadyExistException, CatalogException {
-        try {
-            metadataReader.createNamespace(name);
-        } catch (PulsarAdminException.ConflictException e) {
-            if (!ignoreIfExists) {
-                throw new DatabaseAlreadyExistException(getName(), name, e);
-            }
-        } catch (PulsarAdminException e) {
-            throw new CatalogException(String.format("Failed to create database %s", name), e);
-        }
-    }
-
-    @Override
-    public void dropDatabase(String name, boolean ignoreIfNotExists, boolean cascade) throws DatabaseNotExistException, DatabaseNotEmptyException, CatalogException {
-        try {
-            metadataReader.deleteNamespace(name);
-        } catch (PulsarAdminException.NotFoundException e) {
-            if (!ignoreIfNotExists) {
-                throw new DatabaseNotExistException(getName(), name);
-            }
-        } catch (PulsarAdminException e) {
-            if (!cascade){
-                throw new CatalogException(String.format("Failed to drop database %s", name), e);
-            }
-        }
-    }
-
-    @Override
     public List<String> listTables(String databaseName) throws DatabaseNotExistException, CatalogException {
         try {
             return metadataReader.getTopics(databaseName);
@@ -193,51 +163,19 @@ public class PulsarCatalog extends AbstractCatalog {
         }
     }
 
-    @Override
-    public void dropTable(ObjectPath tablePath, boolean ignoreIfNotExists) throws TableNotExistException, CatalogException {
-        try {
-            metadataReader.deleteTopic(tablePath);
-        } catch (PulsarAdminException.NotFoundException e) {
-            if (!ignoreIfNotExists) {
-                throw new TableNotExistException(getName(), tablePath, e);
-            }
-        } catch (PulsarAdminException e) {
-            throw new CatalogException(String.format("Failed to drop table %s", tablePath.getFullName()), e);
-        }
-    }
-
-    @Override
-    public void createTable(ObjectPath tablePath, CatalogBaseTable table, boolean ignoreIfExists) throws TableAlreadyExistException, DatabaseNotExistException, CatalogException {
-        int defaultNumPartitions = Integer.parseInt(properties.getOrDefault(PulsarOptions.DEFAULT_PARTITIONS, "5"));
-        String databaseName = tablePath.getDatabaseName();
-        Boolean databaseExists;
-        try {
-            databaseExists = metadataReader.namespaceExists(databaseName);
-        } catch (PulsarAdminException e) {
-            throw new CatalogException(String.format("Failed to check existence of databases %s", databaseName), e);
-        }
-
-        if (!databaseExists) {
-            throw new DatabaseNotExistException(getName(), databaseName);
-        }
-
-        try {
-            metadataReader.createTopic(tablePath, defaultNumPartitions, table);
-            metadataReader.putSchema(tablePath, table);
-        } catch (PulsarAdminException e) {
-            if (e.getStatusCode() == 409) {
-                throw new TableAlreadyExistException(getName(), tablePath, e);
-            } else {
-                throw new CatalogException(String.format("Failed to create table %s", tablePath.getFullName()), e);
-            }
-        } catch (SchemaUtils.IncompatibleSchemaException e) {
-            throw new CatalogException("Failed to translate Flink type to Pulsar", e);
-        }
-    }
-
     // ------------------------------------------------------------------------
     // Unsupported catalog operations for Pulsar
     // ------------------------------------------------------------------------
+
+    @Override
+    public void createDatabase(String name, CatalogDatabase database, boolean ignoreIfExists) throws DatabaseAlreadyExistException, CatalogException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void dropDatabase(String name, boolean ignoreIfNotExists, boolean cascade) throws DatabaseNotExistException, DatabaseNotEmptyException, CatalogException {
+        throw new UnsupportedOperationException();
+    }
 
     @Override
     public void alterDatabase(String name, CatalogDatabase newDatabase, boolean ignoreIfNotExists) throws DatabaseNotExistException, CatalogException {
@@ -256,6 +194,16 @@ public class PulsarCatalog extends AbstractCatalog {
 
     @Override
     public void renameTable(ObjectPath tablePath, String newTableName, boolean ignoreIfNotExists) throws TableNotExistException, TableAlreadyExistException, CatalogException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void dropTable(ObjectPath tablePath, boolean ignoreIfNotExists) throws TableNotExistException, CatalogException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void createTable(ObjectPath tablePath, CatalogBaseTable table, boolean ignoreIfExists) throws TableAlreadyExistException, DatabaseNotExistException, CatalogException {
         throw new UnsupportedOperationException();
     }
 

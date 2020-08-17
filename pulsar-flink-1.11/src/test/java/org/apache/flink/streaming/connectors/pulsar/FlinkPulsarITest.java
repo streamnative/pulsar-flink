@@ -72,6 +72,7 @@ import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.policies.data.PersistentTopicInternalStats;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -445,6 +446,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
     }
 
     @Test
+    @Ignore
     public void testStartFromLatest() throws Exception {
         int numTopic = 3;
         List<Integer> messages = IntStream.range(0, 50).boxed().collect(Collectors.toList());

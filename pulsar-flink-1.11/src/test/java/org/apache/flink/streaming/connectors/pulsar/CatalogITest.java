@@ -40,6 +40,7 @@ import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.policies.data.TenantInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -60,6 +61,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * Catalog Integration tests.
  */
+@Ignore
 public class CatalogITest extends PulsarTestBaseWithFlink {
 
     private static final String CATALOGS_ENVIRONMENT_FILE = "test-sql-client-pulsar-catalog.yaml";

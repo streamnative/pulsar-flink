@@ -14,6 +14,8 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
+import org.apache.flink.api.common.serialization.DeserializationSchema;
+import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.types.CollectionDataType;
 import org.apache.flink.table.types.DataType;
@@ -74,7 +76,7 @@ import static org.apache.pulsar.shade.org.apache.avro.Schema.Type.UNION;
  * Deserialize Pulsar message into Flink row.
  */
 @Slf4j
-public class PulsarDeserializer {
+public class PulsarDeserializer implements PulsarDeserializationSchema<Row>{
 
     private final SchemaInfo schemaInfo;
 
@@ -153,10 +155,6 @@ public class PulsarDeserializer {
                     ExceptionUtils.stringifyException(e));
             throw new RuntimeException(e);
         }
-    }
-
-    public Row deserialize(Message<?> message) {
-        return converter.apply(message);
     }
 
     private void writeMetadataFields(Message<?> message, Row row) {
@@ -481,6 +479,25 @@ public class PulsarDeserializer {
                 fieldWriters.get(i).apply(rowUpdater, record.get(validFieldIndexes.get(i)));
             }
         };
+    }
+
+    @Override
+    public void open(DeserializationSchema.InitializationContext context) throws Exception {
+    }
+
+    @Override
+    public boolean isEndOfStream(Row nextElement) {
+        return false;
+    }
+
+    @Override
+    public Row deserialize(Message message) throws IOException {
+        return converter.apply(message);
+    }
+
+    @Override
+    public TypeInformation<Row> getProducedType() {
+        return (TypeInformation<Row>) TypeConversions.fromDataTypeToLegacyInfo(rootDataType);
     }
 
     /**

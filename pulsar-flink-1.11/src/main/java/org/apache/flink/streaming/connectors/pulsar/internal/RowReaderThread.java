@@ -36,8 +36,6 @@ public class RowReaderThread extends ReaderThread<Row> {
 
     private final Schema<?> schema;
 
-    private final PulsarDeserializer pulsarDeserializer;
-
     public RowReaderThread(
             PulsarFetcher owner,
             PulsarTopicState state,
@@ -48,13 +46,10 @@ public class RowReaderThread extends ReaderThread<Row> {
             PulsarDeserializationSchema<Row> deserializer,
             JSONOptionsInRead jsonOptions,
             ExceptionProxy exceptionProxy) {
-        super(owner, state, clientConf, readerConf, deserializer, pollTimeoutMs, exceptionProxy);
+        super(owner, state, clientConf, readerConf,
+                deserializer == null? new PulsarDeserializer(pulsarSchema, jsonOptions) : deserializer,
+                pollTimeoutMs, exceptionProxy);
         this.schema = SchemaUtils.getPulsarSchema(pulsarSchema);
-        if (deserializer == null) {
-            pulsarDeserializer = new PulsarDeserializer(pulsarSchema, jsonOptions);
-        } else {
-            pulsarDeserializer = null;
-        }
     }
 
     @Override
@@ -72,8 +67,10 @@ public class RowReaderThread extends ReaderThread<Row> {
     @Override
     protected void emitRecord(Message<?> message) throws IOException {
         MessageId messageId = message.getMessageId();
-        Row record = deserializer == null ?
-                pulsarDeserializer.deserialize(message) : deserializer.deserialize(message);
+        Row record = deserializer.deserialize(message);
+        if (deserializer.isEndOfStream(record)) {
+            return;
+        }
         owner.emitRecord(record, state, messageId);
     }
 }

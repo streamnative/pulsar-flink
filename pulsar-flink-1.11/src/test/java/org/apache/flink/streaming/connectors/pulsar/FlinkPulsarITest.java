@@ -72,7 +72,6 @@ import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.policies.data.PersistentTopicInternalStats;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -446,7 +445,6 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
     }
 
     @Test
-    @Ignore
     public void testStartFromLatest() throws Exception {
         int numTopic = 3;
         List<Integer> messages = IntStream.range(0, 50).boxed().collect(Collectors.toList());
@@ -469,21 +467,16 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         Properties sourceProps = sourceProperties();
         sourceProps.setProperty(TOPIC_MULTI_OPTION_KEY, StringUtils.join(topics, ','));
 
-        DataStream stream = see.addSource(
-                new FlinkPulsarRowSource(serviceUrl, adminUrl, sourceProps).setStartFromLatest());
-        stream.flatMap(new CheckAllMessageExist(expectedData, 30)).setParallelism(1);
-        stream.addSink(new DiscardingSink());
-
-        JobGraph jobGraph = StreamingJobGraphGenerator.createJobGraph(see.getStreamGraph());
-        JobID consumeJobId = jobGraph.getJobID();
+        see.addSource(new FlinkPulsarRowSource(serviceUrl, adminUrl, sourceProps).setStartFromLatest())
+                .flatMap(new CheckAllMessageExist(expectedData, 30)).setParallelism(1)
+                .addSink(new DiscardingSink());
 
         AtomicReference<Throwable> error = new AtomicReference<>();
         Thread consumerThread = new Thread() {
             @Override
             public void run() {
                 try {
-                    //client.setDetached(false);
-                    client.submitJob(jobGraph);
+                    see.execute("testStartFromLatest");
                 } catch (Throwable e) {
                     if (!ExceptionUtils.findThrowable(e, JobCancellationException.class).isPresent()) {
                         error.set(e);
@@ -492,8 +485,6 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
             }
         };
         consumerThread.start();
-
-        waitUntilJobIsRunning(client);
 
         Thread.sleep(3000);
 
@@ -1013,7 +1004,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
             map.put(topic, current);
 
             count++;
-
+            out.collect(value);
             if (count == total) {
                 for (Map.Entry<String, List<Integer>> e : map.entrySet()) {
                     Set<Integer> s = new HashSet<>(e.getValue());

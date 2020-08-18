@@ -12,19 +12,5 @@
 # limitations under the License.
 #
 
-# Build the website into a docker image
-
-set -e
-
-JENKINS_DIR=`dirname "$0"`
-PRJ_HOME=`cd ${JENKINS_DIR};pwd`
-PROFILE=${1}
-
-cd ${PRJ_HOME}
-
-mvn -B -ntp -q -pl pulsar-flink-1.9 clean license:check install checkstyle:check spotbugs:check -P${PROFILE}
-cat pulsar-flink-1.9/target/surefire-reports/*.txt
-mvn -B -ntp -q -pl pulsar-flink-1.11 clean license:check install checkstyle:check spotbugs:check -P${PROFILE}
-cat pulsar-flink-1.11/target/surefire-reports/*.txt
-retcode=$?
-exit $retcode
+org.apache.flink.streaming.connectors.pulsar.PulsarTableSourceSinkFactory
+org.apache.flink.table.catalog.pulsar.factories.PulsarCatalogFactory

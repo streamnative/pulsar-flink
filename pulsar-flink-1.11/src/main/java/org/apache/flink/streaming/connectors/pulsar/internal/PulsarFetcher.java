@@ -174,7 +174,7 @@ public class PulsarFetcher<T> {
         this.userCodeClassLoader = userCodeClassLoader;
         this.runtimeContext = runtimeContext;
         this.clientConf = clientConf;
-        this.readerConf = readerConf == null?new HashMap<>():readerConf;
+        this.readerConf = readerConf == null ? new HashMap<>() : readerConf;
 
         String failOnDataLossVal = this.readerConf.getOrDefault(PulsarOptions.FAIL_ON_DATA_LOSS_OPTION_KEY, "true").toString();
         this.failOnDataLoss = Boolean.parseBoolean(failOnDataLossVal);
@@ -534,7 +534,7 @@ public class PulsarFetcher<T> {
             ExceptionProxy exceptionProxy) {
 
         Map<String, MessageId> startingOffsets = states.stream().collect(Collectors.toMap(PulsarTopicState::getTopic, PulsarTopicState::getOffset));
-        metadataReader.setupCursor(startingOffsets);
+        metadataReader.setupCursor(startingOffsets, failOnDataLoss);
         Map<String, ReaderThread> topic2Threads = new HashMap<>();
 
         for (PulsarTopicState state : states) {

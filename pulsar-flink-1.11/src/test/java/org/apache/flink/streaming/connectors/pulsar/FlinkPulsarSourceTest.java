@@ -14,7 +14,6 @@
 
 package org.apache.flink.streaming.connectors.pulsar;
 
-import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.state.BroadcastState;
 import org.apache.flink.api.common.state.KeyedStateStore;
 import org.apache.flink.api.common.state.ListState;
@@ -232,7 +231,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
         HashMap<String, MessageId> snapshot1 = new HashMap<>();
 
         for (Serializable serializable : listState.get()) {
-            Tuple3<String, MessageId,String> tuple2 = (Tuple3<String, MessageId,String>) serializable;
+            Tuple3<String, MessageId, String> tuple2 = (Tuple3<String, MessageId, String>) serializable;
             snapshot1.put(tuple2.f0, tuple2.f1);
         }
 
@@ -267,7 +266,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
         HashMap<String, MessageId> snapshot3 = new HashMap<>();
 
         for (Serializable serializable : listState.get()) {
-            Tuple3<String, MessageId, String> tuple2 = (Tuple3<String, MessageId,String>) serializable;
+            Tuple3<String, MessageId, String> tuple2 = (Tuple3<String, MessageId, String>) serializable;
             snapshot3.put(tuple2.f0, tuple2.f1);
         }
 

@@ -22,7 +22,9 @@ PROFILE=${1}
 
 cd ${PRJ_HOME}
 
-mvn -B -ntp -q clean license:check install checkstyle:check spotbugs:check -P${PROFILE}
-cat target/surefire-reports/*.txt
+mvn -B -ntp -q -pl pulsar-flink-1.9 clean license:check install checkstyle:check spotbugs:check -P${PROFILE}
+cat pulsar-flink-1.9/target/surefire-reports/*.txt
+mvn -B -ntp -q -pl pulsar-flink-1.11 clean license:check install checkstyle:check spotbugs:check -P${PROFILE}
+cat pulsar-flink-1.11/target/surefire-reports/*.txt
 retcode=$?
 exit $retcode

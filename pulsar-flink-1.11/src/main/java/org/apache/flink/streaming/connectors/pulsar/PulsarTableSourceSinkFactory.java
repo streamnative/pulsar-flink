@@ -28,6 +28,7 @@ import org.apache.flink.table.factories.DeserializationSchemaFactory;
 import org.apache.flink.table.factories.StreamTableSinkFactory;
 import org.apache.flink.table.factories.StreamTableSourceFactory;
 import org.apache.flink.table.factories.TableFactoryService;
+import org.apache.flink.table.factories.TableSinkFactory;
 import org.apache.flink.table.sinks.StreamTableSink;
 import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.table.sources.RowtimeAttributeDescriptor;
@@ -140,14 +141,13 @@ public class PulsarTableSourceSinkFactory
     }
 
     @Override
-    public TableSink<Row> createTableSink(ObjectPath tablePath, CatalogTable table) {
-        String topic = PulsarMetadataReader.objectPath2TopicName(tablePath);
-
-        Map<String, String> props = new HashMap<String, String>();
-        props.putAll(table.toProperties());
-        props.put(CONNECTOR_TOPIC, topic);
-
-        return createStreamTableSink(props);
+    public TableSink<Row> createTableSink(TableSinkFactory.Context context) {
+        Map<String, String> result = new HashMap<>(context.getTable().toProperties());
+        if (!result.containsKey(CONNECTOR_TOPIC)){
+            String topic = PulsarMetadataReader.objectPath2TopicName(context.getObjectIdentifier().toObjectPath());
+            result.put(CONNECTOR_TOPIC, topic);
+        }
+        return createStreamTableSink(result);
     }
 
     @Override

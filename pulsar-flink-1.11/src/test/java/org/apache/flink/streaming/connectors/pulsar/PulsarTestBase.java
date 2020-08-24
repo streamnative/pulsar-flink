@@ -75,7 +75,7 @@ public abstract class PulsarTestBase extends TestLogger {
         System.setProperty("pulsar.systemtest.image", "streamnative/pulsar-all:2.6.0-sn-18-3");
         PulsarServiceSpec spec = PulsarServiceSpec.builder()
                 .clusterName("standalone-" + UUID.randomUUID())
-                .enableContainerLogging(true)
+                .enableContainerLogging(false)
                 .build();
 
         pulsarService = PulsarServiceFactory.createPulsarService(spec);

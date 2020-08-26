@@ -53,6 +53,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 
+import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.USE_EXTEND_FIELD;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_EXTERNAL_SUB_DEFAULT_OFFSET;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_EARLIEST;
 import static org.apache.flink.util.Preconditions.checkNotNull;
@@ -201,7 +202,7 @@ public class PulsarTableSource
             try {
                 PulsarMetadataReader reader = new PulsarMetadataReader(adminUrl, new ClientConfigurationData(), "", caseInsensitiveParams, -1, -1);
                 List<String> topics = reader.getTopics();
-                FieldsDataType schema = reader.getSchema(topics);
+                FieldsDataType schema = reader.getSchema(topics, Boolean.parseBoolean(properties.getProperty(USE_EXTEND_FIELD)));
                 return SchemaUtils.toTableSchema(schema);
             } catch (PulsarClientException | PulsarAdminException | SchemaUtils.IncompatibleSchemaException e) {
                 log.error("Failed to fetch table schema", adminUrl);

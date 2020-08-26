@@ -67,6 +67,7 @@ public class PulsarOptions {
                     " source option \"failOnDataLoss\" to \"false\".";
 
 
+    public static final String USE_EXTEND_FIELD = "use-extend-field";
     public static final String TOPIC_ATTRIBUTE_NAME = "__topic";
     public static final String KEY_ATTRIBUTE_NAME = "__key";
     public static final String MESSAGE_ID_NAME = "__messageId";

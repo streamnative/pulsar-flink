@@ -70,6 +70,6 @@ public class PulsarRowFetcher extends PulsarFetcher<Row> {
     protected ReaderThread createReaderThread(ExceptionProxy exceptionProxy, PulsarTopicState state) {
         SchemaInfo schemaInfo = getPulsarSchema();
         return new RowReaderThread(
-                this, state, clientConf, readerConf, pollTimeoutMs, schemaInfo, deserializer, null, exceptionProxy);
+                this, state, clientConf, readerConf, pollTimeoutMs, schemaInfo, deserializer, exceptionProxy);
     }
 }

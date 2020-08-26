@@ -38,6 +38,8 @@ import org.apache.pulsar.shade.org.apache.avro.generic.GenericData;
 import org.apache.pulsar.shade.org.apache.avro.util.Utf8;
 
 import java.nio.ByteBuffer;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -124,13 +126,14 @@ public class PulsarSerializer {
                 (tpe == LogicalTypeRoot.FLOAT && atpe == Schema.Type.FLOAT) ||
                 (tpe == LogicalTypeRoot.DOUBLE && atpe == Schema.Type.DOUBLE) ||
                 (tpe == LogicalTypeRoot.VARCHAR && atpe == Schema.Type.STRING) ||
-                (tpe == LogicalTypeRoot.VARBINARY && atpe == Schema.Type.BYTES) ||
-                (tpe == LogicalTypeRoot.DATE && atpe == Schema.Type.INT)) {
+                (tpe == LogicalTypeRoot.VARBINARY && atpe == Schema.Type.BYTES)) {
             return (getter, ordinal) -> getter.getField(ordinal);
+        } else if ((tpe == LogicalTypeRoot.DATE && atpe == Schema.Type.INT)){
+            return (getter, ordinal) -> (LocalDate) getter.getField(ordinal);
         } else if (tpe == LogicalTypeRoot.TIMESTAMP_WITHOUT_TIME_ZONE && atpe == Schema.Type.LONG) {
             LogicalType altpe = avroType.getLogicalType();
             if (altpe instanceof LogicalTypes.TimestampMillis || altpe instanceof LogicalTypes.TimestampMicros) {
-                return (getter, ordinal) -> getter.getField(ordinal);
+                return (getter, ordinal) -> (LocalDateTime) getter.getField(ordinal);
             } else {
                 throw new SchemaUtils.IncompatibleSchemaException(
                         "Cannot convert flink timestamp to avro logical type " + altpe.toString());
@@ -209,13 +212,15 @@ public class PulsarSerializer {
         } else if (tpe == LogicalTypeRoot.BIGINT && atpe == BYTES) {
             return (getter, ordinal) -> ByteBuffer.wrap((byte[]) getter.getField(ordinal));
         } else if (tpe == LogicalTypeRoot.DATE && atpe == Schema.Type.INT) {
-            return (getter, ordinal) -> DateTimeUtils.fromJavaDate((java.sql.Date) getter.getField(ordinal));
+            return (getter, ordinal) -> ((java.time.LocalDate) getter.getField(ordinal)).toEpochDay();
         } else if (tpe == LogicalTypeRoot.TIMESTAMP_WITH_TIME_ZONE && atpe == Schema.Type.LONG) {
             LogicalType altpe = avroType.getLogicalType();
             if (altpe instanceof LogicalTypes.TimestampMillis) {
-                return (getter, ordinal) -> DateTimeUtils.fromJavaTimestamp((java.sql.Timestamp) getter.getField(ordinal)) / 1000;
+                return (getter, ordinal) -> DateTimeUtils.fromJavaTimestamp(java.sql.Timestamp.valueOf(
+                        (LocalDateTime) getter.getField(ordinal))) / 1000;
             } else if (altpe instanceof LogicalTypes.TimestampMicros) {
-                return (getter, ordinal) -> DateTimeUtils.fromJavaTimestamp((java.sql.Timestamp) getter.getField(ordinal));
+                return (getter, ordinal) -> DateTimeUtils.fromJavaTimestamp(java.sql.Timestamp.valueOf(
+                        (LocalDateTime) getter.getField(ordinal)));
             } else {
                 throw new SchemaUtils.IncompatibleSchemaException(
                         "Cannot convert flink timestamp to avro logical type " + altpe.toString());

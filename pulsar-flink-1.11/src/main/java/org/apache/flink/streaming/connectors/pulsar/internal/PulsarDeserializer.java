@@ -46,10 +46,13 @@ import org.apache.pulsar.shade.org.apache.avro.generic.GenericRecord;
 import org.apache.pulsar.shade.org.apache.avro.util.Utf8;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -57,7 +60,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -78,27 +80,30 @@ import static org.apache.pulsar.shade.org.apache.avro.Schema.Type.UNION;
 @Slf4j
 public class PulsarDeserializer implements PulsarDeserializationSchema<Row>{
 
-    private final SchemaInfo schemaInfo;
-
-    private final JSONOptions parsedOptions;
-
     private final Function<Message<?>, Row> converter;
 
     private final DataType rootDataType;
+    private final FieldsDataType fieldsDataType;
 
-    private final Conversions.DecimalConversion decimalConversions =
+    private static final Conversions.DecimalConversion decimalConversions =
             new Conversions.DecimalConversion();
 
-    public PulsarDeserializer(SchemaInfo schemaInfo, JSONOptions parsedOptions) {
-        try {
-            this.schemaInfo = schemaInfo;
-            this.parsedOptions = parsedOptions;
-            this.rootDataType = SchemaUtils.si2SqlType(schemaInfo);
+    private final boolean useExtendField;
 
+    public PulsarDeserializer(SchemaInfo schemaInfo, JSONOptions parsedOptions, boolean useExtendField) {
+        try {
+            this.fieldsDataType = SchemaUtils.pulsarSourceSchema(schemaInfo, useExtendField);
+            this.rootDataType = SchemaUtils.si2SqlType(schemaInfo);
+            this.useExtendField = useExtendField;
             switch (schemaInfo.getType()) {
                 case AVRO:
                     FieldsDataType st = (FieldsDataType) rootDataType;
-                    int fieldsNum = st.getChildren().size() + META_FIELD_NAMES.size();
+                    int fieldsNum;
+                    if (useExtendField){
+                        fieldsNum = st.getChildren().size() + META_FIELD_NAMES.size();
+                    } else {
+                        fieldsNum = st.getChildren().size();
+                    }
                     RowUpdater fieldUpdater = new RowUpdater();
                     Schema avroSchema =
                             new Schema.Parser().parse(new String(schemaInfo.getSchema(), StandardCharsets.UTF_8));
@@ -108,7 +113,9 @@ public class PulsarDeserializer implements PulsarDeserializationSchema<Row>{
                         fieldUpdater.setRow(resultRow);
                         Object value = msg.getValue();
                         writer.apply(fieldUpdater, ((GenericAvroRecord) value).getAvroRecord());
-                        writeMetadataFields(msg, resultRow);
+                        if (useExtendField){
+                            writeMetadataFields(msg, resultRow);
+                        }
                         return resultRow;
                     };
                     break;
@@ -129,10 +136,13 @@ public class PulsarDeserializer implements PulsarDeserializationSchema<Row>{
                             parsedOptions.getParseMode(),
                             fdt);
                     this.converter = msg -> {
-                        Row resultRow = new Row(fdt.getChildren().size() + META_FIELD_NAMES.size());
+                        int rowSize = useExtendField ? fdt.getChildren().size() + META_FIELD_NAMES.size() : fdt.getChildren().size();
+                        Row resultRow = new Row(rowSize);
                         byte[] value = msg.getData();
                         parser.parse(new String(value, StandardCharsets.UTF_8), resultRow);
-                        writeMetadataFields(msg, resultRow);
+                        if (useExtendField){
+                            writeMetadataFields(msg, resultRow);
+                        }
                         return resultRow;
                     };
                     break;
@@ -141,11 +151,14 @@ public class PulsarDeserializer implements PulsarDeserializationSchema<Row>{
                     RowUpdater fUpdater = new RowUpdater();
                     TriFunction<RowUpdater, Integer, Object> writer2 = newAtomicWriter(rootDataType);
                     this.converter = msg -> {
-                        Row tmpRow = new Row(1 + META_FIELD_NAMES.size());
+                        int rowSize = useExtendField ? 1 + META_FIELD_NAMES.size() : 1;
+                        Row tmpRow = new Row(rowSize);
                         fUpdater.setRow(tmpRow);
                         Object value = msg.getValue();
                         writer2.apply(fUpdater, 0, value);
-                        writeMetadataFields(msg, tmpRow);
+                        if (useExtendField){
+                            writeMetadataFields(msg, tmpRow);
+                        }
                         return tmpRow;
                     };
             }
@@ -168,10 +181,10 @@ public class PulsarDeserializer implements PulsarDeserializationSchema<Row>{
 
         row.setField(metaStartIdx + 1, message.getTopicName());
         row.setField(metaStartIdx + 2, message.getMessageId().toByteArray());
-        row.setField(metaStartIdx + 3, new Timestamp(message.getPublishTime()));
+        row.setField(metaStartIdx + 3, LocalDateTime.ofInstant(Instant.ofEpochMilli(message.getPublishTime()), ZoneId.systemDefault()));
 
         if (message.getEventTime() > 0L) {
-            row.setField(metaStartIdx + 4, new Timestamp(message.getEventTime()));
+            row.setField(metaStartIdx + 4, LocalDateTime.ofInstant(Instant.ofEpochMilli(message.getEventTime()), ZoneId.systemDefault()));
         } else {
             row.setField(metaStartIdx + 4, null);
         }
@@ -182,9 +195,9 @@ public class PulsarDeserializer implements PulsarDeserializationSchema<Row>{
 
         switch (tpe) {
             case DATE:
+            case TIMESTAMP_WITHOUT_TIME_ZONE:
                 return (rowUpdater, ordinal, value) -> {
-                    rowUpdater.set(ordinal,
-                            ((java.util.Date) value).toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
+                    rowUpdater.set(ordinal, value);
                 };
             default:
                 return (rowUpdater, ordinal, value) -> rowUpdater.set(ordinal, value);
@@ -205,21 +218,20 @@ public class PulsarDeserializer implements PulsarDeserializationSchema<Row>{
                 atpe == Schema.Type.DOUBLE && tpe == LogicalTypeRoot.DOUBLE) {
             return (rowUpdater, ordinal, value) -> rowUpdater.set(ordinal, value);
 
-        } else if (atpe == Schema.Type.INT && tpe == LogicalTypeRoot.DATE) {
+        } else if (atpe == INT && tpe == LogicalTypeRoot.DATE) {
             return (rowUpdater, ordinal, value) ->
-                    rowUpdater.set(ordinal,
-                            DateTimeUtils.toJavaDate((Integer) value));
+                    rowUpdater.set(ordinal, LocalDate.ofEpochDay((Long) value));
 
         } else if (atpe == Schema.Type.LONG && tpe == LogicalTypeRoot.TIMESTAMP_WITHOUT_TIME_ZONE) {
             LogicalType altpe = avroType.getLogicalType();
             if (altpe instanceof LogicalTypes.TimestampMillis) {
                 return (rowUpdater, ordinal, value) ->
                         rowUpdater.set(ordinal,
-                                DateTimeUtils.toJavaTimestamp(((Long) value) * 1000));
+                                DateTimeUtils.toJavaTimestamp(((Long) value) * 1000).toLocalDateTime());
             } else if (altpe instanceof LogicalTypes.TimestampMicros) {
                 return (rowUpdater, ordinal, value) ->
                         rowUpdater.set(ordinal,
-                                DateTimeUtils.toJavaTimestamp((Long) value));
+                                DateTimeUtils.toJavaTimestamp((Long) value).toLocalDateTime());
             } else {
                 throw new SchemaUtils.IncompatibleSchemaException(String.format(
                         "Cannot convert Avro logical type %s to flink timestamp type", altpe.toString()));
@@ -497,13 +509,13 @@ public class PulsarDeserializer implements PulsarDeserializationSchema<Row>{
 
     @Override
     public TypeInformation<Row> getProducedType() {
-        return (TypeInformation<Row>) TypeConversions.fromDataTypeToLegacyInfo(rootDataType);
+        return (TypeInformation<Row>) TypeConversions.fromDataTypeToLegacyInfo(fieldsDataType);
     }
 
     /**
      * Update flink data object.
      */
-    interface FlinkDataUpdater {
+    interface FlinkDataUpdater extends Serializable{
         void set(int ordinal, Object value);
 
         void setNullAt(int ordinal);
@@ -560,7 +572,7 @@ public class PulsarDeserializer implements PulsarDeserializationSchema<Row>{
      * @param <B> type of the second argument.
      * @param <C> type of the third argument.
      */
-    public interface TriFunction<A, B, C> {
+    public interface TriFunction<A, B, C> extends Serializable{
 
         /**
          * Applies this function to the given arguments.
@@ -574,11 +586,28 @@ public class PulsarDeserializer implements PulsarDeserializationSchema<Row>{
      * @param <A> type of the first argument.
      * @param <B> type of the second argument.
      */
-    public interface BinFunction<A, B> {
+    public interface BinFunction<A, B> extends Serializable {
 
         /**
          * Applies this function to the given arguments.
          */
         void apply(A a, B b);
+    }
+
+    /**
+     * Represents a function that accepts one argument and produces a result.
+     *
+     * @param <T> the type of the input to the function
+     * @param <R> the type of the result of the function
+     */
+    public interface Function<T, R> extends Serializable{
+
+        /**
+         * Applies this function to the given argument.
+         *
+         * @param t the function argument
+         * @return the function result
+         */
+        R apply(T t);
     }
 }

@@ -34,6 +34,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
@@ -404,9 +405,9 @@ public class JacksonRecordParser {
                                     if (token == JsonToken.VALUE_STRING) {
                                         String v = parser.getText();
                                         long t = options.getTimestampFormat().parse(v).getTime() * 1000L;
-                                        return DateTimeUtils.toJavaTimestamp(t);
+                                        return DateTimeUtils.toJavaTimestamp(t).toLocalDateTime();
                                     } else {
-                                        return DateTimeUtils.toJavaTimestamp(parser.getLongValue() * 1000000L);
+                                        return DateTimeUtils.toJavaTimestamp(parser.getLongValue() * 1000000L).toLocalDateTime();
                                     }
                                 } catch (IOException | ParseException e) {
                                     suroundWithRuntimeE(e);
@@ -434,7 +435,7 @@ public class JacksonRecordParser {
                                 try {
                                     String v = parser.getText();
                                     int t = DateTimeUtils.millisToDays(options.getDateFormat().parse(v).getTime());
-                                    return DateTimeUtils.toJavaDate(t);
+                                    return DateTimeUtils.toJavaDate(t).toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
 
                                 } catch (IOException | ParseException e) {
                                     suroundWithRuntimeE(e);

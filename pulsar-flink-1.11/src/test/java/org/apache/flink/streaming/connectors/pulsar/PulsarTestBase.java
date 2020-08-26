@@ -33,6 +33,7 @@ import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
+import org.apache.pulsar.client.api.schema.SchemaDefinition;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -71,9 +72,10 @@ public abstract class PulsarTestBase extends TestLogger {
         log.info("    Starting PulsarTestBase ");
         log.info("-------------------------------------------------------------------------");
 
+        System.setProperty("pulsar.systemtest.image", "streamnative/pulsar-all:2.6.0-sn-18-3");
         PulsarServiceSpec spec = PulsarServiceSpec.builder()
                 .clusterName("standalone-" + UUID.randomUUID())
-                .enableContainerLogging(false)
+                .enableContainerLogging(true)
                 .build();
 
         pulsarService = PulsarServiceFactory.createPulsarService(spec);
@@ -145,19 +147,19 @@ public abstract class PulsarTestBase extends TestLogger {
             topicName = topic;
         }
 
-        Producer<T> producer = null;
-        PulsarClient client = null;
+        Producer producer = null;
         List<MessageId> mids = new ArrayList<>();
 
-        try {
-            client = PulsarClient.builder().serviceUrl(getServiceUrl()).build();
-
+        try (PulsarClient client = PulsarClient.builder().serviceUrl(getServiceUrl()).build()){
             switch (type) {
                 case BOOLEAN:
                     producer = (Producer<T>) client.newProducer(Schema.BOOL).topic(topicName).create();
                     break;
                 case BYTES:
                     producer = (Producer<T>) client.newProducer(Schema.BYTES).topic(topicName).create();
+                    break;
+                case LOCAL_DATE:
+                    producer = (Producer<T>) client.newProducer(Schema.LOCAL_DATE).topic(topicName).create();
                     break;
                 case DATE:
                     producer = (Producer<T>) client.newProducer(Schema.DATE).topic(topicName).create();
@@ -167,6 +169,9 @@ public abstract class PulsarTestBase extends TestLogger {
                     break;
                 case TIMESTAMP:
                     producer = (Producer<T>) client.newProducer(Schema.TIMESTAMP).topic(topicName).create();
+                    break;
+                case LOCAL_DATE_TIME:
+                    producer = (Producer<T>) client.newProducer(Schema.LOCAL_DATE_TIME).topic(topicName).create();
                     break;
                 case INT8:
                     producer = (Producer<T>) client.newProducer(Schema.INT8).topic(topicName).create();
@@ -187,7 +192,9 @@ public abstract class PulsarTestBase extends TestLogger {
                     producer = (Producer<T>) client.newProducer(Schema.INT64).topic(topicName).create();
                     break;
                 case AVRO:
-                    producer = (Producer<T>) client.newProducer(Schema.AVRO(tClass)).topic(topicName).create();
+                    SchemaDefinition<Object> schemaDefinition =
+                            SchemaDefinition.builder().withPojo(tClass).withJSR310ConversionEnabled(true).build();
+                    producer = (Producer<T>) client.newProducer(Schema.AVRO(schemaDefinition)).topic(topicName).create();
                     break;
                 case JSON:
                     producer = (Producer<T>) client.newProducer(Schema.JSON(tClass)).topic(topicName).create();
@@ -203,10 +210,13 @@ public abstract class PulsarTestBase extends TestLogger {
                 mids.add(mid);
             }
 
+        } catch (Exception e){
+            log.error("message send failed", e);
         } finally {
-            producer.flush();
-            producer.close();
-            client.close();
+            if (producer != null){
+                producer.flush();
+                producer.close();
+            }
         }
         return mids;
     }

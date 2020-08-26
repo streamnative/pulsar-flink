@@ -48,6 +48,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 
+import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.USE_EXTEND_FIELD;
 import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CONNECTOR;
 import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CONNECTOR_PROPERTY_VERSION;
 import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CONNECTOR_TYPE;
@@ -170,6 +171,7 @@ public class PulsarTableSourceSinkFactory
         if (isInPulsarCatalog) {
             sourceProp = new Properties();
             sourceProp.putAll(catalogProperties);
+            sourceProp.put(CONNECTOR + "." + USE_EXTEND_FIELD,  "true");
         } else {
             sourceProp = getPulsarProperties(descriptorProperties);
         }
@@ -204,7 +206,6 @@ public class PulsarTableSourceSinkFactory
     public TableSource<Row> createTableSource(ObjectPath tablePath, CatalogTable table) {
         Map<String, String> props = new HashMap<>();
         props.putAll(table.toProperties());
-
         isInDDL = props.size() != 0;
 
         if (props.get(CONNECTOR_TOPIC) == null) {
@@ -264,6 +265,7 @@ public class PulsarTableSourceSinkFactory
         properties.add(CONNECTOR_PROPERTIES + ".*");
         properties.add(CONNECTOR_EXTERNAL_SUB_NAME);
 
+        properties.add(CONNECTOR + "." + USE_EXTEND_FIELD);
         properties.add(CONNECTOR_PROPERTIES);
         properties.add(CONNECTOR_PROPERTIES + ".#." + CONNECTOR_PROPERTIES_KEY);
         properties.add(CONNECTOR_PROPERTIES + ".#." + CONNECTOR_PROPERTIES_VALUE);

@@ -47,7 +47,7 @@ public class ValidatingExactlyOnceSink extends RichSinkFunction<Row> implements 
     }
 
     @Override
-    public void invoke(Row value) throws Exception {
+    public void invoke(Row value, Context context) throws Exception {
         numElements++;
 
         int v = (Integer) value.getField(0);

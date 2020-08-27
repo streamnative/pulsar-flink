@@ -637,7 +637,6 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         env.enableCheckpointing(500);
         env.setParallelism(parallelism);
         env.setRestartStrategy(RestartStrategies.fixedDelayRestart(1, 0));
-        env.getConfig().disableSysoutLogging();
 
         Properties sourceProps = sourceProperties();
         sourceProps.setProperty(TOPIC_MULTI_OPTION_KEY, StringUtils.join(allTopicNames, ','));

@@ -47,7 +47,7 @@
     <developerConnection>scm:git:https://github.com/streamnative/pulsar-flink.git
     </developerConnection>
     <url>https://github.com/streamnative/pulsar-flink</url>
-    <tag>branch-2.5.0</tag>
+    <tag>HEAD</tag>
   </scm>
   <issueManagement>
     <system>Github</system>

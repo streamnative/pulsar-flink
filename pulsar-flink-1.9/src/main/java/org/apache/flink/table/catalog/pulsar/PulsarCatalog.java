@@ -124,6 +124,9 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
             return metadataReader.namespaceExists(databaseName);
         } catch (PulsarAdminException e) {
             return false;
+        } catch (Exception e) {
+            log.warn(databaseName + " database does not exist.", e);
+            return false;
         }
     }
 

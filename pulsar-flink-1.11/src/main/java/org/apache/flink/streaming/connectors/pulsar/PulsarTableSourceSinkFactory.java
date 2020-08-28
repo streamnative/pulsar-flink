@@ -28,6 +28,7 @@ import org.apache.flink.table.factories.DeserializationSchemaFactory;
 import org.apache.flink.table.factories.StreamTableSinkFactory;
 import org.apache.flink.table.factories.StreamTableSourceFactory;
 import org.apache.flink.table.factories.TableFactoryService;
+import org.apache.flink.table.factories.TableSinkFactory;
 import org.apache.flink.table.sinks.StreamTableSink;
 import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.table.sources.RowtimeAttributeDescriptor;
@@ -48,6 +49,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 
+import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.USE_EXTEND_FIELD;
 import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CONNECTOR;
 import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CONNECTOR_PROPERTY_VERSION;
 import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CONNECTOR_TYPE;
@@ -139,14 +141,13 @@ public class PulsarTableSourceSinkFactory
     }
 
     @Override
-    public TableSink<Row> createTableSink(ObjectPath tablePath, CatalogTable table) {
-        String topic = PulsarMetadataReader.objectPath2TopicName(tablePath);
-
-        Map<String, String> props = new HashMap<String, String>();
-        props.putAll(table.toProperties());
-        props.put(CONNECTOR_TOPIC, topic);
-
-        return createStreamTableSink(props);
+    public TableSink<Row> createTableSink(TableSinkFactory.Context context) {
+        Map<String, String> result = new HashMap<>(context.getTable().toProperties());
+        if (!result.containsKey(CONNECTOR_TOPIC)){
+            String topic = PulsarMetadataReader.objectPath2TopicName(context.getObjectIdentifier().toObjectPath());
+            result.put(CONNECTOR_TOPIC, topic);
+        }
+        return createStreamTableSink(result);
     }
 
     @Override
@@ -170,6 +171,7 @@ public class PulsarTableSourceSinkFactory
         if (isInPulsarCatalog) {
             sourceProp = new Properties();
             sourceProp.putAll(catalogProperties);
+            sourceProp.put(CONNECTOR + "." + USE_EXTEND_FIELD,  "true");
         } else {
             sourceProp = getPulsarProperties(descriptorProperties);
         }
@@ -204,7 +206,6 @@ public class PulsarTableSourceSinkFactory
     public TableSource<Row> createTableSource(ObjectPath tablePath, CatalogTable table) {
         Map<String, String> props = new HashMap<>();
         props.putAll(table.toProperties());
-
         isInDDL = props.size() != 0;
 
         if (props.get(CONNECTOR_TOPIC) == null) {
@@ -264,6 +265,7 @@ public class PulsarTableSourceSinkFactory
         properties.add(CONNECTOR_PROPERTIES + ".*");
         properties.add(CONNECTOR_EXTERNAL_SUB_NAME);
 
+        properties.add(CONNECTOR + "." + USE_EXTEND_FIELD);
         properties.add(CONNECTOR_PROPERTIES);
         properties.add(CONNECTOR_PROPERTIES + ".#." + CONNECTOR_PROPERTIES_KEY);
         properties.add(CONNECTOR_PROPERTIES + ".#." + CONNECTOR_PROPERTIES_VALUE);

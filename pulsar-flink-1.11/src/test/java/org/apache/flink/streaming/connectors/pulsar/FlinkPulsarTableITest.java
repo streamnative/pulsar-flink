@@ -37,8 +37,9 @@ import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -57,8 +58,9 @@ import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOption
 /**
  * Table API related Integration tests.
  */
-@Ignore("Pulsar schema has compatibility issues with flink 1.11")
 public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(FlinkPulsarTableITest.class);
 
     @Before
     public void clearState() {
@@ -197,7 +199,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         try {
             see.execute("test struct in avro");
         } catch (Exception e) {
-
+            LOGGER.error("", e);
         }
         SingletonStreamSink.compareWithList(
                 flList.subList(0, flList.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
@@ -208,7 +210,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         caseInsensitiveParams.put(TOPIC_SINGLE_OPTION_KEY, topicName);
         PulsarMetadataReader reader = new PulsarMetadataReader(adminUrl, new ClientConfigurationData(), "", caseInsensitiveParams, -1, -1);
         SchemaInfo pulsarSchema = reader.getPulsarSchema(topicName);
-        FieldsDataType fieldsDataType = SchemaUtils.pulsarSourceSchema(pulsarSchema);
+        FieldsDataType fieldsDataType = SchemaUtils.pulsarSourceSchema(pulsarSchema, false);
         return SchemaUtils.toTableSchema(fieldsDataType);
     }
 

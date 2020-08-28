@@ -31,7 +31,7 @@ import java.io.Serializable;
  * @param <T> The type created by the keyed deserialization schema.
  */
 @PublicEvolving
-public interface PulsarDeserializationSchema<T> extends Serializable, ResultTypeQueryable {
+public interface PulsarDeserializationSchema<T> extends Serializable, ResultTypeQueryable<T> {
     /**
      * Initialization method for the schema. It is called before the actual working methods
      * {@link #deserialize} and thus suitable for one time setup work.

@@ -164,7 +164,7 @@ public class PulsarMetadataReader implements AutoCloseable {
         String topicName = objectPath2TopicName(objectPath);
         FieldsDataType fieldsDataType = null;
         try {
-            fieldsDataType = getSchema(Collections.singletonList(topicName));
+            fieldsDataType = getSchema(Collections.singletonList(topicName), true);
         } catch (IncompatibleSchemaException e) {
             throw new PulsarAdminException(e);
         }
@@ -314,9 +314,9 @@ public class PulsarMetadataReader implements AutoCloseable {
         }
     }
 
-    public FieldsDataType getSchema(List<String> topics) throws IncompatibleSchemaException {
+    public FieldsDataType getSchema(List<String> topics, boolean useExtendField) throws IncompatibleSchemaException {
         SchemaInfo si = getPulsarSchema(topics);
-        return SchemaUtils.pulsarSourceSchema(si);
+        return SchemaUtils.pulsarSourceSchema(si, useExtendField);
     }
 
     public SchemaInfo getPulsarSchema(List<String> topics) throws IncompatibleSchemaException {

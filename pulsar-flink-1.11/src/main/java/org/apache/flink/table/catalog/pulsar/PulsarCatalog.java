@@ -16,6 +16,8 @@ package org.apache.flink.table.catalog.pulsar;
 
 import org.apache.flink.streaming.connectors.pulsar.PulsarTableSourceSinkFactory;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
+import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils;
 import org.apache.flink.table.catalog.CatalogBaseTable;
 import org.apache.flink.table.catalog.CatalogDatabase;
 import org.apache.flink.table.catalog.CatalogDatabaseImpl;
@@ -123,6 +125,22 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
             return metadataReader.namespaceExists(databaseName);
         } catch (PulsarAdminException e) {
             return false;
+        } catch (Exception e){
+            log.warn(databaseName + " database does not exist.", e);
+            return false;
+        }
+    }
+
+    @Override
+    public void createDatabase(String name, CatalogDatabase database, boolean ignoreIfExists) throws DatabaseAlreadyExistException, CatalogException {
+        try {
+            metadataReader.createNamespace(name);
+        } catch (PulsarAdminException.ConflictException e) {
+            if (!ignoreIfExists) {
+                throw new DatabaseAlreadyExistException(getName(), name, e);
+            }
+        } catch (PulsarAdminException e) {
+            throw new CatalogException(String.format("Failed to create database %s", name), e);
         }
     }
 
@@ -159,15 +177,39 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
         }
     }
 
+    @Override
+    public void createTable(ObjectPath tablePath, CatalogBaseTable table, boolean ignoreIfExists) throws TableAlreadyExistException, DatabaseNotExistException, CatalogException {
+        int defaultNumPartitions = Integer.parseInt(properties.getOrDefault(PulsarOptions.DEFAULT_PARTITIONS, "5"));
+        String databaseName = tablePath.getDatabaseName();
+        Boolean databaseExists;
+        try {
+            databaseExists = metadataReader.namespaceExists(databaseName);
+        } catch (PulsarAdminException e) {
+            throw new CatalogException(String.format("Failed to check existence of databases %s", databaseName), e);
+        }
+
+        if (!databaseExists) {
+            throw new DatabaseNotExistException(getName(), databaseName);
+        }
+
+        try {
+            metadataReader.createTopic(tablePath, defaultNumPartitions, table);
+            metadataReader.putSchema(tablePath, table);
+        } catch (PulsarAdminException e) {
+            if (e.getStatusCode() == 409) {
+                throw new TableAlreadyExistException(getName(), tablePath, e);
+            } else {
+                throw new CatalogException(String.format("Failed to create table %s", tablePath.getFullName()), e);
+            }
+        } catch (SchemaUtils.IncompatibleSchemaException e) {
+            throw new CatalogException("Failed to translate Flink type to Pulsar", e);
+        }
+    }
+
     // ------------------------------------------------------------------------
     // Unsupported catalog operations for Pulsar
     // There should not be such permission in the connector, it is very dangerous
     // ------------------------------------------------------------------------
-
-    @Override
-    public void createDatabase(String name, CatalogDatabase database, boolean ignoreIfExists) throws DatabaseAlreadyExistException, CatalogException {
-        throw new UnsupportedOperationException();
-    }
 
     @Override
     public void dropDatabase(String name, boolean ignoreIfNotExists, boolean cascade) throws DatabaseNotExistException, DatabaseNotEmptyException, CatalogException {
@@ -196,11 +238,6 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
 
     @Override
     public void dropTable(ObjectPath tablePath, boolean ignoreIfNotExists) throws TableNotExistException, CatalogException {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void createTable(ObjectPath tablePath, CatalogBaseTable table, boolean ignoreIfExists) throws TableAlreadyExistException, DatabaseNotExistException, CatalogException {
         throw new UnsupportedOperationException();
     }
 

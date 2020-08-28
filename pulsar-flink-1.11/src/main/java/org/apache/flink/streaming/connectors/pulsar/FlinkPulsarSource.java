@@ -99,7 +99,7 @@ public class FlinkPulsarSource<T>
 
     protected final Map<String, Object> readerConf;
 
-    protected final PulsarDeserializationSchema<T> deserializer;
+    protected volatile PulsarDeserializationSchema<T> deserializer;
 
     private Map<String, MessageId> ownedTopicStarts;
 

@@ -33,14 +33,14 @@ import org.apache.pulsar.client.api.schema.GenericSchema;
 import org.apache.pulsar.client.impl.schema.BooleanSchema;
 import org.apache.pulsar.client.impl.schema.ByteSchema;
 import org.apache.pulsar.client.impl.schema.BytesSchema;
-import org.apache.pulsar.client.impl.schema.DateSchema;
 import org.apache.pulsar.client.impl.schema.DoubleSchema;
 import org.apache.pulsar.client.impl.schema.FloatSchema;
 import org.apache.pulsar.client.impl.schema.IntSchema;
+import org.apache.pulsar.client.impl.schema.LocalDateSchema;
+import org.apache.pulsar.client.impl.schema.LocalDateTimeSchema;
+import org.apache.pulsar.client.impl.schema.LocalTimeSchema;
 import org.apache.pulsar.client.impl.schema.LongSchema;
 import org.apache.pulsar.client.impl.schema.ShortSchema;
-import org.apache.pulsar.client.impl.schema.TimeSchema;
-import org.apache.pulsar.client.impl.schema.TimestampSchema;
 import org.apache.pulsar.client.impl.schema.generic.GenericSchemaImpl;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.protocol.schema.PostSchemaPayload;
@@ -153,12 +153,12 @@ public class SchemaUtils {
             case BYTES:
             case NONE:
                 return BytesSchema.of();
-            case DATE:
-                return DateSchema.of();
-            case TIME:
-                return TimeSchema.of();
-            case TIMESTAMP:
-                return TimestampSchema.of();
+            case LOCAL_DATE:
+                return LocalDateSchema.of();
+            case LOCAL_TIME:
+                return LocalTimeSchema.of();
+            case LOCAL_DATE_TIME:
+                return LocalDateTimeSchema.of();
             case AVRO:
             case JSON:
                 return GenericSchemaImpl.of(schemaInfo);
@@ -168,7 +168,7 @@ public class SchemaUtils {
         }
     }
 
-    public static FieldsDataType pulsarSourceSchema(SchemaInfo si) throws IncompatibleSchemaException {
+    public static FieldsDataType pulsarSourceSchema(SchemaInfo si, boolean useExtendField) throws IncompatibleSchemaException {
         List<DataTypes.Field> mainSchema = new ArrayList<>();
         DataType dataType = si2SqlType(si);
         if (dataType instanceof FieldsDataType) {
@@ -185,7 +185,9 @@ public class SchemaUtils {
             mainSchema.add(DataTypes.FIELD("value", dataType));
         }
 
-        mainSchema.addAll(METADATA_FIELDS);
+        if (useExtendField){
+            mainSchema.addAll(METADATA_FIELDS);
+        }
         return (FieldsDataType) DataTypes.ROW(mainSchema.toArray(new DataTypes.Field[0]));
     }
 
@@ -201,10 +203,10 @@ public class SchemaUtils {
                     DataTypes.BYTES()),
             DataTypes.FIELD(
                     PUBLISH_TIME_NAME,
-                    DataTypes.TIMESTAMP(3).bridgedTo(java.sql.Timestamp.class)),
+                    DataTypes.TIMESTAMP(3)),
             DataTypes.FIELD(
                     EVENT_TIME_NAME,
-                    DataTypes.TIMESTAMP(3).bridgedTo(java.sql.Timestamp.class)));
+                    DataTypes.TIMESTAMP(3)));
 
     public static DataType si2SqlType(SchemaInfo si) throws IncompatibleSchemaException {
         switch (si.getType()) {
@@ -213,12 +215,14 @@ public class SchemaUtils {
                 return DataTypes.BYTES();
             case BOOLEAN:
                 return DataTypes.BOOLEAN();
-            case DATE:
+            case LOCAL_DATE:
                 return DataTypes.DATE();
+            case LOCAL_TIME:
+                return DataTypes.TIME();
             case STRING:
                 return DataTypes.STRING();
-            case TIMESTAMP:
-                return DataTypes.TIMESTAMP(3).bridgedTo(java.sql.Timestamp.class);
+            case LOCAL_DATE_TIME:
+                return DataTypes.TIMESTAMP(3);
             case INT8:
                 return DataTypes.TINYINT();
             case DOUBLE:
@@ -278,7 +282,7 @@ public class SchemaUtils {
             case LONG:
                 if (logicalType instanceof LogicalTypes.TimestampMillis ||
                         logicalType instanceof LogicalTypes.TimestampMicros) {
-                    return DataTypes.TIMESTAMP(3).bridgedTo(java.sql.Timestamp.class);
+                    return DataTypes.TIMESTAMP(3);
                 } else {
                     return DataTypes.BIGINT();
                 }
@@ -351,11 +355,11 @@ public class SchemaUtils {
                 case VARBINARY:
                     return BytesSchema.of();
                 case DATE:
-                    return DateSchema.of();
+                    return LocalDateSchema.of();
                 case VARCHAR:
                     return org.apache.pulsar.client.api.Schema.STRING;
                 case TIMESTAMP_WITHOUT_TIME_ZONE:
-                    return TimestampSchema.of();
+                    return LocalDateTimeSchema.of();
                 case TINYINT:
                     return ByteSchema.of();
                 case DOUBLE:

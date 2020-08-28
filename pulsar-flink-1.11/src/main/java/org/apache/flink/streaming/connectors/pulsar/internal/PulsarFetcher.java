@@ -423,8 +423,6 @@ public class PulsarFetcher<T> {
                 .map(PulsarTopicState::getTopic).collect(Collectors.toSet());
 
         metadataReader.removeCursor(topics);
-        metadataReader.close();
-
         // make sure the main thread wakes up soon
         unassignedPartitionsQueue.addIfOpen(PoisonState.INSTANCE);
     }

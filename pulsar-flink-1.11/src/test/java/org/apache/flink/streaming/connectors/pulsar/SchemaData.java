@@ -18,11 +18,10 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Collections;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -43,26 +42,21 @@ public class SchemaData {
     public static final List<Double> DOUBLE_LIST = INTEGER_LIST.stream().map(Integer::doubleValue).collect(Collectors.toList());
     public static final List<Float> FLOAT_LIST = INTEGER_LIST.stream().map(Integer::floatValue).collect(Collectors.toList());
     public static final List<String> STRING_LIST = INTEGER_LIST.stream().map(Objects::toString).collect(Collectors.toList());
-    public static List<Date> dateList;
-    public static List<Timestamp> timestampList;
+    public static List<LocalDate> localDateList;
+    public static List<LocalDateTime> localDateTimeList;
     public static List<FA> faList;
     public static List<Foo> fooList;
     public static List<FL> flList;
     public static List<FM> fmList;
 
     static {
-        Calendar cal = Calendar.getInstance();
-        cal.clear();
-        dateList = INTEGER_LIST.stream().map(i -> {
-            cal.set(2019, 0, i);
-            return cal.getTime();
-        }).collect(Collectors.toList());
+        localDateList = INTEGER_LIST.stream()
+                .map(i -> LocalDate.of(2019, 1, i))
+                .collect(Collectors.toList());
 
-        cal.clear();
-        timestampList = INTEGER_LIST.stream().map(i -> {
-            cal.set(2019, 0, i, 20, 35, 40);
-            return new Timestamp(cal.getTimeInMillis());
-        }).collect(Collectors.toList());
+        localDateTimeList = INTEGER_LIST.stream()
+                .map(i -> LocalDateTime.of(2019, 1, i, 20, 35, 40))
+                .collect(Collectors.toList());
 
         fooList = Arrays.asList(
                 new Foo(1, 1.0f, new Bar(true, "a")),

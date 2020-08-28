@@ -80,6 +80,13 @@
       <artifactId>flink-test-utils_${scala.binary.version}</artifactId>
       <version>${flink.version}</version>
       <scope>test</scope>
+      <!-- exclusion log4j-->
+<!--            <exclusions>-->
+<!--              <exclusion>-->
+<!--                <groupId>log4j</groupId>-->
+<!--                <artifactId>log4j</artifactId>-->
+<!--              </exclusion>-->
+<!--            </exclusions>-->
     </dependency>
 
     <dependency>
@@ -87,6 +94,21 @@
       <artifactId>flink-test-utils-junit</artifactId>
       <version>${flink.version}</version>
       <scope>test</scope>
+      <!-- exclusion log4j2-->
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.logging.log4j</groupId>
+          <artifactId>log4j-slf4j-impl</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.logging.log4j</groupId>
+          <artifactId>log4j-api</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.logging.log4j</groupId>
+          <artifactId>log4j-core</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <dependency>
@@ -135,6 +157,13 @@
       <artifactId>flink-sql-client_${scala.binary.version}</artifactId>
       <version>${flink.version}</version>
       <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <scope>test</scope>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-log4j12</artifactId>
+      <version>1.7.25</version>
     </dependency>
   </dependencies>
   <profiles>

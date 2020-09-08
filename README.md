@@ -16,15 +16,15 @@ Chinese document: [README_CN](doc/README_CN.md)
 #### Client Lib
 For projects using SBT, Maven, and Gradle, you can use the following parameters to set to your project.
 
-- `FLINK_VERSION` parameter now has `1.9` and `1.11` options.
-  - Version 1.9 supports flink 1.9-1.10
-  - 1.11 version supports 1.11+
+- `FLINK_VERSION` parameter now has `1.9.0` and `1.11.1` options.
+  - Version 1.9.0 supports flink 1.9-1.10
+  - 1.11.1 version supports 1.11+
 - The `SCALA_BINARY_VERSION` parameter is related to the Scala version used by flink. There are `2.11` and `2.12` options available.
 - `PULSAR_FLINK_VERSION` is the version of this connector.
 
 ```
     groupId = io.streamnative.connectors
-    artifactId = pulsar-flink-connector_{{SCALA_BINARY_VERSION}}_{{FLINK_VERSION}}
+    artifactId = pulsar-flink-{{SCALA_BINARY_VERSION}}-{{FLINK_VERSION}}
     version = {{PULSAR_FLINK_VERSION}}
 ```
 The Jar package is located in [Bintray Maven repository of StreamNative](https://dl.bintray.com/streamnative/maven).

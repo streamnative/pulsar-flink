@@ -14,15 +14,15 @@ Pulsar Flink connector实现了使用 [Apache Pulsar](https://pulsar.apache.org)
 #### 客户端  
 对于使用SBT、Maven、Gradle的项目，可以使用下面参数设置到您的项目。
 
-- `FLINK_VERSION`参数现在有`1.9`和`1.11`可选。
-  - 1.9版本支持flink 1.9-1.10
-  - 1.11版本支持1.11+
+- `FLINK_VERSION`参数现在有`1.9.0`和`1.11.1`可选。
+  - 1.9.0版本支持flink 1.9-1.10
+  - 1.11.1版本支持1.11+
 - `SCALA_BINARY_VERSION`参数很flink使用的scala版本有关，现有`2.11`、`2.12`可选。
 - `PULSAR_FLINK_VERSION`是本连接器的版本。
 
 ```
     groupId = io.streamnative.connectors
-    artifactId = pulsar-flink-connector_{{SCALA_BINARY_VERSION}}_{{FLINK_VERSION}}
+    artifactId = pulsar-flink-{{SCALA_BINARY_VERSION}}-{{FLINK_VERSION}}
     version = {{PULSAR_FLINK_VERSION}}
 ```
 该Jar包位于 [Bintray Maven repository of StreamNative](https://dl.bintray.com/streamnative/maven)。

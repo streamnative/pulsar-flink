@@ -62,7 +62,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    <project.scm.id>snbot-github</project.scm.id>
+    <project.scm.id>streamnative</project.scm.id>
     <maven.compiler.target>1.8</maven.compiler.target>
     <maven.compiler.source>1.8</maven.compiler.source>
     <javac.target>1.8</javac.target>

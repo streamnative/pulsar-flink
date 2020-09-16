@@ -14,26 +14,16 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
-import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils.IncompatibleSchemaException;
-import org.apache.flink.table.api.DataTypes;
-import org.apache.flink.table.api.TableSchema;
-import org.apache.flink.table.catalog.CatalogBaseTable;
-import org.apache.flink.table.catalog.ObjectPath;
-import org.apache.flink.table.types.DataType;
-import org.apache.flink.table.types.FieldsDataType;
-
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.ListUtils;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
-import org.apache.pulsar.client.admin.PulsarAdminException.ConflictException;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.MessageIdImpl;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.client.impl.schema.BytesSchema;
 import org.apache.pulsar.common.naming.NamespaceName;
-import org.apache.pulsar.common.naming.TopicDomain;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.policies.data.PersistentTopicInternalStats;
 import org.apache.pulsar.common.policies.data.SubscriptionStats;
@@ -161,19 +151,7 @@ public class PulsarMetadataReader implements AutoCloseable {
         return allTopics.stream().map(t -> TopicName.get(t).getLocalName()).collect(Collectors.toList());
     }
 
-    public TableSchema getTableSchema(ObjectPath objectPath) throws PulsarAdminException {
-        String topicName = objectPath2TopicName(objectPath);
-        FieldsDataType fieldsDataType = null;
-        try {
-            fieldsDataType = getSchema(Collections.singletonList(topicName));
-        } catch (IncompatibleSchemaException e) {
-            throw new PulsarAdminException(e);
-        }
-        return SchemaUtils.toTableSchema(fieldsDataType);
-    }
-
-    public boolean topicExists(ObjectPath objectPath) throws PulsarAdminException {
-        String topicName = objectPath2TopicName(objectPath);
+    public boolean topicExists(String topicName) throws PulsarAdminException {
         int partitionNum = admin.topics().getPartitionedTopicMetadata(topicName).partitions;
         if (partitionNum > 0) {
             return true;
@@ -183,8 +161,7 @@ public class PulsarMetadataReader implements AutoCloseable {
         return true;
     }
 
-    public void deleteTopic(ObjectPath objectPath) throws PulsarAdminException {
-        String topicName = objectPath2TopicName(objectPath);
+    public void deleteTopic(String topicName) throws PulsarAdminException {
         int partitionNum = admin.topics().getPartitionedTopicMetadata(topicName).partitions;
         if (partitionNum > 0) {
             admin.topics().deletePartitionedTopic(topicName, true);
@@ -193,34 +170,12 @@ public class PulsarMetadataReader implements AutoCloseable {
         }
     }
 
-    public void createTopic(ObjectPath objectPath, int defaultPartitionNum, CatalogBaseTable table) throws PulsarAdminException, IncompatibleSchemaException {
-        String topicName = objectPath2TopicName(objectPath);
+    public void createTopic(String topicName, int defaultPartitionNum) throws PulsarAdminException, IncompatibleSchemaException {
         admin.topics().createPartitionedTopic(topicName, defaultPartitionNum);
     }
 
-    public void putSchema(ObjectPath tablePath, CatalogBaseTable table) throws IncompatibleSchemaException {
-        String topic = objectPath2TopicName(tablePath);
-        TableSchema tableSchema = table.getSchema();
-        List<String> fieldsRemaining = new ArrayList<>(tableSchema.getFieldCount());
-        for (String fieldName : tableSchema.getFieldNames()) {
-            if (!PulsarOptions.META_FIELD_NAMES.contains(fieldName)) {
-                fieldsRemaining.add(fieldName);
-            }
-        }
-
-        DataType dataType;
-
-        if (fieldsRemaining.size() == 1) {
-            dataType = tableSchema.getFieldDataType(fieldsRemaining.get(0)).get();
-        } else {
-            List<DataTypes.Field> fieldList = fieldsRemaining.stream()
-                    .map(f -> DataTypes.FIELD(f, tableSchema.getFieldDataType(f).get()))
-                    .collect(Collectors.toList());
-            dataType = DataTypes.ROW(fieldList.toArray(new DataTypes.Field[0]));
-        }
-
-        SchemaInfo si = SchemaUtils.sqlType2PulsarSchema(dataType).getSchemaInfo();
-        SchemaUtils.uploadPulsarSchema(admin, topic, si);
+    public void putSchema(String topicName, SchemaInfo schemaInfo) throws IncompatibleSchemaException {
+        SchemaUtils.uploadPulsarSchema(admin, topicName, schemaInfo);
     }
 
     public void setupCursor(Map<String, MessageId> offset, boolean failOnDataLoss) {
@@ -231,7 +186,7 @@ public class PulsarMetadataReader implements AutoCloseable {
                     log.info("Setting up subscription {} on topic {} at position {}", subscriptionName, entry.getKey(), entry.getValue());
                     admin.topics().createSubscription(entry.getKey(), subscriptionName, entry.getValue());
                     log.info("Subscription {} on topic {} at position {} finished", subscriptionName, entry.getKey(), entry.getValue());
-                } catch (ConflictException e) {
+                } catch (PulsarAdminException.ConflictException e) {
                     log.info("Subscription {} on topic {} already exists", subscriptionName, entry.getKey());
                 } catch (PulsarAdminException e) {
                     throw new RuntimeException(
@@ -256,11 +211,10 @@ public class PulsarMetadataReader implements AutoCloseable {
                 if (e instanceof PulsarAdminException &&
                         (((PulsarAdminException) e).getStatusCode() == 404 ||
                                 ((PulsarAdminException) e).getStatusCode() == 412)) {
-                    log.info("Cannot commit cursor offset %d since the topic {} has been deleted during execution",
-                            entry.getValue(), tp);
+                    log.info("Cannot commit cursor since the topic {} has been deleted during execution", tp);
                 } else {
                     throw new RuntimeException(
-                            String.format("Failed to commit cursor offset %d for %s", entry.getValue(),  tp), e);
+                            String.format("Failed to commit cursor for %s", tp), e);
                 }
             }
         }
@@ -308,21 +262,12 @@ public class PulsarMetadataReader implements AutoCloseable {
                 }
             } else {
                 // create sub on topic
-                log.info("Setting up subscription {} on topic {} at position {}",
-                    subscriptionName, topic, defaultPosition);
                 admin.topics().createSubscription(topic, subscriptionName, defaultPosition);
-                log.info("Subscription {} on topic {} at position {} finished",
-                    subscriptionName, topic, defaultPosition);
                 return defaultPosition;
             }
         } catch (PulsarAdminException e) {
             throw new RuntimeException("Failed to get stats for topic " + topic, e);
         }
-    }
-
-    public FieldsDataType getSchema(List<String> topics) throws IncompatibleSchemaException {
-        SchemaInfo si = getPulsarSchema(topics);
-        return SchemaUtils.pulsarSourceSchema(si);
     }
 
     public SchemaInfo getPulsarSchema(List<String> topics) throws IncompatibleSchemaException {
@@ -369,10 +314,8 @@ public class PulsarMetadataReader implements AutoCloseable {
         for (String topic : topics) {
             int partNum = admin.topics().getPartitionedTopicMetadata(topic).partitions;
             if (partNum == 0) {
-                log.info("Add non-partitioned topic to the discovered topic list: {}", topic);
                 allTopics.add(topic);
             } else {
-                log.info("Add partitioned topic to the discovered topic list: {}", topic);
                 for (int i = 0; i < partNum; i++) {
                     allTopics.add(topic + PulsarOptions.PARTITION_SUFFIX + i);
                 }
@@ -423,12 +366,10 @@ public class PulsarMetadataReader implements AutoCloseable {
                 .filter(t -> shortenedTopicsPattern.matcher(t.split("\\:\\/\\/")[1]).matches())
                 .collect(Collectors.toList());
     }
-
-    public static String objectPath2TopicName(ObjectPath objectPath) {
-        NamespaceName ns = NamespaceName.get(objectPath.getDatabaseName());
-        String topic = objectPath.getObjectName();
-        TopicName fullName = TopicName.get(TopicDomain.persistent.toString(), ns, topic);
-        return fullName.toString();
+    /**
+     * Designate the close of the metadata reader.
+     */
+    public static class ClosedException extends Exception {
     }
 
     public MessageId getLastMessageId(String topic) {
@@ -445,12 +386,5 @@ public class PulsarMetadataReader implements AutoCloseable {
         } catch (PulsarAdminException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    /**
-     * Designate the close of the metadata reader.
-     */
-    public static class ClosedException extends Exception {
-
     }
 }

@@ -584,7 +584,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
         final PulsarMetadataReader discoverer;
 
         public TestingFlinkPulsarSource(PulsarMetadataReader discoverer) {
-            super("", "", null, dummyProperties);
+            super("", "", (PulsarDeserializationSchema<T>) null, dummyProperties);
             this.discoverer = discoverer;
         }
 

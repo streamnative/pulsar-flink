@@ -37,7 +37,7 @@ public class PulsarDeserializationSchemaWrapper<T> implements PulsarDeserializat
         this.deserializationSchema = deserializationSchema;
     }
 
-    @Override
+//    @Override
     public void open(DeserializationSchema.InitializationContext context) throws Exception {
         this.deserializationSchema.open(context);
     }

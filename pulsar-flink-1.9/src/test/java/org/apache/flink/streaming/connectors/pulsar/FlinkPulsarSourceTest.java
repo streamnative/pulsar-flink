@@ -22,6 +22,7 @@ import org.apache.flink.api.common.state.ListStateDescriptor;
 import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.state.OperatorStateStore;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.testutils.CheckedThread;
 import org.apache.flink.core.testutils.OneShotLatch;
@@ -231,10 +232,8 @@ public class FlinkPulsarSourceTest extends TestLogger {
         HashMap<String, MessageId> snapshot1 = new HashMap<>();
 
         for (Serializable serializable : listState.get()) {
-            if (serializable instanceof Tuple2) {
-                Tuple2<String, MessageId> tuple2 = (Tuple2<String, MessageId>) serializable;
-                snapshot1.put(tuple2.f0, tuple2.f1);
-            }
+            Tuple3<String, MessageId, String> tuple2 = (Tuple3<String, MessageId, String>) serializable;
+            snapshot1.put(tuple2.f0, tuple2.f1);
         }
 
         assertEquals(state1, snapshot1);
@@ -247,10 +246,8 @@ public class FlinkPulsarSourceTest extends TestLogger {
         HashMap<String, MessageId> snapshot2 = new HashMap<>();
 
         for (Serializable serializable : listState.get()) {
-            if (serializable instanceof Tuple2) {
-                Tuple2<String, MessageId> tuple2 = (Tuple2<String, MessageId>) serializable;
-                snapshot2.put(tuple2.f0, tuple2.f1);
-            }
+            Tuple3<String, MessageId, String> tuple2 = (Tuple3<String, MessageId, String>) serializable;
+            snapshot2.put(tuple2.f0, tuple2.f1);
         }
 
         assertEquals(state2, snapshot2);
@@ -270,10 +267,8 @@ public class FlinkPulsarSourceTest extends TestLogger {
         HashMap<String, MessageId> snapshot3 = new HashMap<>();
 
         for (Serializable serializable : listState.get()) {
-            if (serializable instanceof Tuple2) {
-                Tuple2<String, MessageId> tuple2 = (Tuple2<String, MessageId>) serializable;
-                snapshot3.put(tuple2.f0, tuple2.f1);
-            }
+            Tuple3<String, MessageId, String> tuple2 = (Tuple3<String, MessageId, String>) serializable;
+            snapshot3.put(tuple2.f0, tuple2.f1);
         }
 
         assertEquals(state3, snapshot3);
@@ -623,7 +618,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
                 SupplierWithException<PulsarFetcher<T>, Exception> testFetcherSupplier,
                 PulsarMetadataReader discoverer,
                 Properties properties) {
-            super("a", "b", mock(DeserializationSchema.class), properties);
+            super("a", "b", mock(PulsarDeserializationSchema.class), properties);
             this.testFetcherSupplier = testFetcherSupplier;
             this.discoverer = discoverer;
         }

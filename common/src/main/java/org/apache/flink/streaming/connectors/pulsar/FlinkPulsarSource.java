@@ -15,6 +15,7 @@
 package org.apache.flink.streaming.connectors.pulsar;
 
 import org.apache.flink.api.common.ExecutionConfig;
+import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.state.ListState;
 import org.apache.flink.api.common.state.ListStateDescriptor;
 import org.apache.flink.api.common.state.OperatorStateStore;
@@ -403,8 +404,8 @@ public class FlinkPulsarSource<T>
             if (ownedTopicStarts.isEmpty()) {
                 log.info("Source {} initially has no topics to read from.", taskIndex);
             } else {
-                log.info("Source {} will start reading {} topics from initialized positions",
-                        taskIndex, ownedTopicStarts.size());
+                log.info("Source {} will start reading {} topics from initialized positions: {}",
+                        taskIndex, ownedTopicStarts.size(), ownedTopicStarts);
             }
         }
     }
@@ -733,7 +734,7 @@ public class FlinkPulsarSource<T>
         }
     }
 
-    @Override
+//    @Override
     public void notifyCheckpointAborted(long checkpointId) throws Exception {
         log.error("checkpoint aborted, checkpointId: {}", checkpointId);
     }

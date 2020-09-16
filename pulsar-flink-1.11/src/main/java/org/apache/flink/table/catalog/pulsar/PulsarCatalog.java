@@ -15,9 +15,11 @@
 package org.apache.flink.table.catalog.pulsar;
 
 import org.apache.flink.streaming.connectors.pulsar.PulsarTableSourceSinkFactory;
-import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
+import org.apache.flink.streaming.connectors.pulsar.internal.IncompatibleSchemaException;
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarCatalogSupport;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils;
+import org.apache.flink.streaming.connectors.pulsar.internal.SimpleSchemaTranslator;
 import org.apache.flink.table.catalog.CatalogBaseTable;
 import org.apache.flink.table.catalog.CatalogDatabase;
 import org.apache.flink.table.catalog.CatalogDatabaseImpl;
@@ -63,7 +65,7 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
     private String adminUrl;
     private Map<String, String> properties;
 
-    private PulsarMetadataReader metadataReader;
+    private PulsarCatalogSupport catalogSupport;
 
     public PulsarCatalog(String adminUrl, String catalogName, Map<String, String> props, String defaultDatabase) {
         super(catalogName, defaultDatabase);
@@ -73,7 +75,6 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
         for (Map.Entry<String, String> kv : props.entrySet()) {
             properties.put(CONNECTOR + "." + kv.getKey(), kv.getValue());
         }
-
         log.info("Created Pulsar Catalog {}", catalogName);
     }
 
@@ -86,9 +87,10 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
 
     @Override
     public void open() throws CatalogException {
-        if (metadataReader == null) {
+        if (catalogSupport == null) {
             try {
-                metadataReader = new PulsarMetadataReader(adminUrl, new ClientConfigurationData(), "", new HashMap<>(), -1, -1);
+                catalogSupport = new PulsarCatalogSupport(adminUrl, new ClientConfigurationData(), "",
+                        new HashMap<>(), -1, -1, new SimpleSchemaTranslator(true));
             } catch (PulsarClientException e) {
                 throw new CatalogException("Failed to create Pulsar admin using " + adminUrl, e);
             }
@@ -97,9 +99,9 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
 
     @Override
     public void close() throws CatalogException {
-        if (metadataReader != null) {
-            metadataReader.close();
-            metadataReader = null;
+        if (catalogSupport != null) {
+            catalogSupport.close();
+            catalogSupport = null;
             log.info("Close connection to Pulsar");
         }
     }
@@ -107,7 +109,7 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
     @Override
     public List<String> listDatabases() throws CatalogException {
         try {
-            return metadataReader.listNamespaces();
+            return catalogSupport.listNamespaces();
         } catch (PulsarAdminException e) {
             throw new CatalogException(String.format("Failed to list all databases in %s", getName()), e);
         }
@@ -122,7 +124,7 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
     @Override
     public boolean databaseExists(String databaseName) throws CatalogException {
         try {
-            return metadataReader.namespaceExists(databaseName);
+            return catalogSupport.namespaceExists(databaseName);
         } catch (PulsarAdminException e) {
             return false;
         } catch (Exception e){
@@ -134,7 +136,7 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
     @Override
     public void createDatabase(String name, CatalogDatabase database, boolean ignoreIfExists) throws DatabaseAlreadyExistException, CatalogException {
         try {
-            metadataReader.createNamespace(name);
+            catalogSupport.createNamespace(name);
         } catch (PulsarAdminException.ConflictException e) {
             if (!ignoreIfExists) {
                 throw new DatabaseAlreadyExistException(getName(), name, e);
@@ -147,7 +149,7 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
     @Override
     public List<String> listTables(String databaseName) throws DatabaseNotExistException, CatalogException {
         try {
-            return metadataReader.getTopics(databaseName);
+            return catalogSupport.getTopics(databaseName);
         } catch (PulsarAdminException.NotFoundException e) {
             throw new DatabaseNotExistException(getName(), databaseName, e);
         } catch (PulsarAdminException e) {
@@ -158,10 +160,10 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
     @Override
     public CatalogBaseTable getTable(ObjectPath tablePath) throws TableNotExistException, CatalogException {
         try {
-            return new CatalogTableImpl(metadataReader.getTableSchema(tablePath), properties, "");
+            return new CatalogTableImpl(catalogSupport.getTableSchema(tablePath), properties, "");
         } catch (PulsarAdminException.NotFoundException e) {
             throw new TableNotExistException(getName(), tablePath, e);
-        } catch (PulsarAdminException e) {
+        } catch (PulsarAdminException | IncompatibleSchemaException e) {
             throw new CatalogException(String.format("Failed to get table %s schema", tablePath.getFullName()), e);
         }
     }
@@ -169,7 +171,7 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
     @Override
     public boolean tableExists(ObjectPath tablePath) throws CatalogException {
         try {
-            return metadataReader.topicExists(tablePath);
+            return catalogSupport.topicExists(tablePath);
         } catch (PulsarAdminException.NotFoundException e) {
             return false;
         } catch (PulsarAdminException e) {
@@ -183,7 +185,7 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
         String databaseName = tablePath.getDatabaseName();
         Boolean databaseExists;
         try {
-            databaseExists = metadataReader.namespaceExists(databaseName);
+            databaseExists = catalogSupport.namespaceExists(databaseName);
         } catch (PulsarAdminException e) {
             throw new CatalogException(String.format("Failed to check existence of databases %s", databaseName), e);
         }
@@ -193,15 +195,15 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
         }
 
         try {
-            metadataReader.createTopic(tablePath, defaultNumPartitions, table);
-            metadataReader.putSchema(tablePath, table);
+            catalogSupport.createTopic(tablePath, defaultNumPartitions, table);
+            catalogSupport.putSchema(tablePath, table);
         } catch (PulsarAdminException e) {
             if (e.getStatusCode() == 409) {
                 throw new TableAlreadyExistException(getName(), tablePath, e);
             } else {
                 throw new CatalogException(String.format("Failed to create table %s", tablePath.getFullName()), e);
             }
-        } catch (SchemaUtils.IncompatibleSchemaException e) {
+        } catch (IncompatibleSchemaException e) {
             throw new CatalogException("Failed to translate Flink type to Pulsar", e);
         }
     }

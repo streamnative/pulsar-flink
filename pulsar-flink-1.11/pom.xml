@@ -33,6 +33,12 @@
       <groupId>io.streamnative.connectors</groupId>
       <artifactId>pulsar-flink-connector-common</artifactId>
       <version>${project.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.flink</groupId>

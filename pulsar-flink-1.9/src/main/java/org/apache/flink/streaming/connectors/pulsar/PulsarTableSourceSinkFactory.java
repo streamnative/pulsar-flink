@@ -15,6 +15,7 @@
 package org.apache.flink.streaming.connectors.pulsar;
 
 import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarCatalogSupport;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
 import org.apache.flink.table.api.TableException;
 import org.apache.flink.table.api.TableSchema;
@@ -133,7 +134,7 @@ public class PulsarTableSourceSinkFactory
 
     @Override
     public TableSink<Row> createTableSink(ObjectPath tablePath, CatalogTable table) {
-        String topic = PulsarMetadataReader.objectPath2TopicName(tablePath);
+        String topic = PulsarCatalogSupport.objectPath2TopicName(tablePath);
 
         Map<String, String> props = new HashMap<String, String>();
         props.putAll(table.toProperties());
@@ -182,7 +183,7 @@ public class PulsarTableSourceSinkFactory
 
     @Override
     public TableSource<Row> createTableSource(ObjectPath tablePath, CatalogTable table) {
-        String topic = PulsarMetadataReader.objectPath2TopicName(tablePath);
+        String topic = PulsarCatalogSupport.objectPath2TopicName(tablePath);
 
         Map<String, String> props = new HashMap<>();
         props.putAll(table.toProperties());

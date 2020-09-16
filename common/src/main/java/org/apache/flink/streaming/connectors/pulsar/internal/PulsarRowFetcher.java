@@ -60,7 +60,7 @@ public class PulsarRowFetcher extends PulsarFetcher<Row> {
         try {
             return metadataReader.getPulsarSchema(
                     seedTopicsWithInitialOffsets.keySet().stream().collect(Collectors.toList()));
-        } catch (SchemaUtils.IncompatibleSchemaException e) {
+        } catch (IncompatibleSchemaException e) {
             log.error("Incompatible schema encountered while read multi topics {}", e.getMessage());
             throw new RuntimeException(e);
         }

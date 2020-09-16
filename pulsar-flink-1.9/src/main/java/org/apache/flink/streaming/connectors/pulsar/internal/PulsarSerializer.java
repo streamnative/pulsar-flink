@@ -76,7 +76,7 @@ public class PulsarSerializer {
         this.nullable = nullable;
 
         try {
-            this.rootAvroType = SchemaUtils.sqlType2AvroSchema(flinkType);
+            this.rootAvroType = SimpleSchemaTranslator.sqlType2AvroSchema(flinkType);
 
             Schema actualAvroType = resolveNullableType(rootAvroType, nullable);
             Function<Object, Object> baseConverter;
@@ -101,7 +101,7 @@ public class PulsarSerializer {
                 this.converter = baseConverter;
             }
 
-        } catch (SchemaUtils.IncompatibleSchemaException e) {
+        } catch (IncompatibleSchemaException e) {
             log.error("Failed to create serializer while converting flink type to avro type");
             throw new RuntimeException(e);
         }
@@ -111,7 +111,7 @@ public class PulsarSerializer {
         return converter.apply(flinkData);
     }
 
-    private BiFunction<PositionedGetter, Integer, Object> singleValueConverter(DataType dataType, Schema avroType) throws SchemaUtils.IncompatibleSchemaException {
+    private BiFunction<PositionedGetter, Integer, Object> singleValueConverter(DataType dataType, Schema avroType) throws IncompatibleSchemaException {
         LogicalTypeRoot tpe = dataType.getLogicalType().getTypeRoot();
         Schema.Type atpe = avroType.getType();
         if (tpe == LogicalTypeRoot.NULL && atpe == Schema.Type.NULL) {
@@ -132,19 +132,19 @@ public class PulsarSerializer {
             if (altpe instanceof LogicalTypes.TimestampMillis || altpe instanceof LogicalTypes.TimestampMicros) {
                 return (getter, ordinal) -> getter.getField(ordinal);
             } else {
-                throw new SchemaUtils.IncompatibleSchemaException(
+                throw new IncompatibleSchemaException(
                         "Cannot convert flink timestamp to avro logical type " + altpe.toString());
             }
         } else {
-            throw new SchemaUtils.IncompatibleSchemaException(String.format(
+            throw new IncompatibleSchemaException(String.format(
                     "Cannot convert flink type %s to avro type %s", dataType.toString(), avroType.toString(true)));
         }
     }
 
-    private Function<Object, Object> newStructConverter(FieldsDataType dataType, Schema avroStruct) throws SchemaUtils.IncompatibleSchemaException {
+    private Function<Object, Object> newStructConverter(FieldsDataType dataType, Schema avroStruct) throws IncompatibleSchemaException {
         if (avroStruct.getType() != RECORD ||
                 avroStruct.getFields().size() != dataType.getFieldDataTypes().size()) {
-            throw new SchemaUtils.IncompatibleSchemaException(
+            throw new IncompatibleSchemaException(
                     String.format("Cannot convert Flink type %s to Avro type %s.", dataType.toString(), avroStruct.toString(true)));
         }
 
@@ -178,7 +178,7 @@ public class PulsarSerializer {
 
     }
 
-    private BiFunction<PositionedGetter, Integer, Object> newConverter(DataType dataType, Schema avroType) throws SchemaUtils.IncompatibleSchemaException {
+    private BiFunction<PositionedGetter, Integer, Object> newConverter(DataType dataType, Schema avroType) throws IncompatibleSchemaException {
         LogicalTypeRoot tpe = dataType.getLogicalType().getTypeRoot();
         Schema.Type atpe = avroType.getType();
         if (tpe == LogicalTypeRoot.NULL && atpe == Schema.Type.NULL) {
@@ -203,7 +203,7 @@ public class PulsarSerializer {
                             LogicalTypes.decimal(d.getPrecision(), d.getScale()));
                 };
             } else {
-                throw new SchemaUtils.IncompatibleSchemaException(
+                throw new IncompatibleSchemaException(
                         "Cannot convert flink decimal type to Avro logical type");
             }
         } else if (tpe == LogicalTypeRoot.BIGINT && atpe == BYTES) {
@@ -217,7 +217,7 @@ public class PulsarSerializer {
             } else if (altpe instanceof LogicalTypes.TimestampMicros) {
                 return (getter, ordinal) -> DateTimeUtils.fromJavaTimestamp((java.sql.Timestamp) getter.getField(ordinal));
             } else {
-                throw new SchemaUtils.IncompatibleSchemaException(
+                throw new IncompatibleSchemaException(
                         "Cannot convert flink timestamp to avro logical type " + altpe.toString());
             }
         } else if (tpe == LogicalTypeRoot.VARCHAR && atpe == STRING) {
@@ -260,7 +260,7 @@ public class PulsarSerializer {
             Function<Object, Object> structConverter = newStructConverter(st, avroType);
             return (getter, ordinal) -> ((GenericAvroRecord) structConverter.apply(getter.getField(ordinal))).getAvroRecord();
         } else {
-            throw new SchemaUtils.IncompatibleSchemaException(String.format(
+            throw new IncompatibleSchemaException(String.format(
                     "Cannot convert flink type %s to avro type %s", dataType.toString(), avroType.toString(true)));
         }
     }

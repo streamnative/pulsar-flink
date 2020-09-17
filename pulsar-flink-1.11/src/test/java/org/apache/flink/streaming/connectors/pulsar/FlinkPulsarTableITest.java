@@ -68,7 +68,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         FailingIdentityMapper.failedBefore = false;
     }
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testBasicFunctioning() throws Exception {
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.setParallelism(1);
@@ -100,7 +100,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
                 BOOLEAN_LIST.subList(0, BOOLEAN_LIST.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
     }
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testWriteThenRead() throws Exception {
         String tp = newTopic();
         String tableName = TopicName.get(tp).getLocalName();
@@ -142,7 +142,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         SingletonStreamSink.compareWithList(fooList.subList(0, fooList.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
     }
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testStructTypesInAvro() throws Exception {
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.setParallelism(1);
@@ -174,7 +174,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
                 fooList.subList(0, fooList.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
     }
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testStructTypesWithJavaList() throws Exception {
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.setParallelism(1);
@@ -215,7 +215,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         return schemaTranslator.pulsarSchemaToTableSchema(pulsarSchema);
     }
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testStructTypesWithJavaArray() throws Exception {
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.setParallelism(1);
@@ -247,7 +247,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
                 faList.subList(0, faList.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
     }
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testStructTypesWithJavaMap() throws Exception {
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.setParallelism(1);

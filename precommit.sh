@@ -22,11 +22,12 @@ PROFILE=${1}
 
 cd ${PRJ_HOME}
 
-mvn -B -ntp -q -pl common clean license:check install checkstyle:check spotbugs:check -P${PROFILE}
+mvn -B -ntp -q clean license:check install checkstyle:check spotbugs:check -P${PROFILE}
+echo "maven module [common]"
 cat common/target/surefire-reports/*.txt
-mvn -B -ntp -q -pl pulsar-flink-1.9 clean license:check install checkstyle:check spotbugs:check -P${PROFILE}
+echo "maven module [pulsar-flink-1.9]"
 cat pulsar-flink-1.9/target/surefire-reports/*.txt
-mvn -B -ntp -q -pl pulsar-flink-1.11 clean license:check install checkstyle:check spotbugs:check -P${PROFILE}
+echo "maven module [pulsar-flink-1.11]"
 cat pulsar-flink-1.11/target/surefire-reports/*.txt
 retcode=$?
 exit $retcode

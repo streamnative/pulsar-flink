@@ -70,47 +70,47 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
         FailingIdentityMapper.failedBefore = false;
     }
 
-    @Test(timeout = 60 * 1000L)
+    @Test(timeout = 40 * 1000L)
     public void testBooleanRead() throws Exception {
         checkRead(SchemaType.BOOLEAN, DataTypes.BOOLEAN(), BOOLEAN_LIST, null, null);
     }
 
-    @Test(timeout = 60 * 1000L)
+    @Test(timeout = 40 * 1000L)
     public void testBooleanWrite() throws Exception {
         checkWrite(SchemaType.BOOLEAN, DataTypes.BOOLEAN(), BOOLEAN_LIST, null, null);
     }
 
-    @Test(timeout = 60 * 1000L)
+    @Test(timeout = 40 * 1000L)
     public void testINT32Read() throws Exception {
         checkRead(SchemaType.INT32, DataTypes.INT(), INTEGER_LIST, null, null);
     }
 
-    @Test(timeout = 60 * 1000L)
+    @Test(timeout = 40 * 1000L)
     public void testINT32Write() throws Exception {
         checkWrite(SchemaType.INT32, DataTypes.INT(), INTEGER_LIST, null, null);
     }
 
-    @Test(timeout = 60 * 1000L)
+    @Test(timeout = 40 * 1000L)
     public void testINT64Read() throws Exception {
         checkRead(SchemaType.INT64, DataTypes.BIGINT(), INT_64_LIST, null, null);
     }
 
-    @Test(timeout = 60 * 1000L)
+    @Test(timeout = 40 * 1000L)
     public void testINT64Write() throws Exception {
         checkWrite(SchemaType.INT64, DataTypes.BIGINT(), INT_64_LIST, null, null);
     }
 
-    @Test(timeout = 60 * 1000L)
+    @Test(timeout = 40 * 1000L)
     public void testStringRead() throws Exception {
         checkRead(SchemaType.STRING, DataTypes.STRING(), STRING_LIST, null, null);
     }
 
-    @Test(timeout = 60 * 1000L)
+    @Test(timeout = 40 * 1000L)
     public void testStringWrite() throws Exception {
         checkWrite(SchemaType.STRING, DataTypes.STRING(), STRING_LIST, null, null);
     }
 
-    @Test(timeout = 60 * 1000L)
+    @Test(timeout = 40 * 1000L)
     public void testByteRead() throws Exception {
         checkRead(SchemaType.INT8, DataTypes.TINYINT(), INT_8_LIST, null, null);
     }
@@ -120,67 +120,67 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
         checkWrite(SchemaType.INT8, DataTypes.TINYINT(), INT_8_LIST, null, null);
     }
 
-    @Test(timeout = 60 * 1000L)
+    @Test(timeout = 40 * 1000L)
     public void testShortRead() throws Exception {
         checkRead(SchemaType.INT16, DataTypes.SMALLINT(), INT_16_LIST, null, null);
     }
 
-    @Test(timeout = 60 * 1000L)
+    @Test(timeout = 40 * 1000L)
     public void testShortWrite() throws Exception {
         checkWrite(SchemaType.INT16, DataTypes.SMALLINT(), INT_16_LIST, null, null);
     }
 
-    @Test(timeout = 60 * 1000L)
+    @Test(timeout = 40 * 1000L)
     public void testFloatRead() throws Exception {
         checkRead(SchemaType.FLOAT, DataTypes.FLOAT(), FLOAT_LIST, null, null);
     }
 
-    @Test(timeout = 60 * 1000L)
+    @Test(timeout = 40 * 1000L)
     public void testFloatWrite() throws Exception {
         checkWrite(SchemaType.FLOAT, DataTypes.FLOAT(), FLOAT_LIST, null, null);
     }
 
-    @Test(timeout = 60 * 1000L)
+    @Test(timeout = 40 * 1000L)
     public void testDoubleRead() throws Exception {
         checkRead(SchemaType.DOUBLE, DataTypes.DOUBLE(), DOUBLE_LIST, null, null);
     }
 
-    @Test(timeout = 60 * 1000L)
+    @Test(timeout = 40 * 1000L)
     public void testDoubleWrite() throws Exception {
         checkWrite(SchemaType.DOUBLE, DataTypes.DOUBLE(), DOUBLE_LIST, null, null);
     }
 
-    @Test(timeout = 60 * 1000L)
+    @Test(timeout = 40 * 1000L)
     public void testDateRead() throws Exception {
         checkRead(SchemaType.LOCAL_DATE, DataTypes.DATE(),
                 localDateList, null, null);
     }
 
-    @Test()
+    @Test(timeout = 40 * 1000L)
     public void testDateWrite() throws Exception {
         checkWrite(SchemaType.LOCAL_DATE,
                 DataTypes.DATE(),
                 localDateList, null, null);
     }
 
-    @Test(timeout = 60 * 1000L)
+    @Test(timeout = 40 * 1000L)
     public void testTimestampRead() throws Exception {
         checkRead(SchemaType.LOCAL_DATE_TIME,
                 DataTypes.TIMESTAMP(3), localDateTimeList, null, null);
     }
 
-    @Test(timeout = 60 * 1000L)
+    @Test(timeout = 40 * 1000L)
     public void testTimestampWrite() throws Exception {
         checkWrite(SchemaType.LOCAL_DATE_TIME,
                 DataTypes.TIMESTAMP(3), localDateTimeList, null, null);
     }
 
-    @Test(timeout = 60 * 1000L)
+    @Test(timeout = 40 * 1000L)
     public void testByteArrayRead() throws Exception {
         checkRead(SchemaType.BYTES, DataTypes.BYTES(), BYTES_LIST, t -> StringUtils.arrayAwareToString(t), null);
     }
 
-    @Test(timeout = 60 * 1000L)
+    @Test(timeout = 40 * 1000L)
     public void testByteArrayWrite() throws Exception {
         checkWrite(SchemaType.BYTES, DataTypes.BYTES(), BYTES_LIST, t -> StringUtils.arrayAwareToString(t), null);
     }

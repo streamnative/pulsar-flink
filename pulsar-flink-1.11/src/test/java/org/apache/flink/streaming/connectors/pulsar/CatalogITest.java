@@ -76,7 +76,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         FailingIdentityMapper.failedBefore = false;
     }
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testCatalogs() throws Exception {
         String inmemoryCatalog = "inmemorycatalog";
         String pulsarCatalog1 = "pulsarcatalog1";
@@ -101,7 +101,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         assertEquals(tableEnv.getCurrentDatabase(), "tn/ns");
     }
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testDatabases() throws Exception {
         String pulsarCatalog1 = "pulsarcatalog1";
         List<String> namespaces = Arrays.asList("tn1/ns1", "tn1/ns2");
@@ -155,7 +155,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         }
     }
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testTableReadStartFromLatestByDefault() throws Exception {
         String pulsarCatalog1 = "pulsarcatalog1";
 
@@ -199,7 +199,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         SingletonStreamSink.compareWithList(INTEGER_LIST.subList(0, INTEGER_LIST.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
     }
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testTableReadStartFromEarliest() throws Exception {
         String tableName = newTopic();
 
@@ -240,7 +240,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         SingletonStreamSink.compareWithList(INTEGER_LIST.subList(0, INTEGER_LIST.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
     }
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testTableSink() throws Exception {
         String tp = newTopic();
         String tableName = TopicName.get(tp).getLocalName();
@@ -296,7 +296,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         SingletonStreamSink.compareWithList(INTEGER_LIST.subList(0, INTEGER_LIST.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
     }
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testSinkToExistingTopic() throws Exception {
 
         String tp = newTopic();

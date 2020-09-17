@@ -20,6 +20,7 @@ import org.apache.flink.util.TestLogger;
 import org.apache.flink.shaded.guava18.com.google.common.collect.Sets;
 
 import org.apache.pulsar.common.naming.TopicName;
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -81,7 +82,7 @@ public class DiscovererTest extends TestLogger {
                 Set<String> initials = discoverer.discoverTopicChanges();
                 assertEquals(1, initials.size());
                 assertTrue(mockAllTopics.containsAll(initials));
-                assertEquals(i,
+                Assert.assertEquals(i,
                         TestMetadataReader.getExpectedSubtaskIndex(initials.iterator().next(), numSubTasks));
 
                 Set<String> second = discoverer.discoverTopicChanges();
@@ -121,7 +122,7 @@ public class DiscovererTest extends TestLogger {
 
                 for (String initial : initials) {
                     assertTrue(allTopics.contains(initial));
-                    assertEquals(TestMetadataReader.getExpectedSubtaskIndex(initial, numTasks), i);
+                    Assert.assertEquals(TestMetadataReader.getExpectedSubtaskIndex(initial, numTasks), i);
                     allTopics.remove(initial);
                 }
 
@@ -162,7 +163,7 @@ public class DiscovererTest extends TestLogger {
 
                 for (String initial : initials) {
                     assertTrue(allTopics.contains(initial));
-                    assertEquals(TestMetadataReader.getExpectedSubtaskIndex(initial, numTasks), i);
+                    Assert.assertEquals(TestMetadataReader.getExpectedSubtaskIndex(initial, numTasks), i);
                     allTopics.remove(initial);
                 }
 
@@ -227,19 +228,19 @@ public class DiscovererTest extends TestLogger {
 
             for (String tp : initials1) {
                 assertTrue(initialAll.contains(tp));
-                assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 0);
+                Assert.assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 0);
                 initialAll.remove(tp);
             }
 
             for (String tp : initials2) {
                 assertTrue(initialAll.contains(tp));
-                assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 1);
+                Assert.assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 1);
                 initialAll.remove(tp);
             }
 
             for (String tp : initials3) {
                 assertTrue(initialAll.contains(tp));
-                assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 2);
+                Assert.assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 2);
                 initialAll.remove(tp);
             }
 
@@ -262,37 +263,37 @@ public class DiscovererTest extends TestLogger {
 
             for (String tp : initials1) {
                 assertTrue(allTopics.contains(tp));
-                assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 0);
+                Assert.assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 0);
                 allTopics.remove(tp);
             }
 
             for (String tp : initials2) {
                 assertTrue(allTopics.contains(tp));
-                assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 1);
+                Assert.assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 1);
                 allTopics.remove(tp);
             }
 
             for (String tp : initials3) {
                 assertTrue(allTopics.contains(tp));
-                assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 2);
+                Assert.assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 2);
                 allTopics.remove(tp);
             }
 
             for (String tp : seconds1) {
                 assertTrue(allTopics.contains(tp));
-                assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 0);
+                Assert.assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 0);
                 allTopics.remove(tp);
             }
 
             for (String tp : seconds2) {
                 assertTrue(allTopics.contains(tp));
-                assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 1);
+                Assert.assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 1);
                 allTopics.remove(tp);
             }
 
             for (String tp : seconds3) {
                 assertTrue(allTopics.contains(tp));
-                assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 2);
+                Assert.assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 2);
                 allTopics.remove(tp);
             }
 

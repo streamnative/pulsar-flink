@@ -106,19 +106,22 @@ public class FlinkPulsarSourceTest extends TestLogger {
     @SuppressWarnings("unchecked")
     public void testEitherWatermarkExtractor() {
         try {
-            new DummyFlinkPulsarSource<String>().assignTimestampsAndWatermarks((AssignerWithPeriodicWatermarks<String>) null);
+            new DummyFlinkPulsarSource<String>()
+                    .assignTimestampsAndWatermarks((AssignerWithPeriodicWatermarks<String>) null);
             fail();
         } catch (NullPointerException ignored) {
         }
 
         try {
-            new DummyFlinkPulsarSource<String>().assignTimestampsAndWatermarks((AssignerWithPunctuatedWatermarks<String>) null);
+            new DummyFlinkPulsarSource<String>()
+                    .assignTimestampsAndWatermarks((AssignerWithPunctuatedWatermarks<String>) null);
             fail();
         } catch (NullPointerException ignored) {
         }
 
         final AssignerWithPeriodicWatermarks<String> periodicAssigner = mock(AssignerWithPeriodicWatermarks.class);
-        final AssignerWithPunctuatedWatermarks<String> punctuatedAssigner = mock(AssignerWithPunctuatedWatermarks.class);
+        final AssignerWithPunctuatedWatermarks<String> punctuatedAssigner =
+                mock(AssignerWithPunctuatedWatermarks.class);
 
         DummyFlinkPulsarSource<String> c1 = new DummyFlinkPulsarSource<>();
         c1.assignTimestampsAndWatermarks(periodicAssigner);
@@ -291,12 +294,14 @@ public class FlinkPulsarSourceTest extends TestLogger {
 
     @Test
     public void testCloseDiscovererWhenOpenThrowException() throws Exception {
-        final RuntimeException failureCause = new RuntimeException(new FlinkException("Test partition discoverer exception"));
+        final RuntimeException failureCause =
+                new RuntimeException(new FlinkException("Test partition discoverer exception"));
         final FailingPartitionDiscoverer failingPartitionDiscoverer = new FailingPartitionDiscoverer(failureCause);
 
         final DummyFlinkPulsarSource source = new DummyFlinkPulsarSource(failingPartitionDiscoverer);
         testFailingSourceLifecycle(source, failureCause);
-        assertTrue("partitionDiscoverer should be closed when consumer is closed", failingPartitionDiscoverer.isClosed());
+        assertTrue("partitionDiscoverer should be closed when consumer is closed",
+                failingPartitionDiscoverer.isClosed());
     }
 
     @Test
@@ -371,7 +376,8 @@ public class FlinkPulsarSourceTest extends TestLogger {
                 "invalid test case for Pulsar repartitioning; Pulsar only allows increasing partitions.");
 
         List<String> startupTopics =
-                IntStream.range(0, numPartitions).mapToObj(i -> topicName("test-topic", i)).collect(Collectors.toList());
+                IntStream.range(0, numPartitions).mapToObj(i -> topicName("test-topic", i))
+                        .collect(Collectors.toList());
 
         DummyFlinkPulsarSource<String>[] sources =
                 new DummyFlinkPulsarSource[initialParallelism];
@@ -477,7 +483,8 @@ public class FlinkPulsarSourceTest extends TestLogger {
 
     private void testNormalConsumerLifecycle(FlinkPulsarSource<String> source) throws Exception {
         setupSource(source);
-        final CompletableFuture<Void> runFuture = CompletableFuture.runAsync(ThrowingRunnable.unchecked(() -> source.run(new TestSourceContext<>())));
+        final CompletableFuture<Void> runFuture =
+                CompletableFuture.runAsync(ThrowingRunnable.unchecked(() -> source.run(new TestSourceContext<>())));
         source.close();
         runFuture.get();
     }
@@ -563,9 +570,13 @@ public class FlinkPulsarSourceTest extends TestLogger {
         setupSource(source, false, null, false, 0, 1);
     }
 
-    private static <T, S> void setupSource(FlinkPulsarSource<T> source, boolean isRestored, ListState<S> restoredListState, boolean isCheckpointEnabled, int subtaskIndex, int totalNumberSubtasks) throws Exception {
-        source.setRuntimeContext(new MockStreamingRuntimeContext(isCheckpointEnabled, totalNumberSubtasks, subtaskIndex));
-        source.initializeState(new MockFunctionInitializationContext(isRestored, new MockOperatorStateStore(restoredListState)));
+    private static <T, S> void setupSource(FlinkPulsarSource<T> source, boolean isRestored,
+                                           ListState<S> restoredListState, boolean isCheckpointEnabled,
+                                           int subtaskIndex, int totalNumberSubtasks) throws Exception {
+        source.setRuntimeContext(
+                new MockStreamingRuntimeContext(isCheckpointEnabled, totalNumberSubtasks, subtaskIndex));
+        source.initializeState(
+                new MockFunctionInitializationContext(isRestored, new MockOperatorStateStore(restoredListState)));
         source.open(new Configuration());
     }
 
@@ -598,7 +609,8 @@ public class FlinkPulsarSourceTest extends TestLogger {
                 long autoWatermarkInterval,
                 ClassLoader userCodeClassLoader,
                 StreamingRuntimeContext streamingRuntime) throws Exception {
-            return new TestingFetcher<>(sourceContext, seedTopicsWithInitialOffsets, watermarksPeriodic, watermarksPunctuated, processingTimeProvider, autoWatermarkInterval);
+            return new TestingFetcher<>(sourceContext, seedTopicsWithInitialOffsets, watermarksPeriodic,
+                    watermarksPunctuated, processingTimeProvider, autoWatermarkInterval);
         }
 
         @Override
@@ -829,20 +841,19 @@ public class FlinkPulsarSourceTest extends TestLogger {
             return (ListState<S>) mockRestoredUnionListState;
         }
 
-        @Override
         public <T extends Serializable> ListState<T> getSerializableListState(String stateName) throws Exception {
             return new TestingListState<>();
         }
 
         // ------------------------------------------------------------------------
 
-        @Override
         public <S> ListState<S> getOperatorState(ListStateDescriptor<S> stateDescriptor) throws Exception {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public <K, V> BroadcastState<K, V> getBroadcastState(MapStateDescriptor<K, V> stateDescriptor) throws Exception {
+        public <K, V> BroadcastState<K, V> getBroadcastState(MapStateDescriptor<K, V> stateDescriptor)
+                throws Exception {
             throw new UnsupportedOperationException();
         }
 

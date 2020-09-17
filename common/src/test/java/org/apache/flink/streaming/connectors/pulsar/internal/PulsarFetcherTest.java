@@ -29,6 +29,7 @@ import org.apache.flink.util.TestLogger;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.impl.MessageIdImpl;
 import org.apache.pulsar.common.naming.TopicName;
+import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.internal.util.collections.Sets;
 
@@ -111,12 +112,12 @@ public class PulsarFetcherTest extends TestLogger {
         PulsarTopicState stateHolder = fetcher.getSubscribedTopicStates().get(0);
         fetcher.emitRecord(1L, stateHolder, dummyMessageId(1));
         fetcher.emitRecord(2L, stateHolder, dummyMessageId(2));
-        assertEquals(2L, sourceContext.getLatestElement().getValue().longValue());
+        Assert.assertEquals(2L, sourceContext.getLatestElement().getValue().longValue());
         assertEquals(dummyMessageId(2), stateHolder.getOffset());
 
         // emit null record
         fetcher.emitRecord(null, stateHolder, dummyMessageId(3));
-        assertEquals(2L, sourceContext.getLatestElement().getValue().longValue());
+        Assert.assertEquals(2L, sourceContext.getLatestElement().getValue().longValue());
         assertEquals(dummyMessageId(3), stateHolder.getOffset());
     }
 
@@ -143,21 +144,21 @@ public class PulsarFetcherTest extends TestLogger {
         fetcher.emitRecord(1L, stateHolder, dummyMessageId(1));
         fetcher.emitRecord(2L, stateHolder, dummyMessageId(2));
         fetcher.emitRecord(3L, stateHolder, dummyMessageId(3));
-        assertEquals(3L, sourceContext.getLatestElement().getValue().longValue());
-        assertEquals(3L, sourceContext.getLatestElement().getTimestamp());
+        Assert.assertEquals(3L, sourceContext.getLatestElement().getValue().longValue());
+        Assert.assertEquals(3L, sourceContext.getLatestElement().getTimestamp());
         assertEquals(dummyMessageId(3), stateHolder.getOffset());
 
         // advance timer for watermark emitting
         processingTimeProvider.setCurrentTime(10L);
         assertTrue(sourceContext.hasWatermark());
-        assertEquals(sourceContext.getLatestWatermark().getTimestamp(), 3L);
+        Assert.assertEquals(sourceContext.getLatestWatermark().getTimestamp(), 3L);
 
         // emit null record
         fetcher.emitRecord(null, stateHolder, dummyMessageId(4));
 
         // no elements should have been collected
-        assertEquals(3L, sourceContext.getLatestElement().getValue().longValue());
-        assertEquals(3L, sourceContext.getLatestElement().getTimestamp());
+        Assert.assertEquals(3L, sourceContext.getLatestElement().getValue().longValue());
+        Assert.assertEquals(3L, sourceContext.getLatestElement().getTimestamp());
         // the offset in state still should be advanced
         assertEquals(dummyMessageId(4), stateHolder.getOffset());
 
@@ -189,18 +190,18 @@ public class PulsarFetcherTest extends TestLogger {
         fetcher.emitRecord(1L, stateHolder, dummyMessageId(1));
         fetcher.emitRecord(2L, stateHolder, dummyMessageId(2));
         fetcher.emitRecord(3L, stateHolder, dummyMessageId(3));
-        assertEquals(3L, sourceContext.getLatestElement().getValue().longValue());
-        assertEquals(3L, sourceContext.getLatestElement().getTimestamp());
+        Assert.assertEquals(3L, sourceContext.getLatestElement().getValue().longValue());
+        Assert.assertEquals(3L, sourceContext.getLatestElement().getTimestamp());
         assertTrue(sourceContext.hasWatermark());
-        assertEquals(3L, sourceContext.getLatestWatermark().getTimestamp());
+        Assert.assertEquals(3L, sourceContext.getLatestWatermark().getTimestamp());
         assertEquals(dummyMessageId(3), stateHolder.getOffset());
 
         // emit null record
         fetcher.emitRecord(null, stateHolder, dummyMessageId(4));
 
         // no elements should have been collected
-        assertEquals(3L, sourceContext.getLatestElement().getValue().longValue());
-        assertEquals(3L, sourceContext.getLatestElement().getTimestamp());
+        Assert.assertEquals(3L, sourceContext.getLatestElement().getValue().longValue());
+        Assert.assertEquals(3L, sourceContext.getLatestElement().getTimestamp());
         assertTrue(!sourceContext.hasWatermark());
         // the offset in state still should be advanced
         assertEquals(dummyMessageId(4), stateHolder.getOffset());
@@ -234,40 +235,40 @@ public class PulsarFetcherTest extends TestLogger {
         fetcher.emitRecord(1L, part1, dummyMessageId(1));
         fetcher.emitRecord(2L, part1, dummyMessageId(2));
         fetcher.emitRecord(3L, part1, dummyMessageId(3));
-        assertEquals(3L, sourceContext.getLatestElement().getValue().longValue());
-        assertEquals(3L, sourceContext.getLatestElement().getTimestamp());
+        Assert.assertEquals(3L, sourceContext.getLatestElement().getValue().longValue());
+        Assert.assertEquals(3L, sourceContext.getLatestElement().getTimestamp());
 
         fetcher.emitRecord(12L, part2, dummyMessageId(1));
-        assertEquals(12L, sourceContext.getLatestElement().getValue().longValue());
-        assertEquals(12L, sourceContext.getLatestElement().getTimestamp());
+        Assert.assertEquals(12L, sourceContext.getLatestElement().getValue().longValue());
+        Assert.assertEquals(12L, sourceContext.getLatestElement().getTimestamp());
 
         // element for partition 3
         fetcher.emitRecord(101L, part3, dummyMessageId(1));
         fetcher.emitRecord(102L, part3, dummyMessageId(2));
-        assertEquals(102L, sourceContext.getLatestElement().getValue().longValue());
-        assertEquals(102L, sourceContext.getLatestElement().getTimestamp());
+        Assert.assertEquals(102L, sourceContext.getLatestElement().getValue().longValue());
+        Assert.assertEquals(102L, sourceContext.getLatestElement().getTimestamp());
 
         processingTimeProvider.setCurrentTime(10);
 
         // now, we should have a watermark (this blocks until the periodic thread emitted the watermark)
-        assertEquals(3L, sourceContext.getLatestWatermark().getTimestamp());
+        Assert.assertEquals(3L, sourceContext.getLatestWatermark().getTimestamp());
 
         // advance partition 3
         fetcher.emitRecord(1003L, part3, dummyMessageId(3));
         fetcher.emitRecord(1004L, part3, dummyMessageId(4));
         fetcher.emitRecord(1005L, part3, dummyMessageId(5));
-        assertEquals(1005L, sourceContext.getLatestElement().getValue().longValue());
-        assertEquals(1005L, sourceContext.getLatestElement().getTimestamp());
+        Assert.assertEquals(1005L, sourceContext.getLatestElement().getValue().longValue());
+        Assert.assertEquals(1005L, sourceContext.getLatestElement().getTimestamp());
 
         // advance partition 1 beyond partition 2 - this bumps the watermark
         fetcher.emitRecord(30L, part1, dummyMessageId(4));
-        assertEquals(30L, sourceContext.getLatestElement().getValue().longValue());
-        assertEquals(30L, sourceContext.getLatestElement().getTimestamp());
+        Assert.assertEquals(30L, sourceContext.getLatestElement().getValue().longValue());
+        Assert.assertEquals(30L, sourceContext.getLatestElement().getTimestamp());
 
         processingTimeProvider.setCurrentTime(20);
 
         // this blocks until the periodic thread emitted the watermark
-        assertEquals(12L, sourceContext.getLatestWatermark().getTimestamp());
+        Assert.assertEquals(12L, sourceContext.getLatestWatermark().getTimestamp());
 
         // advance partition 2 again - this bumps the watermark
         fetcher.emitRecord(13L, part2, dummyMessageId(2));
@@ -311,39 +312,39 @@ public class PulsarFetcherTest extends TestLogger {
         fetcher.emitRecord(1L, part1, dummyMessageId(1));
         fetcher.emitRecord(2L, part1, dummyMessageId(2));
         fetcher.emitRecord(3L, part1, dummyMessageId(3));
-        assertEquals(3L, sourceContext.getLatestElement().getValue().longValue());
-        assertEquals(3L, sourceContext.getLatestElement().getTimestamp());
+        Assert.assertEquals(3L, sourceContext.getLatestElement().getValue().longValue());
+        Assert.assertEquals(3L, sourceContext.getLatestElement().getTimestamp());
         assertTrue(!sourceContext.hasWatermark());
 
         // element for partition 2
         fetcher.emitRecord(12L, part2, dummyMessageId(1));
-        assertEquals(12L, sourceContext.getLatestElement().getValue().longValue());
-        assertEquals(12L, sourceContext.getLatestElement().getTimestamp());
+        Assert.assertEquals(12L, sourceContext.getLatestElement().getValue().longValue());
+        Assert.assertEquals(12L, sourceContext.getLatestElement().getTimestamp());
         assertTrue(!sourceContext.hasWatermark());
 
         // element for partition 3
         fetcher.emitRecord(101L, part3, dummyMessageId(1));
         fetcher.emitRecord(102L, part3, dummyMessageId(2));
-        assertEquals(102L, sourceContext.getLatestElement().getValue().longValue());
-        assertEquals(102L, sourceContext.getLatestElement().getTimestamp());
+        Assert.assertEquals(102L, sourceContext.getLatestElement().getValue().longValue());
+        Assert.assertEquals(102L, sourceContext.getLatestElement().getTimestamp());
 
         // now, we should have a watermark
         assertTrue(sourceContext.hasWatermark());
-        assertEquals(3L, sourceContext.getLatestWatermark().getTimestamp());
+        Assert.assertEquals(3L, sourceContext.getLatestWatermark().getTimestamp());
 
         // advance partition 3
         fetcher.emitRecord(1003L, part3, dummyMessageId(3));
         fetcher.emitRecord(1004L, part3, dummyMessageId(4));
         fetcher.emitRecord(1005L, part3, dummyMessageId(5));
-        assertEquals(1005L, sourceContext.getLatestElement().getValue().longValue());
-        assertEquals(1005L, sourceContext.getLatestElement().getTimestamp());
+        Assert.assertEquals(1005L, sourceContext.getLatestElement().getValue().longValue());
+        Assert.assertEquals(1005L, sourceContext.getLatestElement().getTimestamp());
 
         // advance partition 1 beyond partition 2 - this bumps the watermark
         fetcher.emitRecord(30L, part1, dummyMessageId(4));
-        assertEquals(30L, sourceContext.getLatestElement().getValue().longValue());
-        assertEquals(30L, sourceContext.getLatestElement().getTimestamp());
+        Assert.assertEquals(30L, sourceContext.getLatestElement().getValue().longValue());
+        Assert.assertEquals(30L, sourceContext.getLatestElement().getTimestamp());
         assertTrue(sourceContext.hasWatermark());
-        assertEquals(12L, sourceContext.getLatestWatermark().getTimestamp());
+        Assert.assertEquals(12L, sourceContext.getLatestWatermark().getTimestamp());
 
         // advance partition 2 again - this bumps the watermark
         fetcher.emitRecord(13L, part2, dummyMessageId(2));
@@ -352,7 +353,7 @@ public class PulsarFetcherTest extends TestLogger {
         assertTrue(!sourceContext.hasWatermark());
         fetcher.emitRecord(15L, part2, dummyMessageId(4));
         assertTrue(sourceContext.hasWatermark());
-        assertEquals(15L, sourceContext.getLatestWatermark().getTimestamp());
+        Assert.assertEquals(15L, sourceContext.getLatestWatermark().getTimestamp());
     }
 
     @Test
@@ -379,7 +380,7 @@ public class PulsarFetcherTest extends TestLogger {
         fetcher.addDiscoveredTopics(Sets.newSet(topicName(testTopic, 0)));
         fetcher.emitRecord(100L, fetcher.getSubscribedTopicStates().get(0), dummyMessageId(3));
         processingTimeService.setCurrentTime(20);
-        assertEquals(100L, sourceContext.getLatestWatermark().getTimestamp());
+        Assert.assertEquals(100L, sourceContext.getLatestWatermark().getTimestamp());
     }
 
     @Test

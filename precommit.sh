@@ -22,6 +22,8 @@ PROFILE=${1}
 
 cd ${PRJ_HOME}
 
+mvn -B -ntp -q -pl common clean license:check install checkstyle:check spotbugs:check -P${PROFILE}
+cat common/target/surefire-reports/*.txt
 mvn -B -ntp -q -pl pulsar-flink-1.9 clean license:check install checkstyle:check spotbugs:check -P${PROFILE}
 cat pulsar-flink-1.9/target/surefire-reports/*.txt
 mvn -B -ntp -q -pl pulsar-flink-1.11 clean license:check install checkstyle:check spotbugs:check -P${PROFILE}

@@ -603,6 +603,9 @@ public class PulsarDeserializer implements PulsarDeserializationSchema<Row>{
         R apply(T t);
     }
 
+    /**
+     * DecimalConversion.
+     */
     public static class NewDecimalConversion extends Conversions.DecimalConversion implements Serializable{
 
     }

@@ -15,10 +15,11 @@
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import org.apache.flink.annotation.PublicEvolving;
-import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.java.typeutils.ResultTypeQueryable;
 import org.apache.flink.util.Collector;
+
 import org.apache.pulsar.client.api.Message;
+
 import java.io.IOException;
 import java.io.Serializable;
 

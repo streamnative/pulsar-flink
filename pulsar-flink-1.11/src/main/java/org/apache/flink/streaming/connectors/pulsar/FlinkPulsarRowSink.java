@@ -19,7 +19,6 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.connectors.pulsar.internal.DateTimeUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.IncompatibleSchemaException;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarSerializer;
-import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.SimpleSchemaTranslator;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.types.DataType;

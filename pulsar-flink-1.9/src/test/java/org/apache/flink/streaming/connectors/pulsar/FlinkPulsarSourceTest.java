@@ -14,7 +14,6 @@
 
 package org.apache.flink.streaming.connectors.pulsar;
 
-import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.state.BroadcastState;
 import org.apache.flink.api.common.state.KeyedStateStore;
 import org.apache.flink.api.common.state.ListState;

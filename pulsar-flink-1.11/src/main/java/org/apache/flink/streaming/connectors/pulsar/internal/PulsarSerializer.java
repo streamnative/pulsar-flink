@@ -76,8 +76,6 @@ public class PulsarSerializer {
     public PulsarSerializer(DataType flinkType, boolean nullable) {
         this.flinkType = flinkType;
         this.nullable = nullable;
-
-
         try {
             this.rootAvroType = SimpleSchemaTranslator.sqlType2AvroSchema(flinkType);
 

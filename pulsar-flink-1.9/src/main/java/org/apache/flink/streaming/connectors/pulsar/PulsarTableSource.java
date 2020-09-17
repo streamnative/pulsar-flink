@@ -21,7 +21,6 @@ import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
 import org.apache.flink.streaming.connectors.pulsar.internal.IncompatibleSchemaException;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
 import org.apache.flink.streaming.connectors.pulsar.internal.SchemaTranslator;
-import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.SimpleSchemaTranslator;
 import org.apache.flink.streaming.connectors.pulsar.internal.SourceSinkUtils;
 import org.apache.flink.table.api.TableSchema;
@@ -32,7 +31,6 @@ import org.apache.flink.table.sources.DefinedRowtimeAttributes;
 import org.apache.flink.table.sources.RowtimeAttributeDescriptor;
 import org.apache.flink.table.sources.StreamTableSource;
 import org.apache.flink.table.types.DataType;
-import org.apache.flink.table.types.FieldsDataType;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
 

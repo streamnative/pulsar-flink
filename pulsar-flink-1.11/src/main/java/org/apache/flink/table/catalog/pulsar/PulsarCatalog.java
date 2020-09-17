@@ -18,7 +18,6 @@ import org.apache.flink.streaming.connectors.pulsar.PulsarTableSourceSinkFactory
 import org.apache.flink.streaming.connectors.pulsar.internal.IncompatibleSchemaException;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarCatalogSupport;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
-import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.SimpleSchemaTranslator;
 import org.apache.flink.table.catalog.CatalogBaseTable;
 import org.apache.flink.table.catalog.CatalogDatabase;

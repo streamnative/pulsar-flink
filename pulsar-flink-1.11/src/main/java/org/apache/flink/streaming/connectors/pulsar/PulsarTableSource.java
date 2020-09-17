@@ -24,7 +24,6 @@ import org.apache.flink.streaming.connectors.pulsar.internal.PulsarDeserializati
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarDeserializationSchemaWrapper;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
 import org.apache.flink.streaming.connectors.pulsar.internal.SchemaTranslator;
-import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.SimpleSchemaTranslator;
 import org.apache.flink.streaming.connectors.pulsar.internal.SourceSinkUtils;
 import org.apache.flink.table.api.TableSchema;
@@ -36,7 +35,6 @@ import org.apache.flink.table.sources.DefinedRowtimeAttributes;
 import org.apache.flink.table.sources.RowtimeAttributeDescriptor;
 import org.apache.flink.table.sources.StreamTableSource;
 import org.apache.flink.table.types.DataType;
-import org.apache.flink.table.types.FieldsDataType;
 import org.apache.flink.table.types.utils.TypeConversions;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
@@ -57,7 +55,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 
-import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.USE_EXTEND_FIELD;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_EXTERNAL_SUB_DEFAULT_OFFSET;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_EARLIEST;
 import static org.apache.flink.util.Preconditions.checkNotNull;

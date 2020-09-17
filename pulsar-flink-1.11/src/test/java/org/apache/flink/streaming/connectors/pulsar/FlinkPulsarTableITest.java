@@ -19,7 +19,6 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.pulsar.internal.IncompatibleSchemaException;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
-import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.SimpleSchemaTranslator;
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper;
 import org.apache.flink.streaming.connectors.pulsar.testutils.SingletonStreamSink;
@@ -29,7 +28,6 @@ import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 import org.apache.flink.table.descriptors.ConnectorDescriptor;
 import org.apache.flink.table.descriptors.Pulsar;
 import org.apache.flink.table.descriptors.Schema;
-import org.apache.flink.table.types.FieldsDataType;
 import org.apache.flink.types.Row;
 
 import org.apache.pulsar.client.admin.PulsarAdminException;

@@ -14,7 +14,6 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
-import static org.apache.pulsar.shade.com.google.common.base.Preconditions.checkNotNull;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.schema.GenericRecord;
@@ -39,12 +38,10 @@ import org.apache.pulsar.common.protocol.schema.PostSchemaPayload;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.shade.org.apache.avro.Schema;
+
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
+
+import static org.apache.pulsar.shade.com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Various utilities to working with Pulsar Schema and Flink type system.
@@ -145,7 +142,6 @@ public class SchemaUtils {
         }
     }
 
-
     static GenericSchema<GenericRecord> avroSchema2PulsarSchema(Schema avroSchema) {
         byte[] schemaBytes = avroSchema.toString().getBytes(StandardCharsets.UTF_8);
         SchemaInfo si = new SchemaInfo();
@@ -154,7 +150,6 @@ public class SchemaUtils {
         si.setType(SchemaType.AVRO);
         return org.apache.pulsar.client.api.Schema.generic(si);
     }
-
 
     public static SchemaInfo emptySchemaInfo() {
         return SchemaInfo.builder()

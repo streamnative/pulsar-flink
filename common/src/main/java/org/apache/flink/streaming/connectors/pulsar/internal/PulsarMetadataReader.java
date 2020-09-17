@@ -366,10 +366,12 @@ public class PulsarMetadataReader implements AutoCloseable {
                 .filter(t -> shortenedTopicsPattern.matcher(t.split("\\:\\/\\/")[1]).matches())
                 .collect(Collectors.toList());
     }
+
     /**
      * Designate the close of the metadata reader.
      */
     public static class ClosedException extends Exception {
+
     }
 
     public MessageId getLastMessageId(String topic) {

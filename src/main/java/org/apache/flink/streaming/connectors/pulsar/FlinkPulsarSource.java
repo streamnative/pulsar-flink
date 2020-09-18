@@ -675,6 +675,7 @@ public class FlinkPulsarSource<T>
             log.debug("snapshotState() called on closed source");
         } else {
             unionOffsetStates.clear();
+            unionSubscriptionNameStates.clear();
 
             if (startupMode == StartupMode.EXTERNAL_SUBSCRIPTION) {
                 unionSubscriptionNameStates.add(getSubscriptionName());

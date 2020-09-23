@@ -52,7 +52,7 @@ public class FlinkPulsarRowSource extends FlinkPulsarSource<Row> {
     }
 
     public FlinkPulsarRowSource(String adminUrl, ClientConfigurationData clientConf, Properties properties) {
-        super(adminUrl, clientConf, null, properties);
+        super(adminUrl, clientConf, (PulsarDeserializationSchema<Row>) null, properties);
     }
 
     public FlinkPulsarRowSource(String serviceUrl, String adminUrl, Properties properties,  PulsarDeserializationSchema<Row> deserializer) {
@@ -60,7 +60,7 @@ public class FlinkPulsarRowSource extends FlinkPulsarSource<Row> {
     }
 
     public FlinkPulsarRowSource(String serviceUrl, String adminUrl, Properties properties) {
-        super(serviceUrl, adminUrl, null, properties);
+        super(serviceUrl, adminUrl, (PulsarDeserializationSchema<Row>) null, properties);
     }
 
     @Override

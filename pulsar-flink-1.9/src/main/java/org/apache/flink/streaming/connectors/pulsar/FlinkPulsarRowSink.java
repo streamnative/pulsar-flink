@@ -17,8 +17,9 @@ package org.apache.flink.streaming.connectors.pulsar;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.connectors.pulsar.internal.DateTimeUtils;
+import org.apache.flink.streaming.connectors.pulsar.internal.IncompatibleSchemaException;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarSerializer;
-import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils;
+import org.apache.flink.streaming.connectors.pulsar.internal.SimpleSchemaTranslator;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.FieldsDataType;
@@ -188,8 +189,8 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
     @Override
     protected Schema<?> getPulsarSchema() {
         try {
-            return SchemaUtils.sqlType2PulsarSchema(valueType);
-        } catch (SchemaUtils.IncompatibleSchemaException e) {
+            return SimpleSchemaTranslator.sqlType2PulsarSchema(valueType);
+        } catch (IncompatibleSchemaException e) {
             log.error(ExceptionUtils.stringifyException(e));
             throw new RuntimeException(e);
         }

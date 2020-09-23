@@ -121,7 +121,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
 		FailingIdentityMapper.failedBefore = false;
 	}
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testRunFailedOnWrongServiceUrl() {
 
         try {
@@ -145,7 +145,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         }
     }
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testCaseSensitiveReaderConf() throws Exception {
         String tp = newTopic();
         List<Integer> messages =
@@ -198,7 +198,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         assertEquals(client.getJobStatus(jobID).get(), JobStatus.CANCELED);
     }
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testCaseSensitiveProducerConf() throws Exception {
         int numTopic = 5;
         int numElements = 20;
@@ -223,7 +223,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         see.execute("write with topics");
     }
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testClientCacheParameterPassedToTasks() throws Exception {
         int numTopic = 5;
         int numElements = 20;
@@ -246,7 +246,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         see.execute("write with topics");
     }
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testProduceConsumeMultipleTopics() throws Exception {
         int numTopic = 5;
         int numElements = 20;
@@ -278,7 +278,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         TestUtils.tryExecute(env, "count elements from topics");
     }
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testCommitOffsetsToPulsar() throws Exception {
         int numTopic = 3;
         List<Integer> messages = IntStream.range(0, 50).boxed().collect(Collectors.toList());
@@ -348,7 +348,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         assertTrue(gotLast);
     }
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testAvro() throws Exception {
         String topic = newTopic();
 
@@ -380,7 +380,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
                 fooList.subList(0, fooList.size() - 1).stream().map(SchemaData.Foo::getI).map(Objects::toString).collect(Collectors.toList()));
     }
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testJson() throws Exception {
         String topic = newTopic();
 
@@ -414,7 +414,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
                 fooList.subList(0, fooList.size() - 1).stream().map(SchemaData.Foo::getI).map(Objects::toString).collect(Collectors.toList()));
     }
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testStartFromEarliest() throws Exception {
         int numTopic = 3;
         List<Integer> messages = IntStream.range(0, 50).boxed().collect(Collectors.toList());
@@ -444,7 +444,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         TestUtils.tryExecute(see, "start from earliest");
     }
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testStartFromLatest() throws Exception {
         int numTopic = 3;
         List<Integer> messages = IntStream.range(0, 50).boxed().collect(Collectors.toList());
@@ -509,7 +509,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         assertTrue(ExceptionUtils.findThrowable(consumerError, SuccessException.class).isPresent());
     }
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testStartFromSpecific() throws Exception {
         String topic = newTopic();
         List<MessageId> mids = sendTypedMessages(topic, SchemaType.INT32, Arrays.asList(
@@ -537,7 +537,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         TestUtils.tryExecute(see, "start from specific");
     }
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testStartFromExternalSubscription() throws Exception {
         String topic = newTopic();
         List<MessageId> mids = sendTypedMessages(topic, SchemaType.INT32, Arrays.asList(
@@ -572,7 +572,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         admin.close();
     }
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testOne2OneExactlyOnce() throws Exception {
         String topic = newTopic();
         int parallelism = 5;
@@ -611,7 +611,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         TestUtils.tryExecute(env, "one to one exactly once test");
     }
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testOne2MultiSource() throws Exception {
         String topic = newTopic();
         int numPartitions = 5;
@@ -651,7 +651,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         TestUtils.tryExecute(env, "One-source-multi-partitions exactly once test");
     }
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testTaskNumberGreaterThanPartitionNumber() throws Exception {
         String topic = newTopic();
         int numPartitions = 5;
@@ -692,7 +692,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         TestUtils.tryExecute(env, "source task number > partition number");
     }
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testCancelingOnFullInput() throws Exception {
         String tp = newTopic();
         int parallelism = 3;
@@ -759,7 +759,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         }
     }
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testOnEmptyInput() throws Exception {
         String tp = newTopic();
         int parallelism = 3;

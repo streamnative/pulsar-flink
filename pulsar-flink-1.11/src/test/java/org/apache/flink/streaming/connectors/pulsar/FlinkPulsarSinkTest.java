@@ -55,7 +55,7 @@ public class FlinkPulsarSinkTest extends TestLogger {
     /**
      * Tests that the constructor eagerly checks bootstrap servers are set in config.
      */
-    @Test(expected = IllegalArgumentException.class)
+    @Test(timeout = 40 * 1000L, expected = IllegalArgumentException.class)
     public void testInstantiationFailsWhenServiceUrlMissing() throws Exception {
         new DummyFlinkPulsarSink<Long>(new ClientConfigurationData(), new Properties(), null, null);
     }
@@ -75,7 +75,7 @@ public class FlinkPulsarSinkTest extends TestLogger {
     /**
      * Test ensuring that if an invoke call happens right after an async exception is caught, it should be rethrown.
      */
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testAsyncErrorRethrownOnInvoke() throws Throwable {
         DummyFlinkPulsarSink<String> sink = new DummyFlinkPulsarSink<>(dummyClientConf(), dummyProperties(), mock(TopicKeyExtractor.class), null);
 
@@ -105,7 +105,7 @@ public class FlinkPulsarSinkTest extends TestLogger {
     /**
      * Test ensuring that if a snapshot call happens right after an async exception is caught, it should be rethrown.
      */
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testAsyncErrorRethrownOnCheckpoint() throws Throwable {
         final DummyFlinkPulsarSink<String> producer = new DummyFlinkPulsarSink<>(
                 dummyClientConf(), dummyProperties(), mock(TopicKeyExtractor.class), null);
@@ -141,7 +141,7 @@ public class FlinkPulsarSinkTest extends TestLogger {
      * The test for that is covered in testAtLeastOnceProducer.
      */
     @SuppressWarnings("unchecked")
-    @Test//(timeout = 5000)
+    @Test(timeout = 40 * 1000L)
     public void testAsyncErrorRethrownOnCheckpointAfterFlush() throws Throwable {
         final DummyFlinkPulsarSink<String> sink = new DummyFlinkPulsarSink<>(dummyClientConf(), dummyProperties(), mock(TopicKeyExtractor.class), null);
         Producer mockProducer = sink.getProducer("tp");
@@ -249,7 +249,7 @@ public class FlinkPulsarSinkTest extends TestLogger {
      * we set a timeout because the test will not finish if the logic is broken.
      */
     @SuppressWarnings("unchecked")
-    @Test//(timeout = 5000)
+    @Test(timeout = 40 * 1000L)//(timeout = 5000)
     public void testDoesNotWaitForPendingRecordsIfFlushingDisabled() throws Throwable {
         Properties props = dummyProperties();
         props.setProperty("flushoncheckpoint", "false");

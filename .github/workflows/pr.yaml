@@ -38,7 +38,7 @@ jobs:
         with:
           maven-version: 3.6.1
       - name: run precommit script
-        run: ./build/retry.sh `pwd`/precommit.sh scala-2.11
+        run: ./tools/retry.sh `pwd`/precommit.sh scala-2.11
 
   unit-tests-scala-2_12:
     runs-on: ubuntu-latest
@@ -59,4 +59,4 @@ jobs:
           maven-version: 3.6.1
 
       - name: run precommit script
-        run: ./build/retry.sh `pwd`/precommit.sh scala-2.12
+        run: ./tools/retry.sh `pwd`/precommit.sh scala-2.12

@@ -14,6 +14,7 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
+import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.types.CollectionDataType;
 import org.apache.flink.table.types.DataType;
@@ -22,6 +23,7 @@ import org.apache.flink.table.types.KeyValueDataType;
 import org.apache.flink.table.types.logical.DecimalType;
 import org.apache.flink.table.types.logical.LogicalTypeRoot;
 import org.apache.flink.table.types.logical.RowType;
+import org.apache.flink.table.types.utils.TypeConversions;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.ExceptionUtils;
 
@@ -43,6 +45,7 @@ import org.apache.pulsar.shade.org.apache.avro.generic.GenericRecord;
 import org.apache.pulsar.shade.org.apache.avro.util.Utf8;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -72,29 +75,31 @@ import static org.apache.pulsar.shade.org.apache.avro.Schema.Type.UNION;
  * Deserialize Pulsar message into Flink row.
  */
 @Slf4j
-public class PulsarDeserializer {
-
-    private final SchemaInfo schemaInfo;
-
-    private final JSONOptions parsedOptions;
+public class PulsarDeserializer implements PulsarDeserializationSchema<Row>{
 
     private final Function<Message<?>, Row> converter;
 
     private final DataType rootDataType;
+    private final FieldsDataType fieldsDataType;
 
-    private final Conversions.DecimalConversion decimalConversions =
-            new Conversions.DecimalConversion();
+    private final SchemaTranslator schemaTranslator;
 
-    public PulsarDeserializer(SchemaInfo schemaInfo, JSONOptions parsedOptions) {
+    private final NewDecimalConversion  decimalConversions = new NewDecimalConversion();
+
+    public PulsarDeserializer(SchemaInfo schemaInfo, JSONOptions parsedOptions, boolean useExtendField) {
         try {
-            this.schemaInfo = schemaInfo;
-            this.parsedOptions = parsedOptions;
-            this.rootDataType = SchemaUtils.si2SqlType(schemaInfo);
-
+            schemaTranslator = new SimpleSchemaTranslator(useExtendField);
+            this.fieldsDataType = schemaTranslator.pulsarSchemaToFieldsDataType(schemaInfo);
+            this.rootDataType = schemaTranslator.schemaInfo2SqlType(schemaInfo);
             switch (schemaInfo.getType()) {
                 case AVRO:
                     FieldsDataType st = (FieldsDataType) rootDataType;
-                    int fieldsNum = st.getFieldDataTypes().size() + META_FIELD_NAMES.size();
+                    int fieldsNum;
+                    if (useExtendField){
+                        fieldsNum = st.getFieldDataTypes().size() + META_FIELD_NAMES.size();
+                    } else {
+                        fieldsNum = st.getFieldDataTypes().size();
+                    }
                     RowUpdater fieldUpdater = new RowUpdater();
                     Schema avroSchema =
                             new Schema.Parser().parse(new String(schemaInfo.getSchema(), StandardCharsets.UTF_8));
@@ -104,7 +109,9 @@ public class PulsarDeserializer {
                         fieldUpdater.setRow(resultRow);
                         Object value = msg.getValue();
                         writer.apply(fieldUpdater, ((GenericAvroRecord) value).getAvroRecord());
-                        writeMetadataFields(msg, resultRow);
+                        if (useExtendField){
+                            writeMetadataFields(msg, resultRow);
+                        }
                         return resultRow;
                     };
                     break;
@@ -125,10 +132,14 @@ public class PulsarDeserializer {
                             parsedOptions.getParseMode(),
                             fdt);
                     this.converter = msg -> {
-                        Row resultRow = new Row(fdt.getFieldDataTypes().size() + META_FIELD_NAMES.size());
+                        int rowSize = useExtendField ? fdt.getFieldDataTypes().size() + META_FIELD_NAMES.size() :
+                                fdt.getFieldDataTypes().size();
+                        Row resultRow = new Row(rowSize);
                         byte[] value = msg.getData();
                         parser.parse(new String(value, StandardCharsets.UTF_8), resultRow);
-                        writeMetadataFields(msg, resultRow);
+                        if (useExtendField){
+                            writeMetadataFields(msg, resultRow);
+                        }
                         return resultRow;
                     };
                     break;
@@ -137,24 +148,23 @@ public class PulsarDeserializer {
                     RowUpdater fUpdater = new RowUpdater();
                     TriFunction<RowUpdater, Integer, Object> writer2 = newAtomicWriter(rootDataType);
                     this.converter = msg -> {
-                        Row tmpRow = new Row(1 + META_FIELD_NAMES.size());
+                        int rowSize = useExtendField ? 1 + META_FIELD_NAMES.size() : 1;
+                        Row tmpRow = new Row(rowSize);
                         fUpdater.setRow(tmpRow);
                         Object value = msg.getValue();
                         writer2.apply(fUpdater, 0, value);
-                        writeMetadataFields(msg, tmpRow);
+                        if (useExtendField){
+                            writeMetadataFields(msg, tmpRow);
+                        }
                         return tmpRow;
                     };
             }
 
-        } catch (SchemaUtils.IncompatibleSchemaException e) {
+        } catch (IncompatibleSchemaException e) {
             log.error("Failed to convert pulsar schema to flink data type {}",
                     ExceptionUtils.stringifyException(e));
             throw new RuntimeException(e);
         }
-    }
-
-    public Row deserialize(Message<?> message) {
-        return converter.apply(message);
     }
 
     private void writeMetadataFields(Message<?> message, Row row) {
@@ -191,7 +201,7 @@ public class PulsarDeserializer {
         }
     }
 
-    private TriFunction<FlinkDataUpdater, Integer, Object> newWriter(Schema avroType, DataType flinkType, List<String> path) throws SchemaUtils.IncompatibleSchemaException {
+    private TriFunction<FlinkDataUpdater, Integer, Object> newWriter(Schema avroType, DataType flinkType, List<String> path) throws IncompatibleSchemaException {
         LogicalTypeRoot tpe = flinkType.getLogicalType().getTypeRoot();
         Schema.Type atpe = avroType.getType();
 
@@ -221,7 +231,7 @@ public class PulsarDeserializer {
                         rowUpdater.set(ordinal,
                                 DateTimeUtils.toJavaTimestamp((Long) value));
             } else {
-                throw new SchemaUtils.IncompatibleSchemaException(String.format(
+                throw new IncompatibleSchemaException(String.format(
                         "Cannot convert Avro logical type %s to flink timestamp type", altpe.toString()));
             }
 
@@ -397,7 +407,7 @@ public class PulsarDeserializer {
                                 }
                             };
                         } else {
-                            throw new SchemaUtils.IncompatibleSchemaException(String.format(
+                            throw new IncompatibleSchemaException(String.format(
                                     "Cannot convert %s %s together to %s", tp1.toString(), tp2.toString(), flinkType.toString()));
                         }
                     } else if (tpe == LogicalTypeRoot.ROW && ((RowType) flinkType.getLogicalType()).getFieldCount() == nonNullTypes.size()) {
@@ -420,7 +430,7 @@ public class PulsarDeserializer {
                             updater.set(ordinal, row);
                         };
                     } else {
-                        throw new SchemaUtils.IncompatibleSchemaException(String.format(
+                        throw new IncompatibleSchemaException(String.format(
                                 "Cannot convert avro to flink because schema at %s is not compatible (avroType = %s, sqlType = %s)",
                                 path.toString(), avroType.toString(), flinkType.toString()));
                     }
@@ -430,14 +440,14 @@ public class PulsarDeserializer {
                 return (updater, ordinal, value) -> updater.setNullAt(ordinal);
             }
         } else {
-            throw new SchemaUtils.IncompatibleSchemaException(String.format(
+            throw new IncompatibleSchemaException(String.format(
                     "Cannot convert avro to flink because schema at path %s is not compatible (avroType = %s, sqlType = %s)",
                     path.toString(), avroType.toString(), flinkType.toString()));
         }
 
     }
 
-    private BinFunction<RowUpdater, GenericRecord> getRecordWriter(Schema avroType, FieldsDataType sqlType, List<String> path) throws SchemaUtils.IncompatibleSchemaException {
+    private BinFunction<RowUpdater, GenericRecord> getRecordWriter(Schema avroType, FieldsDataType sqlType, List<String> path) throws IncompatibleSchemaException {
         List<Integer> validFieldIndexes = new ArrayList<>();
         List<BinFunction<RowUpdater, Object>> fieldWriters = new ArrayList<>();
 
@@ -467,7 +477,7 @@ public class PulsarDeserializer {
                 fieldWriters.add(fieldWriter);
 
             } else if (!sqlField.getType().isNullable()) {
-                throw new SchemaUtils.IncompatibleSchemaException(String.format(
+                throw new IncompatibleSchemaException(String.format(
                         "Cannot find non-nullable field in avro schema %s", avroType));
             }
         }
@@ -479,10 +489,25 @@ public class PulsarDeserializer {
         };
     }
 
+    @Override
+    public boolean isEndOfStream(Row nextElement) {
+        return false;
+    }
+
+    @Override
+    public Row deserialize(Message message) throws IOException {
+        return converter.apply(message);
+    }
+
+    @Override
+    public TypeInformation<Row> getProducedType() {
+        return (TypeInformation<Row>) TypeConversions.fromDataTypeToLegacyInfo(fieldsDataType);
+    }
+
     /**
      * Update flink data object.
      */
-    interface FlinkDataUpdater {
+    interface FlinkDataUpdater extends Serializable{
         void set(int ordinal, Object value);
 
         void setNullAt(int ordinal);
@@ -539,7 +564,7 @@ public class PulsarDeserializer {
      * @param <B> type of the second argument.
      * @param <C> type of the third argument.
      */
-    public interface TriFunction<A, B, C> {
+    public interface TriFunction<A, B, C> extends Serializable{
 
         /**
          * Applies this function to the given arguments.
@@ -553,11 +578,35 @@ public class PulsarDeserializer {
      * @param <A> type of the first argument.
      * @param <B> type of the second argument.
      */
-    public interface BinFunction<A, B> {
+    public interface BinFunction<A, B> extends Serializable {
 
         /**
          * Applies this function to the given arguments.
          */
         void apply(A a, B b);
+    }
+
+    /**
+     * Represents a function that accepts one argument and produces a result.
+     *
+     * @param <T> the type of the input to the function
+     * @param <R> the type of the result of the function
+     */
+    public interface Function<T, R> extends Serializable {
+
+        /**
+         * Applies this function to the given argument.
+         *
+         * @param t the function argument
+         * @return the function result
+         */
+        R apply(T t);
+    }
+
+    /**
+     * DecimalConversion.
+     */
+    public static class NewDecimalConversion extends Conversions.DecimalConversion implements Serializable{
+
     }
 }

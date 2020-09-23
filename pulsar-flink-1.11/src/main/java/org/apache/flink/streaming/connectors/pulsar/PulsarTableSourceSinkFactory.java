@@ -16,7 +16,7 @@ package org.apache.flink.streaming.connectors.pulsar;
 
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
-import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarCatalogSupport;
 import org.apache.flink.table.api.TableException;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.catalog.CatalogTable;
@@ -144,7 +144,7 @@ public class PulsarTableSourceSinkFactory
     public TableSink<Row> createTableSink(TableSinkFactory.Context context) {
         Map<String, String> result = new HashMap<>(context.getTable().toProperties());
         if (!result.containsKey(CONNECTOR_TOPIC)){
-            String topic = PulsarMetadataReader.objectPath2TopicName(context.getObjectIdentifier().toObjectPath());
+            String topic = PulsarCatalogSupport.objectPath2TopicName(context.getObjectIdentifier().toObjectPath());
             result.put(CONNECTOR_TOPIC, topic);
         }
         return createStreamTableSink(result);
@@ -209,7 +209,7 @@ public class PulsarTableSourceSinkFactory
         isInDDL = props.size() != 0;
 
         if (props.get(CONNECTOR_TOPIC) == null) {
-            String topic = PulsarMetadataReader.objectPath2TopicName(tablePath);
+            String topic = PulsarCatalogSupport.objectPath2TopicName(tablePath);
             props.put(CONNECTOR_TOPIC, topic);
         }
 

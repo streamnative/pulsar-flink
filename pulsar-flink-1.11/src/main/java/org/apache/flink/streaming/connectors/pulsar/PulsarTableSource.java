@@ -19,10 +19,12 @@ import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
+import org.apache.flink.streaming.connectors.pulsar.internal.IncompatibleSchemaException;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarDeserializationSchema;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarDeserializationSchemaWrapper;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
-import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils;
+import org.apache.flink.streaming.connectors.pulsar.internal.SchemaTranslator;
+import org.apache.flink.streaming.connectors.pulsar.internal.SimpleSchemaTranslator;
 import org.apache.flink.streaming.connectors.pulsar.internal.SourceSinkUtils;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.api.Types;
@@ -33,7 +35,6 @@ import org.apache.flink.table.sources.DefinedRowtimeAttributes;
 import org.apache.flink.table.sources.RowtimeAttributeDescriptor;
 import org.apache.flink.table.sources.StreamTableSource;
 import org.apache.flink.table.types.DataType;
-import org.apache.flink.table.types.FieldsDataType;
 import org.apache.flink.table.types.utils.TypeConversions;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.Preconditions;
@@ -46,6 +47,7 @@ import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
+import org.apache.pulsar.common.schema.SchemaInfo;
 
 import java.util.Collections;
 import java.util.List;
@@ -53,7 +55,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 
-import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.USE_EXTEND_FIELD;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_EXTERNAL_SUB_DEFAULT_OFFSET;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_EARLIEST;
 import static org.apache.flink.util.Preconditions.checkNotNull;
@@ -91,6 +92,8 @@ public class PulsarTableSource
     private final Optional<Map<String, String>> fieldMapping;
     private final DeserializationSchema<Row> deserializationSchema;
 
+    private final SchemaTranslator schemaTranslator;
+
     public PulsarTableSource(
             Optional<TableSchema> providedSchema,
             Optional<String> proctimeAttribute,
@@ -114,7 +117,7 @@ public class PulsarTableSource
 
         this.caseInsensitiveParams =
                 SourceSinkUtils.validateStreamSourceOptions(Maps.fromProperties(properties));
-
+        this.schemaTranslator = new SimpleSchemaTranslator();
         this.schema = inferTableSchema();
 
         this.proctimeAttribute = validateProctimeAttribute(proctimeAttribute);
@@ -202,9 +205,9 @@ public class PulsarTableSource
             try {
                 PulsarMetadataReader reader = new PulsarMetadataReader(adminUrl, new ClientConfigurationData(), "", caseInsensitiveParams, -1, -1);
                 List<String> topics = reader.getTopics();
-                FieldsDataType schema = reader.getSchema(topics, Boolean.parseBoolean(properties.getProperty(USE_EXTEND_FIELD)));
-                return SchemaUtils.toTableSchema(schema);
-            } catch (PulsarClientException | PulsarAdminException | SchemaUtils.IncompatibleSchemaException e) {
+                SchemaInfo pulsarSchema = reader.getPulsarSchema(topics);
+                return schemaTranslator.pulsarSchemaToTableSchema(pulsarSchema);
+            } catch (PulsarClientException | PulsarAdminException | IncompatibleSchemaException e) {
                 log.error("Failed to fetch table schema", adminUrl);
                 throw new RuntimeException(e);
             }

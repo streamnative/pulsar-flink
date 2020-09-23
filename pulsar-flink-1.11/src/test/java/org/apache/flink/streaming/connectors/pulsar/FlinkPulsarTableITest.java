@@ -16,9 +16,10 @@ package org.apache.flink.streaming.connectors.pulsar;
 
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.connectors.pulsar.internal.IncompatibleSchemaException;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
-import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils;
+import org.apache.flink.streaming.connectors.pulsar.internal.SimpleSchemaTranslator;
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper;
 import org.apache.flink.streaming.connectors.pulsar.testutils.SingletonStreamSink;
 import org.apache.flink.table.api.Table;
@@ -27,7 +28,6 @@ import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 import org.apache.flink.table.descriptors.ConnectorDescriptor;
 import org.apache.flink.table.descriptors.Pulsar;
 import org.apache.flink.table.descriptors.Schema;
-import org.apache.flink.table.types.FieldsDataType;
 import org.apache.flink.types.Row;
 
 import org.apache.pulsar.client.admin.PulsarAdminException;
@@ -68,7 +68,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         FailingIdentityMapper.failedBefore = false;
     }
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testBasicFunctioning() throws Exception {
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.setParallelism(1);
@@ -100,7 +100,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
                 BOOLEAN_LIST.subList(0, BOOLEAN_LIST.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
     }
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testWriteThenRead() throws Exception {
         String tp = newTopic();
         String tableName = TopicName.get(tp).getLocalName();
@@ -142,7 +142,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         SingletonStreamSink.compareWithList(fooList.subList(0, fooList.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
     }
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testStructTypesInAvro() throws Exception {
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.setParallelism(1);
@@ -174,7 +174,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
                 fooList.subList(0, fooList.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
     }
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testStructTypesWithJavaList() throws Exception {
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.setParallelism(1);
@@ -205,16 +205,17 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
                 flList.subList(0, flList.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
     }
 
-    private TableSchema getTableSchema(String topicName) throws PulsarClientException, PulsarAdminException, SchemaUtils.IncompatibleSchemaException {
+    private TableSchema getTableSchema(String topicName) throws PulsarClientException, PulsarAdminException,
+            IncompatibleSchemaException {
         Map<String, String> caseInsensitiveParams = new HashMap<>();
         caseInsensitiveParams.put(TOPIC_SINGLE_OPTION_KEY, topicName);
         PulsarMetadataReader reader = new PulsarMetadataReader(adminUrl, new ClientConfigurationData(), "", caseInsensitiveParams, -1, -1);
         SchemaInfo pulsarSchema = reader.getPulsarSchema(topicName);
-        FieldsDataType fieldsDataType = SchemaUtils.pulsarSourceSchema(pulsarSchema, false);
-        return SchemaUtils.toTableSchema(fieldsDataType);
+        final SimpleSchemaTranslator schemaTranslator = new SimpleSchemaTranslator();
+        return schemaTranslator.pulsarSchemaToTableSchema(pulsarSchema);
     }
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testStructTypesWithJavaArray() throws Exception {
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.setParallelism(1);
@@ -246,7 +247,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
                 faList.subList(0, faList.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
     }
 
-    @Test
+    @Test(timeout = 40 * 1000L)
     public void testStructTypesWithJavaMap() throws Exception {
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.setParallelism(1);

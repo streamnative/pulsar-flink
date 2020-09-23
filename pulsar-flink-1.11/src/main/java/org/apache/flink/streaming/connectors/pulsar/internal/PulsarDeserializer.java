@@ -85,16 +85,15 @@ public class PulsarDeserializer implements PulsarDeserializationSchema<Row>{
     private final DataType rootDataType;
     private final FieldsDataType fieldsDataType;
 
-    private static final Conversions.DecimalConversion decimalConversions =
-            new Conversions.DecimalConversion();
+    private final SchemaTranslator schemaTranslator;
 
-    private final boolean useExtendField;
+    private final NewDecimalConversion  decimalConversions = new NewDecimalConversion();
 
     public PulsarDeserializer(SchemaInfo schemaInfo, JSONOptions parsedOptions, boolean useExtendField) {
         try {
-            this.fieldsDataType = SchemaUtils.pulsarSourceSchema(schemaInfo, useExtendField);
-            this.rootDataType = SchemaUtils.si2SqlType(schemaInfo);
-            this.useExtendField = useExtendField;
+            schemaTranslator = new SimpleSchemaTranslator(useExtendField);
+            this.fieldsDataType = schemaTranslator.pulsarSchemaToFieldsDataType(schemaInfo);
+            this.rootDataType = schemaTranslator.schemaInfo2SqlType(schemaInfo);
             switch (schemaInfo.getType()) {
                 case AVRO:
                     FieldsDataType st = (FieldsDataType) rootDataType;
@@ -163,7 +162,7 @@ public class PulsarDeserializer implements PulsarDeserializationSchema<Row>{
                     };
             }
 
-        } catch (SchemaUtils.IncompatibleSchemaException e) {
+        } catch (IncompatibleSchemaException e) {
             log.error("Failed to convert pulsar schema to flink data type {}",
                     ExceptionUtils.stringifyException(e));
             throw new RuntimeException(e);
@@ -204,7 +203,7 @@ public class PulsarDeserializer implements PulsarDeserializationSchema<Row>{
         }
     }
 
-    private TriFunction<FlinkDataUpdater, Integer, Object> newWriter(Schema avroType, DataType flinkType, List<String> path) throws SchemaUtils.IncompatibleSchemaException {
+    private TriFunction<FlinkDataUpdater, Integer, Object> newWriter(Schema avroType, DataType flinkType, List<String> path) throws IncompatibleSchemaException {
         LogicalTypeRoot tpe = flinkType.getLogicalType().getTypeRoot();
         Schema.Type atpe = avroType.getType();
 
@@ -233,7 +232,7 @@ public class PulsarDeserializer implements PulsarDeserializationSchema<Row>{
                         rowUpdater.set(ordinal,
                                 DateTimeUtils.toJavaTimestamp((Long) value).toLocalDateTime());
             } else {
-                throw new SchemaUtils.IncompatibleSchemaException(String.format(
+                throw new IncompatibleSchemaException(String.format(
                         "Cannot convert Avro logical type %s to flink timestamp type", altpe.toString()));
             }
 
@@ -409,7 +408,7 @@ public class PulsarDeserializer implements PulsarDeserializationSchema<Row>{
                                 }
                             };
                         } else {
-                            throw new SchemaUtils.IncompatibleSchemaException(String.format(
+                            throw new IncompatibleSchemaException(String.format(
                                     "Cannot convert %s %s together to %s", tp1.toString(), tp2.toString(), flinkType.toString()));
                         }
                     } else if (tpe == LogicalTypeRoot.ROW && ((RowType) flinkType.getLogicalType()).getFieldCount() == nonNullTypes.size()) {
@@ -432,7 +431,7 @@ public class PulsarDeserializer implements PulsarDeserializationSchema<Row>{
                             updater.set(ordinal, row);
                         };
                     } else {
-                        throw new SchemaUtils.IncompatibleSchemaException(String.format(
+                        throw new IncompatibleSchemaException(String.format(
                                 "Cannot convert avro to flink because schema at %s is not compatible (avroType = %s, sqlType = %s)",
                                 path.toString(), avroType.toString(), flinkType.toString()));
                     }
@@ -442,14 +441,14 @@ public class PulsarDeserializer implements PulsarDeserializationSchema<Row>{
                 return (updater, ordinal, value) -> updater.setNullAt(ordinal);
             }
         } else {
-            throw new SchemaUtils.IncompatibleSchemaException(String.format(
+            throw new IncompatibleSchemaException(String.format(
                     "Cannot convert avro to flink because schema at path %s is not compatible (avroType = %s, sqlType = %s)",
                     path.toString(), avroType.toString(), flinkType.toString()));
         }
 
     }
 
-    private BinFunction<RowUpdater, GenericRecord> getRecordWriter(Schema avroType, FieldsDataType sqlType, List<String> path) throws SchemaUtils.IncompatibleSchemaException {
+    private BinFunction<RowUpdater, GenericRecord> getRecordWriter(Schema avroType, FieldsDataType sqlType, List<String> path) throws IncompatibleSchemaException {
         List<Integer> validFieldIndexes = new ArrayList<>();
         List<BinFunction<RowUpdater, Object>> fieldWriters = new ArrayList<>();
 
@@ -481,7 +480,7 @@ public class PulsarDeserializer implements PulsarDeserializationSchema<Row>{
                 fieldWriters.add(fieldWriter);
 
             } else if (!sqlField.getType().isNullable()) {
-                throw new SchemaUtils.IncompatibleSchemaException(String.format(
+                throw new IncompatibleSchemaException(String.format(
                         "Cannot find non-nullable field in avro schema %s", avroType));
             }
         }
@@ -493,7 +492,6 @@ public class PulsarDeserializer implements PulsarDeserializationSchema<Row>{
         };
     }
 
-    @Override
     public void open(DeserializationSchema.InitializationContext context) throws Exception {
     }
 
@@ -600,7 +598,7 @@ public class PulsarDeserializer implements PulsarDeserializationSchema<Row>{
      * @param <T> the type of the input to the function
      * @param <R> the type of the result of the function
      */
-    public interface Function<T, R> extends Serializable{
+    public interface Function<T, R> extends Serializable {
 
         /**
          * Applies this function to the given argument.
@@ -609,5 +607,12 @@ public class PulsarDeserializer implements PulsarDeserializationSchema<Row>{
          * @return the function result
          */
         R apply(T t);
+    }
+
+    /**
+     * DecimalConversion.
+     */
+    public static class NewDecimalConversion extends Conversions.DecimalConversion implements Serializable{
+
     }
 }

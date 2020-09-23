@@ -27,7 +27,6 @@ import io.streamnative.tests.pulsar.service.PulsarServiceFactory;
 import io.streamnative.tests.pulsar.service.PulsarServiceSpec;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.NotImplementedException;
-import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.PulsarClient;
@@ -37,7 +36,6 @@ import org.apache.pulsar.client.api.schema.SchemaDefinition;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.testcontainers.shaded.com.google.common.collect.Sets;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -88,10 +86,7 @@ public abstract class PulsarTestBase extends TestLogger {
                 adminUrl = uri.toString();
             }
         }
-
-        try (PulsarAdmin admin = PulsarAdmin.builder().serviceHttpUrl(adminUrl).build()) {
-            admin.namespaces().createNamespace("public/default", Sets.newHashSet("standalone"));
-        }
+        Thread.sleep(80 * 1000L);
 
         log.info("-------------------------------------------------------------------------");
         log.info("Successfully started pulsar service at cluster " + spec.clusterName());

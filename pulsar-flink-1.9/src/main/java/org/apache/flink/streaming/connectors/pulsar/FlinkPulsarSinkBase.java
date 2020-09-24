@@ -315,7 +315,7 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
         if (e != null) {
             // prevent double throwing
             failedWrite = null;
-            throw new Exception("Failed to send data to Kafka: " + e.getMessage(), e);
+            throw new Exception("Failed to send data to Pulsar: " + e.getMessage(), e);
         }
     }
 

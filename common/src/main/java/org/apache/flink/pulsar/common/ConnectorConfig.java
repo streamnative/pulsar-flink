@@ -17,8 +17,8 @@ package org.apache.flink.pulsar.common;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.apache.bookkeeper.stats.NullStatsProvider;
 import org.apache.pulsar.common.protocol.Commands;
+import org.apache.pulsar.shade.org.apache.bookkeeper.stats.NullStatsProvider;
 
 import java.io.Serializable;
 import java.util.HashMap;

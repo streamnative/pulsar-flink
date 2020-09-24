@@ -24,6 +24,7 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.io.InputSplitAssigner;
 import org.apache.flink.pulsar.common.ConnectorConfig;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
@@ -31,13 +32,15 @@ import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.impl.MessageIdImpl;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.common.api.raw.RawMessage;
+import org.apache.pulsar.shade.com.google.common.collect.Maps;
 import org.apache.pulsar.shade.io.netty.buffer.ByteBufUtil;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -92,12 +95,22 @@ public class PulsarInputFormat<T> extends RichInputFormat<T, PulsarInputSplit> i
 //		int numParallelSubtasks,
 //		boolean useExternalSubscription
         ClientConfigurationData clientConf = new ClientConfigurationData();
+        clientConf.setAuthPluginClassName(connectorConfig.getAuthPluginClassName());
+        clientConf.setAuthParams(connectorConfig.getAuthParams());
         clientConf.setServiceUrl(connectorConfig.getServiceUrl());
+        final Map<String, String> caseInsensitiveParams = Maps.newHashMap();
+
+        Optional.ofNullable(connectorConfig.getTopic())
+                .ifPresent(value -> caseInsensitiveParams.put(PulsarOptions.TOPIC_SINGLE_OPTION_KEY, value));
+        Optional.ofNullable(connectorConfig.getTopics())
+                .ifPresent(value -> caseInsensitiveParams.put(PulsarOptions.TOPIC_MULTI_OPTION_KEY, value));
+        Optional.ofNullable(connectorConfig.getTopicsPattern())
+                .ifPresent(value -> caseInsensitiveParams.put(PulsarOptions.TOPIC_PATTERN_OPTION_KEY, value));
         try (PulsarMetadataReader reader = new PulsarMetadataReader(
                 connectorConfig.getAdminUrl(),
                 clientConf,
                 "",
-                Collections.emptyMap(),
+                caseInsensitiveParams,
                 -1,
                 -1
 

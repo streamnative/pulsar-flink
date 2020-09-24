@@ -33,6 +33,17 @@
             <groupId>io.streamnative.connectors</groupId>
             <artifactId>managed-ledger-shaded</artifactId>
             <version>${project.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.pulsar</groupId>
+            <artifactId>pulsar-metadata</artifactId>
+            <version>${pulsar.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.flink</groupId>

@@ -19,7 +19,6 @@
   <modules>
     <module>managed-ledger-shaded</module>
     <module>common</module>
-    <module>common</module>
     <module>pulsar-flink-1.9</module>
     <module>pulsar-flink-1.11</module>
   </modules>
@@ -162,6 +161,10 @@
         <exclusion>
           <groupId>org.apache.pulsar</groupId>
           <artifactId>pulsar-client-admin-original</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.pulsar</groupId>
+          <artifactId>pulsar-client-admin</artifactId>
         </exclusion>
       </exclusions>
     </dependency>

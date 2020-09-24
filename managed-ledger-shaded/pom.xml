@@ -37,6 +37,21 @@
       <version>${pulsar.version}</version>
       <scope>compile</scope>
     </dependency>
+    <dependency>
+      <groupId>io.netty</groupId>
+      <artifactId>netty-buffer</artifactId>
+      <version>4.1.48.Final</version>
+    </dependency>
+    <dependency>
+      <groupId>io.netty</groupId>
+      <artifactId>netty-handler</artifactId>
+      <version>4.1.48.Final</version>
+    </dependency>
+    <dependency>
+      <groupId>io.netty</groupId>
+      <artifactId>netty-transport-native-epoll</artifactId>
+      <version>4.1.48.Final</version>
+    </dependency>
   </dependencies>
 
   <build>
@@ -109,7 +124,7 @@
               </artifactSet>
               <filters>
                 <filter>
-                  <artifact>org.apache.pulsar:pulsar-client-original</artifact>
+                  <artifact>org.apache.pulsar:managed-ledger</artifact>
                   <includes>
                     <include>**</include>
                   </includes>
@@ -269,30 +284,6 @@
           </execution>
         </executions>
       </plugin>
-<!--      <plugin>-->
-<!--        &lt;!&ndash; This plugin is used to run a script after the package phase in order to rename-->
-<!--            libnetty_transport_native_epoll_x86_64.so from Netty into-->
-<!--            liborg_apache_pulsar_shade_netty_transport_native_epoll_x86_64.so-->
-<!--            to reflect the shade that is being applied.-->
-<!--         &ndash;&gt;-->
-<!--        <artifactId>exec-maven-plugin</artifactId>-->
-<!--        <groupId>org.codehaus.mojo</groupId>-->
-<!--        <executions>-->
-<!--          <execution>-->
-<!--            <id>rename-epoll-library</id>-->
-<!--            <phase>package</phase>-->
-<!--            <goals>-->
-<!--              <goal>exec</goal>-->
-<!--            </goals>-->
-<!--            <configuration>-->
-<!--              <executable>${project.parent.basedir}/src/${rename.netty.native.libs}</executable>-->
-<!--              <arguments>-->
-<!--                <argument>${project.artifactId}</argument>-->
-<!--              </arguments>-->
-<!--            </configuration>-->
-<!--          </execution>-->
-<!--        </executions>-->
-<!--      </plugin>-->
     </plugins>
   </build>
 </project>

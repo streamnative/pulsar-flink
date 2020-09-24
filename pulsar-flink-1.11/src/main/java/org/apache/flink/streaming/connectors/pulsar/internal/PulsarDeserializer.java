@@ -103,11 +103,11 @@ public class PulsarDeserializer implements PulsarDeserializationSchema<Row>{
                     } else {
                         fieldsNum = st.getChildren().size();
                     }
-                    RowUpdater fieldUpdater = new RowUpdater();
                     Schema avroSchema =
                             new Schema.Parser().parse(new String(schemaInfo.getSchema(), StandardCharsets.UTF_8));
                     BinFunction<RowUpdater, GenericRecord> writer = getRecordWriter(avroSchema, st, new ArrayList<>());
                     this.converter = msg -> {
+                        RowUpdater fieldUpdater = new RowUpdater();
                         Row resultRow = new Row(fieldsNum);
                         fieldUpdater.setRow(resultRow);
                         Object value = msg.getValue();
@@ -147,9 +147,9 @@ public class PulsarDeserializer implements PulsarDeserializationSchema<Row>{
                     break;
 
                 default:
-                    RowUpdater fUpdater = new RowUpdater();
                     TriFunction<RowUpdater, Integer, Object> writer2 = newAtomicWriter(rootDataType);
                     this.converter = msg -> {
+                        RowUpdater fUpdater = new RowUpdater();
                         int rowSize = useExtendField ? 1 + META_FIELD_NAMES.size() : 1;
                         Row tmpRow = new Row(rowSize);
                         fUpdater.setRow(tmpRow);

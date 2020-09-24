@@ -27,6 +27,7 @@ import io.streamnative.tests.pulsar.service.PulsarServiceFactory;
 import io.streamnative.tests.pulsar.service.PulsarServiceSpec;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.NotImplementedException;
+import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.PulsarClient;
@@ -34,6 +35,7 @@ import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.schema.SchemaDefinition;
 import org.apache.pulsar.common.schema.SchemaType;
+import org.apache.pulsar.shade.com.google.common.collect.Sets;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
@@ -70,7 +72,7 @@ public abstract class PulsarTestBase extends TestLogger {
         log.info("    Starting PulsarTestBase ");
         log.info("-------------------------------------------------------------------------");
 
-        System.setProperty("pulsar.systemtest.image", "streamnative/pulsar-all:2.6.0-sn-18-3");
+        System.setProperty("pulsar.systemtest.image", "streamnative/pulsar:2.6.0-sn-18-3");
         PulsarServiceSpec spec = PulsarServiceSpec.builder()
                 .clusterName("standalone-" + UUID.randomUUID())
                 .enableContainerLogging(false)
@@ -86,12 +88,12 @@ public abstract class PulsarTestBase extends TestLogger {
                 adminUrl = uri.toString();
             }
         }
-        Thread.sleep(80 * 1000L);
-
+        try (PulsarAdmin admin = PulsarAdmin.builder().serviceHttpUrl(adminUrl).build()) {
+            admin.namespaces().createNamespace("public/default", Sets.newHashSet("standalone"));
+        }
         log.info("-------------------------------------------------------------------------");
         log.info("Successfully started pulsar service at cluster " + spec.clusterName());
         log.info("-------------------------------------------------------------------------");
-
     }
 
     @AfterClass

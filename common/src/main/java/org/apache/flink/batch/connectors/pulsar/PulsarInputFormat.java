@@ -87,13 +87,6 @@ public class PulsarInputFormat<T> extends RichInputFormat<T, PulsarInputSplit> i
     public PulsarInputSplit[] createInputSplits(int minNumSplits) throws IOException {
         List<PulsarInputSplit> pulsarSplits = new ArrayList<>();
 
-//		String adminUrl,
-//		ClientConfigurationData clientConf,
-//		String subscriptionName,
-//		Map<String, String> caseInsensitiveParams,
-//		int indexOfThisSubtask,
-//		int numParallelSubtasks,
-//		boolean useExternalSubscription
         ClientConfigurationData clientConf = new ClientConfigurationData();
         clientConf.setAuthPluginClassName(connectorConfig.getAuthPluginClassName());
         clientConf.setAuthParams(connectorConfig.getAuthParams());

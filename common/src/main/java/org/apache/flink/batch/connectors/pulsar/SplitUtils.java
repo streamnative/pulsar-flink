@@ -67,9 +67,7 @@ public class SplitUtils {
 
             MLDataFormats.ManagedLedgerInfo.LedgerInfo endLedger = allLedgers.get(allLedgers.size() - 1);
             long actualEndLedger = endLedger.getLedgerId();
-            // TODO: the last entry added cannot be seen because of https://github.com/apache/pulsar/pull/5822.
-            // when we bump Pulsar version to 2.5.1, this comment can be removed.
-            long lastEntry = endLedger.getEntries() - 1;
+            long lastEntry = endLedger.getEntries();
             long actualEndEntry =
                     end.getEntryId() >= lastEntry ?
                             lastEntry :

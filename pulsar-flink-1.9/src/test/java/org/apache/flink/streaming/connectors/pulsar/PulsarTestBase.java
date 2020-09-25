@@ -33,9 +33,9 @@ import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.common.schema.SchemaType;
+import org.apache.pulsar.shade.com.google.common.collect.Sets;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.testcontainers.shaded.com.google.common.collect.Sets;
 
 import java.net.URI;
 import java.util.ArrayList;

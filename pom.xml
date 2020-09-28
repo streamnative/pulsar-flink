@@ -113,6 +113,11 @@
       <artifactId>lombok</artifactId>
       <version>1.18.10</version>
     </dependency>
+    <dependency>
+      <groupId>io.airlift</groupId>
+      <artifactId>aircompressor</artifactId>
+      <version>0.16</version>
+    </dependency>
 
     <dependency>
       <groupId>org.hamcrest</groupId>
@@ -169,6 +174,7 @@
       <version>2.6</version>
       <scope>compile</scope>
     </dependency>
+
   </dependencies>
 
   <build>
@@ -246,6 +252,7 @@
                   <include>org.lz4*:*</include>
                   <include>commons-collections:commons-collections</include>
                   <include>org.slf4j:jul-to-slf4j</include>
+                  <include>io.airlift:*</include>
                 </includes>
               </artifactSet>
               <filters>

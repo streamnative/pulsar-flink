@@ -60,9 +60,9 @@ public class PulsarFetcherTest extends TestLogger {
     @Test
     public void testIgnorePartitionStates() throws Exception {
         String testTopic = "tp";
-        Map<String, MessageId> offset = new HashMap<>();
-        offset.put(topicName(testTopic, 1), MessageId.earliest);
-        offset.put(topicName(testTopic, 2), MessageId.latest);
+        Map<TopicRange, MessageId> offset = new HashMap<>();
+        offset.put(new TopicRange(topicName(testTopic, 1)), MessageId.earliest);
+        offset.put(new TopicRange(topicName(testTopic, 2)), MessageId.latest);
 
         TestSourceContext<Long> sourceContext = new TestSourceContext<>();
         TestFetcher<Long> fetcher = new TestFetcher<>(
@@ -76,7 +76,7 @@ public class PulsarFetcherTest extends TestLogger {
                 null);
 
         synchronized (sourceContext.getCheckpointLock()) {
-            Map<String, MessageId> current = fetcher.snapshotCurrentState();
+            Map<TopicRange, MessageId> current = fetcher.snapshotCurrentState();
             fetcher.commitOffsetToPulsar(current, new PulsarCommitCallback() {
                 @Override
                 public void onSuccess() {
@@ -96,7 +96,8 @@ public class PulsarFetcherTest extends TestLogger {
     @Test
     public void testSkipCorruptedRecord() throws Exception {
         String testTopic = "tp";
-        Map<String, MessageId> offset = Collections.singletonMap(topicName(testTopic, 1), MessageId.latest);
+        Map<TopicRange, MessageId> offset = Collections.singletonMap(new TopicRange(topicName(testTopic, 1)),
+                MessageId.latest);
 
         TestSourceContext<Long> sourceContext = new TestSourceContext<Long>();
         TestFetcher<Long> fetcher = new TestFetcher<>(
@@ -124,7 +125,8 @@ public class PulsarFetcherTest extends TestLogger {
     @Test
     public void testSkipCorruptedRecordWithPeriodicWatermarks() throws Exception {
         String testTopic = "tp";
-        Map<String, MessageId> offset = Collections.singletonMap(topicName(testTopic, 1), MessageId.latest);
+        Map<TopicRange, MessageId> offset = Collections.singletonMap(new TopicRange(topicName(testTopic, 1)),
+                MessageId.latest);
 
         TestProcessingTimeService processingTimeProvider = new TestProcessingTimeService();
 
@@ -169,7 +171,8 @@ public class PulsarFetcherTest extends TestLogger {
     @Test
     public void testSkipCorruptedRecordWithPunctuatedWatermarks() throws Exception {
         String testTopic = "tp";
-        Map<String, MessageId> offset = Collections.singletonMap(topicName(testTopic, 1), MessageId.latest);
+        Map<TopicRange, MessageId> offset = Collections.singletonMap(new TopicRange(topicName(testTopic, 1)),
+                MessageId.latest);
 
         TestProcessingTimeService processingTimeProvider = new TestProcessingTimeService();
 
@@ -210,10 +213,10 @@ public class PulsarFetcherTest extends TestLogger {
     @Test
     public void testPeriodicWatermarks() throws Exception {
         String testTopic = "tp";
-        Map<String, MessageId> offset = new HashMap<>();
-        offset.put(topicName(testTopic, 1), MessageId.latest);
-        offset.put(topicName(testTopic, 2), MessageId.latest);
-        offset.put(topicName(testTopic, 3), MessageId.latest);
+        Map<TopicRange, MessageId> offset = new HashMap<>();
+        offset.put(new TopicRange(topicName(testTopic, 1)), MessageId.latest);
+        offset.put(new TopicRange(topicName(testTopic, 2)), MessageId.latest);
+        offset.put(new TopicRange(topicName(testTopic, 3)), MessageId.latest);
 
         TestSourceContext<Long> sourceContext = new TestSourceContext<Long>();
         TestProcessingTimeService processingTimeProvider = new TestProcessingTimeService();
@@ -284,10 +287,10 @@ public class PulsarFetcherTest extends TestLogger {
     @Test
     public void testPunctuatedWatermarks() throws Exception {
         String testTopic = "tp";
-        Map<String, MessageId> offset = new HashMap<>();
-        offset.put(topicName(testTopic, 1), MessageId.latest);
-        offset.put(topicName(testTopic, 2), MessageId.latest);
-        offset.put(topicName(testTopic, 3), MessageId.latest);
+        Map<TopicRange, MessageId> offset = new HashMap<>();
+        offset.put(new TopicRange(topicName(testTopic, 1)), MessageId.latest);
+        offset.put(new TopicRange(topicName(testTopic, 2)), MessageId.latest);
+        offset.put(new TopicRange(topicName(testTopic, 3)), MessageId.latest);
 
         TestSourceContext<Long> sourceContext = new TestSourceContext<Long>();
         TestProcessingTimeService processingTimeService = new TestProcessingTimeService();
@@ -362,7 +365,7 @@ public class PulsarFetcherTest extends TestLogger {
         TestSourceContext<Long> sourceContext = new TestSourceContext<Long>();
         TestProcessingTimeService processingTimeService = new TestProcessingTimeService();
 
-        Map<String, MessageId> offset = new HashMap<>();
+        Map<TopicRange, MessageId> offset = new HashMap<>();
 
         TestFetcher<Long> fetcher = new TestFetcher<>(
                 sourceContext,
@@ -377,7 +380,7 @@ public class PulsarFetcherTest extends TestLogger {
         processingTimeService.setCurrentTime(10);
         assertTrue(!sourceContext.hasWatermark());
 
-        fetcher.addDiscoveredTopics(Sets.newSet(topicName(testTopic, 0)));
+        fetcher.addDiscoveredTopics(Sets.newSet(new TopicRange(topicName(testTopic, 0))));
         fetcher.emitRecord(100L, fetcher.getSubscribedTopicStates().get(0), dummyMessageId(3));
         processingTimeService.setCurrentTime(20);
         Assert.assertEquals(100L, sourceContext.getLatestWatermark().getTimestamp());
@@ -387,7 +390,8 @@ public class PulsarFetcherTest extends TestLogger {
     public void testConcurrentPartitionsDiscoveryAndLoopFetching() throws Exception {
         String tp = topicName("test", 2);
         TestSourceContext<Long> sourceContext = new TestSourceContext<Long>();
-        Map<String, MessageId> offset = Collections.singletonMap(topicName(tp, 1), MessageId.latest);
+        Map<TopicRange, MessageId> offset = Collections.singletonMap(new TopicRange(topicName(tp, 1)),
+                MessageId.latest);
 
         OneShotLatch fetchLoopWaitLatch = new OneShotLatch();
         OneShotLatch stateIterationBlockLatch = new OneShotLatch();
@@ -413,7 +417,7 @@ public class PulsarFetcherTest extends TestLogger {
         checkedThread.start();
 
         fetchLoopWaitLatch.await();
-        fetcher.addDiscoveredTopics(Sets.newSet(tp));
+        fetcher.addDiscoveredTopics(Sets.newSet(new TopicRange(tp)));
 
         stateIterationBlockLatch.trigger();
         checkedThread.sync();
@@ -423,11 +427,11 @@ public class PulsarFetcherTest extends TestLogger {
 
         private final OneShotLatch fetchLoopWaitLatch;
         private final OneShotLatch stateIterationBlockLatch;
-        Optional<Map<String, MessageId>> lastCommittedOffsets = Optional.empty();
+        Optional<Map<TopicRange, MessageId>> lastCommittedOffsets = Optional.empty();
 
         public TestFetcher(
                 SourceFunction.SourceContext<T> sourceContext,
-                Map<String, MessageId> seedTopicsWithInitialOffsets,
+                Map<TopicRange, MessageId> seedTopicsWithInitialOffsets,
                 SerializedValue<AssignerWithPeriodicWatermarks<T>> watermarksPeriodic,
                 SerializedValue<AssignerWithPunctuatedWatermarks<T>> watermarksPunctuated,
                 ProcessingTimeService processingTimeProvider,
@@ -472,7 +476,7 @@ public class PulsarFetcherTest extends TestLogger {
 
         @Override
         public void doCommitOffsetToPulsar(
-                Map<String, MessageId> offset,
+                Map<TopicRange, MessageId> offset,
                 PulsarCommitCallback offsetCommitCallback) {
 
             lastCommittedOffsets = Optional.of(offset);

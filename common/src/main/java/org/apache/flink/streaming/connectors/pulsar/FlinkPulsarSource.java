@@ -41,6 +41,7 @@ import org.apache.flink.streaming.connectors.pulsar.internal.PulsarFetcher;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.streaming.connectors.pulsar.internal.SourceSinkUtils;
+import org.apache.flink.streaming.connectors.pulsar.internal.TopicRange;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
 import org.apache.flink.util.ExceptionUtils;
 import org.apache.flink.util.SerializedValue;
@@ -101,7 +102,7 @@ public class FlinkPulsarSource<T>
 
     protected volatile PulsarDeserializationSchema<T> deserializer;
 
-    private Map<String, MessageId> ownedTopicStarts;
+    private Map<TopicRange, MessageId> ownedTopicStarts;
 
     /** Optional timestamp extractor / watermark generator that will be run per pulsar partition,
      * to exploit per-partition timestamp characteristics.
@@ -124,7 +125,7 @@ public class FlinkPulsarSource<T>
     private StartupMode startupMode = StartupMode.LATEST;
 
     /** Specific startup offsets; only relevant when startup mode is {@link StartupMode#SPECIFIC_OFFSETS}. */
-    private transient Map<String, MessageId> specificStartupOffsets;
+    private transient Map<TopicRange, MessageId> specificStartupOffsets;
 
     /** The subscription name to be used; only relevant when startup mode is {@link StartupMode#EXTERNAL_SUBSCRIPTION}
      * If the subscription exists for a partition, we would start reading this partition from the subscription cursor.
@@ -138,7 +139,7 @@ public class FlinkPulsarSource<T>
 
     // TODO: remove this when MessageId is serializable itself.
     // see: https://github.com/apache/pulsar/pull/6064
-    private Map<String, byte[]> specificStartupOffsetsAsBytes;
+    private Map<TopicRange, byte[]> specificStartupOffsetsAsBytes;
 
     protected final Properties properties;
 
@@ -165,11 +166,11 @@ public class FlinkPulsarSource<T>
      * <p>Using a sorted map as the ordering is important when using restored state
      * to seed the partition discoverer.
      */
-    private transient volatile TreeMap<String, MessageId> restoredState;
+    private transient volatile TreeMap<TopicRange, MessageId> restoredState;
 
     /** Accessor for state in the operator state backend. */
 
-    private transient ListState<Tuple3<String, MessageId, String>> unionOffsetStates;
+    private transient ListState<Tuple3<TopicRange, MessageId, String>> unionOffsetStates;
 
     private volatile boolean stateSubEqualexternalSub = false;
 
@@ -325,10 +326,13 @@ public class FlinkPulsarSource<T>
     }
 
     public FlinkPulsarSource<T> setStartFromSpecificOffsets(Map<String, MessageId> specificStartupOffsets) {
+        checkNotNull(specificStartupOffsets);
+        this.specificStartupOffsets = specificStartupOffsets.entrySet()
+                .stream()
+                .collect(Collectors.toMap(e -> new TopicRange(e.getKey()), Map.Entry::getValue));
         this.startupMode = StartupMode.SPECIFIC_OFFSETS;
-        this.specificStartupOffsets = checkNotNull(specificStartupOffsets);
         this.specificStartupOffsetsAsBytes = new HashMap<>();
-        for (Map.Entry<String, MessageId> entry : specificStartupOffsets.entrySet()) {
+        for (Map.Entry<TopicRange, MessageId> entry : this.specificStartupOffsets.entrySet()) {
             specificStartupOffsetsAsBytes.put(entry.getKey(), entry.getValue().toByteArray());
         }
         return this;
@@ -347,7 +351,6 @@ public class FlinkPulsarSource<T>
         return this;
     }
 
-
     // ------------------------------------------------------------------------
     //  Work methods
     // ------------------------------------------------------------------------
@@ -361,15 +364,15 @@ public class FlinkPulsarSource<T>
         this.metadataReader = createMetadataReader();
 
         ownedTopicStarts = new HashMap<>();
-        Set<String> allTopics = metadataReader.discoverTopicChanges();
+        Set<TopicRange> allTopics = metadataReader.discoverTopicChanges();
 
         if (specificStartupOffsets == null && specificStartupOffsetsAsBytes != null) {
             specificStartupOffsets = new HashMap<>();
-            for (Map.Entry<String, byte[]> entry : specificStartupOffsetsAsBytes.entrySet()) {
+            for (Map.Entry<TopicRange, byte[]> entry : specificStartupOffsetsAsBytes.entrySet()) {
                 specificStartupOffsets.put(entry.getKey(), MessageId.fromByteArray(entry.getValue()));
             }
         }
-        Map<String, MessageId> allTopicOffsets =
+        Map<TopicRange, MessageId> allTopicOffsets =
                 offsetForEachTopic(allTopics, startupMode, specificStartupOffsets);
 
         boolean usingRestoredState = (startupMode != StartupMode.EXTERNAL_SUBSCRIPTION) || stateSubEqualexternalSub;
@@ -383,11 +386,11 @@ public class FlinkPulsarSource<T>
                     .filter(e -> SourceSinkUtils.belongsTo(e.getKey(), numParallelTasks, taskIndex))
                     .forEach(e -> ownedTopicStarts.put(e.getKey(), e.getValue()));
 
-            Set<String> goneTopics = Sets.difference(restoredState.keySet(), allTopics).stream()
+            Set<TopicRange> goneTopics = Sets.difference(restoredState.keySet(), allTopics).stream()
                     .filter(k -> SourceSinkUtils.belongsTo(k, numParallelTasks, taskIndex))
                     .collect(Collectors.toSet());
 
-            for (String goneTopic : goneTopics) {
+            for (TopicRange goneTopic : goneTopics) {
                 log.warn(goneTopic + " is removed from subscription since " +
                         "it no longer matches with topics settings.");
                 ownedTopicStarts.remove(goneTopic);
@@ -492,7 +495,7 @@ public class FlinkPulsarSource<T>
 
     protected PulsarFetcher<T> createFetcher(
             SourceContext sourceContext,
-            Map<String, MessageId> seedTopicsWithInitialOffsets,
+            Map<TopicRange, MessageId> seedTopicsWithInitialOffsets,
             SerializedValue<AssignerWithPeriodicWatermarks<T>> watermarksPeriodic,
             SerializedValue<AssignerWithPunctuatedWatermarks<T>> watermarksPunctuated,
             ProcessingTimeService processingTimeProvider,
@@ -544,7 +547,7 @@ public class FlinkPulsarSource<T>
                 () -> {
                     try {
                         while (running) {
-                            Set<String> added = metadataReader.discoverTopicChanges();
+                            Set<TopicRange> added = metadataReader.discoverTopicChanges();
 
                             if (running && !added.isEmpty()) {
                                 pulsarFetcher.addDiscoveredTopics(added);
@@ -638,13 +641,13 @@ public class FlinkPulsarSource<T>
         unionOffsetStates = stateStore.getUnionListState(
                 new ListStateDescriptor<>(
                         OFFSETS_STATE_NAME,
-                        TypeInformation.of(new TypeHint<Tuple3<String, MessageId, String>>() {
+                        TypeInformation.of(new TypeHint<Tuple3<TopicRange, MessageId, String>>() {
                         })));
 
         if (context.isRestored()) {
             restoredState = new TreeMap<>();
             unionOffsetStates.get().forEach(e -> restoredState.put(e.f0, e.f1));
-            for (Tuple3<String, MessageId, String> e : unionOffsetStates.get()) {
+            for (Tuple3<TopicRange, MessageId, String> e : unionOffsetStates.get()) {
                 if (e.f2 != null && e.f2.equals(externalSubscriptionName)) {
                     stateSubEqualexternalSub = true;
                     log.info("Source restored state with subscriptionName {}", e.f2);
@@ -672,14 +675,14 @@ public class FlinkPulsarSource<T>
             if (fetcher == null) {
                 // the fetcher has not yet been initialized, which means we need to return the
                 // originally restored offsets or the assigned partitions
-                for (Map.Entry<String, MessageId> entry : ownedTopicStarts.entrySet()) {
+                for (Map.Entry<TopicRange, MessageId> entry : ownedTopicStarts.entrySet()) {
                     unionOffsetStates.add(Tuple3.of(entry.getKey(), entry.getValue(), getSubscriptionName()));
                 }
                 pendingOffsetsToCommit.put(context.getCheckpointId(), restoredState);
             } else {
-                Map<String, MessageId> currentOffsets = fetcher.snapshotCurrentState();
+                Map<TopicRange, MessageId> currentOffsets = fetcher.snapshotCurrentState();
                 pendingOffsetsToCommit.put(context.getCheckpointId(), currentOffsets);
-                for (Map.Entry<String, MessageId> entry : currentOffsets.entrySet()) {
+                for (Map.Entry<TopicRange, MessageId> entry : currentOffsets.entrySet()) {
                     unionOffsetStates.add(Tuple3.of(entry.getKey(), entry.getValue(), getSubscriptionName()));
                 }
                 while (pendingOffsetsToCommit.size() > MAX_NUM_PENDING_CHECKPOINTS) {
@@ -714,7 +717,7 @@ public class FlinkPulsarSource<T>
                 return;
             }
 
-            Map<String, MessageId> offset = (Map<String, MessageId>) pendingOffsetsToCommit.remove(posInMap);
+            Map<TopicRange, MessageId> offset = (Map<TopicRange, MessageId>) pendingOffsetsToCommit.remove(posInMap);
 
             // remove older checkpoints in map
             for (int i = 0; i < posInMap; i++) {
@@ -738,10 +741,10 @@ public class FlinkPulsarSource<T>
         log.error("checkpoint aborted, checkpointId: {}", checkpointId);
     }
 
-    public Map<String, MessageId> offsetForEachTopic(
-            Set<String> topics,
+    public Map<TopicRange, MessageId> offsetForEachTopic(
+            Set<TopicRange> topics,
             StartupMode mode,
-            Map<String, MessageId> specificStartupOffsets) {
+            Map<TopicRange, MessageId> specificStartupOffsets) {
 
         switch (mode) {
             case LATEST:
@@ -759,8 +762,8 @@ public class FlinkPulsarSource<T>
                                 StringUtils.join(topics.toArray()),
                                 StringUtils.join(specificStartupOffsets.entrySet().toArray())));
 
-                Map<String, MessageId> specificOffsets = new HashMap<>();
-                for (String topic : topics) {
+                Map<TopicRange, MessageId> specificOffsets = new HashMap<>();
+                for (TopicRange topic : topics) {
                     if (specificStartupOffsets.containsKey(topic)) {
                         specificOffsets.put(topic, specificStartupOffsets.get(topic));
                     } else {
@@ -769,9 +772,10 @@ public class FlinkPulsarSource<T>
                 }
                 return specificOffsets;
             case EXTERNAL_SUBSCRIPTION:
-                Map<String, MessageId> offsetsFromSubs = new HashMap<>();
-                for (String topic : topics) {
-                    offsetsFromSubs.put(topic, metadataReader.getPositionFromSubscription(topic, subscriptionPosition));
+                Map<TopicRange, MessageId> offsetsFromSubs = new HashMap<>();
+                for (TopicRange topic : topics) {
+                    offsetsFromSubs.put(topic, metadataReader.getPositionFromSubscription(topic.getTopic(),
+                            subscriptionPosition));
                 }
                 return offsetsFromSubs;
         }
@@ -782,7 +786,7 @@ public class FlinkPulsarSource<T>
         return pendingOffsetsToCommit;
     }
 
-    public Map<String, MessageId> getOwnedTopicStarts() {
+    public Map<TopicRange, MessageId> getOwnedTopicStarts() {
         return ownedTopicStarts;
     }
 }

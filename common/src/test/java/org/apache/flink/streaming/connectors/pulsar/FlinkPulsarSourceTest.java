@@ -38,6 +38,7 @@ import org.apache.flink.streaming.connectors.pulsar.internal.PulsarCommitCallbac
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarDeserializationSchema;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarFetcher;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
+import org.apache.flink.streaming.connectors.pulsar.internal.TopicRange;
 import org.apache.flink.streaming.connectors.pulsar.testutils.TestMetadataReader;
 import org.apache.flink.streaming.connectors.pulsar.testutils.TestSourceContext;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
@@ -203,9 +204,9 @@ public class FlinkPulsarSourceTest extends TestLogger {
     @Test
     @SuppressWarnings("unchecked")
     public void testSnapshotStateWithCommitOnCheckpoint() throws Exception {
-        Map<String, MessageId> state1 = ImmutableMap.of("abc", dummyMessageId(5), "def", dummyMessageId(90));
-        Map<String, MessageId> state2 = ImmutableMap.of("abc", dummyMessageId(10), "def", dummyMessageId(95));
-        Map<String, MessageId> state3 = ImmutableMap.of("abc", dummyMessageId(15), "def", dummyMessageId(100));
+        Map<TopicRange, MessageId> state1 = ImmutableMap.of(new TopicRange("abc"), dummyMessageId(5), new TopicRange("def"), dummyMessageId(90));
+        Map<TopicRange, MessageId> state2 = ImmutableMap.of(new TopicRange("abc"), dummyMessageId(10), new TopicRange("def"), dummyMessageId(95));
+        Map<TopicRange, MessageId> state3 = ImmutableMap.of(new TopicRange("abc"), dummyMessageId(15), new TopicRange("def"), dummyMessageId(100));
 
         MockFetcher<String> fetcher = new MockFetcher<>(state1, state2, state3);
 
@@ -375,8 +376,9 @@ public class FlinkPulsarSourceTest extends TestLogger {
                 restoredNumPartitions >= numPartitions,
                 "invalid test case for Pulsar repartitioning; Pulsar only allows increasing partitions.");
 
-        List<String> startupTopics =
+        List<TopicRange> startupTopics =
                 IntStream.range(0, numPartitions).mapToObj(i -> topicName("test-topic", i))
+                        .map(TopicRange::new)
                         .collect(Collectors.toList());
 
         DummyFlinkPulsarSource<String>[] sources =
@@ -398,12 +400,12 @@ public class FlinkPulsarSourceTest extends TestLogger {
             testHarnesses[i].open();
         }
 
-        Map<String, MessageId> globalSubscribedPartitions = new HashMap<>();
+        Map<TopicRange, MessageId> globalSubscribedPartitions = new HashMap<>();
 
         for (int i = 0; i < initialParallelism; i++) {
-            Map<String, MessageId> subscribedPartitions = sources[i].getOwnedTopicStarts();
+            Map<TopicRange, MessageId> subscribedPartitions = sources[i].getOwnedTopicStarts();
 
-            for (String topic : subscribedPartitions.keySet()) {
+            for (TopicRange topic : subscribedPartitions.keySet()) {
                 assertThat(globalSubscribedPartitions, not(hasKey(topic)));
             }
             globalSubscribedPartitions.putAll(subscribedPartitions);
@@ -422,9 +424,9 @@ public class FlinkPulsarSourceTest extends TestLogger {
 
         // restore
 
-        List<String> restoredTopics = new ArrayList<>();
+        List<TopicRange> restoredTopics = new ArrayList<>();
         for (int i = 0; i < restoredNumPartitions; i++) {
-            restoredTopics.add(topicName("testTopic", i));
+            restoredTopics.add(new TopicRange(topicName("testTopic", i)));
         }
 
         DummyFlinkPulsarSource<String>[] restoredConsumers =
@@ -451,14 +453,14 @@ public class FlinkPulsarSourceTest extends TestLogger {
             restoredTestHarnesses[i].open();
         }
 
-        Map<String, MessageId> restoredGlobalSubscribedPartitions = new HashMap<>();
+        Map<TopicRange, MessageId> restoredGlobalSubscribedPartitions = new HashMap<>();
 
         for (int i = 0; i < restoredParallelism; i++) {
-            Map<String, MessageId> subscribedPartitions =
+            Map<TopicRange, MessageId> subscribedPartitions =
                     restoredConsumers[i].getOwnedTopicStarts();
 
             // make sure that no one else is subscribed to these partitions
-            for (String partition : subscribedPartitions.keySet()) {
+            for (TopicRange partition : subscribedPartitions.keySet()) {
                 assertThat(restoredGlobalSubscribedPartitions, not(hasKey(partition)));
             }
             restoredGlobalSubscribedPartitions.putAll(subscribedPartitions);
@@ -512,7 +514,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
         }
 
         @Override
-        public Set<String> getTopicPartitionsAll() throws PulsarAdminException {
+        public Set<TopicRange> getTopicPartitionsAll() throws PulsarAdminException {
             return null;
         }
 
@@ -521,7 +523,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
         }
 
         @Override
-        public Set<String> discoverTopicChanges() throws PulsarAdminException, ClosedException {
+        public Set<TopicRange> discoverTopicChanges() throws PulsarAdminException, ClosedException {
             throw failureCause;
         }
 
@@ -534,14 +536,14 @@ public class FlinkPulsarSourceTest extends TestLogger {
     private static class DummyPartitionDiscoverer extends PulsarMetadataReader {
         private volatile boolean closed = false;
 
-        private static Set<String> allPartitions = Sets.newHashSet("foo");
+        private static Set<TopicRange> allPartitions = Sets.newHashSet(new TopicRange("foo"));
 
         public DummyPartitionDiscoverer() throws PulsarClientException {
             super("", new ClientConfigurationData(), "", Collections.singletonMap("topic", "foo"), 0, 1);
         }
 
         @Override
-        public Set<String> getTopicPartitionsAll() throws PulsarAdminException {
+        public Set<TopicRange> getTopicPartitionsAll() throws PulsarAdminException {
             try {
                 checkState();
             } catch (ClosedException e) {
@@ -602,7 +604,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
         @Override
         protected PulsarFetcher<T> createFetcher(
                 SourceContext sourceContext,
-                Map<String, MessageId> seedTopicsWithInitialOffsets,
+                Map<TopicRange, MessageId> seedTopicsWithInitialOffsets,
                 SerializedValue<AssignerWithPeriodicWatermarks<T>> watermarksPeriodic,
                 SerializedValue<AssignerWithPunctuatedWatermarks<T>> watermarksPunctuated,
                 ProcessingTimeService processingTimeProvider,
@@ -652,7 +654,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
         @Override
         protected PulsarFetcher<T> createFetcher(
                 SourceContext sourceContext,
-                Map<String, MessageId> seedTopicsWithInitialOffsets,
+                Map<TopicRange, MessageId> seedTopicsWithInitialOffsets,
                 SerializedValue<AssignerWithPeriodicWatermarks<T>> watermarksPeriodic,
                 SerializedValue<AssignerWithPunctuatedWatermarks<T>> watermarksPunctuated,
                 ProcessingTimeService processingTimeProvider,
@@ -674,7 +676,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
 
         public TestingFetcher(
                 SourceFunction.SourceContext<T> sourceContext,
-                Map<String, MessageId> seedTopicsWithInitialOffsets,
+                Map<TopicRange, MessageId> seedTopicsWithInitialOffsets,
                 SerializedValue<AssignerWithPeriodicWatermarks<T>> watermarksPeriodic,
                 SerializedValue<AssignerWithPunctuatedWatermarks<T>> watermarksPunctuated,
                 ProcessingTimeService processingTimeProvider,
@@ -708,7 +710,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
         }
 
         @Override
-        public void doCommitOffsetToPulsar(Map<String, MessageId> offset, PulsarCommitCallback offsetCommitCallback) {
+        public void doCommitOffsetToPulsar(Map<TopicRange, MessageId> offset, PulsarCommitCallback offsetCommitCallback) {
         }
     }
 
@@ -764,12 +766,12 @@ public class FlinkPulsarSourceTest extends TestLogger {
         private final OneShotLatch runLatch = new OneShotLatch();
         private final OneShotLatch stopLatch = new OneShotLatch();
 
-        private final ArrayDeque<Map<String, MessageId>> stateSnapshotsToReturn = new ArrayDeque<>();
+        private final ArrayDeque<Map<TopicRange, MessageId>> stateSnapshotsToReturn = new ArrayDeque<>();
 
-        private Map<String, MessageId> lastCommittedOffsets;
+        private Map<TopicRange, MessageId> lastCommittedOffsets;
         private int commitCount = 0;
 
-        private MockFetcher(Map<String, MessageId>... stateSnapshotsToReturn) throws Exception {
+        private MockFetcher(Map<TopicRange, MessageId>... stateSnapshotsToReturn) throws Exception {
             super(
                     new TestSourceContext<>(),
                     new HashMap<>(),
@@ -789,7 +791,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
         }
 
         @Override
-        public void doCommitOffsetToPulsar(Map<String, MessageId> offset, PulsarCommitCallback offsetCommitCallback) {
+        public void doCommitOffsetToPulsar(Map<TopicRange, MessageId> offset, PulsarCommitCallback offsetCommitCallback) {
             this.lastCommittedOffsets = offset;
             this.commitCount++;
             offsetCommitCallback.onSuccess();
@@ -802,7 +804,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
         }
 
         @Override
-        public Map<String, MessageId> snapshotCurrentState() {
+        public Map<TopicRange, MessageId> snapshotCurrentState() {
             Preconditions.checkState(!stateSnapshotsToReturn.isEmpty());
             return stateSnapshotsToReturn.poll();
         }
@@ -816,8 +818,8 @@ public class FlinkPulsarSourceTest extends TestLogger {
             runLatch.await();
         }
 
-        public Map<String, MessageId> getAndClearLastCommittedOffsets() {
-            Map<String, MessageId> off = this.lastCommittedOffsets;
+        public Map<TopicRange, MessageId> getAndClearLastCommittedOffsets() {
+            Map<TopicRange, MessageId> off = this.lastCommittedOffsets;
             this.lastCommittedOffsets = null;
             return off;
         }

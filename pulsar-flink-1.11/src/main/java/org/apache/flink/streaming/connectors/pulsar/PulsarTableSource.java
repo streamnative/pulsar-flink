@@ -26,6 +26,7 @@ import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReade
 import org.apache.flink.streaming.connectors.pulsar.internal.SchemaTranslator;
 import org.apache.flink.streaming.connectors.pulsar.internal.SimpleSchemaTranslator;
 import org.apache.flink.streaming.connectors.pulsar.internal.SourceSinkUtils;
+import org.apache.flink.streaming.connectors.pulsar.internal.TopicRange;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.api.Types;
 import org.apache.flink.table.api.ValidationException;
@@ -54,6 +55,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_EXTERNAL_SUB_DEFAULT_OFFSET;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_EARLIEST;
@@ -204,7 +206,10 @@ public class PulsarTableSource
         } else {
             try {
                 PulsarMetadataReader reader = new PulsarMetadataReader(adminUrl, new ClientConfigurationData(), "", caseInsensitiveParams, -1, -1);
-                List<String> topics = reader.getTopics();
+                List<String> topics = reader.getTopics()
+                        .stream()
+                        .map(TopicRange::getTopic)
+                        .collect(Collectors.toList());
                 SchemaInfo pulsarSchema = reader.getPulsarSchema(topics);
                 return schemaTranslator.pulsarSchemaToTableSchema(pulsarSchema);
             } catch (PulsarClientException | PulsarAdminException | IncompatibleSchemaException e) {

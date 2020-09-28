@@ -20,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.PulsarClientException;
+import org.apache.pulsar.client.api.ReaderBuilder;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.common.schema.SchemaInfo;
@@ -53,23 +54,34 @@ public class RowReaderThread extends ReaderThread<Row> {
 
     @Override
     protected void createActualReader() throws PulsarClientException, ExecutionException {
-        reader = CachedPulsarClient
+        final ReaderBuilder<?> readerBuilder = CachedPulsarClient
                 .getOrCreate(clientConf)
                 .newReader(schema)
-                .topic(topic)
+                .topic(topicRange.getTopic())
                 .startMessageId(startMessageId)
                 .startMessageIdInclusive()
-                .loadConf(readerConf)
-                .create();
+                .loadConf(readerConf);
+        if (!topicRange.isFullRange()) {
+            readerBuilder.keyHashRange(topicRange.getPulsarRange());
+        }
+        reader = readerBuilder.create();
     }
 
     @Override
     protected void emitRecord(Message<?> message) throws IOException {
-        MessageId messageId = message.getMessageId();
-        Row record = deserializer.deserialize(message);
-        if (deserializer.isEndOfStream(record)) {
-            return;
+        try {
+            MessageId messageId = message.getMessageId();
+            Row record = deserializer.deserialize(message);
+            if (deserializer.isEndOfStream(record)) {
+                return;
+            }
+            if (record.getField(0) == null){
+                throw new RuntimeException("record index 0 is null");
+            }
+            owner.emitRecord(record, state, messageId);
+        } catch (Throwable e) {
+            e.printStackTrace();
+            throw e;
         }
-        owner.emitRecord(record, state, messageId);
     }
 }

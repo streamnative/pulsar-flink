@@ -16,6 +16,7 @@ package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.ListUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.MessageId;
@@ -43,6 +44,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.KEY_HASH_RANGE_KEY;
+
 /**
  * A Helper class that talks to Pulsar Admin API.
  * - getEarliest / Latest / Specific MessageIds
@@ -65,9 +68,11 @@ public class PulsarMetadataReader implements AutoCloseable {
 
     private volatile boolean closed = false;
 
-    private Set<String> seenTopics = new HashSet<>();
+    private Set<TopicRange> seenTopics = new HashSet<>();
 
     private final boolean useExternalSubscription;
+
+    private final SerializableRange range;
 
     public PulsarMetadataReader(
             String adminUrl,
@@ -85,6 +90,20 @@ public class PulsarMetadataReader implements AutoCloseable {
         this.numParallelSubtasks = numParallelSubtasks;
         this.useExternalSubscription = useExternalSubscription;
         this.admin = PulsarAdminUtils.newAdminFromConf(adminUrl, clientConf);
+        this.range = buildRange(caseInsensitiveParams);
+    }
+
+    private SerializableRange buildRange(Map<String, String> caseInsensitiveParams) {
+        if (caseInsensitiveParams == null || caseInsensitiveParams.isEmpty() ||
+                caseInsensitiveParams.containsKey(KEY_HASH_RANGE_KEY)) {
+            return SerializableRange.ofFullRange();
+        }
+        final String keyHashRange = caseInsensitiveParams.get(KEY_HASH_RANGE_KEY);
+        if (StringUtils.isBlank(keyHashRange)){
+            return SerializableRange.ofFullRange();
+        }
+        final String[] split = keyHashRange.split(":");
+        return SerializableRange.of(Integer.parseInt(split[0]), Integer.parseInt(split[1]));
     }
 
     public PulsarMetadataReader(
@@ -104,10 +123,10 @@ public class PulsarMetadataReader implements AutoCloseable {
         admin.close();
     }
 
-    public Set<String> discoverTopicChanges() throws PulsarAdminException, ClosedException {
+    public Set<TopicRange> discoverTopicChanges() throws PulsarAdminException, ClosedException {
         if (!closed) {
-            Set<String> currentTopics = getTopicPartitions();
-            Set<String> addedTopics = Sets.difference(currentTopics, seenTopics);
+            Set<TopicRange> currentTopics = getTopicPartitions();
+            Set<TopicRange> addedTopics = Sets.difference(currentTopics, seenTopics);
             seenTopics = currentTopics;
             return addedTopics;
         } else {
@@ -178,34 +197,34 @@ public class PulsarMetadataReader implements AutoCloseable {
         SchemaUtils.uploadPulsarSchema(admin, topicName, schemaInfo);
     }
 
-    public void setupCursor(Map<String, MessageId> offset, boolean failOnDataLoss) {
+    public void setupCursor(Map<TopicRange, MessageId> offset, boolean failOnDataLoss) {
         // if failOnDataLoss is false, we could continue, and re-create the sub.
         if (!useExternalSubscription || !failOnDataLoss) {
-            for (Map.Entry<String, MessageId> entry : offset.entrySet()) {
+            for (Map.Entry<TopicRange, MessageId> entry : offset.entrySet()) {
                 try {
                     log.info("Setting up subscription {} on topic {} at position {}", subscriptionName, entry.getKey(), entry.getValue());
-                    admin.topics().createSubscription(entry.getKey(), subscriptionName, entry.getValue());
+                    admin.topics().createSubscription(entry.getKey().getTopic(), subscriptionNameFrom(entry.getKey()), entry.getValue());
                     log.info("Subscription {} on topic {} at position {} finished", subscriptionName, entry.getKey(), entry.getValue());
                 } catch (PulsarAdminException.ConflictException e) {
                     log.info("Subscription {} on topic {} already exists", subscriptionName, entry.getKey());
                 } catch (PulsarAdminException e) {
                     throw new RuntimeException(
-                            String.format("Failed to set up cursor for %s ", TopicName.get(entry.getKey()).toString()), e);
+                            String.format("Failed to set up cursor for %s ", entry.getKey().toString()), e);
                 }
             }
         }
     }
 
-    public void setupCursor(Map<String, MessageId> offset) {
+    public void setupCursor(Map<TopicRange, MessageId> offset) {
         setupCursor(offset, true);
     }
 
-    public void commitCursorToOffset(Map<String, MessageId> offset) {
-        for (Map.Entry<String, MessageId> entry : offset.entrySet()) {
-            String tp = entry.getKey();
+    public void commitCursorToOffset(Map<TopicRange, MessageId> offset) {
+        for (Map.Entry<TopicRange, MessageId> entry : offset.entrySet()) {
+            TopicRange tp = entry.getKey();
             try {
                 log.info("Committing offset {} to topic {}", entry.getValue(), tp);
-                admin.topics().resetCursor(tp, subscriptionName, entry.getValue());
+                admin.topics().resetCursor(tp.getTopic(), subscriptionNameFrom(tp), entry.getValue());
                 log.info("Successfully committed offset {} to topic {}", entry.getValue(), tp);
             } catch (Throwable e) {
                 if (e instanceof PulsarAdminException &&
@@ -220,23 +239,27 @@ public class PulsarMetadataReader implements AutoCloseable {
         }
     }
 
-    public void removeCursor(Set<String> topics) {
+    public void removeCursor(Set<TopicRange> topics) {
         if (!useExternalSubscription) {
-            for (String topic : topics) {
+            for (TopicRange topicRange : topics) {
                 try {
-                    log.info("Removing subscription {} from topic {}", subscriptionName, topic);
-                    admin.topics().deleteSubscription(topic, subscriptionName);
-                    log.info("Successfully removed subscription {} from topic {}", subscriptionName, topic);
+                    log.info("Removing subscription {} from topic {}", subscriptionName, topicRange.getTopic());
+                    admin.topics().deleteSubscription(topicRange.getTopic(), subscriptionNameFrom(topicRange));
+                    log.info("Successfully removed subscription {} from topic {}", subscriptionName, topicRange.getTopic());
                 } catch (Throwable e) {
                     if (e instanceof PulsarAdminException && ((PulsarAdminException) e).getStatusCode() == 404) {
-                        log.info("Cannot remove cursor since the topic {} has been deleted during execution", topic);
+                        log.info("Cannot remove cursor since the topic {} has been deleted during execution", topicRange.getTopic());
                     } else {
                         throw new RuntimeException(
-                                String.format("Failed to remove cursor for %s", topic), e);
+                                String.format("Failed to remove cursor for %s", topicRange.toString()), e);
                     }
                 }
             }
         }
+    }
+
+    private String subscriptionNameFrom(TopicRange topicRange) {
+        return topicRange.isFullRange() ? subscriptionName : subscriptionName + topicRange.getPulsarRange();
     }
 
     public MessageId getPositionFromSubscription(String topic, MessageId defaultPosition) {
@@ -301,42 +324,50 @@ public class PulsarMetadataReader implements AutoCloseable {
         }
     }
 
-    public Set<String> getTopicPartitions() throws PulsarAdminException {
-        Set<String> topics = getTopicPartitionsAll();
+    public Set<TopicRange> getTopicPartitions() throws PulsarAdminException {
+        Set<TopicRange> topics = getTopicPartitionsAll();
         return topics.stream()
                 .filter(t -> SourceSinkUtils.belongsTo(t, numParallelSubtasks, indexOfThisSubtask))
                 .collect(Collectors.toSet());
     }
 
-    public Set<String> getTopicPartitionsAll() throws PulsarAdminException {
-        List<String> topics = getTopics();
-        HashSet<String> allTopics = new HashSet<>();
-        for (String topic : topics) {
-            int partNum = admin.topics().getPartitionedTopicMetadata(topic).partitions;
+    public Set<TopicRange> getTopicPartitionsAll() throws PulsarAdminException {
+        List<TopicRange> topics = getTopics();
+        HashSet<TopicRange> allTopics = new HashSet<>();
+        for (TopicRange topic : topics) {
+            int partNum = admin.topics().getPartitionedTopicMetadata(topic.getTopic()).partitions;
             if (partNum == 0) {
                 allTopics.add(topic);
             } else {
                 for (int i = 0; i < partNum; i++) {
-                    allTopics.add(topic + PulsarOptions.PARTITION_SUFFIX + i);
+                    final TopicRange topicRange =
+                            new TopicRange(topic.getTopic() + PulsarOptions.PARTITION_SUFFIX + i, topic.getPulsarRange());
+                    allTopics.add(topicRange);
                 }
             }
         }
         return allTopics;
     }
 
-    public List<String> getTopics() throws PulsarAdminException {
+    public List<TopicRange> getTopics() throws PulsarAdminException {
         for (Map.Entry<String, String> e : caseInsensitiveParams.entrySet()) {
             if (PulsarOptions.TOPIC_OPTION_KEYS.contains(e.getKey())) {
                 String key = e.getKey();
                 if (key.equals("topic")) {
-                    return Collections.singletonList(TopicName.get(e.getValue()).toString());
+                    String topic = TopicName.get(e.getValue()).toString();
+                    TopicRange topicRange = new TopicRange(topic, range.getPulsarRange());
+                    return Collections.singletonList(topicRange);
                 } else if (key.equals("topics")) {
                     return Arrays.asList(e.getValue().split(",")).stream()
                             .filter(s -> !s.isEmpty())
                             .map(t -> TopicName.get(t).toString())
+                            .map(t -> new TopicRange(t, range.getPulsarRange()))
                             .collect(Collectors.toList());
                 } else { // topicspattern
-                    return getTopicsWithPattern(e.getValue());
+                    return getTopicsWithPattern(e.getValue())
+                            .stream()
+                            .map(t -> new TopicRange(t, range.getPulsarRange()))
+                            .collect(Collectors.toList());
                 }
             }
         }

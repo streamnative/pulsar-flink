@@ -58,7 +58,7 @@ public class PulsarFetcher<T> {
     /** The source context to emit records and watermarks to. */
     protected final SourceFunction.SourceContext<T> sourceContext;
 
-    protected final Map<String, MessageId> seedTopicsWithInitialOffsets;
+    protected final Map<TopicRange, MessageId> seedTopicsWithInitialOffsets;
 
     /** The lock that guarantees that record emission and state updates are atomic,
      * from the view of taking a checkpoint. */
@@ -116,14 +116,14 @@ public class PulsarFetcher<T> {
     private volatile boolean running = true;
 
     /** The threads that runs the actual reading and hand the records to this fetcher. */
-    private Map<String, ReaderThread> topicToThread;
+    private Map<TopicRange, ReaderThread> topicToThread;
 
     /** Failed or not when data loss. **/
     private boolean failOnDataLoss = true;
 
     public PulsarFetcher(
             SourceContext<T> sourceContext,
-            Map<String, MessageId> seedTopicsWithInitialOffsets,
+            Map<TopicRange, MessageId> seedTopicsWithInitialOffsets,
             SerializedValue<AssignerWithPeriodicWatermarks<T>> watermarksPeriodic,
             SerializedValue<AssignerWithPunctuatedWatermarks<T>> watermarksPunctuated,
             ProcessingTimeService processingTimeProvider,
@@ -154,7 +154,7 @@ public class PulsarFetcher<T> {
 
     public PulsarFetcher(
             SourceContext<T> sourceContext,
-            Map<String, MessageId> seedTopicsWithInitialOffsets,
+            Map<TopicRange, MessageId> seedTopicsWithInitialOffsets,
             SerializedValue<AssignerWithPeriodicWatermarks<T>> watermarksPeriodic,
             SerializedValue<AssignerWithPunctuatedWatermarks<T>> watermarksPunctuated,
             ProcessingTimeService processingTimeProvider,
@@ -419,8 +419,8 @@ public class PulsarFetcher<T> {
         // single the main thread to exit
         running = false;
 
-        Set<String> topics = subscribedPartitionStates.stream()
-                .map(PulsarTopicState::getTopic).collect(Collectors.toSet());
+        Set<TopicRange> topics = subscribedPartitionStates.stream()
+                .map(PulsarTopicState::getTopicRange).collect(Collectors.toSet());
 
         metadataReader.removeCursor(topics);
         // make sure the main thread wakes up soon
@@ -428,14 +428,14 @@ public class PulsarFetcher<T> {
     }
 
     public void commitOffsetToPulsar(
-            Map<String, MessageId> offset,
+            Map<TopicRange, MessageId> offset,
             PulsarCommitCallback offsetCommitCallback) throws InterruptedException {
 
         doCommitOffsetToPulsar(removeEarliestAndLatest(offset), offsetCommitCallback);
     }
 
     public void doCommitOffsetToPulsar(
-            Map<String, MessageId> offset,
+            Map<TopicRange, MessageId> offset,
             PulsarCommitCallback offsetCommitCallback) throws InterruptedException {
 
         try {
@@ -470,16 +470,16 @@ public class PulsarFetcher<T> {
         }
 
         for (PulsarTopicState state : subscribedPartitionStates) {
-            MessageId off = offset.get(state.getTopic());
+            MessageId off = offset.get(state.getTopicRange());
             if (off != null) {
                 state.setCommittedOffset(off);
             }
         }
     }
 
-    public Map<String, MessageId> removeEarliestAndLatest(Map<String, MessageId> offset) {
-        Map<String, MessageId> result = new HashMap<>();
-        for (Map.Entry<String, MessageId> entry : offset.entrySet()) {
+    public Map<TopicRange, MessageId> removeEarliestAndLatest(Map<TopicRange, MessageId> offset) {
+        Map<TopicRange, MessageId> result = new HashMap<>();
+        for (Map.Entry<TopicRange, MessageId> entry : offset.entrySet()) {
             MessageId mid = entry.getValue();
             if (!mid.equals(MessageId.earliest) && !mid.equals(MessageId.latest)) {
                 result.put(entry.getKey(), mid);
@@ -488,7 +488,7 @@ public class PulsarFetcher<T> {
         return result;
     }
 
-    public void addDiscoveredTopics(Set<String> newTopics) throws IOException, ClassNotFoundException {
+    public void addDiscoveredTopics(Set<TopicRange> newTopics) throws IOException, ClassNotFoundException {
         List<PulsarTopicState> newStates = createPartitionStateHolders(
                 newTopics.stream().collect(Collectors.toMap(t -> t, t -> MessageId.earliest)),
                 timestampWatermarkMode,
@@ -515,33 +515,33 @@ public class PulsarFetcher<T> {
      *
      * @return A map from partition to current offset.
      */
-    public Map<String, MessageId> snapshotCurrentState() {
+    public Map<TopicRange, MessageId> snapshotCurrentState() {
         // this method assumes that the checkpoint lock is held
         assert Thread.holdsLock(checkpointLock);
 
-        Map<String, MessageId> state = new HashMap<>(subscribedPartitionStates.size());
+        Map<TopicRange, MessageId> state = new HashMap<>(subscribedPartitionStates.size());
 
         for (PulsarTopicState pa : subscribedPartitionStates) {
-            state.put(pa.getTopic(), pa.getOffset());
+            state.put(pa.getTopicRange(), pa.getOffset());
         }
         return state;
     }
 
-    public Map<String, ReaderThread> createAndStartReaderThread(
+    public Map<TopicRange, ReaderThread> createAndStartReaderThread(
             List<PulsarTopicState> states,
             ExceptionProxy exceptionProxy) {
 
-        Map<String, MessageId> startingOffsets = states.stream().collect(Collectors.toMap(PulsarTopicState::getTopic, PulsarTopicState::getOffset));
+        Map<TopicRange, MessageId> startingOffsets = states.stream().collect(Collectors.toMap(PulsarTopicState::getTopicRange, PulsarTopicState::getOffset));
         metadataReader.setupCursor(startingOffsets, failOnDataLoss);
-        Map<String, ReaderThread> topic2Threads = new HashMap<>();
+        Map<TopicRange, ReaderThread> topic2Threads = new HashMap<>();
 
         for (PulsarTopicState state : states) {
             ReaderThread<T> readerT = createReaderThread(exceptionProxy, state);
-            readerT.setName(String.format("Pulsar Reader for %s in task %s", state.getTopic(), runtimeContext.getTaskName()));
+            readerT.setName(String.format("Pulsar Reader for %s in task %s", state.getTopicRange(), runtimeContext.getTaskName()));
             readerT.setDaemon(true);
             readerT.start();
             log.info("Starting Thread {}", readerT.getName());
-            topic2Threads.put(state.getTopic(), readerT);
+            topic2Threads.put(state.getTopicRange(), readerT);
         }
         return topic2Threads;
     }
@@ -567,7 +567,7 @@ public class PulsarFetcher<T> {
      * holders, depending on the timestamp / watermark mode.
      */
     private List<PulsarTopicState> createPartitionStateHolders(
-            Map<String, MessageId> partitionsToInitialOffsets,
+            Map<TopicRange, MessageId> partitionsToInitialOffsets,
             int timestampWatermarkMode,
             SerializedValue<AssignerWithPeriodicWatermarks<T>> watermarksPeriodic,
             SerializedValue<AssignerWithPunctuatedWatermarks<T>> watermarksPunctuated,
@@ -579,7 +579,7 @@ public class PulsarFetcher<T> {
 
         switch (timestampWatermarkMode) {
             case NO_TIMESTAMPS_WATERMARKS: {
-                for (Map.Entry<String, MessageId> partitionEntry : partitionsToInitialOffsets.entrySet()) {
+                for (Map.Entry<TopicRange, MessageId> partitionEntry : partitionsToInitialOffsets.entrySet()) {
                     PulsarTopicState state = new PulsarTopicState(partitionEntry.getKey());
                     state.setOffset(partitionEntry.getValue());
                     partitionStates.add(state);
@@ -589,7 +589,7 @@ public class PulsarFetcher<T> {
             }
 
             case PERIODIC_WATERMARKS: {
-                for (Map.Entry<String, MessageId> partitionEntry : partitionsToInitialOffsets.entrySet()) {
+                for (Map.Entry<TopicRange, MessageId> partitionEntry : partitionsToInitialOffsets.entrySet()) {
                     AssignerWithPeriodicWatermarks<T> assignerInstance = watermarksPeriodic.deserializeValue(userCodeClassLoader);
                     PulsarTopicStateWithPeriodicWatermarks<T> state = new PulsarTopicStateWithPeriodicWatermarks<T>(
                             partitionEntry.getKey(),
@@ -602,7 +602,7 @@ public class PulsarFetcher<T> {
             }
 
             case PUNCTUATED_WATERMARKS: {
-                for (Map.Entry<String, MessageId> partitionEntry : partitionsToInitialOffsets.entrySet()) {
+                for (Map.Entry<TopicRange, MessageId> partitionEntry : partitionsToInitialOffsets.entrySet()) {
                     AssignerWithPunctuatedWatermarks<T> assignerInstance = watermarksPunctuated.deserializeValue(userCodeClassLoader);
                     PulsarTopicStateWithPunctuatedWatermarks<T> state = new PulsarTopicStateWithPunctuatedWatermarks<T>(
                             partitionEntry.getKey(),

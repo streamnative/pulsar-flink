@@ -66,10 +66,35 @@ public class SourceSinkUtils {
                 }
             }
         }
+        validKeyHashRange(caseInsensitiveParams);
         return caseInsensitiveParams;
     }
 
-    public static boolean belongsTo(String topic, int numParallelSubtasks, int index) {
+    private static void validKeyHashRange(Map<String, String> caseInsensitiveParams) {
+        String keyHashRange = caseInsensitiveParams.get(PulsarOptions.KEY_HASH_RANGE_KEY);
+        if (StringUtils.isBlank(keyHashRange)) {
+            return;
+        }
+        if (!keyHashRange.contains(":")) {
+            throw new IllegalArgumentException(
+                    "Use the value range of `key-hash-range` like `0:65535`");
+        }
+        final String[] strings = keyHashRange.split(":");
+        if (strings.length != 2 || !StringUtils.isNumeric(strings[0]) || !StringUtils.isNumeric(strings[1])) {
+            throw new IllegalArgumentException(
+                    "Use the value range of `key-hash-range` like `0:65535`");
+        }
+
+        final int start = Integer.parseInt(strings[0]);
+        final int end = Integer.parseInt(strings[1]);
+        if (start >= SerializableRange.fullRangeStart && start <= end && end <= SerializableRange.fullRangeEnd) {
+            throw new IllegalArgumentException(
+                    "the value range of `key-hash-range` is `0:65535`");
+        }
+    }
+
+    public static boolean belongsTo(TopicRange topicRange, int numParallelSubtasks, int index) {
+        String topic = topicRange.getTopic();
         if (topic.contains(PulsarOptions.PARTITION_SUFFIX)) {
             int pos = topic.lastIndexOf(PulsarOptions.PARTITION_SUFFIX);
             String topicPrefix = topic.substring(0, pos);

@@ -16,6 +16,7 @@ package org.apache.flink.streaming.connectors.pulsar.testutils;
 
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
+import org.apache.flink.streaming.connectors.pulsar.internal.TopicRange;
 
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
@@ -34,7 +35,7 @@ import static org.mockito.Mockito.when;
  */
 public class TestMetadataReader extends PulsarMetadataReader {
 
-    private final List<Set<String>> mockGetAllTopicsReturnSequence;
+    private final List<Set<TopicRange>> mockGetAllTopicsReturnSequence;
 
     private int getAllTopicsInvCount = 0;
 
@@ -42,32 +43,33 @@ public class TestMetadataReader extends PulsarMetadataReader {
             Map<String, String> caseInsensitiveParams,
             int indexOfThisSubtask,
             int numParallelSubtasks,
-            List<Set<String>> mockGetAllTopicsReturnSequence) throws PulsarClientException {
+            List<Set<TopicRange>> mockGetAllTopicsReturnSequence) throws PulsarClientException {
         super("", new ClientConfigurationData(), "", caseInsensitiveParams, indexOfThisSubtask, numParallelSubtasks);
         this.mockGetAllTopicsReturnSequence = mockGetAllTopicsReturnSequence;
     }
 
-    public Set<String> getTopicPartitionsAll() {
+    public Set<TopicRange> getTopicPartitionsAll() {
         return mockGetAllTopicsReturnSequence.get(getAllTopicsInvCount++);
     }
 
-    public static List<Set<String>> createMockGetAllTopicsSequenceFromFixedReturn(Set<String> fixed) {
-        List<Set<String>> mockSequence = mock(List.class);
-        when(mockSequence.get(anyInt())).thenAnswer((Answer<Set<String>>) invocation -> fixed);
+    public static List<Set<TopicRange>> createMockGetAllTopicsSequenceFromFixedReturn(Set<TopicRange> fixed) {
+        List<Set<TopicRange>> mockSequence = mock(List.class);
+        when(mockSequence.get(anyInt())).thenAnswer((Answer<Set<TopicRange>>) invocation -> fixed);
 
         return mockSequence;
     }
 
-    public static List<Set<String>> createMockGetAllTopicsSequenceFromTwoReturns(List<Set<String>> fixed) {
-        List<Set<String>> mockSequence = mock(List.class);
+    public static List<Set<TopicRange>> createMockGetAllTopicsSequenceFromTwoReturns(List<Set<TopicRange>> fixed) {
+        List<Set<TopicRange>> mockSequence = mock(List.class);
 
-        when(mockSequence.get(0)).thenAnswer((Answer<Set<String>>) invocation -> fixed.get(0));
-        when(mockSequence.get(1)).thenAnswer((Answer<Set<String>>) invocation -> fixed.get(1));
+        when(mockSequence.get(0)).thenAnswer((Answer<Set<TopicRange>>) invocation -> fixed.get(0));
+        when(mockSequence.get(1)).thenAnswer((Answer<Set<TopicRange>>) invocation -> fixed.get(1));
 
         return mockSequence;
     }
 
-    public static int getExpectedSubtaskIndex(String tp, int numTasks) {
+    public static int getExpectedSubtaskIndex(TopicRange topicRange, int numTasks) {
+        String tp = topicRange.getTopic();
         if (tp.contains(PulsarOptions.PARTITION_SUFFIX)) {
             int pos = tp.lastIndexOf(PulsarOptions.PARTITION_SUFFIX);
             String topicPrefix = tp.substring(0, pos);

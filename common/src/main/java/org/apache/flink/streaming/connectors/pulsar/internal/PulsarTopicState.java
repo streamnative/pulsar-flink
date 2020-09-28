@@ -14,9 +14,12 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
+import org.apache.flink.shaded.guava18.com.google.common.base.MoreObjects;
+
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.pulsar.client.api.MessageId;
+
 
 /**
  * The state that the Flink Pulsar Source holds for each Pulsar partition.
@@ -25,16 +28,24 @@ import org.apache.pulsar.client.api.MessageId;
 @Setter
 public class PulsarTopicState {
 
-    private final String topic;
+    private final TopicRange topicRange;
 
     private volatile MessageId offset;
 
     private volatile MessageId committedOffset;
 
     public PulsarTopicState(String topic) {
-        this.topic = topic;
+        this.topicRange = new TopicRange(topic);
         this.offset = null;
         this.committedOffset = null;
+    }
+
+    public PulsarTopicState(String topic, int start, int end) {
+        this.topicRange = new TopicRange(topic, start, end);
+    }
+
+    public PulsarTopicState(TopicRange topicRange) {
+        this.topicRange = topicRange;
     }
 
     public final boolean isOffsetDefined() {
@@ -43,8 +54,9 @@ public class PulsarTopicState {
 
     @Override
     public String toString() {
-        return String.format("%s offset = %s",
-                topic,
-                isOffsetDefined() ? offset.toString() : "not set");
+        return MoreObjects.toStringHelper(this)
+                .add("topicRange", getTopicRange())
+                .add("offset", isOffsetDefined() ? getOffset().toString() : "not set")
+                .toString();
     }
 }

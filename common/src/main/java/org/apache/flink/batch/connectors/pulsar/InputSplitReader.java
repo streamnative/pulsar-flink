@@ -181,7 +181,7 @@ public abstract class InputSplitReader<T> {
             return null;
         }, executor).whenComplete((t, throwable) -> {
             if (throwable != null) {
-                log.error(String.format("Get entry failed due to %s", throwable.getMessage()));
+                log.error(String.format("Get entry failed due to %s", throwable.getMessage()), throwable);
             } else {
                 log.info(String.format("Finished extracting entries for ledger %s", info.toString()));
                 outstandingLedgerReads.decrementAndGet();

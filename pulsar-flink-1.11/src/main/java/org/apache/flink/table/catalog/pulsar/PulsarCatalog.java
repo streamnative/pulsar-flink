@@ -179,8 +179,10 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
     }
 
     @Override
-    public void createTable(ObjectPath tablePath, CatalogBaseTable table, boolean ignoreIfExists) throws TableAlreadyExistException, DatabaseNotExistException, CatalogException {
-        int defaultNumPartitions = Integer.parseInt(properties.getOrDefault(PulsarOptions.DEFAULT_PARTITIONS, "5"));
+    public void createTable(ObjectPath tablePath, CatalogBaseTable table, boolean ignoreIfExists)
+            throws TableAlreadyExistException, DatabaseNotExistException, CatalogException {
+        final String key = CONNECTOR + "." + PulsarOptions.DEFAULT_PARTITIONS;
+        int defaultNumPartitions = Integer.parseInt(properties.getOrDefault(key, "5"));
         String databaseName = tablePath.getDatabaseName();
         Boolean databaseExists;
         try {

@@ -15,6 +15,7 @@
 package org.apache.flink.streaming.connectors.pulsar;
 
 import org.apache.flink.streaming.connectors.pulsar.config.RecordSchemaType;
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarClientUtils;
 
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
@@ -22,6 +23,8 @@ import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 
 import java.util.Optional;
 import java.util.Properties;
+
+import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
  * Write Pojo class to Flink.
@@ -67,7 +70,12 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
             Properties properties,
             TopicKeyExtractor<T> topicKeyExtractor,
             Class<T> recordClazz) {
-        this(adminUrl, defaultTopicName, newClientConf(serviceUrl), properties, topicKeyExtractor, recordClazz,
+        this(adminUrl,
+                defaultTopicName,
+                PulsarClientUtils.newClientConf(checkNotNull(serviceUrl), properties),
+                properties,
+                topicKeyExtractor,
+                recordClazz,
                 RecordSchemaType.AVRO);
     }
 
@@ -79,7 +87,12 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
             TopicKeyExtractor<T> topicKeyExtractor,
             Class<T> recordClazz,
             RecordSchemaType recordSchemaType) {
-        this(adminUrl, defaultTopicName, newClientConf(serviceUrl), properties, topicKeyExtractor, recordClazz,
+        this(adminUrl,
+                defaultTopicName,
+                PulsarClientUtils.newClientConf(checkNotNull(serviceUrl), properties),
+                properties,
+                topicKeyExtractor,
+                recordClazz,
                 recordSchemaType);
     }
 

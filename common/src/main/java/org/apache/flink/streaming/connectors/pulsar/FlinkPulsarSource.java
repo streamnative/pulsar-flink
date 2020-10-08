@@ -35,6 +35,7 @@ import org.apache.flink.streaming.api.functions.source.RichParallelSourceFunctio
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
 import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
 import org.apache.flink.streaming.connectors.pulsar.internal.CachedPulsarClient;
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarClientUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarCommitCallback;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarDeserializationSchema;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarFetcher;
@@ -225,15 +226,8 @@ public class FlinkPulsarSource<T>
             String adminUrl,
             PulsarDeserializationSchema<T> deserializer,
             Properties properties) {
-        this(adminUrl, newClientConf(checkNotNull(serviceUrl)), deserializer, properties);
+        this(adminUrl, PulsarClientUtils.newClientConf(checkNotNull(serviceUrl), properties), deserializer, properties);
     }
-
-    private static ClientConfigurationData newClientConf(String serviceUrl) {
-        ClientConfigurationData clientConf = new ClientConfigurationData();
-        clientConf.setServiceUrl(serviceUrl);
-        return clientConf;
-    }
-
 
     // ------------------------------------------------------------------------
     //  Configuration

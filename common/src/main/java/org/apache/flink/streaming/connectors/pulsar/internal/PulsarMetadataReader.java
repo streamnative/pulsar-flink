@@ -89,7 +89,7 @@ public class PulsarMetadataReader implements AutoCloseable {
         this.indexOfThisSubtask = indexOfThisSubtask;
         this.numParallelSubtasks = numParallelSubtasks;
         this.useExternalSubscription = useExternalSubscription;
-        this.admin = PulsarAdminUtils.newAdminFromConf(adminUrl, clientConf);
+        this.admin = PulsarClientUtils.newAdminFromConf(adminUrl, clientConf);
         this.range = buildRange(caseInsensitiveParams);
     }
 

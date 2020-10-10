@@ -25,6 +25,7 @@ import org.apache.flink.core.io.InputSplitAssigner;
 import org.apache.flink.pulsar.common.ConnectorConfig;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
+import org.apache.flink.streaming.connectors.pulsar.internal.TopicRange;
 
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
@@ -42,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Read Pulsar data in batch mode.
@@ -109,9 +111,12 @@ public class PulsarInputFormat<T> extends RichInputFormat<T, PulsarInputSplit> i
 
         )) {
 
-            Set<String> topics = reader.getTopicPartitionsAll();
+            Set<String> topics = reader.getTopicPartitionsAll()
+                    .stream()
+                    .map(TopicRange::getTopic)
+                    .collect(Collectors.toSet());
 
-            List<InputLedger> allLegers = new ArrayList<>();
+            List<InputLedger> allLedgers = new ArrayList<>();
 
             for (String topic : topics) {
                 Collection<InputLedger> ledgers = SplitUtils.getLedgersInBetween(
@@ -119,11 +124,11 @@ public class PulsarInputFormat<T> extends RichInputFormat<T, PulsarInputSplit> i
                         (MessageIdImpl) MessageId.earliest,
                         (MessageIdImpl) MessageId.latest,
                         CachedClients.getInstance(connectorConfig));
-                allLegers.addAll(ledgers);
+                allLedgers.addAll(ledgers);
             }
 
             List<List<InputLedger>> ldSplits =
-                    SplitUtils.partitionToNSplits(allLegers, connectorConfig.getTargetNumSplits());
+                    SplitUtils.partitionToNSplits(allLedgers, connectorConfig.getTargetNumSplits());
 
             for (int i = 0; i < ldSplits.size(); i++) {
                 pulsarSplits.add(genSplit(i, ldSplits.get(i)));

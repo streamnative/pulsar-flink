@@ -341,6 +341,9 @@
           <systemPropertyVariables>
             <log4j.configuration>file:${project.build.testOutputDirectory}/log4j-tests.properties</log4j.configuration>
           </systemPropertyVariables>
+          <excludes>
+            <exclude>**/PulsarInputFormatITest.java</exclude>
+          </excludes>
         </configuration>
       </plugin>
     </plugins>

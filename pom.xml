@@ -161,11 +161,7 @@
       <exclusions>
         <exclusion>
           <groupId>org.apache.pulsar</groupId>
-          <artifactId>pulsar-client-original</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.apache.pulsar</groupId>
-          <artifactId>pulsar-client-admin-original</artifactId>
+          <artifactId>*</artifactId>
         </exclusion>
         <exclusion>
           <groupId>org.apache.pulsar</groupId>
@@ -212,6 +208,7 @@
             <exclude>.github/**</exclude>
             <exclude>doc</exclude>
             <exclude>tools/**</exclude>
+            <exclude>**/**.key</exclude>
           </excludes>
           <mapping>
             <proto>JAVADOC_STYLE</proto>

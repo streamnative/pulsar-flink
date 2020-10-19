@@ -168,6 +168,9 @@ public class PulsarAuthTest {
         }
     }
 
+    /**
+     * ignore map for test.
+     */
     public static class IgnoreMap implements MapFunction<String, String> {
 
         private int total;

@@ -35,7 +35,7 @@
       <version>${project.version}</version>
       <exclusions>
         <exclusion>
-          <groupId>*</groupId>
+          <groupId>org.apache.flink</groupId>
           <artifactId>*</artifactId>
         </exclusion>
       </exclusions>

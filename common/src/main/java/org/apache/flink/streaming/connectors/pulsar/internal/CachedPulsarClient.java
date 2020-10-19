@@ -32,10 +32,10 @@ import java.util.concurrent.ExecutionException;
 @Slf4j
 public class CachedPulsarClient {
 
-    private static int cacheSize = 5;
+    private static int cacheSize = 100;
 
-    public static void setCacheSize(int size) {
-        cacheSize = size;
+    public static void setCacheSize(int newSize) {
+        cacheSize = newSize;
     }
 
     public static int getCacheSize() {
@@ -58,8 +58,23 @@ public class CachedPulsarClient {
         close(config, client);
     };
 
-    private static LoadingCache<ClientConfigurationData, PulsarClientImpl> guavaCache =
-            CacheBuilder.newBuilder().maximumSize(cacheSize).removalListener(removalListener).build(cacheLoader);
+    private static volatile LoadingCache<ClientConfigurationData, PulsarClientImpl> guavaCache;
+
+    private static LoadingCache<ClientConfigurationData, PulsarClientImpl> getGuavaCache() {
+        if (guavaCache != null) {
+            return guavaCache;
+        }
+        synchronized (CachedPulsarClient.class) {
+            if (guavaCache != null) {
+                return guavaCache;
+            }
+            guavaCache = CacheBuilder.newBuilder()
+                    .maximumSize(cacheSize)
+                    .removalListener(removalListener)
+                    .build(cacheLoader);
+            return guavaCache;
+        }
+    }
 
     private static PulsarClientImpl createPulsarClient(
             ClientConfigurationData clientConfig) throws PulsarClientException {
@@ -77,7 +92,7 @@ public class CachedPulsarClient {
     }
 
     public static PulsarClientImpl getOrCreate(ClientConfigurationData config) throws ExecutionException {
-        return guavaCache.get(config);
+        return getGuavaCache().get(config);
     }
 
     private static void close(ClientConfigurationData clientConfig, PulsarClientImpl client) {
@@ -90,15 +105,15 @@ public class CachedPulsarClient {
     }
 
     static void close(ClientConfigurationData clientConfig) {
-        guavaCache.invalidate(clientConfig);
+        getGuavaCache().invalidate(clientConfig);
     }
 
     static void clear() {
         log.info("Cleaning up guava cache.");
-        guavaCache.invalidateAll();
+        getGuavaCache().invalidateAll();
     }
 
     static ConcurrentMap<ClientConfigurationData, PulsarClientImpl> getAsMap() {
-        return guavaCache.asMap();
+        return getGuavaCache().asMap();
     }
 }

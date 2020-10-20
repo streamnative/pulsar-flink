@@ -433,6 +433,8 @@ In flink 1.9, when creating a table, configuring the schema parameter is optiona
 | topicspattern | null | Multiple pulsar topics with more java regular matching | source |
 | partitiondiscoveryintervalmillis | -1 | Automatically discover increase and decrease topics, milliseconds. -1 means not open. | source |
 | clientcachesize | 5 | Number of cached pulsar clients | source, sink |
+| auth-params | null | pulsar clients auth| source, sink |
+| auth-plugin-classname | null | pulsar clients auth | source, sink |
 | flushoncheckpoint | true | Write a message to pulsar | sink | during flink snapshotState
 | failonwrite | false | When sink error occurs, continue to confirm the message | sink |
 | polltimeoutms | 120000 | The timeout period for waiting to get the next message, milliseconds | source |

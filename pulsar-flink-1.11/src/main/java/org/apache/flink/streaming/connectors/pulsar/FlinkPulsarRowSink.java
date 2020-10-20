@@ -18,6 +18,7 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.connectors.pulsar.internal.DateTimeUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.IncompatibleSchemaException;
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarClientUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarSerializer;
 import org.apache.flink.streaming.connectors.pulsar.internal.SimpleSchemaTranslator;
 import org.apache.flink.table.api.DataTypes;
@@ -46,6 +47,7 @@ import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOption
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.KEY_ATTRIBUTE_NAME;
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.META_FIELD_NAMES;
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.TOPIC_ATTRIBUTE_NAME;
+import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
  * Write Flink Row to Pulsar.
@@ -86,7 +88,7 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
             Optional<String> defaultTopicName,
             Properties properties,
             DataType dataType) {
-        this(adminUrl, defaultTopicName, newClientConf(serviceUrl), properties, dataType);
+        this(adminUrl, defaultTopicName, PulsarClientUtils.newClientConf(checkNotNull(serviceUrl), properties), properties, dataType);
     }
 
     @Override

@@ -83,4 +83,6 @@ public class PulsarOptions {
             EVENT_TIME_NAME);
 
     public static final String DEFAULT_PARTITIONS = "table-default-partitions";
+    public static final String AUTH_PARAMS_KEY = "auth-params";
+    public static final String AUTH_PLUGIN_CLASSNAME_KEY = "auth-plugin-classname";
 }

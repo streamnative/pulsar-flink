@@ -20,10 +20,12 @@ import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.shade.org.apache.commons.lang3.StringUtils;
 
+import java.util.Properties;
+
 /**
  * Utility to create Pulsar Admin Client from adminUrl and clientConfigurationData.
  */
-public class PulsarAdminUtils {
+public class PulsarClientUtils {
 
 	public static PulsarAdmin newAdminFromConf(String adminUrl, ClientConfigurationData clientConfigurationData) throws PulsarClientException {
 		ClientConfigurationData adminConf = clientConfigurationData.clone();
@@ -37,4 +39,15 @@ public class PulsarAdminUtils {
 			conf.setAuthentication(AuthenticationFactory.create(conf.getAuthPluginClassName(), conf.getAuthParams()));
 		}
 	}
+
+	public static ClientConfigurationData newClientConf(String serviceUrl, Properties properties) {
+		ClientConfigurationData clientConf = new ClientConfigurationData();
+		clientConf.setServiceUrl(serviceUrl);
+		if (properties != null) {
+			clientConf.setAuthParams(properties.getProperty(PulsarOptions.AUTH_PARAMS_KEY));
+			clientConf.setAuthPluginClassName(properties.getProperty(PulsarOptions.AUTH_PLUGIN_CLASSNAME_KEY));
+		}
+		return clientConf;
+	}
+
 }

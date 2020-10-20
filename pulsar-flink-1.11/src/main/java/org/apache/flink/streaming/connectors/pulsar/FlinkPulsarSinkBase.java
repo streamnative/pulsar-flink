@@ -23,7 +23,7 @@ import org.apache.flink.streaming.api.checkpoint.CheckpointedFunction;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
 import org.apache.flink.streaming.connectors.pulsar.internal.CachedPulsarClient;
-import org.apache.flink.streaming.connectors.pulsar.internal.PulsarAdminUtils;
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarClientUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.SourceSinkUtils;
 import org.apache.flink.util.ExceptionUtils;
@@ -148,13 +148,7 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
             Optional<String> defaultTopicName,
             Properties properties,
             TopicKeyExtractor<T> topicKeyExtractor) {
-        this(adminUrl, defaultTopicName, newClientConf(checkNotNull(serviceUrl)), properties, topicKeyExtractor);
-    }
-
-    protected static ClientConfigurationData newClientConf(String serviceUrl) {
-        ClientConfigurationData clientConf = new ClientConfigurationData();
-        clientConf.setServiceUrl(serviceUrl);
-        return clientConf;
+        this(adminUrl, defaultTopicName, PulsarClientUtils.newClientConf(checkNotNull(serviceUrl), properties), properties, topicKeyExtractor);
     }
 
     @Override
@@ -185,7 +179,7 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
             flushOnCheckpoint = false;
         }
 
-        admin = PulsarAdminUtils.newAdminFromConf(adminUrl, clientConfigurationData);
+        admin = PulsarClientUtils.newAdminFromConf(adminUrl, clientConfigurationData);
 
         if (forcedTopic) {
             uploadSchema(defaultTopic);

@@ -17,6 +17,7 @@ package org.apache.flink.streaming.connectors.pulsar;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSink;
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarClientUtils;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.api.ValidationException;
 import org.apache.flink.table.sinks.AppendStreamTableSink;
@@ -58,8 +59,7 @@ public class PulsarTableSink implements AppendStreamTableSink<Row> {
     }
 
     public PulsarTableSink(String serviceUrl, String adminUrl, TableSchema schema, Optional<String> defaultTopicName, Properties properties) {
-        this(adminUrl, schema, defaultTopicName, new ClientConfigurationData(), properties);
-        this.clientConf.setServiceUrl(checkNotNull(serviceUrl));
+        this(adminUrl, schema, defaultTopicName, PulsarClientUtils.newClientConf(checkNotNull(serviceUrl), properties), properties);
     }
 
     public void emitDataStream(DataStream<Row> dataStream) {

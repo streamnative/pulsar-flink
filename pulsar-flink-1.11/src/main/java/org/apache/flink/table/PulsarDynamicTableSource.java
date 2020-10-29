@@ -121,15 +121,18 @@ public class PulsarDynamicTableSource implements ScanTableSource {
     private static final long DEFAULT_STARTUP_TIMESTAMP_MILLIS = 0L;
 
     public PulsarDynamicTableSource(DataType outputDataType,
-                                    DecodingFormat<DeserializationSchema<RowData>> decodingFormat, String topic,
-                                    String serviceUrl, String adminUrl, Properties properties,
+                                    DecodingFormat<DeserializationSchema<RowData>> decodingFormat,
+                                    String topic,
+                                    String serviceUrl,
+                                    String adminUrl,
+                                    Properties properties,
                                     PulsarOptions.StartupOptions startupOptions) {
         this.outputDataType = outputDataType;
         this.decodingFormat = decodingFormat;
         this.topic = topic;
         this.serviceUrl = serviceUrl;
         this.adminUrl = adminUrl;
-        properties.put("topic",topic);
+        properties.computeIfAbsent("topic",(k) -> topic);
         this.properties = properties;
         this.startupOptions = startupOptions;
     }
@@ -215,92 +218,6 @@ public class PulsarDynamicTableSource implements ScanTableSource {
         return out;
     }
 
-    //    @Override
-    public Map<String, String> requiredContext() {
-        Map<String, String> context = new HashMap<>();
-
-        // append mode
-        context.put(UPDATE_MODE, UPDATE_MODE_VALUE_APPEND);
-        // pulsar
-        context.put(CONNECTOR_TYPE, CONNECTOR_TYPE_VALUE_PULSAR);
-        // backwards compatibility
-        context.put(CONNECTOR_PROPERTY_VERSION, "1");
-
-        return context;
-    }
-
-    //    @Override
-    public List<String> supportedProperties() {
-        List<String> properties = new ArrayList<>();
-
-        // update mode
-        properties.add(UPDATE_MODE);
-
-        // Pulsar
-        properties.add(CONNECTOR_VERSION);
-        properties.add(CONNECTOR_TOPIC);
-        properties.add(CONNECTOR_SERVICE_URL);
-        properties.add(CONNECTOR_ADMIN_URL);
-
-        properties.add(CONNECTOR_STARTUP_MODE);
-        properties.add(CONNECTOR_SPECIFIC_OFFSETS + ".#." + CONNECTOR_SPECIFIC_OFFSETS_PARTITION);
-        properties.add(CONNECTOR_SPECIFIC_OFFSETS + ".#." + CONNECTOR_SPECIFIC_OFFSETS_OFFSET);
-        properties.add(CONNECTOR_PROPERTIES + ".*");
-        properties.add(CONNECTOR_EXTERNAL_SUB_NAME);
-
-        properties.add(CONNECTOR_PROPERTIES);
-        properties.add(CONNECTOR_PROPERTIES + ".#." + CONNECTOR_PROPERTIES_KEY);
-        properties.add(CONNECTOR_PROPERTIES + ".#." + CONNECTOR_PROPERTIES_VALUE);
-
-        properties.add(CONNECTOR_SINK_EXTRACTOR);
-        properties.add(CONNECTOR_SINK_EXTRACTOR_CLASS);
-
-        // schema
-        properties.add(SCHEMA + ".#." + SCHEMA_NAME);
-        properties.add(SCHEMA + ".#." + SCHEMA_FROM);
-        properties.add(SCHEMA + ".#." + SCHEMA_DATA_TYPE);
-        properties.add(SCHEMA + ".#." + EXPR);
-
-        // time attributes
-        properties.add(SCHEMA + ".#." + SCHEMA_PROCTIME);
-        properties.add(SCHEMA + ".#." + ROWTIME_TIMESTAMPS_TYPE);
-        properties.add(SCHEMA + ".#." + ROWTIME_TIMESTAMPS_FROM);
-        properties.add(SCHEMA + ".#." + ROWTIME_TIMESTAMPS_CLASS);
-        properties.add(SCHEMA + ".#." + ROWTIME_TIMESTAMPS_SERIALIZED);
-        properties.add(SCHEMA + ".#." + ROWTIME_WATERMARKS_TYPE);
-        properties.add(SCHEMA + ".#." + ROWTIME_WATERMARKS_CLASS);
-        properties.add(SCHEMA + ".#." + ROWTIME_WATERMARKS_SERIALIZED);
-        properties.add(SCHEMA + ".#." + ROWTIME_WATERMARKS_DELAY);
-
-        // format wildcard
-        properties.add(FORMAT + ".*");
-
-        return properties;
-    }
-
-    private Properties getPulsarProperties(DescriptorProperties descriptorProperties) {
-        final Properties pulsarProperties = new Properties();
-        final String magicKey = CONNECTOR_PROPERTIES + ".0." + CONNECTOR_PROPERTIES_KEY;
-        if (!descriptorProperties.containsKey(magicKey)) {
-            descriptorProperties.asMap().keySet()
-                    .stream()
-                    .filter(key -> key.startsWith(CONNECTOR_PROPERTIES))
-                    .forEach(key -> {
-                        final String value = descriptorProperties.getString(key);
-                        final String subKey = key.substring((CONNECTOR_PROPERTIES + '.').length());
-                        pulsarProperties.put(subKey, value);
-                    });
-        } else {
-            final List<Map<String, String>> propsList = descriptorProperties.getFixedIndexedProperties(
-                    CONNECTOR_PROPERTIES,
-                    Arrays.asList(CONNECTOR_PROPERTIES_KEY, CONNECTOR_PROPERTIES_VALUE));
-            propsList.forEach(kv -> pulsarProperties.put(
-                    descriptorProperties.getString(kv.get(CONNECTOR_PROPERTIES_KEY)),
-                    descriptorProperties.getString(kv.get(CONNECTOR_PROPERTIES_VALUE))
-            ));
-        }
-        return pulsarProperties;
-    }
 
     private boolean checkForCustomFieldMapping(DescriptorProperties descriptorProperties, TableSchema schema) {
         final Map<String, String> fieldMapping = SchemaValidator.deriveFieldMapping(

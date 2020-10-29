@@ -1,5 +1,6 @@
 package org.apache.flink.table;
 
+import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CONNECTOR;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.configuration.ConfigOption;
@@ -16,6 +17,7 @@ import org.apache.flink.table.factories.FactoryUtil;
 import org.apache.flink.table.factories.SerializationFormatFactory;
 import org.apache.flink.table.types.DataType;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
@@ -23,7 +25,7 @@ import java.util.Set;
  * Factory for creating configured instances of
  * {@link PulsarDynamicTableFactory}.
  */
-public class PulsarDynamicTableFactory  implements
+public class PulsarDynamicTableFactory implements
         DynamicTableSourceFactory,
         DynamicTableSinkFactory {
     @Override
@@ -33,8 +35,8 @@ public class PulsarDynamicTableFactory  implements
         ReadableConfig tableOptions = helper.getOptions();
 
         String topic = tableOptions.get(PulsarOptions.TOPIC);
-        String adminUrl = tableOptions.get(PulsarOptions.TOPIC);
-        String serverUrl = tableOptions.get(PulsarOptions.TOPIC);
+        String adminUrl = tableOptions.get(PulsarOptions.ADMIN_URL);
+        String serverUrl = tableOptions.get(PulsarOptions.SERVICE_URL);
         EncodingFormat<SerializationSchema<RowData>> encodingFormat = helper.discoverEncodingFormat(
                 SerializationFormatFactory.class,
                 FactoryUtil.FORMAT);
@@ -43,6 +45,8 @@ public class PulsarDynamicTableFactory  implements
         // Validate the option values.
         PulsarOptions.validateTableOptions(tableOptions);
 
+        Properties properties = removeConnectorPrefix(context.getCatalogTable().toProperties());
+
         DataType consumedDataType = context.getCatalogTable().getSchema().toPhysicalRowDataType();
 
         return new PulsarDynamicTableSink(
@@ -50,9 +54,9 @@ public class PulsarDynamicTableFactory  implements
                 adminUrl,
                 topic,
                 consumedDataType,
-                new Properties(),
+                properties,
                 encodingFormat
-                );
+        );
     }
 
     @Override
@@ -72,6 +76,7 @@ public class PulsarDynamicTableFactory  implements
         helper.validateExcept(PulsarOptions.PROPERTIES_PREFIX);
         // Validate the option values.
         PulsarOptions.validateTableOptions(tableOptions);
+        Properties properties = removeConnectorPrefix(context.getCatalogTable().toProperties());
 
         DataType producedDataType = context.getCatalogTable().getSchema().toPhysicalRowDataType();
         final PulsarOptions.StartupOptions startupOptions = PulsarOptions.getStartupOptions(tableOptions, topic);
@@ -81,7 +86,7 @@ public class PulsarDynamicTableFactory  implements
                 topic,
                 serviceUrl,
                 adminUrl,
-                new Properties(),
+                properties,
                 startupOptions
         );
     }
@@ -114,5 +119,20 @@ public class PulsarDynamicTableFactory  implements
         options.add(PulsarOptions.PARTITION_DISCOVERY_INTERVAL_MILLIS);
 
         return options;
+    }
+
+    private static Properties removeConnectorPrefix(Map<String, String> in) {
+        String connectorPrefix = CONNECTOR + ".";
+        Properties out = new Properties();
+        for (Map.Entry<String, String> kv : in.entrySet()) {
+            String k = kv.getKey();
+            String v = kv.getValue();
+            if (k.startsWith(connectorPrefix)) {
+                out.put(k.substring(connectorPrefix.length()), v);
+            } else {
+                out.put(k, v);
+            }
+        }
+        return out;
     }
 }

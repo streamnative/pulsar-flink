@@ -3,6 +3,8 @@ package org.apache.flink.table;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 import org.apache.flink.streaming.connectors.pulsar.FlinkPulsarSink;
+import org.apache.flink.streaming.connectors.pulsar.TopicKeyExtractor;
+import org.apache.flink.streaming.connectors.pulsar.config.RecordSchemaType;
 import org.apache.flink.table.connector.ChangelogMode;
 import org.apache.flink.table.connector.format.EncodingFormat;
 import org.apache.flink.table.connector.sink.DynamicTableSink;
@@ -37,7 +39,6 @@ public class PulsarDynamicTableSink implements DynamicTableSink {
      */
     protected final EncodingFormat<SerializationSchema<RowData>> encodingFormat;
 
-
     protected PulsarDynamicTableSink(
             String serviceUrl,
             String adminUrl,
@@ -62,23 +63,25 @@ public class PulsarDynamicTableSink implements DynamicTableSink {
     public SinkRuntimeProvider getSinkRuntimeProvider(Context context) {
         SerializationSchema<RowData> serializationSchema =
                 this.encodingFormat.createRuntimeEncoder(context, this.consumedDataType);
-        final SinkFunction<RowData> kafkaProducer = createPulsarSink(
+        final SinkFunction<RowData> pulsarSink = createPulsarSink(
                 this.topic,
                 properties,
                 serializationSchema);
 
-        return SinkFunctionProvider.of(kafkaProducer);
+        return SinkFunctionProvider.of(pulsarSink);
     }
 
     private SinkFunction<RowData> createPulsarSink(String topic, Properties properties,
                                                    SerializationSchema<RowData> serializationSchema) {
 
-        return new FlinkPulsarSink<>(
+        return new FlinkPulsarSink<RowData>(
                 serviceUrl,
                 adminUrl,
                 Optional.ofNullable(topic),
                 properties,
-                RowData.class
+                TopicKeyExtractor.NULL,
+                RowData.class,
+                RecordSchemaType.AVRO
         );
     }
 

@@ -18,12 +18,7 @@ import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
 import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
-import org.apache.flink.streaming.connectors.pulsar.internal.PulsarDeserializationSchema;
-import org.apache.flink.streaming.connectors.pulsar.internal.PulsarDeserializer;
-import org.apache.flink.streaming.connectors.pulsar.internal.PulsarFetcher;
-import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
-import org.apache.flink.streaming.connectors.pulsar.internal.PulsarRowFetcher;
-import org.apache.flink.streaming.connectors.pulsar.internal.TopicRange;
+import org.apache.flink.streaming.connectors.pulsar.internal.*;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.ExceptionUtils;
@@ -34,6 +29,7 @@ import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.common.schema.SchemaInfo;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -84,7 +80,7 @@ public class FlinkPulsarRowSource extends FlinkPulsarSource<Row> {
             SchemaInfo pulsarSchema = reader.getPulsarSchema(topics);
             synchronized (this) {
                 if (deserializer == null){
-                    deserializer = new PulsarDeserializer(pulsarSchema, null, useExtendField);
+                    deserializer = new PulsarDeserializer(pulsarSchema, new JSONOptions(new HashMap<>(), "", ""), useExtendField);
                 }
             }
             return deserializer;

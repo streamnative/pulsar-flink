@@ -93,7 +93,7 @@ public class JSONOptions implements Serializable {
         this.dropFieldIfAllNull =
                 Boolean.valueOf(parameters.getOrDefault("dropFieldIfAllNull", "false"));
         this.parseMode =
-                ParseMode.get(parameters.get("mode"));
+                ParseMode.get(parameters.getOrDefault("mode", "PERMISSIVE"));
         this.multiLine =
                 Boolean.valueOf(parameters.getOrDefault("multiLine", "false"));
 

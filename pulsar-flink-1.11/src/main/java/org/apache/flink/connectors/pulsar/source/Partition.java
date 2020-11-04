@@ -83,7 +83,7 @@ public class Partition implements Serializable {
             keyRanges = AUTO_KEY_RANGE;
         } else {
             keyRanges = new ArrayList<>(rawKeys.length / 2);
-            for (int index = 0; index < rawKeys.length; index += 2) {
+            for (int index = 0; index + 1 < rawKeys.length; index += 2) {
                 keyRanges.add(Range.of(rawKeys[index], rawKeys[index + 1]));
             }
         }

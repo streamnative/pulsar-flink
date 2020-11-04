@@ -51,6 +51,6 @@ public class RollbackStartOffsetInitializer implements StartOffsetInitializer {
             Supplier<Optional<Message<byte[]>>> firstMessageFetcher) {
         return firstMessageFetcher.get().isPresent() ?
                 Optional.empty() :
-                Optional.of(String.format("No data found {} secs ago", rollbackTimeInS));
+                Optional.of(String.format("No data found %s secs ago", rollbackTimeInS));
     }
 }

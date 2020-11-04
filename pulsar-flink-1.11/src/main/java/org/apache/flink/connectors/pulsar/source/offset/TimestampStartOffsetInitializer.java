@@ -51,6 +51,6 @@ public class TimestampStartOffsetInitializer implements StartOffsetInitializer {
             Supplier<Optional<Message<byte[]>>> firstMessageFetcher) {
         return firstMessageFetcher.get().isPresent() ?
                 Optional.empty() :
-                Optional.of(String.format("No data found after timestamp {}", startingTimestamp));
+                Optional.of(String.format("No data found after timestamp %s", startingTimestamp));
     }
 }

@@ -20,13 +20,13 @@ import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connectors.pulsar.source.util.PulsarAdminUtils;
 
-import com.google.common.collect.Sets;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.SubscriptionMode;
 import org.apache.pulsar.client.api.SubscriptionType;
 import org.apache.pulsar.client.impl.ClientBuilderImpl;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.client.impl.conf.ConsumerConfigurationData;
+import org.apache.pulsar.shade.com.google.common.collect.Sets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,9 +66,9 @@ public class PulsarSourceBuilder<OUT> {
     public PulsarSourceBuilder<OUT> setTopics(StickyKeyAssigner stickyKeyAssigner, String... topics) {
         TreeSet<String> topicNames = Sets.newTreeSet();
         List<String> collect = Arrays.stream(topics).collect(Collectors.toList());
-		for (String topic : collect) {
-			topicNames.add(topic);
-		}
+        for (String topic : collect) {
+            topicNames.add(topic);
+        }
         consumerConfigurationData.setTopicNames(topicNames);
         return setSubscriber(org.apache.flink.connectors.pulsar.source.PulsarSubscriber.getTopicListSubscriber(stickyKeyAssigner, topics));
     }

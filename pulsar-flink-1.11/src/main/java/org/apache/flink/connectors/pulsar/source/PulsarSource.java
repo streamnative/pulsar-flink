@@ -39,13 +39,13 @@ import org.apache.flink.connectors.pulsar.source.split.PulsarPartitionSplit;
 import org.apache.flink.connectors.pulsar.source.split.PulsarPartitionSplitSerializer;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 
-import com.google.common.io.Closer;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.ClientBuilderImpl;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.client.impl.conf.ConsumerConfigurationData;
+import org.apache.pulsar.shade.com.google.common.io.Closer;
 
 import javax.annotation.Nonnull;
 

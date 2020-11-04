@@ -1,12 +1,9 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+/**
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *	http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,32 +27,32 @@ import java.io.ObjectOutputStream;
  */
 public class PulsarPartitionSplitSerializer implements SimpleVersionedSerializer<PulsarPartitionSplit> {
 
-	private static final int CURRENT_VERSION = 0;
+    private static final int CURRENT_VERSION = 0;
 
-	@Override
-	public int getVersion() {
-		return CURRENT_VERSION;
-	}
+    @Override
+    public int getVersion() {
+        return CURRENT_VERSION;
+    }
 
-	@Override
-	public byte[] serialize(PulsarPartitionSplit split) throws IOException {
-		try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			 ObjectOutputStream out = new ObjectOutputStream(baos)) {
-			out.writeObject(split);
-			out.flush();
-			return baos.toByteArray();
-		}
-	}
+    @Override
+    public byte[] serialize(PulsarPartitionSplit split) throws IOException {
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+             ObjectOutputStream out = new ObjectOutputStream(baos)) {
+            out.writeObject(split);
+            out.flush();
+            return baos.toByteArray();
+        }
+    }
 
-	@Override
-	public PulsarPartitionSplit deserialize(int version, byte[] serialized) throws IOException {
-		try (ByteArrayInputStream bais = new ByteArrayInputStream(serialized);
-			 ObjectInputStream in = new ObjectInputStream(bais)) {
-			try {
-				return (PulsarPartitionSplit) in.readObject();
-			} catch (ClassNotFoundException e) {
-				throw new IllegalStateException(e);
-			}
-		}
-	}
+    @Override
+    public PulsarPartitionSplit deserialize(int version, byte[] serialized) throws IOException {
+        try (ByteArrayInputStream bais = new ByteArrayInputStream(serialized);
+             ObjectInputStream in = new ObjectInputStream(bais)) {
+            try {
+                return (PulsarPartitionSplit) in.readObject();
+            } catch (ClassNotFoundException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+    }
 }

@@ -1,12 +1,9 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+/**
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -31,37 +28,37 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.BiPredicate;
 
 public class AsyncUtils {
-	public static <T, R, C extends CompletableFuture<R>, E extends Exception> void parallelAsync(
-			List<T> elements,
-			FunctionWithException<T, C, E> asyncInvoker,
-			BiConsumerWithException<T, R, E> consumer,
-			Class<E> exceptionClass) throws E, InterruptedException, TimeoutException {
-		parallelAsync(elements, asyncInvoker, (topic, exception) -> false, consumer, exceptionClass);
-	}
+    public static <T, R, C extends CompletableFuture<R>, E extends Exception> void parallelAsync(
+            List<T> elements,
+            FunctionWithException<T, C, E> asyncInvoker,
+            BiConsumerWithException<T, R, E> consumer,
+            Class<E> exceptionClass) throws E, InterruptedException, TimeoutException {
+        parallelAsync(elements, asyncInvoker, (topic, exception) -> false, consumer, exceptionClass);
+    }
 
-	public static <T, R, C extends CompletableFuture<R>, E extends Exception> void parallelAsync(
-			List<T> elements,
-			FunctionWithException<T, C, E> asyncInvoker,
-			BiPredicate<T, E> swallowException,
-			BiConsumerWithException<T, R, E> consumer,
-			Class<E> exceptionClass) throws E, InterruptedException, TimeoutException {
-		List<C> asyncFutures = new ArrayList<>();
-		for (T element : elements) {
-			asyncFutures.add(asyncInvoker.apply(element));
-		}
+    public static <T, R, C extends CompletableFuture<R>, E extends Exception> void parallelAsync(
+            List<T> elements,
+            FunctionWithException<T, C, E> asyncInvoker,
+            BiPredicate<T, E> swallowException,
+            BiConsumerWithException<T, R, E> consumer,
+            Class<E> exceptionClass) throws E, InterruptedException, TimeoutException {
+        List<C> asyncFutures = new ArrayList<>();
+        for (T element : elements) {
+            asyncFutures.add(asyncInvoker.apply(element));
+        }
 
-		for (int index = 0; index < asyncFutures.size(); index++) {
-			try {
-				R result = asyncFutures.get(index).get(PulsarAdmin.DEFAULT_READ_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-				consumer.accept(elements.get(index), result);
-			} catch (ExecutionException e) {
-				E cause = exceptionClass.cast(e.getCause());
-				if (!swallowException.test(elements.get(index), cause)) {
-					throw cause;
-				}
-			} catch (TimeoutException e) {
-				throw new TimeoutException("Timeout while waiting for " + elements.get(index));
-			}
-		}
-	}
+        for (int index = 0; index < asyncFutures.size(); index++) {
+            try {
+                R result = asyncFutures.get(index).get(PulsarAdmin.DEFAULT_READ_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                consumer.accept(elements.get(index), result);
+            } catch (ExecutionException e) {
+                E cause = exceptionClass.cast(e.getCause());
+                if (!swallowException.test(elements.get(index), cause)) {
+                    throw cause;
+                }
+            } catch (TimeoutException e) {
+                throw new TimeoutException("Timeout while waiting for " + elements.get(index));
+            }
+        }
+    }
 }

@@ -58,6 +58,7 @@ import static org.apache.flink.streaming.connectors.pulsar.SchemaData.fooList;
 import static org.junit.Assert.assertTrue;
 
 public class PulsarSourceITCase extends PulsarTestBaseWithFlink {
+
     @Rule
     public RetryRule retryRule = new RetryRule();
 
@@ -193,6 +194,5 @@ public class PulsarSourceITCase extends PulsarTestBaseWithFlink {
             }
         }
     }
-
 
 }

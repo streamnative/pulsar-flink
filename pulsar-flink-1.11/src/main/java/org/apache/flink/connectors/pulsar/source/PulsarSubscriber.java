@@ -1,12 +1,9 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+/**
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *	http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -31,8 +28,8 @@ import java.util.Set;
 /**
  * Pulsar consumer allows a few different ways to consume from the topics, including:
  * <ol>
- *	 <li>Subscribe from a collection of topics. </li>
- *	 <li>Subscribe to a topic pattern using Java {@code Regex}. </li>
+ * 	 <li>Subscribe from a collection of topics. </li>
+ * 	 <li>Subscribe to a topic pattern using Java {@code Regex}. </li>
  * </ol>
  *
  * <p>The PulsarSubscriber provides a unified interface for the Pulsar source to
@@ -41,48 +38,48 @@ import java.util.Set;
 @PublicEvolving
 public interface PulsarSubscriber extends Serializable {
 
-	/**
-	 * Get the partitions changes compared to the current partition assignment.
-	 *
-	 * <p>Although Pulsar partitions can only expand and will not shrink, the partitions
-	 * may still disappear when the topic is deleted.
-	 *
-	 * @param pulsarAdmin The pulsar admin used to retrieve partition information.
-	 * @param currentAssignment the partitions that are currently assigned to the source readers.
-	 * @return The partition changes compared with the currently assigned partitions.
-	 */
-	PartitionChange getPartitionChanges(
-		PulsarAdmin pulsarAdmin,
-		Set<Partition> currentAssignment) throws PulsarAdminException, InterruptedException, IOException;
+    /**
+     * Get the partitions changes compared to the current partition assignment.
+     *
+     * <p>Although Pulsar partitions can only expand and will not shrink, the partitions
+     * may still disappear when the topic is deleted.
+     *
+     * @param pulsarAdmin       The pulsar admin used to retrieve partition information.
+     * @param currentAssignment the partitions that are currently assigned to the source readers.
+     * @return The partition changes compared with the currently assigned partitions.
+     */
+    PartitionChange getPartitionChanges(
+            PulsarAdmin pulsarAdmin,
+            Set<Partition> currentAssignment) throws PulsarAdminException, InterruptedException, IOException;
 
-	/**
-	 * A container class to hold the newly added partitions and removed partitions.
-	 */
-	class PartitionChange {
-		private final Set<Partition> newPartitions;
-		private final Set<Partition> removedPartitions;
+    /**
+     * A container class to hold the newly added partitions and removed partitions.
+     */
+    class PartitionChange {
+        private final Set<Partition> newPartitions;
+        private final Set<Partition> removedPartitions;
 
-		public PartitionChange(Set<Partition> newPartitions, Set<Partition> removedPartitions) {
-			this.newPartitions = newPartitions;
-			this.removedPartitions = removedPartitions;
-		}
+        public PartitionChange(Set<Partition> newPartitions, Set<Partition> removedPartitions) {
+            this.newPartitions = newPartitions;
+            this.removedPartitions = removedPartitions;
+        }
 
-		public Set<Partition> getNewPartitions() {
-			return newPartitions;
-		}
+        public Set<Partition> getNewPartitions() {
+            return newPartitions;
+        }
 
-		public Set<Partition> getRemovedPartitions() {
-			return removedPartitions;
-		}
-	}
+        public Set<Partition> getRemovedPartitions() {
+            return removedPartitions;
+        }
+    }
 
-	// ----------------- factory methods --------------
+    // ----------------- factory methods --------------
 
-	static PulsarSubscriber getTopicListSubscriber(StickyKeyAssigner stickyKeyAssigner, String... topics) {
-		return new TopicListSubscriber(stickyKeyAssigner, topics);
-	}
+    static PulsarSubscriber getTopicListSubscriber(StickyKeyAssigner stickyKeyAssigner, String... topics) {
+        return new TopicListSubscriber(stickyKeyAssigner, topics);
+    }
 
-	static PulsarSubscriber getTopicPatternSubscriber(String namespace, StickyKeyAssigner stickyKeyAssigner, String... topicPatterns) {
-		return new TopicPatternSubscriber(namespace, stickyKeyAssigner, topicPatterns);
-	}
+    static PulsarSubscriber getTopicPatternSubscriber(String namespace, StickyKeyAssigner stickyKeyAssigner, String... topicPatterns) {
+        return new TopicPatternSubscriber(namespace, stickyKeyAssigner, topicPatterns);
+    }
 }

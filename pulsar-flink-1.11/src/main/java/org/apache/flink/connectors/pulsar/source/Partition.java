@@ -1,12 +1,9 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+/**
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *	http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -29,64 +26,66 @@ import java.util.Objects;
 import java.util.stream.IntStream;
 
 public class Partition implements Serializable {
-	public static final Collection<Range> AUTO_KEY_RANGE = Collections.emptyList();
+    public static final Collection<Range> AUTO_KEY_RANGE = Collections.emptyList();
 
-	private final String topic;
-	private transient Collection<Range> keyRanges;
-	/** Used for comparison, as Range does not implement equals */
-	private final int[] rawKeys;
+    private final String topic;
+    private transient Collection<Range> keyRanges;
+    /**
+     * Used for comparison, as Range does not implement equals.
+     */
+    private final int[] rawKeys;
 
-	public Partition(String topic, Collection<Range> keyRanges) {
-		this.topic = topic;
-		this.keyRanges = keyRanges;
-		rawKeys = keyRanges.stream().flatMapToInt(range -> IntStream.of(range.getStart(), range.getEnd())).toArray();
-	}
+    public Partition(String topic, Collection<Range> keyRanges) {
+        this.topic = topic;
+        this.keyRanges = keyRanges;
+        rawKeys = keyRanges.stream().flatMapToInt(range -> IntStream.of(range.getStart(), range.getEnd())).toArray();
+    }
 
-	public Collection<Range> getKeyRanges() {
-		return keyRanges;
-	}
+    public Collection<Range> getKeyRanges() {
+        return keyRanges;
+    }
 
-	public boolean hasStickyKeys() {
-		return keyRanges != AUTO_KEY_RANGE;
-	}
+    public boolean hasStickyKeys() {
+        return keyRanges != AUTO_KEY_RANGE;
+    }
 
-	public String getTopic() {
-		return topic;
-	}
+    public String getTopic() {
+        return topic;
+    }
 
-	@Override
-	public boolean equals(Object o) {
-		if (this == o) {
-			return true;
-		}
-		if (o == null || getClass() != o.getClass()) {
-			return false;
-		}
-		final Partition partition = (Partition) o;
-		return topic.equals(partition.topic) &&	Arrays.equals(rawKeys, partition.rawKeys);
-	}
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final Partition partition = (Partition) o;
+        return topic.equals(partition.topic) && Arrays.equals(rawKeys, partition.rawKeys);
+    }
 
-	@Override
-	public int hashCode() {
-		int result = Objects.hash(topic);
-		result = 31 * result + Arrays.hashCode(rawKeys);
-		return result;
-	}
+    @Override
+    public int hashCode() {
+        int result = Objects.hash(topic);
+        result = 31 * result + Arrays.hashCode(rawKeys);
+        return result;
+    }
 
-	@Override
-	public String toString() {
-		return topic + keyRanges;
-	}
+    @Override
+    public String toString() {
+        return topic + keyRanges;
+    }
 
-	private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
-		in.defaultReadObject();
-		if (rawKeys.length == 0) {
-			keyRanges = AUTO_KEY_RANGE;
-		} else {
-			keyRanges = new ArrayList<>(rawKeys.length / 2);
-			for (int index = 0; index < rawKeys.length; index += 2) {
-				keyRanges.add(Range.of(rawKeys[index], rawKeys[index + 1]));
-			}
-		}
-	}
+    private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+        in.defaultReadObject();
+        if (rawKeys.length == 0) {
+            keyRanges = AUTO_KEY_RANGE;
+        } else {
+            keyRanges = new ArrayList<>(rawKeys.length / 2);
+            for (int index = 0; index < rawKeys.length; index += 2) {
+                keyRanges.add(Range.of(rawKeys[index], rawKeys[index + 1]));
+            }
+        }
+    }
 }

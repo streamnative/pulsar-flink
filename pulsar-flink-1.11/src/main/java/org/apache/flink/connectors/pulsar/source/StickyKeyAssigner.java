@@ -23,7 +23,7 @@ import java.util.Collection;
 import java.util.Collections;
 
 public interface StickyKeyAssigner extends Serializable {
-	StickyKeyAssigner AUTO = (topic, pulsarAdmin) -> Collections.singletonList(org.apache.flink.connectors.pulsar.source.Partition.AUTO_KEY_RANGE);
+    StickyKeyAssigner AUTO = (topic, pulsarAdmin) -> Collections.singletonList(org.apache.flink.connectors.pulsar.source.Partition.AUTO_KEY_RANGE);
 
-	Collection<Collection<Range>> getRanges(String topic, PulsarAdmin pulsarAdmin) throws PulsarAdminException;
+    Collection<Collection<Range>> getRanges(String topic, PulsarAdmin pulsarAdmin) throws PulsarAdminException;
 }

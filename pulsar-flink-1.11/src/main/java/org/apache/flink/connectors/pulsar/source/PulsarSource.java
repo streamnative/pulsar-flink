@@ -1,12 +1,9 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+/**
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *	http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -67,155 +64,155 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  */
 @Internal
 public class PulsarSource<OUT>
-		implements Source<OUT, PulsarPartitionSplit, PulsarSourceEnumeratorState>, ResultTypeQueryable {
-	private static final long serialVersionUID = -8755372893283732098L;
-	// Users can choose only one of the following ways to specify the topics to consume from.
-	private final org.apache.flink.connectors.pulsar.source.PulsarSubscriber subscriber;
-	// Users can specify the starting / stopping offset initializer.
-	private final org.apache.flink.connectors.pulsar.source.StartOffsetInitializer startOffsetInitializer;
-	private final org.apache.flink.connectors.pulsar.source.StopCondition stopCondition;
-	// Boundedness
-	private final Boundedness boundedness;
-	private final org.apache.flink.connectors.pulsar.source.MessageDeserializer<OUT> messageDeserializer;
-	// The configurations.
-	private final Configuration configuration;
-	private final ClientConfigurationData pulsarConfiguration;
-	private final ConsumerConfigurationData<byte[]> consumerConfigurationData;
+        implements Source<OUT, PulsarPartitionSplit, PulsarSourceEnumeratorState>, ResultTypeQueryable {
+    private static final long serialVersionUID = -8755372893283732098L;
+    // Users can choose only one of the following ways to specify the topics to consume from.
+    private final org.apache.flink.connectors.pulsar.source.PulsarSubscriber subscriber;
+    // Users can specify the starting / stopping offset initializer.
+    private final org.apache.flink.connectors.pulsar.source.StartOffsetInitializer startOffsetInitializer;
+    private final org.apache.flink.connectors.pulsar.source.StopCondition stopCondition;
+    // Boundedness
+    private final Boundedness boundedness;
+    private final org.apache.flink.connectors.pulsar.source.MessageDeserializer<OUT> messageDeserializer;
+    // The configurations.
+    private final Configuration configuration;
+    private final ClientConfigurationData pulsarConfiguration;
+    private final ConsumerConfigurationData<byte[]> consumerConfigurationData;
 
-	private final String adminUrl;
-	private PulsarAdmin pulsarAdmin;
-	private PulsarClient pulsarClient;
+    private final String adminUrl;
+    private PulsarAdmin pulsarAdmin;
+    private PulsarClient pulsarClient;
 
-	public PulsarSource(
-			org.apache.flink.connectors.pulsar.source.PulsarSubscriber subscriber,
-			org.apache.flink.connectors.pulsar.source.StartOffsetInitializer startOffsetInitializer,
-			org.apache.flink.connectors.pulsar.source.StopCondition stopCondition,
-			Boundedness boundedness,
-			org.apache.flink.connectors.pulsar.source.MessageDeserializer<OUT> messageDeserializer,
-			Configuration configuration,
-			ClientConfigurationData pulsarConfiguration,
-			ConsumerConfigurationData<byte[]> consumerConfigurationData) {
-		this.subscriber = checkNotNull(subscriber);
-		this.startOffsetInitializer = checkNotNull(startOffsetInitializer);
-		this.stopCondition = checkNotNull(stopCondition);
-		this.boundedness = boundedness;
-		this.messageDeserializer = checkNotNull(messageDeserializer);
-		this.configuration = checkNotNull(configuration);
-		this.pulsarConfiguration = checkNotNull(pulsarConfiguration);
-		adminUrl = configuration.get(org.apache.flink.connectors.pulsar.source.PulsarSourceOptions.ADMIN_URL);
-		this.consumerConfigurationData = consumerConfigurationData;
-	}
+    public PulsarSource(
+            org.apache.flink.connectors.pulsar.source.PulsarSubscriber subscriber,
+            org.apache.flink.connectors.pulsar.source.StartOffsetInitializer startOffsetInitializer,
+            org.apache.flink.connectors.pulsar.source.StopCondition stopCondition,
+            Boundedness boundedness,
+            org.apache.flink.connectors.pulsar.source.MessageDeserializer<OUT> messageDeserializer,
+            Configuration configuration,
+            ClientConfigurationData pulsarConfiguration,
+            ConsumerConfigurationData<byte[]> consumerConfigurationData) {
+        this.subscriber = checkNotNull(subscriber);
+        this.startOffsetInitializer = checkNotNull(startOffsetInitializer);
+        this.stopCondition = checkNotNull(stopCondition);
+        this.boundedness = boundedness;
+        this.messageDeserializer = checkNotNull(messageDeserializer);
+        this.configuration = checkNotNull(configuration);
+        this.pulsarConfiguration = checkNotNull(pulsarConfiguration);
+        adminUrl = configuration.get(org.apache.flink.connectors.pulsar.source.PulsarSourceOptions.ADMIN_URL);
+        this.consumerConfigurationData = consumerConfigurationData;
+    }
 
-	/**
-	 * Get a pulsarSourceBuilder to build a {@link PulsarSource}.
-	 *
-	 * @return a Pulsar source builder.
-	 */
-	public static <OUT> org.apache.flink.connectors.pulsar.source.PulsarSourceBuilder<OUT> builder() {
-		return new org.apache.flink.connectors.pulsar.source.PulsarSourceBuilder<>();
-	}
+    /**
+     * Get a pulsarSourceBuilder to build a {@link PulsarSource}.
+     *
+     * @return a Pulsar source builder.
+     */
+    public static <OUT> org.apache.flink.connectors.pulsar.source.PulsarSourceBuilder<OUT> builder() {
+        return new org.apache.flink.connectors.pulsar.source.PulsarSourceBuilder<>();
+    }
 
-	@Override
-	public Boundedness getBoundedness() {
-		return this.boundedness;
-	}
+    @Override
+    public Boundedness getBoundedness() {
+        return this.boundedness;
+    }
 
-	@Override
-	public TypeInformation getProducedType() {
-		return messageDeserializer.getProducedType();
-	}
+    @Override
+    public TypeInformation getProducedType() {
+        return messageDeserializer.getProducedType();
+    }
 
-	@Override
-	public SourceReader<OUT, PulsarPartitionSplit> createReader(SourceReaderContext readerContext) {
-		FutureNotifier futureNotifier = new FutureNotifier();
-		FutureCompletingBlockingQueue<RecordsWithSplitIds<ParsedMessage<OUT>>> elementsQueue =
-			new FutureCompletingBlockingQueue<>(futureNotifier);
-		ExecutorService listenerExecutor = Executors.newScheduledThreadPool(
-			1,
-			r -> new Thread(r, "Pulsar listener executor"));
-		Closer splitCloser = Closer.create();
-		splitCloser.register(listenerExecutor::shutdownNow);
-		Supplier<SplitReader<ParsedMessage<OUT>, PulsarPartitionSplit>> splitReaderSupplier = () -> {
-			PulsarPartitionSplitReader<OUT> reader = new PulsarPartitionSplitReader<>(
-				configuration,
-				consumerConfigurationData,
-				getClient(),
-				getPulsarAdmin(),
-				messageDeserializer,
-				listenerExecutor);
-			splitCloser.register(reader);
-			return reader;
-		};
-		PulsarRecordEmitter<OUT> recordEmitter = new PulsarRecordEmitter<>();
+    @Override
+    public SourceReader<OUT, PulsarPartitionSplit> createReader(SourceReaderContext readerContext) {
+        FutureNotifier futureNotifier = new FutureNotifier();
+        FutureCompletingBlockingQueue<RecordsWithSplitIds<ParsedMessage<OUT>>> elementsQueue =
+                new FutureCompletingBlockingQueue<>(futureNotifier);
+        ExecutorService listenerExecutor = Executors.newScheduledThreadPool(
+                1,
+                r -> new Thread(r, "Pulsar listener executor"));
+        Closer splitCloser = Closer.create();
+        splitCloser.register(listenerExecutor::shutdownNow);
+        Supplier<SplitReader<ParsedMessage<OUT>, PulsarPartitionSplit>> splitReaderSupplier = () -> {
+            PulsarPartitionSplitReader<OUT> reader = new PulsarPartitionSplitReader<>(
+                    configuration,
+                    consumerConfigurationData,
+                    getClient(),
+                    getPulsarAdmin(),
+                    messageDeserializer,
+                    listenerExecutor);
+            splitCloser.register(reader);
+            return reader;
+        };
+        PulsarRecordEmitter<OUT> recordEmitter = new PulsarRecordEmitter<>();
 
-		return new PulsarSourceReader<>(
-			futureNotifier,
-			elementsQueue,
-			splitReaderSupplier,
-			recordEmitter,
-			configuration,
-			readerContext,
-			() -> splitCloser.close());
-	}
+        return new PulsarSourceReader<>(
+                futureNotifier,
+                elementsQueue,
+                splitReaderSupplier,
+                recordEmitter,
+                configuration,
+                readerContext,
+                () -> splitCloser.close());
+    }
 
-	@Nonnull
-	public PulsarAdmin getPulsarAdmin() {
-		if (pulsarAdmin == null) {
-			try {
-				pulsarAdmin = newAdminFromConf(adminUrl, pulsarConfiguration);
-			} catch (PulsarClientException e) {
-				throw new IllegalStateException("Cannot initialize pulsar admin", e);
-			}
-		}
-		return pulsarAdmin;
-	}
+    @Nonnull
+    public PulsarAdmin getPulsarAdmin() {
+        if (pulsarAdmin == null) {
+            try {
+                pulsarAdmin = newAdminFromConf(adminUrl, pulsarConfiguration);
+            } catch (PulsarClientException e) {
+                throw new IllegalStateException("Cannot initialize pulsar admin", e);
+            }
+        }
+        return pulsarAdmin;
+    }
 
-	@Nonnull
-	public PulsarClient getClient() {
-		if (pulsarClient == null) {
-			try {
-				pulsarClient = new ClientBuilderImpl(pulsarConfiguration).build();
-			} catch (PulsarClientException e) {
-				throw new IllegalStateException("Cannot initialize pulsar admin", e);
-			}
-		}
-		return pulsarClient;
-	}
+    @Nonnull
+    public PulsarClient getClient() {
+        if (pulsarClient == null) {
+            try {
+                pulsarClient = new ClientBuilderImpl(pulsarConfiguration).build();
+            } catch (PulsarClientException e) {
+                throw new IllegalStateException("Cannot initialize pulsar admin", e);
+            }
+        }
+        return pulsarClient;
+    }
 
-	@Override
-	public SplitEnumerator<PulsarPartitionSplit, PulsarSourceEnumeratorState> createEnumerator(
-		SplitEnumeratorContext<PulsarPartitionSplit> enumContext) {
-		return new PulsarSourceEnumerator(
-			subscriber,
-			startOffsetInitializer,
-			stopCondition,
-			getPulsarAdmin(),
-			configuration,
-			enumContext,
-			Collections.emptyMap());
-	}
+    @Override
+    public SplitEnumerator<PulsarPartitionSplit, PulsarSourceEnumeratorState> createEnumerator(
+            SplitEnumeratorContext<PulsarPartitionSplit> enumContext) {
+        return new PulsarSourceEnumerator(
+                subscriber,
+                startOffsetInitializer,
+                stopCondition,
+                getPulsarAdmin(),
+                configuration,
+                enumContext,
+                Collections.emptyMap());
+    }
 
-	@Override
-	public SplitEnumerator<PulsarPartitionSplit, PulsarSourceEnumeratorState> restoreEnumerator(
-		SplitEnumeratorContext<PulsarPartitionSplit> enumContext,
-		PulsarSourceEnumeratorState checkpoint) {
-		return new PulsarSourceEnumerator(
-			subscriber,
-			startOffsetInitializer,
-			stopCondition,
-			getPulsarAdmin(),
-			configuration,
-			enumContext,
-			checkpoint.getCurrentAssignment());
-	}
+    @Override
+    public SplitEnumerator<PulsarPartitionSplit, PulsarSourceEnumeratorState> restoreEnumerator(
+            SplitEnumeratorContext<PulsarPartitionSplit> enumContext,
+            PulsarSourceEnumeratorState checkpoint) {
+        return new PulsarSourceEnumerator(
+                subscriber,
+                startOffsetInitializer,
+                stopCondition,
+                getPulsarAdmin(),
+                configuration,
+                enumContext,
+                checkpoint.getCurrentAssignment());
+    }
 
-	@Override
-	public SimpleVersionedSerializer<PulsarPartitionSplit> getSplitSerializer() {
-		return new PulsarPartitionSplitSerializer();
-	}
+    @Override
+    public SimpleVersionedSerializer<PulsarPartitionSplit> getSplitSerializer() {
+        return new PulsarPartitionSplitSerializer();
+    }
 
-	@Override
-	public SimpleVersionedSerializer<PulsarSourceEnumeratorState> getEnumeratorCheckpointSerializer() {
-		return new PulsarSourceEnumeratorStateSerializer();
-	}
+    @Override
+    public SimpleVersionedSerializer<PulsarSourceEnumeratorState> getEnumeratorCheckpointSerializer() {
+        return new PulsarSourceEnumeratorStateSerializer();
+    }
 }

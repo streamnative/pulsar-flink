@@ -1,12 +1,9 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+/**
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *	http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -38,63 +35,63 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  */
 @Internal
 public class PulsarPartitionSplit implements SourceSplit, Serializable, Cloneable {
-	private final Partition partition;
-	private final StartOffsetInitializer startOffsetInitializer;
-	private final StopCondition stopCondition;
-	@Nullable
-	private MessageId lastConsumedId;
+    private final Partition partition;
+    private final StartOffsetInitializer startOffsetInitializer;
+    private final StopCondition stopCondition;
+    @Nullable
+    private MessageId lastConsumedId;
 
-	public PulsarPartitionSplit(Partition partition, StartOffsetInitializer startOffsetInitializer, StopCondition stopCondition) {
-		this.partition = checkNotNull(partition);
-		this.startOffsetInitializer = checkNotNull(startOffsetInitializer);
-		this.stopCondition = checkNotNull(stopCondition);
-	}
+    public PulsarPartitionSplit(Partition partition, StartOffsetInitializer startOffsetInitializer, StopCondition stopCondition) {
+        this.partition = checkNotNull(partition);
+        this.startOffsetInitializer = checkNotNull(startOffsetInitializer);
+        this.stopCondition = checkNotNull(stopCondition);
+    }
 
-	public String getTopic() {
-		return partition.getTopic();
-	}
+    public String getTopic() {
+        return partition.getTopic();
+    }
 
-	public Partition getPartition() {
-		return partition;
-	}
+    public Partition getPartition() {
+        return partition;
+    }
 
-	public StartOffsetInitializer getStartOffsetInitializer() {
-		return startOffsetInitializer;
-	}
+    public StartOffsetInitializer getStartOffsetInitializer() {
+        return startOffsetInitializer;
+    }
 
-	public StopCondition getStopCondition() {
-		return stopCondition;
-	}
+    public StopCondition getStopCondition() {
+        return stopCondition;
+    }
 
-	public Collection<Range> getKeyRanges() {
-		return partition.getKeyRanges();
-	}
+    public Collection<Range> getKeyRanges() {
+        return partition.getKeyRanges();
+    }
 
-	@Nullable
-	public MessageId getLastConsumedId() {
-		return lastConsumedId;
-	}
+    @Nullable
+    public MessageId getLastConsumedId() {
+        return lastConsumedId;
+    }
 
-	public void setLastConsumedId(MessageId lastConsumedId) {
-		this.lastConsumedId = lastConsumedId;
-	}
+    public void setLastConsumedId(MessageId lastConsumedId) {
+        this.lastConsumedId = lastConsumedId;
+    }
 
-	@Override
-	public String splitId() {
-		return partition.toString();
-	}
+    @Override
+    public String splitId() {
+        return partition.toString();
+    }
 
-	@Override
-	public String toString() {
-		return String.format("[Partition: %s, lastConsumedId: %d]",	partition, lastConsumedId);
-	}
+    @Override
+    public String toString() {
+        return String.format("[Partition: %s, lastConsumedId: %d]", partition, lastConsumedId);
+    }
 
-	@Override
-	public PulsarPartitionSplit clone() {
-		try {
-			return (PulsarPartitionSplit) super.clone();
-		} catch (CloneNotSupportedException e) {
-			throw new IllegalStateException(e);
-		}
-	}
+    @Override
+    public PulsarPartitionSplit clone() {
+        try {
+            return (PulsarPartitionSplit) super.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new IllegalStateException(e);
+        }
+    }
 }

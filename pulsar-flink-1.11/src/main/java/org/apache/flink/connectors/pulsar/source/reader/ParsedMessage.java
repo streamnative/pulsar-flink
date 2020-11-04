@@ -1,12 +1,9 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+/**
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *	http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,49 +19,53 @@ import org.apache.pulsar.client.api.MessageId;
 import java.util.Objects;
 
 public class ParsedMessage<T> {
-	private final T payload;
-	private final MessageId messageId;
-	private final long timestamp;
+    private final T payload;
+    private final MessageId messageId;
+    private final long timestamp;
 
-	public ParsedMessage(T payload, MessageId messageId, long timestamp) {
-		this.payload = payload;
-		this.messageId = messageId;
-		this.timestamp = timestamp;
-	}
+    public ParsedMessage(T payload, MessageId messageId, long timestamp) {
+        this.payload = payload;
+        this.messageId = messageId;
+        this.timestamp = timestamp;
+    }
 
-	public T getPayload() {
-		return payload;
-	}
+    public T getPayload() {
+        return payload;
+    }
 
-	public MessageId getMessageId() {
-		return messageId;
-	}
+    public MessageId getMessageId() {
+        return messageId;
+    }
 
-	public long getTimestamp() {
-		return timestamp;
-	}
+    public long getTimestamp() {
+        return timestamp;
+    }
 
-	@Override
-	public boolean equals(Object o) {
-		if (this == o) return true;
-		if (o == null || getClass() != o.getClass()) return false;
-		final ParsedMessage<?> that = (ParsedMessage<?>) o;
-		return timestamp == that.timestamp &&
-				payload.equals(that.payload) &&
-				messageId.equals(that.messageId);
-	}
+    @Override
+    public boolean equals(Object o) {
+		if (this == o) {
+			return true;
+		}
+		if (o == null || getClass() != o.getClass()) {
+			return false;
+		}
+        final ParsedMessage<?> that = (ParsedMessage<?>) o;
+        return timestamp == that.timestamp &&
+                payload.equals(that.payload) &&
+                messageId.equals(that.messageId);
+    }
 
-	@Override
-	public int hashCode() {
-		return Objects.hash(payload, messageId, timestamp);
-	}
+    @Override
+    public int hashCode() {
+        return Objects.hash(payload, messageId, timestamp);
+    }
 
-	@Override
-	public String toString() {
-		return "ParsedMessage{" +
-				"payload=" + payload +
-				", messageId=" + messageId +
-				", timestamp=" + timestamp +
-				'}';
-	}
+    @Override
+    public String toString() {
+        return "ParsedMessage{" +
+                "payload=" + payload +
+                ", messageId=" + messageId +
+                ", timestamp=" + timestamp +
+                '}';
+    }
 }

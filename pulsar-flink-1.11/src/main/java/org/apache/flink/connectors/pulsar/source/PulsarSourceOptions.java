@@ -65,6 +65,9 @@ public class PulsarSourceOptions {
                     "If failure is enabled the application fails, else it logs a warning. " +
                     "A possible solution is to adjust the retention settings in pulsar or ignoring the check result.");
 
+    /**
+     * Enum for offsetVerification.
+     */
     public enum OffsetVerification {
         FAIL_ON_MISMATCH, WARN_ON_MISMATCH, IGNORE
     }

@@ -119,6 +119,9 @@ public interface StartOffsetInitializer extends Serializable {
         return new SpecifiedStartOffsetInitializer(offsets, defaultOffset, inclusive);
     }
 
+    /**
+     * config class to create consumer.
+     */
     class CreationConfiguration {
         private final ConsumerConfigurationData<byte[]> consumerConfigurationData;
         @Nullable

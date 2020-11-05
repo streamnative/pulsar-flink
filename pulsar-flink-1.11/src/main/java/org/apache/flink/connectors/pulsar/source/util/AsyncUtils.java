@@ -27,6 +27,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BiPredicate;
 
+/**
+ * A util class for asynchronous call of method.
+ */
 public class AsyncUtils {
     public static <T, R, C extends CompletableFuture<R>, E extends Exception> void parallelAsync(
             List<T> elements,

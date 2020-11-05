@@ -28,9 +28,15 @@ import static org.apache.flink.connectors.pulsar.source.StopCondition.StopResult
 import static org.apache.flink.connectors.pulsar.source.StopCondition.StopResult.STOP_AFTER;
 import static org.apache.flink.connectors.pulsar.source.StopCondition.StopResult.STOP_BEFORE;
 
+/**
+ * An interface to control when to stop.
+ */
 public interface StopCondition extends Serializable {
     StopResult shouldStop(org.apache.flink.connectors.pulsar.source.Partition partition, Message<?> message);
 
+    /**
+     * Enum for stop condition.
+     */
     enum StopResult {
         STOP_BEFORE, STOP_AFTER, DONT_STOP;
     }

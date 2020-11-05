@@ -57,6 +57,9 @@ import java.util.stream.Collectors;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.fooList;
 import static org.junit.Assert.assertTrue;
 
+/**
+ *  Unite test class for {@link PulsarSource}.
+ */
 public class PulsarSourceITCase extends PulsarTestBaseWithFlink {
 
     @Rule
@@ -166,6 +169,9 @@ public class PulsarSourceITCase extends PulsarTestBaseWithFlink {
         TestUtils.tryExecute(see, "start from specific");
     }
 
+    /**
+     * Util class to check if all message is exist.
+     */
     public static class CheckAllMessageExist extends RichFlatMapFunction<String, String> {
         private final Set<String> expected;
         private final int total;

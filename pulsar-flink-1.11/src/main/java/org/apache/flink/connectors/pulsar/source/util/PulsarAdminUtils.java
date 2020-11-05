@@ -20,6 +20,9 @@ import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.shade.org.apache.commons.lang3.StringUtils;
 
+/**
+ * A util class to help with the use of pulsarAdmin.
+ */
 public class PulsarAdminUtils {
 
     public static PulsarAdmin newAdminFromConf(String adminUrl, ClientConfigurationData clientConfigurationData) throws PulsarClientException {

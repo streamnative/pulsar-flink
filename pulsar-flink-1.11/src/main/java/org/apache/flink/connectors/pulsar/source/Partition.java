@@ -25,6 +25,9 @@ import java.util.Collections;
 import java.util.Objects;
 import java.util.stream.IntStream;
 
+/**
+ * A class to represent plusar partition.
+ */
 public class Partition implements Serializable {
     public static final Collection<Range> AUTO_KEY_RANGE = Collections.emptyList();
 

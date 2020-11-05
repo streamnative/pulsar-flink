@@ -49,6 +49,9 @@ import java.util.stream.Collectors;
 
 import static org.apache.flink.util.ComponentClosingUtils.closeWithTimeout;
 
+/**
+ * The enumerator class for pulsar source.
+ */
 public class PulsarSourceEnumerator implements SplitEnumerator<PulsarPartitionSplit, PulsarSourceEnumeratorState> {
 
     private static final Logger LOG = LoggerFactory.getLogger(PulsarSourceEnumerator.class);

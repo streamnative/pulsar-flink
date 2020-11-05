@@ -22,6 +22,9 @@ import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
 
+/**
+ * An Assigner for stickyKey.
+ */
 public interface StickyKeyAssigner extends Serializable {
     StickyKeyAssigner AUTO = (topic, pulsarAdmin) -> Collections.singletonList(org.apache.flink.connectors.pulsar.source.Partition.AUTO_KEY_RANGE);
 

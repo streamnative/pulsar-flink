@@ -18,6 +18,9 @@ import org.apache.flink.connectors.pulsar.source.StartOffsetInitializer;
 
 import org.apache.pulsar.client.api.MessageId;
 
+/**
+ * An implementation of {@link StartOffsetInitializer} for external subscription.
+ */
 public class ExternalSubscriptionStartOffsetInitializer implements StartOffsetInitializer {
     private final MessageId defaultOffset;
     private final String subscriptionName;

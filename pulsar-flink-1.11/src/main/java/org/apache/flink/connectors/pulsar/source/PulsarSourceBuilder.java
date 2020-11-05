@@ -40,6 +40,10 @@ import java.util.stream.Collectors;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
 
+/**
+ * The @builder class for {@link PulsarSource} to make it easier for the users to construct
+ * a {@link PulsarSource}.
+ */
 @PublicEvolving
 public class PulsarSourceBuilder<OUT> {
     private static final Logger LOG = LoggerFactory.getLogger(PulsarSourceBuilder.class);

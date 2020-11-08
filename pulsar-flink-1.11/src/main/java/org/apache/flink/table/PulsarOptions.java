@@ -25,7 +25,12 @@ import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
 import org.apache.flink.table.api.TableException;
 import org.apache.flink.table.api.ValidationException;
 import org.apache.flink.table.descriptors.PulsarValidator;
+import org.apache.flink.util.ExceptionUtils;
+
+import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.MessageId;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -34,7 +39,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** Option utils for pulsar table source sink. */
+/**
+ * Option utils for pulsar table source sink.
+ */
+@Slf4j
 public class PulsarOptions {
 	private PulsarOptions() {}
 
@@ -225,8 +233,6 @@ public class PulsarOptions {
 			ReadableConfig tableOptions,
 			String topic) {
 
-
-
 		final Map<String, MessageId> specificOffsets = new HashMap<>();
 		final List<String> subName = new ArrayList<>(1);
 		final StartupMode startupMode = tableOptions.getOptional(SCAN_STARTUP_MODE)
@@ -242,23 +248,18 @@ public class PulsarOptions {
 							// TODO
 							String specificOffsetsStrOpt = tableOptions.get(SCAN_STARTUP_SPECIFIC_OFFSETS);
 
-//							final List<Map<String, String>> offsetList = parseSpecificOffsets(
-//									specificOffsetsStrOpt,
-//									SCAN_STARTUP_SPECIFIC_OFFSETS.key());
-//							List<Map<String, String>> offsetList = new ArrayList<>();
-//							offsetList.forEach(kv -> {
-//								final String partition =
-//										tableOptions.get(kv.get(CONNECTOR_SPECIFIC_OFFSETS_PARTITION));
-//								final String offset =
-//										tableOptions.get(kv.get(CONNECTOR_SPECIFIC_OFFSETS_OFFSET));
-//								try {
-//									specificOffsets.put(partition, MessageId.fromByteArray(offset.getBytes()));
-//								} catch (IOException e) {
-//									LOGGER.error("Failed to decode message id from properties {}",
-//											ExceptionUtils.stringifyException(e));
-//									throw new RuntimeException(e);
-//								}
-//							});
+							final Map<Integer, String> offsetList = parseSpecificOffsets(
+									specificOffsetsStrOpt,
+									SCAN_STARTUP_SPECIFIC_OFFSETS.key());
+							offsetList.forEach((partition, offset) -> {
+								try {
+									specificOffsets.put(partition.toString(), MessageId.fromByteArray(offset.getBytes()));
+								} catch (IOException e) {
+									log.error("Failed to decode message id from properties {}",
+											ExceptionUtils.stringifyException(e));
+									throw new RuntimeException(e);
+								}
+							});
 							return StartupMode.SPECIFIC_OFFSETS;
 
 						case PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_EXTERNAL_SUB:
@@ -334,19 +335,19 @@ public class PulsarOptions {
 	 * <p>SpecificOffsets String format was given as following:
 	 *
 	 * <pre>
-	 *     scan.startup.specific-offsets = partition:0,offset:42;partition:1,offset:300
+	 *     scan.startup.specific-offsets = 42:1012:0;44:1011:1
 	 * </pre>
 	 *
 	 * @return SpecificOffsets with Map format, key is partition, and value is offset
 	 */
-	public static Map<Integer, Long> parseSpecificOffsets(
+	public static Map<Integer, String> parseSpecificOffsets(
 			String specificOffsetsStr,
 			String optionKey) {
-		final Map<Integer, Long> offsetMap = new HashMap<>();
+		final Map<Integer, String> offsetMap = new HashMap<>();
 		final String[] pairs = specificOffsetsStr.split(";");
 		final String validationExceptionMessage = String.format(
 				"Invalid properties '%s' should follow the format "
-						+ "'partition:0,offset:42;partition:1,offset:300', but is '%s'.",
+						+ "'42:1012:0;44:1011:1', but is '%s'.",
 				optionKey,
 				specificOffsetsStr);
 
@@ -359,19 +360,16 @@ public class PulsarOptions {
 				throw new ValidationException(validationExceptionMessage);
 			}
 
-			final String[] kv = pair.split(",");
-			if (kv.length != 2 ||
-					!kv[0].startsWith(PARTITION + ':') ||
-					!kv[1].startsWith(OFFSET + ':')) {
+			final String[] kv = pair.split(":");
+			if (kv.length != 3) {
 				throw new ValidationException(validationExceptionMessage);
 			}
 
-			String partitionValue = kv[0].substring(kv[0].indexOf(":") + 1);
-			String offsetValue = kv[1].substring(kv[1].indexOf(":") + 1);
+			String partitionValue = kv[2];
+			String offsetValue = pair;
 			try {
 				final Integer partition = Integer.valueOf(partitionValue);
-				final Long offset = Long.valueOf(offsetValue);
-				offsetMap.put(partition, offset);
+				offsetMap.put(partition, offsetValue);
 			} catch (NumberFormatException e) {
 				throw new ValidationException(validationExceptionMessage, e);
 			}

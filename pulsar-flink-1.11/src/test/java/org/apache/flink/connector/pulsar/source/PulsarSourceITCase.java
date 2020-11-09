@@ -18,16 +18,12 @@ import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.functions.RichFlatMapFunction;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
-import org.apache.flink.connectors.pulsar.source.MessageDeserializer;
-import org.apache.flink.connectors.pulsar.source.Partition;
-import org.apache.flink.connectors.pulsar.source.PulsarSource;
-import org.apache.flink.connectors.pulsar.source.PulsarSourceOptions;
-import org.apache.flink.connectors.pulsar.source.StopCondition;
-import org.apache.flink.connectors.pulsar.source.offset.SpecifiedStartOffsetInitializer;
+import org.apache.flink.connector.pulsar.source.offset.SpecifiedStartOffsetInitializer;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.pulsar.PulsarTestBaseWithFlink;
 import org.apache.flink.streaming.connectors.pulsar.SchemaData;
+import org.apache.flink.streaming.connectors.pulsar.internal.AvroDeser;
 import org.apache.flink.streaming.connectors.pulsar.internal.JsonDeser;
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper;
 import org.apache.flink.streaming.connectors.pulsar.testutils.SingletonStreamSink;
@@ -133,13 +129,45 @@ public class PulsarSourceITCase extends PulsarTestBaseWithFlink {
     }
 
     @Test(timeout = 40 * 1000L)
+    public void testAvro() throws Exception {
+        String topic = newTopic();
+
+        sendTypedMessages(topic, SchemaType.AVRO, fooList, Optional.empty(), SchemaData.Foo.class);
+
+        StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
+        see.setParallelism(1);
+        see.getConfig().disableSysoutLogging();
+        see.setRestartStrategy(RestartStrategies.noRestart());
+
+        PulsarSource<SchemaData.Foo> source = PulsarSource.builder()
+                .setTopics(topic)
+                .setDeserializer(MessageDeserializer.valueOnly(AvroDeser.of(SchemaData.Foo.class)))
+                .stopAt(StopCondition.stopAfterLast())
+                .configure(conf -> conf.set(PulsarSourceOptions.ADMIN_URL, adminUrl))
+                .configurePulsarClient(conf -> conf.setServiceUrl(serviceUrl))
+                .build();
+
+        DataStream<Integer> ds = see.fromSource(source, WatermarkStrategy.noWatermarks(), "source")
+                .map(SchemaData.Foo::getI);
+
+        ds.map(new FailingIdentityMapper<>(fooList.size()))
+                .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
+
+        try {
+            see.execute("test read data of POJO using JSON");
+        } catch (Exception e) {
+        }
+        SingletonStreamSink.compareWithList(
+                fooList.subList(0, fooList.size() - 1).stream().map(SchemaData.Foo::getI).map(Objects::toString).collect(Collectors.toList()));
+    }
+
+    @Test(timeout = 40 * 1000L)
     public void testStartFromSpecific() throws Exception {
         String topic = newTopic();
         List<MessageId> mids = sendTypedMessages(topic, SchemaType.STRING, Arrays.asList(
                 //  0,   1,   2, 3, 4, 5,  6,  7,  8
                 "-20", "-21", "-22", "1", "2", "3", "10", "11", "12"), Optional.empty());
         Set<String> expectedData = new HashSet<>();
-        //Map<String, Set<String>> expectedData = new HashMap<>();
         expectedData.addAll(Arrays.asList("2", "3", "10", "11", "12"));
 
         Map<Partition, MessageId> offset = new HashMap<>();

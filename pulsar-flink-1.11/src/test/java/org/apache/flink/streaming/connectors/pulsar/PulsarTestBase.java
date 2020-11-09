@@ -140,9 +140,6 @@ public abstract class PulsarTestBase extends TestLogger {
         if (pulsarAdmin != null) {
             pulsarAdmin.close();
         }
-        if (pulsarClient != null) {
-            pulsarClient.close();
-        }
 
         log.info("-------------------------------------------------------------------------");
         log.info("    PulsarTestBase finished");

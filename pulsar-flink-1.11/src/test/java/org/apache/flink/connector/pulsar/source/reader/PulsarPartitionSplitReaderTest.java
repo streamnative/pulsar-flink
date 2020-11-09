@@ -24,10 +24,7 @@ import org.apache.flink.connector.pulsar.source.StopCondition;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 import org.apache.flink.streaming.connectors.pulsar.PulsarTestBase;
 
-import org.apache.pulsar.client.admin.PulsarAdmin;
-import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.common.naming.TopicName;
-import org.apache.pulsar.shade.com.google.common.io.Closer;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -87,15 +84,9 @@ public class PulsarPartitionSplitReaderTest extends PulsarTestBase{
     // ------------------
 
     private PulsarPartitionSplitReader<Integer> createReader() {
-
-        PulsarClient pulsarClient = getPulsarClient();
-        PulsarAdmin pulsarAdmin = getPulsarAdmin();
-
         ExecutorService listenerExecutor = Executors.newScheduledThreadPool(
                 1,
                 r -> new Thread(r, "Pulsar listener executor"));
-        Closer splitCloser = Closer.create();
-        splitCloser.register(listenerExecutor::shutdownNow);
         PulsarPartitionSplitReader<Integer> reader = new PulsarPartitionSplitReader<>(
                 configuration,
                 consumerConfigurationData,
@@ -103,7 +94,6 @@ public class PulsarPartitionSplitReaderTest extends PulsarTestBase{
                 pulsarAdmin,
                 MessageDeserializer.valueOnly(new IntegerDeserializer()),
                 listenerExecutor);
-        splitCloser.register(reader);
         return reader;
     }
 

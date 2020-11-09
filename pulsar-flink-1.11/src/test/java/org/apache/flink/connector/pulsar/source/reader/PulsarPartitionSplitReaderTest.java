@@ -19,16 +19,15 @@ import org.apache.flink.connector.base.source.reader.splitreader.SplitsAddition;
 import org.apache.flink.connector.base.source.reader.splitreader.SplitsChange;
 import org.apache.flink.connector.pulsar.source.MessageDeserializer;
 import org.apache.flink.connector.pulsar.source.Partition;
-import org.apache.flink.connector.pulsar.source.PulsarSourceTestEnv;
 import org.apache.flink.connector.pulsar.source.StartOffsetInitializer;
 import org.apache.flink.connector.pulsar.source.StopCondition;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
+import org.apache.flink.streaming.connectors.pulsar.PulsarTestBase;
 
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.shade.com.google.common.io.Closer;
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -46,20 +45,14 @@ import static org.junit.Assert.assertNull;
 /**
  * Unit tests for {@link PulsarPartitionSplitReader}.
  */
-public class PulsarPartitionSplitReaderTest {
+public class PulsarPartitionSplitReaderTest extends PulsarTestBase{
     private static final String TOPIC1 = TopicName.get("topic1").toString();
     private static final String TOPIC2 = TopicName.get("topic2").toString();
 
     @BeforeClass
-    public static void setup() throws Throwable {
-        PulsarSourceTestEnv.setup();
-        PulsarSourceTestEnv.createTestTopic(TOPIC1, 5);
-        PulsarSourceTestEnv.createTestTopic(TOPIC2, 5);
-    }
-
-    @AfterClass
-    public static void tearDown() throws Exception {
-        PulsarSourceTestEnv.tearDown();
+    public static void setup() throws Exception {
+        pulsarAdmin = getPulsarAdmin();
+        pulsarClient = getPulsarClient();
     }
 
     @Test
@@ -95,8 +88,8 @@ public class PulsarPartitionSplitReaderTest {
 
     private PulsarPartitionSplitReader<Integer> createReader() {
 
-        PulsarClient pulsarClient = PulsarSourceTestEnv.getPulsarClient();
-        PulsarAdmin pulsarAdmin = PulsarSourceTestEnv.getPulsarAdmin();
+        PulsarClient pulsarClient = getPulsarClient();
+        PulsarAdmin pulsarAdmin = getPulsarAdmin();
 
         ExecutorService listenerExecutor = Executors.newScheduledThreadPool(
                 1,
@@ -104,8 +97,8 @@ public class PulsarPartitionSplitReaderTest {
         Closer splitCloser = Closer.create();
         splitCloser.register(listenerExecutor::shutdownNow);
         PulsarPartitionSplitReader<Integer> reader = new PulsarPartitionSplitReader<>(
-                PulsarSourceTestEnv.configuration,
-                PulsarSourceTestEnv.consumerConfigurationData,
+                configuration,
+                consumerConfigurationData,
                 pulsarClient,
                 pulsarAdmin,
                 MessageDeserializer.valueOnly(new IntegerDeserializer()),

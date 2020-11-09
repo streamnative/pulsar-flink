@@ -17,6 +17,11 @@ package org.apache.flink.streaming.connectors.pulsar;
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.TaskManagerOptions;
+import org.apache.flink.connector.pulsar.source.Partition;
+import org.apache.flink.connector.pulsar.source.StartOffsetInitializer;
+import org.apache.flink.connector.pulsar.source.StopCondition;
+import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
+import org.apache.flink.connector.pulsar.source.util.PulsarAdminUtils;
 import org.apache.flink.metrics.jmx.JMXReporter;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.streaming.util.TestStreamEnvironment;
@@ -26,21 +31,31 @@ import io.streamnative.tests.pulsar.service.PulsarServiceSpec;
 import io.streamnative.tests.pulsar.service.testcontainers.PulsarStandaloneContainerService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.NotImplementedException;
+import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
+import org.apache.pulsar.client.api.SubscriptionMode;
+import org.apache.pulsar.client.api.SubscriptionType;
 import org.apache.pulsar.client.api.schema.SchemaDefinition;
+import org.apache.pulsar.client.impl.ClientBuilderImpl;
+import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
+import org.apache.pulsar.client.impl.conf.ConsumerConfigurationData;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Start / stop a Pulsar cluster.
@@ -55,6 +70,16 @@ public abstract class PulsarTestBase extends TestLogger {
     protected static String adminUrl;
 
     protected static String zkUrl;
+
+    protected static Configuration configuration = new Configuration();
+
+    protected static ClientConfigurationData clientConfigurationData = new ClientConfigurationData();
+
+    protected static ConsumerConfigurationData<byte[]> consumerConfigurationData = new ConsumerConfigurationData<>();
+
+    protected static PulsarAdmin pulsarAdmin;
+
+    protected static PulsarClient pulsarClient;
 
     public static String getServiceUrl() {
         return serviceUrl;
@@ -87,6 +112,12 @@ public abstract class PulsarTestBase extends TestLogger {
                 adminUrl = uri.toString();
             }
         }
+
+        clientConfigurationData.setServiceUrl(serviceUrl);
+        consumerConfigurationData.setSubscriptionMode(SubscriptionMode.NonDurable);
+        consumerConfigurationData.setSubscriptionType(SubscriptionType.Exclusive);
+        consumerConfigurationData.setSubscriptionName("flink-" + UUID.randomUUID());
+
         zkUrl = pulsarService.getZkUrl();
         Thread.sleep(80 * 1000L);
 
@@ -105,6 +136,12 @@ public abstract class PulsarTestBase extends TestLogger {
 
         if (pulsarService != null) {
             pulsarService.stop();
+        }
+        if (pulsarAdmin != null) {
+            pulsarAdmin.close();
+        }
+        if (pulsarClient != null) {
+            pulsarClient.close();
         }
 
         log.info("-------------------------------------------------------------------------");
@@ -146,7 +183,7 @@ public abstract class PulsarTestBase extends TestLogger {
         Producer producer = null;
         List<MessageId> mids = new ArrayList<>();
 
-        try (PulsarClient client = PulsarClient.builder().serviceUrl(getServiceUrl()).build()){
+        try (PulsarClient client = PulsarClient.builder().serviceUrl(getServiceUrl()).build()) {
             switch (type) {
                 case BOOLEAN:
                     producer = (Producer<T>) client.newProducer(Schema.BOOL).topic(topicName).create();
@@ -206,14 +243,73 @@ public abstract class PulsarTestBase extends TestLogger {
                 mids.add(mid);
             }
 
-        } catch (Exception e){
+        } catch (Exception e) {
             log.error("message send failed", e);
         } finally {
-            if (producer != null){
+            if (producer != null) {
                 producer.flush();
                 producer.close();
             }
         }
         return mids;
+    }
+
+    // --------------------- public client related helpers ------------------
+
+    public static PulsarAdmin getPulsarAdmin() {
+        if (pulsarAdmin != null) {
+            return pulsarAdmin;
+        }
+        try {
+            return PulsarAdminUtils.newAdminFromConf(adminUrl, clientConfigurationData);
+        } catch (PulsarClientException e) {
+            throw new IllegalStateException("Cannot initialize pulsar admin", e);
+        }
+    }
+
+    public static PulsarClient getPulsarClient() {
+        if (pulsarClient != null) {
+            return pulsarClient;
+        }
+        try {
+            return new ClientBuilderImpl(clientConfigurationData).build();
+        } catch (PulsarClientException e) {
+            throw new IllegalStateException("Cannot initialize pulsar client", e);
+        }
+    }
+
+    // ------------------- topic information helpers -------------------
+
+    public static void createTestTopic(String topic, int numberOfPartitions) throws Exception {
+        if (numberOfPartitions == 0) {
+            pulsarAdmin.topics().createNonPartitionedTopic(topic);
+        } else {
+            pulsarAdmin.topics().createPartitionedTopic(topic, numberOfPartitions);
+        }
+
+    }
+
+    public static List<Partition> getPartitionsForTopic(String topic) throws Exception {
+        return pulsarClient.getPartitionsForTopic(topic).get()
+                .stream()
+                .map(pi -> new Partition(pi, Partition.AUTO_KEY_RANGE))
+                .collect(Collectors.toList());
+    }
+
+    public static Map<Integer, Map<String, PulsarPartitionSplit>> getSplitsByOwners(
+            final Collection<String> topics,
+            final int numSubtasks) throws Exception {
+        final Map<Integer, Map<String, PulsarPartitionSplit>> splitsByOwners = new HashMap<>();
+        for (String topic : topics) {
+            getPartitionsForTopic(topic).forEach(partition -> {
+                int ownerReader = Math.abs(partition.hashCode()) % numSubtasks;
+                PulsarPartitionSplit split = new PulsarPartitionSplit(
+                        partition, StartOffsetInitializer.earliest(), StopCondition.stopAfterLast());
+                splitsByOwners
+                        .computeIfAbsent(ownerReader, r -> new HashMap<>())
+                        .put(partition.toString(), split);
+            });
+        }
+        return splitsByOwners;
     }
 }

@@ -15,14 +15,11 @@
 package org.apache.flink.connector.pulsar.source.subscription;
 
 import org.apache.flink.connector.pulsar.source.Partition;
-import org.apache.flink.connector.pulsar.source.PulsarSourceTestEnv;
 import org.apache.flink.connector.pulsar.source.PulsarSubscriber;
 import org.apache.flink.connector.pulsar.source.StickyKeyAssigner;
+import org.apache.flink.streaming.connectors.pulsar.PulsarTestBase;
 
-import org.apache.pulsar.client.admin.PulsarAdmin;
-import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.common.naming.TopicName;
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -36,7 +33,7 @@ import static org.junit.Assert.assertEquals;
 /**
  * Unit tests for {@link org.apache.flink.connector.pulsar.source.PulsarSubscriber}.
  */
-public class PulsarSubscriberTest {
+public class PulsarSubscriberTest extends PulsarTestBase {
 	private static final String TOPIC1 = TopicName.get("topic1").toString();
 	private static final String TOPIC2 = TopicName.get("pattern-topic").toString();
 	private static final String TOPIC1_WITH_PARTITION = TopicName.get("topic1-partition-0").toString();
@@ -47,21 +44,13 @@ public class PulsarSubscriberTest {
 	private static final int NUM_PARTITIONS_PER_TOPIC = 10;
 	private static final Set<Partition> currentAssignment =
 			new HashSet<>(Arrays.asList(assignedPartition1, assignedPartition2, removedPartition));
-	private static PulsarAdmin pulsarAdmin;
-	private static PulsarClient pulsarClient;
 
 	@BeforeClass
-	public static void setup() throws Throwable {
-		PulsarSourceTestEnv.setup();
-		pulsarAdmin = PulsarSourceTestEnv.getPulsarAdmin();
-		pulsarClient = PulsarSourceTestEnv.getPulsarClient();
-		PulsarSourceTestEnv.createTestTopic(TOPIC1, NUM_PARTITIONS_PER_TOPIC);
-		PulsarSourceTestEnv.createTestTopic(TOPIC2, NUM_PARTITIONS_PER_TOPIC);
-	}
-
-	@AfterClass
-	public static void tearDown() throws Exception {
-		PulsarSourceTestEnv.tearDown();
+	public static void setup() throws Exception {
+		pulsarAdmin = getPulsarAdmin();
+		pulsarClient = getPulsarClient();
+		createTestTopic(TOPIC1, NUM_PARTITIONS_PER_TOPIC);
+		createTestTopic(TOPIC2, NUM_PARTITIONS_PER_TOPIC);
 	}
 
 	@Test
@@ -70,8 +59,8 @@ public class PulsarSubscriberTest {
 				PulsarSubscriber.getTopicListSubscriber(StickyKeyAssigner.AUTO, TOPIC1, TOPIC2);
 		PulsarSubscriber.PartitionChange change =
 				subscriber.getPartitionChanges(pulsarAdmin, currentAssignment);
-		Set<Partition> expectedNewPartitions = new HashSet<>(PulsarSourceTestEnv.getPartitionsForTopic(TOPIC1));
-		expectedNewPartitions.addAll(PulsarSourceTestEnv.getPartitionsForTopic(TOPIC2));
+		Set<Partition> expectedNewPartitions = new HashSet<>(getPartitionsForTopic(TOPIC1));
+		expectedNewPartitions.addAll(getPartitionsForTopic(TOPIC2));
 		expectedNewPartitions.remove(assignedPartition1);
 		expectedNewPartitions.remove(assignedPartition2);
 		assertEquals(expectedNewPartitions, change.getNewPartitions());

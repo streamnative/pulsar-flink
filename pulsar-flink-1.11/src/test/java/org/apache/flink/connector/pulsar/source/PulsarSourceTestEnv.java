@@ -14,7 +14,6 @@
 
 package org.apache.flink.connector.pulsar.source;
 
-import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 import org.apache.flink.connector.pulsar.source.util.PulsarAdminUtils;
 import org.apache.flink.streaming.connectors.pulsar.PulsarTestBase;
@@ -22,45 +21,20 @@ import org.apache.flink.streaming.connectors.pulsar.PulsarTestBase;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
-import org.apache.pulsar.client.api.SubscriptionMode;
-import org.apache.pulsar.client.api.SubscriptionType;
 import org.apache.pulsar.client.impl.ClientBuilderImpl;
-import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
-import org.apache.pulsar.client.impl.conf.ConsumerConfigurationData;
 
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
  * Base class for PulsarSource unit tests.
  */
 public class PulsarSourceTestEnv extends PulsarTestBase {
-    public static Configuration configuration = new Configuration();
-    public static ClientConfigurationData clientConfigurationData = new ClientConfigurationData();
-    public static ConsumerConfigurationData<byte[]> consumerConfigurationData = new ConsumerConfigurationData<>();
     private static PulsarAdmin pulsarAdmin;
     private static PulsarClient pulsarClient;
-
-    public static void setup() throws Throwable {
-        prepare();
-        configuration.set(PulsarSourceOptions.ADMIN_URL, adminUrl);
-        clientConfigurationData.setServiceUrl(serviceUrl);
-        consumerConfigurationData.setSubscriptionMode(SubscriptionMode.NonDurable);
-        consumerConfigurationData.setSubscriptionType(SubscriptionType.Exclusive);
-        consumerConfigurationData.setSubscriptionName("flink-" + UUID.randomUUID());
-        pulsarAdmin = getPulsarAdmin();
-        pulsarClient = getPulsarClient();
-    }
-
-    public static void tearDown() throws Exception {
-        pulsarAdmin.close();
-        pulsarClient.close();
-        shutDownServices();
-    }
 
     // --------------------- public client related helpers ------------------
 

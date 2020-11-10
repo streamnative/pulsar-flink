@@ -15,6 +15,7 @@
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.pulsar.client.api.Range;
 
 import java.util.Arrays;
 import java.util.List;
@@ -66,31 +67,7 @@ public class SourceSinkUtils {
                 }
             }
         }
-        validKeyHashRange(caseInsensitiveParams);
         return caseInsensitiveParams;
-    }
-
-    private static void validKeyHashRange(Map<String, String> caseInsensitiveParams) {
-        String keyHashRange = caseInsensitiveParams.get(PulsarOptions.KEY_HASH_RANGE_KEY);
-        if (StringUtils.isBlank(keyHashRange)) {
-            return;
-        }
-        if (!keyHashRange.contains(":")) {
-            throw new IllegalArgumentException(
-                    "Use the value range of `key-hash-range` like `0:65535`");
-        }
-        final String[] strings = keyHashRange.split(":");
-        if (strings.length != 2 || !StringUtils.isNumeric(strings[0]) || !StringUtils.isNumeric(strings[1])) {
-            throw new IllegalArgumentException(
-                    "Use the value range of `key-hash-range` like `0:65535`");
-        }
-
-        final int start = Integer.parseInt(strings[0]);
-        final int end = Integer.parseInt(strings[1]);
-        if (start >= SerializableRange.fullRangeStart && start <= end && end <= SerializableRange.fullRangeEnd) {
-            throw new IllegalArgumentException(
-                    "the value range of `key-hash-range` is `0:65535`");
-        }
     }
 
     public static boolean belongsTo(TopicRange topicRange, int numParallelSubtasks, int index) {
@@ -155,4 +132,35 @@ public class SourceSinkUtils {
                 .collect(Collectors.toMap(k -> k.substring(PulsarOptions.PULSAR_PRODUCER_OPTION_KEY_PREFIX.length()), k -> parameters.get(k)));
     }
 
+    /**
+     * Get shard information of the task
+     * Fragmentation rules,
+     * Can be divided equally: each subtask handles the same range of tasks
+     * Not evenly divided: each subtask first processes the tasks in the same range,
+     * and the remainder part is added to the tasks starting at index 0 until it is used up.
+     *
+     * @param countOfSubTasks total subtasks
+     * @param indexOfSubTasks current subtask index on subtasks
+     * @return task range
+     */
+    public static Range distributeRange(int countOfSubTasks, int indexOfSubTasks) {
+        int countOfKey = SerializableRange.fullRangeEnd;
+        int part = countOfKey / countOfSubTasks;
+        int remainder = countOfKey % countOfSubTasks;
+
+        int subTasksStartKey, subTasksEndKey;
+        if (indexOfSubTasks < remainder) {
+            part++;
+            subTasksStartKey = part * indexOfSubTasks;
+            subTasksEndKey = part * indexOfSubTasks + part;
+        } else {
+            subTasksStartKey = (part + 1) * remainder + (indexOfSubTasks - remainder) * part;
+            subTasksEndKey = (part + 1) * remainder + (indexOfSubTasks - remainder) * part + part;
+        }
+
+        if (indexOfSubTasks != 0) {
+            subTasksStartKey++;
+        }
+        return Range.of(subTasksStartKey, subTasksEndKey);
+    }
 }

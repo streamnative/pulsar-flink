@@ -90,6 +90,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -347,6 +348,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
 
         do {
             Map<String, MessageId> ids = getCommittedOffsets(topics, subName);
+            log.info("expectedIds : [{}]\nids : [{}]", expectedIds, ids);
             if (roughEquals(ids, expectedIds)) {
                 gotLast = true;
             } else {
@@ -1075,7 +1077,14 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
                 MessageId mid = null;
 
                 try {
-                    PersistentTopicInternalStats.CursorStats cursor = admin.topics().getInternalStats(topic).cursors.get(subName);
+                    // In key-shared mode, filter out the largest cursor
+                    PersistentTopicInternalStats.CursorStats cursor = admin.topics().getInternalStats(topic).cursors
+                            .entrySet()
+                            .stream()
+                            .filter(e -> e.getKey().startsWith(subName))
+                            .map(Map.Entry::getValue)
+                            .max(Comparator.comparing(a -> a.readPosition))
+                            .orElse(null);
                     if (cursor != null) {
                         String[] le = cursor.readPosition.split(":");
                         long ledgerId = Long.parseLong(le[0]);
@@ -1084,12 +1093,13 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
                     }
                 } catch (PulsarAdminException e) {
                     // do nothing
+                    log.warn("getCommittedOffsets fail", e);
                 }
                 results.put(topic, mid);
             }
             return results;
         } catch (PulsarClientException e) {
-            e.printStackTrace();
+            log.warn("getCommittedOffsets fail", e);
         }
         return null;
     }

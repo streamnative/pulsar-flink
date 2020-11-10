@@ -33,6 +33,7 @@ import org.apache.pulsar.client.impl.schema.ShortSchema;
 import org.apache.pulsar.client.impl.schema.TimeSchema;
 import org.apache.pulsar.client.impl.schema.TimestampSchema;
 import org.apache.pulsar.client.impl.schema.generic.GenericSchemaImpl;
+import org.apache.pulsar.client.internal.DefaultImplementation;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.protocol.schema.PostSchemaPayload;
 import org.apache.pulsar.common.schema.SchemaInfo;
@@ -69,7 +70,7 @@ public class SchemaUtils {
         if (existingSchema == null) {
             PostSchemaPayload pl = new PostSchemaPayload();
             pl.setType(schemaInfo.getType().name());
-            pl.setSchema(new String(schemaInfo.getSchema(), StandardCharsets.UTF_8));
+            pl.setSchema(getSchemaString(schemaInfo));
             pl.setProperties(schemaInfo.getProperties());
 
             try {
@@ -89,6 +90,19 @@ public class SchemaUtils {
         } else if (!existingSchema.equals(schemaInfo) && !compatibleSchema(existingSchema, schemaInfo)) {
             throw new RuntimeException("Writing to a topic which have incompatible schema");
         }
+    }
+
+    private static String getSchemaString(SchemaInfo schemaInfo) {
+        final byte[] schemaData = schemaInfo.getSchema();
+        if (null == schemaData){
+            return null;
+        }
+        if (schemaInfo.getType() == SchemaType.KEY_VALUE){
+            return DefaultImplementation.convertKeyValueSchemaInfoDataToString(
+                    DefaultImplementation.decodeKeyValueSchemaInfo(schemaInfo)
+            );
+        }
+        return new String(schemaData, StandardCharsets.UTF_8);
     }
 
     public static boolean compatibleSchema(SchemaInfo s1, SchemaInfo s2) {

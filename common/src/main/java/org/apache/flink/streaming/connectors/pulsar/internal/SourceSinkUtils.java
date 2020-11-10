@@ -144,23 +144,22 @@ public class SourceSinkUtils {
      * @return task range
      */
     public static Range distributeRange(int countOfSubTasks, int indexOfSubTasks) {
-        int countOfKey = SerializableRange.fullRangeEnd;
+        int countOfKey = SerializableRange.fullRangeEnd + 1;
         int part = countOfKey / countOfSubTasks;
         int remainder = countOfKey % countOfSubTasks;
 
         int subTasksStartKey, subTasksEndKey;
         if (indexOfSubTasks < remainder) {
             part++;
-            subTasksStartKey = part * indexOfSubTasks;
-            subTasksEndKey = part * indexOfSubTasks + part;
+            subTasksStartKey = indexOfSubTasks * part;
+            subTasksEndKey = indexOfSubTasks * part + part;
         } else {
-            subTasksStartKey = (part + 1) * remainder + (indexOfSubTasks - remainder) * part;
-            subTasksEndKey = (part + 1) * remainder + (indexOfSubTasks - remainder) * part + part;
+            subTasksStartKey = indexOfSubTasks * part + remainder;
+            subTasksEndKey = indexOfSubTasks * part + part + remainder;
         }
 
-        if (indexOfSubTasks != 0) {
-            subTasksStartKey++;
-        }
+        subTasksEndKey--;
+
         return Range.of(subTasksStartKey, subTasksEndKey);
     }
 }

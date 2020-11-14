@@ -23,6 +23,7 @@ import org.apache.flink.api.connector.source.SourceReaderContext;
 import org.apache.flink.api.connector.source.SplitEnumerator;
 import org.apache.flink.api.connector.source.SplitEnumeratorContext;
 import org.apache.flink.api.java.typeutils.ResultTypeQueryable;
+import org.apache.flink.batch.connectors.pulsar.CachedClients;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.base.source.reader.RecordsWithSplitIds;
 import org.apache.flink.connector.base.source.reader.splitreader.SplitReader;
@@ -39,6 +40,7 @@ import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplitSerializer;
 import org.apache.flink.connector.pulsar.source.util.PulsarAdminUtils;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
+import org.apache.flink.streaming.connectors.pulsar.internal.CachedPulsarClient;
 
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.PulsarClient;
@@ -51,6 +53,7 @@ import org.apache.pulsar.shade.com.google.common.io.Closer;
 import javax.annotation.Nonnull;
 
 import java.util.Collections;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
@@ -171,9 +174,9 @@ public class PulsarSource<OUT>
     public PulsarClient getClient() {
         if (pulsarClient == null) {
             try {
-                pulsarClient = new ClientBuilderImpl(pulsarConfiguration).build();
-            } catch (PulsarClientException e) {
-                throw new IllegalStateException("Cannot initialize pulsar admin", e);
+                pulsarClient = CachedPulsarClient.getOrCreate(pulsarConfiguration);
+            } catch (ExecutionException e) {
+                throw new IllegalStateException("Cannot initialize pulsar client", e);
             }
         }
         return pulsarClient;

@@ -46,6 +46,9 @@ import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CO
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_EXTERNAL_SUB_DEFAULT_OFFSET;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_EARLIEST;
 
+/**
+ * pulsar dynamic table source.
+ */
 public class PulsarDynamicTableSource implements ScanTableSource {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PulsarDynamicTableSource.class);
@@ -110,7 +113,7 @@ public class PulsarDynamicTableSource implements ScanTableSource {
         this.topic = topic;
         this.serviceUrl = serviceUrl;
         this.adminUrl = adminUrl;
-        properties.computeIfAbsent("topic",(k) -> topic);
+        properties.computeIfAbsent("topic", (k) -> topic);
         this.properties = properties;
         this.startupOptions = startupOptions;
     }
@@ -125,7 +128,6 @@ public class PulsarDynamicTableSource implements ScanTableSource {
 
         DeserializationSchema<RowData> deserializationSchema =
                 this.decodingFormat.createRuntimeDecoder(runtimeProviderContext, this.outputDataType);
-
 
         FlinkPulsarSource<RowData> source = new FlinkPulsarSource<>(
                 adminUrl,
@@ -154,7 +156,6 @@ public class PulsarDynamicTableSource implements ScanTableSource {
         }
         return SourceFunctionProvider.of(source, false);
     }
-
 
     @Override
     public DynamicTableSource copy() {
@@ -195,7 +196,6 @@ public class PulsarDynamicTableSource implements ScanTableSource {
         }
         return out;
     }
-
 
     private boolean checkForCustomFieldMapping(DescriptorProperties descriptorProperties, TableSchema schema) {
         final Map<String, String> fieldMapping = SchemaValidator.deriveFieldMapping(

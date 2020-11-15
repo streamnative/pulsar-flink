@@ -30,6 +30,9 @@ import org.apache.flink.util.Preconditions;
 import java.util.Optional;
 import java.util.Properties;
 
+/**
+ * pulsar dynamic table sink.
+ */
 public class PulsarDynamicTableSink implements DynamicTableSink {
 
     /**

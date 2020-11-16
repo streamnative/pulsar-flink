@@ -64,12 +64,6 @@ public class PulsarOptions {
 			.noDefaultValue()
 			.withDescription("Required pulsar admin connection string");
 
-	public static final ConfigOption<String> PROPS_GROUP_ID = ConfigOptions
-			.key("properties.group.id")
-			.stringType()
-			.noDefaultValue()
-			.withDescription("Required consumer group in Kafka consumer, no need for Kafka producer");
-
 	// --------------------------------------------------------------------------------------------
 	// Scan specific options
 	// --------------------------------------------------------------------------------------------
@@ -103,23 +97,23 @@ public class PulsarOptions {
 			.key("pulsar.reader.readerName")
 			.stringType()
 			.noDefaultValue()
-			.withDescription("Optional timestamp used in case of \"timestamp\" startup mode");
+			.withDescription("Optional pulsar reader readerName of \"readerName\"");
 	public static final ConfigOption<String> PULSAR_READER_SUBSCRIPTION_ROLE_PREFIX = ConfigOptions
 			.key("pulsar.reader.subscriptionRolePrefix")
 			.stringType()
 			.noDefaultValue()
-			.withDescription("Optional timestamp used in case of \"timestamp\" startup mode");
+			.withDescription("Optional pulsar reader subscriptionRolePrefix of \"subscriptionRolePrefix\"");
 	public static final ConfigOption<String> PULSAR_READER_RECEIVER_QUEUE_SIZE = ConfigOptions
 			.key("pulsar.reader.receiver-queue-size")
 			.stringType()
 			.noDefaultValue()
-			.withDescription("Optional timestamp used in case of \"timestamp\" startup mode");
+			.withDescription("Optional pulsar reader receiverQueueSize of \"receiver-queue-size\"");
 
 	public static final ConfigOption<String> PARTITION_DISCOVERY_INTERVAL_MILLIS = ConfigOptions
 			.key("partition.discovery.interval-millis")
 			.stringType()
 			.noDefaultValue()
-			.withDescription("Optional timestamp used in case of \"timestamp\" startup mode");
+			.withDescription("Optional discovery topic interval of \"interval-millis\" millis");
 
 	// --------------------------------------------------------------------------------------------
 	// Sink specific options
@@ -130,9 +124,9 @@ public class PulsarOptions {
 			.stringType()
 			.noDefaultValue()
 			.withDescription("Optional output partitioning from Flink's partitions\n"
-					+ "into Kafka's partitions valid enumerations are\n"
-					+ "\"fixed\": (each Flink partition ends up in at most one Kafka partition),\n"
-					+ "\"round-robin\": (a Flink partition is distributed to Kafka partitions round-robin)\n"
+					+ "into pulsar's partitions valid enumerations are\n"
+					+ "\"fixed\": (each Flink partition ends up in at most one pulsar partition),\n"
+					+ "\"round-robin\": (a Flink partition is distributed to pulsar partitions round-robin)\n"
 					+ "\"custom class name\": (use a custom FlinkKafkaPartitioner subclass)");
 
 	// --------------------------------------------------------------------------------------------
@@ -159,7 +153,7 @@ public class PulsarOptions {
 			SINK_PARTITIONER_VALUE_FIXED,
 			SINK_PARTITIONER_VALUE_ROUND_ROBIN));
 
-	// Prefix for Kafka specific properties.
+	// Prefix for pulsar specific properties.
 	public static final String PROPERTIES_PREFIX = "properties.";
 
 	// Other keywords.
@@ -276,55 +270,6 @@ public class PulsarOptions {
 
 	}
 
-//	private static void buildSpecificOffsets(
-//			ReadableConfig tableOptions,
-//			String topic,
-//			Map<KafkaTopicPartition, Long> specificOffsets) {
-//		String specificOffsetsStrOpt = tableOptions.get(SCAN_STARTUP_SPECIFIC_OFFSETS);
-//		final Map<Integer, Long> offsetMap = parseSpecificOffsets(
-//				specificOffsetsStrOpt,
-//				SCAN_STARTUP_SPECIFIC_OFFSETS.key());
-//		offsetMap.forEach((partition, offset) -> {
-//			final KafkaTopicPartition topicPartition = new KafkaTopicPartition(topic, partition);
-//			specificOffsets.put(topicPartition, offset);
-//		});
-//	}
-//
-//	public static Properties getKafkaProperties(Map<String, String> tableOptions) {
-//		final Properties kafkaProperties = new Properties();
-//
-//		if (hasKafkaClientProperties(tableOptions)) {
-//			tableOptions.keySet().stream()
-//					.filter(key -> key.startsWith(PROPERTIES_PREFIX))
-//					.forEach(key -> {
-//						final String value = tableOptions.get(key);
-//						final String subKey = key.substring((PROPERTIES_PREFIX).length());
-//						kafkaProperties.put(subKey, value);
-//					});
-//		}
-//		return kafkaProperties;
-//	}
-//
-//	/**
-//	 * The partitioner can be either "fixed", "round-robin" or a customized partitioner full class name.
-//	 */
-//	public static Optional<FlinkKafkaPartitioner<RowData>> getFlinkKafkaPartitioner(
-//			ReadableConfig tableOptions,
-//			ClassLoader classLoader) {
-//		return tableOptions.getOptional(SINK_PARTITIONER)
-//				.flatMap((String partitioner) -> {
-//					switch (partitioner) {
-//					case SINK_PARTITIONER_VALUE_FIXED:
-//						return Optional.of(new FlinkFixedPartitioner<>());
-//					case SINK_PARTITIONER_VALUE_ROUND_ROBIN:
-//						return Optional.empty();
-//					// Default fallback to full class name of the partitioner.
-//					default:
-//						return Optional.of(initializePartitioner(partitioner, classLoader));
-//					}
-//				});
-//	}
-
 	/**
 	 * Parses SpecificOffsets String to Map.
 	 *
@@ -343,7 +288,7 @@ public class PulsarOptions {
 		final String[] pairs = specificOffsetsStr.split(";");
 		final String validationExceptionMessage = String.format(
 				"Invalid properties '%s' should follow the format "
-						+ "'42:1012:0;44:1011:1', but is '%s'.",
+						+ "messageId with partition'42:1012:0;44:1011:1', but is '%s'.",
 				optionKey,
 				specificOffsetsStr);
 
@@ -372,33 +317,6 @@ public class PulsarOptions {
 		}
 		return offsetMap;
 	}
-
-	/** Decides if the table options contains Kafka client properties that start with prefix 'properties'. */
-	private static boolean hasKafkaClientProperties(Map<String, String> tableOptions) {
-		return tableOptions.keySet().stream().anyMatch(k -> k.startsWith(PROPERTIES_PREFIX));
-	}
-
-//	/**
-//	 * Returns a class value with the given class name.
-//	 */
-//	private static <T> FlinkKafkaPartitioner<T> initializePartitioner(String name, ClassLoader classLoader) {
-//		try {
-//			Class<?> clazz = Class.forName(name, true, classLoader);
-//			if (!FlinkKafkaPartitioner.class.isAssignableFrom(clazz)) {
-//				throw new ValidationException(
-//						String.format("Sink partitioner class '%s' should extend from the required class %s",
-//								name,
-//								FlinkKafkaPartitioner.class.getName()));
-//			}
-//			@SuppressWarnings("unchecked")
-//			final FlinkKafkaPartitioner<T> kafkaPartitioner = InstantiationUtil.instantiate(name, FlinkKafkaPartitioner.class, classLoader);
-//
-//			return kafkaPartitioner;
-//		} catch (ClassNotFoundException | FlinkException e) {
-//			throw new ValidationException(
-//					String.format("Could not find and instantiate partitioner class '%s'", name), e);
-//		}
-//	}
 
 	// --------------------------------------------------------------------------------------------
 	// Inner classes

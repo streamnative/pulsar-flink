@@ -41,19 +41,19 @@ public class PulsarDynamicTableSink implements DynamicTableSink {
     protected final DataType consumedDataType;
 
     /**
-     * The Kafka topic to write to.
+     * The pulsar topic to write to.
      */
     protected final String topic;
     protected final String serviceUrl;
     protected final String adminUrl;
 
     /**
-     * Properties for the Kafka producer.
+     * Properties for the pulsar producer.
      */
     protected final Properties properties;
 
     /**
-     * Sink format for encoding records to Kafka.
+     * Sink format for encoding records to pulsar.
      */
     protected final EncodingFormat<SerializationSchema<RowData>> encodingFormat;
 
@@ -83,7 +83,7 @@ public class PulsarDynamicTableSink implements DynamicTableSink {
                 this.encodingFormat.createRuntimeEncoder(context, this.consumedDataType);
         final SinkFunction<RowData> pulsarSink = createPulsarSink(
                 this.topic,
-                properties,
+                this.properties,
                 serializationSchema);
 
         return SinkFunctionProvider.of(pulsarSink);

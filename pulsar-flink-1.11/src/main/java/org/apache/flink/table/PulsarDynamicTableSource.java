@@ -33,25 +33,22 @@ import org.apache.flink.table.factories.DeserializationSchemaFactory;
 import org.apache.flink.table.factories.TableFactoryService;
 import org.apache.flink.table.types.DataType;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 
-import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CONNECTOR;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_EXTERNAL_SUB_DEFAULT_OFFSET;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_EARLIEST;
 
 /**
  * pulsar dynamic table source.
  */
+@Slf4j
 public class PulsarDynamicTableSource implements ScanTableSource {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(PulsarDynamicTableSource.class);
 
     // --------------------------------------------------------------------------------------------
     // Common attributes
@@ -63,31 +60,31 @@ public class PulsarDynamicTableSource implements ScanTableSource {
     // --------------------------------------------------------------------------------------------
 
     /**
-     * Scan format for decoding records from Kafka.
+     * Scan format for decoding records from Pulsar.
      */
     protected final DecodingFormat<DeserializationSchema<RowData>> decodingFormat;
 
     // --------------------------------------------------------------------------------------------
-    // Kafka-specific attributes
+    // Pulsar-specific attributes
     // --------------------------------------------------------------------------------------------
 
     /**
-     * The Kafka topic to consume.
+     * The Pulsar topic to consume.
      */
     protected final String topic;
 
     /**
-     * The Kafka topic to consume.
+     * The Pulsar topic to consume.
      */
     protected final String serviceUrl;
 
     /**
-     * The Kafka topic to consume.
+     * The Pulsar topic to consume.
      */
     protected final String adminUrl;
 
     /**
-     * Properties for the Kafka consumer.
+     * Properties for the Pulsar consumer.
      */
     protected final Properties properties;
 
@@ -181,22 +178,6 @@ public class PulsarDynamicTableSource implements ScanTableSource {
         return clientConf;
     }
 
-    private static Properties removeConnectorPrefix(Properties in) {
-        String connectorPrefix = CONNECTOR + ".";
-
-        Properties out = new Properties();
-        for (Map.Entry<Object, Object> kv : in.entrySet()) {
-            String k = (String) kv.getKey();
-            String v = (String) kv.getValue();
-            if (k.startsWith(connectorPrefix)) {
-                out.put(k.substring(connectorPrefix.length()), v);
-            } else {
-                out.put(k, v);
-            }
-        }
-        return out;
-    }
-
     private boolean checkForCustomFieldMapping(DescriptorProperties descriptorProperties, TableSchema schema) {
         final Map<String, String> fieldMapping = SchemaValidator.deriveFieldMapping(
                 descriptorProperties,
@@ -230,7 +211,7 @@ public class PulsarDynamicTableSource implements ScanTableSource {
                             this.getClass().getClassLoader());
             return formatFactory.createDeserializationSchema(properties);
         } catch (Exception e) {
-            LOGGER.warn("get deserializer from properties failed. using pulsar inner schema instead.");
+            log.warn("get deserializer from properties failed. using pulsar inner schema instead.");
             return null;
         }
     }

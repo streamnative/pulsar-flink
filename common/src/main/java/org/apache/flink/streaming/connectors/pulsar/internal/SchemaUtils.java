@@ -156,7 +156,7 @@ public class SchemaUtils {
         }
     }
 
-    static GenericSchema<GenericRecord> avroSchema2PulsarSchema(Schema avroSchema) {
+    public static GenericSchema<GenericRecord> avroSchema2PulsarSchema(Schema avroSchema) {
         byte[] schemaBytes = avroSchema.toString().getBytes(StandardCharsets.UTF_8);
         SchemaInfo si = new SchemaInfo();
         si.setName("Avro");

@@ -583,22 +583,23 @@ public class JacksonRecordParser {
         }
     }
 
-    interface BiFunctionWithException<T, U, R> {
+    public interface BiFunctionWithException<T, U, R> {
         R apply(T t, U u) throws BadRecordException;
     }
 
-    static class FailureSafeRecordParser {
+    public static class FailureSafeRecordParser {
         private final BiFunctionWithException<String, Row, Row> rawParser;
         private final ParseMode mode;
         private final FieldsDataType schema;
 
-        FailureSafeRecordParser(BiFunctionWithException<String, Row, Row> rawParser, ParseMode mode, FieldsDataType schema) {
+        public FailureSafeRecordParser(BiFunctionWithException<String, Row, Row> rawParser, ParseMode mode,
+                                       FieldsDataType schema) {
             this.rawParser = rawParser;
             this.mode = mode;
             this.schema = schema;
         }
 
-        Row parse(String input, Row row) {
+        public Row parse(String input, Row row) {
             try {
                 return rawParser.apply(input, row);
             } catch (BadRecordException e) {
@@ -615,7 +616,7 @@ public class JacksonRecordParser {
         }
     }
 
-    static class BadRecordException extends Exception {
+    public static class BadRecordException extends Exception {
         public String record;
 
         public BadRecordException(String record, Exception e) {

@@ -14,21 +14,16 @@
 
 package org.apache.flink.streaming.connectors.pulsar;
 
-import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.common.JobStatus;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.RichFlatMapFunction;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
-import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.api.common.typeutils.TypeSerializer;
-import org.apache.flink.api.scala.typeutils.Types;
+import org.apache.flink.common.IntegerDeserializer;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.core.memory.DataInputView;
-import org.apache.flink.core.memory.DataInputViewStreamWrapper;
 import org.apache.flink.runtime.client.JobCancellationException;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -75,11 +70,10 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -949,7 +943,14 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
                 MessageId mid = null;
 
                 try {
-                    PersistentTopicInternalStats.CursorStats cursor = admin.topics().getInternalStats(topic).cursors.get(subName);
+                    // In key-shared mode, filter out the largest cursor
+                    PersistentTopicInternalStats.CursorStats cursor = admin.topics().getInternalStats(topic).cursors
+                            .entrySet()
+                            .stream()
+                            .filter(e -> e.getKey().startsWith(subName))
+                            .map(Map.Entry::getValue)
+                            .max(Comparator.comparing(a -> a.readPosition))
+                            .orElse(null);
                     if (cursor != null) {
                         String[] le = cursor.readPosition.split(":");
                         long ledgerId = Long.parseLong(le[0]);
@@ -1190,35 +1191,6 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
 
         public Throwable getError() {
             return error;
-        }
-    }
-
-    private static class IntegerDeserializer implements DeserializationSchema<Integer> {
-        private final TypeInformation<Integer> ti;
-        private final TypeSerializer<Integer> ser;
-
-        public IntegerDeserializer() {
-            this.ti = Types.INT();
-            this.ser = ti.createSerializer(new ExecutionConfig());
-        }
-
-        @Override
-        public Integer deserialize(byte[] message) throws IOException {
-
-            DataInputView in = new DataInputViewStreamWrapper(new ByteArrayInputStream(message));
-            Integer i = ser.deserialize(in);
-
-            return i;
-        }
-
-        @Override
-        public boolean isEndOfStream(Integer nextElement) {
-            return false;
-        }
-
-        @Override
-        public TypeInformation<Integer> getProducedType() {
-            return ti;
         }
     }
 

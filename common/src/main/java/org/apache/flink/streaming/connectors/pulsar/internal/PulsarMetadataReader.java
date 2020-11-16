@@ -16,11 +16,11 @@ package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.ListUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.PulsarClientException;
+import org.apache.pulsar.client.api.Range;
 import org.apache.pulsar.client.impl.MessageIdImpl;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.client.impl.schema.BytesSchema;
@@ -44,7 +44,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.KEY_HASH_RANGE_KEY;
+import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.ENABLE_KEY_HASH_RANGE_KEY;
 
 /**
  * A Helper class that talks to Pulsar Admin API.
@@ -94,16 +94,19 @@ public class PulsarMetadataReader implements AutoCloseable {
     }
 
     private SerializableRange buildRange(Map<String, String> caseInsensitiveParams) {
+        if (numParallelSubtasks <= 0 || indexOfThisSubtask < 0){
+            return SerializableRange.ofFullRange();
+        }
         if (caseInsensitiveParams == null || caseInsensitiveParams.isEmpty() ||
-                caseInsensitiveParams.containsKey(KEY_HASH_RANGE_KEY)) {
+                !caseInsensitiveParams.containsKey(ENABLE_KEY_HASH_RANGE_KEY)) {
             return SerializableRange.ofFullRange();
         }
-        final String keyHashRange = caseInsensitiveParams.get(KEY_HASH_RANGE_KEY);
-        if (StringUtils.isBlank(keyHashRange)){
+        final String enableKeyHashRange = caseInsensitiveParams.get(ENABLE_KEY_HASH_RANGE_KEY);
+        if (!Boolean.parseBoolean(enableKeyHashRange)){
             return SerializableRange.ofFullRange();
         }
-        final String[] split = keyHashRange.split(":");
-        return SerializableRange.of(Integer.parseInt(split[0]), Integer.parseInt(split[1]));
+        final Range range = SourceSinkUtils.distributeRange(numParallelSubtasks, indexOfThisSubtask);
+        return SerializableRange.of(range);
     }
 
     public PulsarMetadataReader(

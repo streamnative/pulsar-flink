@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-package org.apache.flink.table;
+package org.apache.flink.connector.pulsar.table;
 
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.serialization.SerializationSchema;
@@ -31,6 +31,7 @@ import org.apache.flink.table.factories.SerializationFormatFactory;
 import org.apache.flink.table.types.DataType;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -44,13 +45,16 @@ import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CO
 public class PulsarDynamicTableFactory implements
         DynamicTableSourceFactory,
         DynamicTableSinkFactory {
+
+    public static final String IDENTIFIER = "pulsar";
+
     @Override
     public DynamicTableSink createDynamicTableSink(Context context) {
         FactoryUtil.TableFactoryHelper helper = FactoryUtil.createTableFactoryHelper(this, context);
 
         ReadableConfig tableOptions = helper.getOptions();
 
-        String topic = tableOptions.get(PulsarOptions.TOPIC);
+        List<String> topics = tableOptions.get(PulsarOptions.TOPIC);
         String adminUrl = tableOptions.get(PulsarOptions.ADMIN_URL);
         String serverUrl = tableOptions.get(PulsarOptions.SERVICE_URL);
         EncodingFormat<SerializationSchema<RowData>> encodingFormat = helper.discoverEncodingFormat(
@@ -59,7 +63,7 @@ public class PulsarDynamicTableFactory implements
         // Validate the option data type.
         helper.validateExcept(PulsarOptions.PROPERTIES_PREFIX);
         // Validate the option values.
-        PulsarOptions.validateTableOptions(tableOptions);
+        PulsarOptions.validateTableSinkOptions(tableOptions);
 
         Properties properties = removeConnectorPrefix(context.getCatalogTable().toProperties());
 
@@ -68,7 +72,7 @@ public class PulsarDynamicTableFactory implements
         return new PulsarDynamicTableSink(
                 serverUrl,
                 adminUrl,
-                topic,
+                topics.get(0),
                 consumedDataType,
                 properties,
                 encodingFormat
@@ -82,7 +86,8 @@ public class PulsarDynamicTableFactory implements
 
         ReadableConfig tableOptions = helper.getOptions();
 
-        String topic = tableOptions.get(PulsarOptions.TOPIC);
+        List<String> topics = tableOptions.get(PulsarOptions.TOPIC);
+        String topicPattern = tableOptions.get(PulsarOptions.TOPIC_PATTERN);
         String adminUrl = tableOptions.get(PulsarOptions.ADMIN_URL);
         String serviceUrl = tableOptions.get(PulsarOptions.SERVICE_URL);
         DecodingFormat<DeserializationSchema<RowData>> decodingFormat = helper.discoverDecodingFormat(
@@ -91,15 +96,16 @@ public class PulsarDynamicTableFactory implements
         // Validate the option data type.
         helper.validateExcept(PulsarOptions.PROPERTIES_PREFIX);
         // Validate the option values.
-        PulsarOptions.validateTableOptions(tableOptions);
+        PulsarOptions.validateTableSourceOptions(tableOptions);
         Properties properties = removeConnectorPrefix(context.getCatalogTable().toProperties());
 
         DataType producedDataType = context.getCatalogTable().getSchema().toPhysicalRowDataType();
-        final PulsarOptions.StartupOptions startupOptions = PulsarOptions.getStartupOptions(tableOptions, topic);
+        final PulsarOptions.StartupOptions startupOptions = PulsarOptions.getStartupOptions(tableOptions, topics);
         return new PulsarDynamicTableSource(
                 producedDataType,
                 decodingFormat,
-                topic,
+                topics,
+                topicPattern,
                 serviceUrl,
                 adminUrl,
                 properties,
@@ -109,13 +115,12 @@ public class PulsarDynamicTableFactory implements
 
     @Override
     public String factoryIdentifier() {
-        return "pulsar";
+        return IDENTIFIER;
     }
 
     @Override
     public Set<ConfigOption<?>> requiredOptions() {
         final Set<ConfigOption<?>> options = new HashSet<>();
-        options.add(PulsarOptions.TOPIC);
         options.add(FactoryUtil.FORMAT);
         options.add(PulsarOptions.SERVICE_URL);
         options.add(PulsarOptions.ADMIN_URL);
@@ -125,6 +130,8 @@ public class PulsarDynamicTableFactory implements
     @Override
     public Set<ConfigOption<?>> optionalOptions() {
         final Set<ConfigOption<?>> options = new HashSet<>();
+        options.add(PulsarOptions.TOPIC);
+        options.add(PulsarOptions.TOPIC_PATTERN);
         options.add(PulsarOptions.SCAN_STARTUP_MODE);
         options.add(PulsarOptions.SCAN_STARTUP_SPECIFIC_OFFSETS);
         options.add(PulsarOptions.SCAN_STARTUP_SUB_NAME);

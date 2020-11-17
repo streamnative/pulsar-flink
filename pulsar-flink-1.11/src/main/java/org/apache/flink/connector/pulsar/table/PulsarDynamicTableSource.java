@@ -12,33 +12,27 @@
  * limitations under the License.
  */
 
-package org.apache.flink.table;
+package org.apache.flink.connector.pulsar.table;
 
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.streaming.connectors.pulsar.FlinkPulsarSource;
-import org.apache.flink.streaming.connectors.pulsar.PulsarSchemaValidator;
 import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarDeserializationSchemaWrapper;
-import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.connector.ChangelogMode;
 import org.apache.flink.table.connector.format.DecodingFormat;
 import org.apache.flink.table.connector.source.DynamicTableSource;
 import org.apache.flink.table.connector.source.ScanTableSource;
 import org.apache.flink.table.connector.source.SourceFunctionProvider;
 import org.apache.flink.table.data.RowData;
-import org.apache.flink.table.descriptors.DescriptorProperties;
-import org.apache.flink.table.descriptors.PulsarValidator;
-import org.apache.flink.table.descriptors.SchemaValidator;
-import org.apache.flink.table.factories.DeserializationSchemaFactory;
-import org.apache.flink.table.factories.TableFactoryService;
 import org.apache.flink.table.types.DataType;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 
-import java.util.Map;
-import java.util.Optional;
+import java.util.List;
+import java.util.Objects;
 import java.util.Properties;
 
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_EXTERNAL_SUB_DEFAULT_OFFSET;
@@ -71,7 +65,12 @@ public class PulsarDynamicTableSource implements ScanTableSource {
     /**
      * The Pulsar topic to consume.
      */
-    protected final String topic;
+    protected final List<String> topics;
+
+    /**
+     * The Pulsar topic to consume.
+     */
+    protected final String topicPattern;
 
     /**
      * The Pulsar topic to consume.
@@ -100,19 +99,39 @@ public class PulsarDynamicTableSource implements ScanTableSource {
 
     public PulsarDynamicTableSource(DataType outputDataType,
                                     DecodingFormat<DeserializationSchema<RowData>> decodingFormat,
-                                    String topic,
+                                    List<String> topics,
+                                    String topicPattern,
                                     String serviceUrl,
                                     String adminUrl,
                                     Properties properties,
                                     PulsarOptions.StartupOptions startupOptions) {
         this.outputDataType = outputDataType;
         this.decodingFormat = decodingFormat;
-        this.topic = topic;
+        this.topics = topics;
+        this.topicPattern = topicPattern;
         this.serviceUrl = serviceUrl;
         this.adminUrl = adminUrl;
-        properties.computeIfAbsent("topic", (k) -> topic);
+        setTopicInfo(properties, topics, topicPattern);
         this.properties = properties;
         this.startupOptions = startupOptions;
+    }
+
+    private void setTopicInfo(Properties properties, List<String> topics, String topicPattern) {
+        if (StringUtils.isNotBlank(topicPattern)){
+            properties.putIfAbsent("topicspattern", topicPattern);
+            properties.remove("topic");
+            properties.remove("topics");
+        } else if (topics != null && topics.size() > 1) {
+            properties.putIfAbsent("topics", StringUtils.join(topics, ","));
+            properties.remove("topicspattern");
+            properties.remove("topic");
+        } else if (topics != null && topics.size() == 1){
+            properties.putIfAbsent("topic", StringUtils.join(topics, ","));
+            properties.remove("topicspattern");
+            properties.remove("topics");
+        } else {
+            throw new RuntimeException("Use `topics` instead of `topic` for multi topic read");
+        }
     }
 
     @Override
@@ -159,7 +178,8 @@ public class PulsarDynamicTableSource implements ScanTableSource {
         return new PulsarDynamicTableSource(
                 this.outputDataType,
                 this.decodingFormat,
-                this.topic,
+                this.topics,
+                this.topicPattern,
                 this.serviceUrl,
                 this.adminUrl,
                 this.properties,
@@ -178,41 +198,29 @@ public class PulsarDynamicTableSource implements ScanTableSource {
         return clientConf;
     }
 
-    private boolean checkForCustomFieldMapping(DescriptorProperties descriptorProperties, TableSchema schema) {
-        final Map<String, String> fieldMapping = SchemaValidator.deriveFieldMapping(
-                descriptorProperties,
-                Optional.of(
-                        schema.toRowType())); // until FLINK-9870 is fixed we assume that the table schema is the output type
-        return fieldMapping.size() != schema.getFieldNames().length ||
-                !fieldMapping.entrySet().stream().allMatch(mapping -> mapping.getKey().equals(mapping.getValue()));
-    }
-
-    private DescriptorProperties getValidatedProperties(Map<String, String> properties) {
-        DescriptorProperties descriptorProperties = new DescriptorProperties(true);
-        descriptorProperties.putProperties(properties);
-        // TODO allow Pulsar timestamps to be used, watermarks can not be received from source
-        new PulsarSchemaValidator(true, true, false).validate(descriptorProperties);
-        new PulsarValidator().validate(descriptorProperties);
-        return descriptorProperties;
-    }
-
-    private static class StartupOptions {
-        private StartupMode startupMode;
-        private Map<String, MessageId> specificOffsets;
-        private String externalSubscriptionName;
-    }
-
-    private DeserializationSchema<RowData> getDeserializationSchema(Map<String, String> properties) {
-        try {
-            @SuppressWarnings("unchecked") final DeserializationSchemaFactory<RowData> formatFactory =
-                    TableFactoryService.find(
-                            DeserializationSchemaFactory.class,
-                            properties,
-                            this.getClass().getClassLoader());
-            return formatFactory.createDeserializationSchema(properties);
-        } catch (Exception e) {
-            log.warn("get deserializer from properties failed. using pulsar inner schema instead.");
-            return null;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
         }
+        if (!(o instanceof PulsarDynamicTableSource)) {
+            return false;
+        }
+        PulsarDynamicTableSource that = (PulsarDynamicTableSource) o;
+        return outputDataType.equals(that.outputDataType) &&
+                decodingFormat.equals(that.decodingFormat) &&
+                Objects.equals(topics, that.topics) &&
+                Objects.equals(topicPattern, that.topicPattern) &&
+                serviceUrl.equals(that.serviceUrl) &&
+                adminUrl.equals(that.adminUrl) &&
+                //The properties generated by flink can't be compared to your own strength for now,
+                // because the content is always a bit different.
+                // properties.equals(that.properties) &&
+                startupOptions.equals(that.startupOptions);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(outputDataType, decodingFormat, topics, topicPattern, serviceUrl, adminUrl, startupOptions);
     }
 }

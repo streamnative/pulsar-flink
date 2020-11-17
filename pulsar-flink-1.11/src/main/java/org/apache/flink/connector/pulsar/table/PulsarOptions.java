@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-package org.apache.flink.table;
+package org.apache.flink.connector.pulsar.table;
 
 import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.ConfigOptions;
@@ -23,16 +23,18 @@ import org.apache.flink.table.api.ValidationException;
 import org.apache.flink.table.descriptors.PulsarValidator;
 import org.apache.flink.util.ExceptionUtils;
 
+import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.MessageId;
+import org.apache.pulsar.client.impl.MessageIdImpl;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -45,12 +47,6 @@ public class PulsarOptions {
 	// --------------------------------------------------------------------------------------------
 	// Pulsar specific options
 	// --------------------------------------------------------------------------------------------
-
-	public static final ConfigOption<String> TOPIC = ConfigOptions
-			.key("topic")
-			.stringType()
-			.noDefaultValue()
-			.withDescription("Required topic name from which the table is read");
 
 	public static final ConfigOption<String> SERVICE_URL = ConfigOptions
 			.key("service-url")
@@ -67,6 +63,20 @@ public class PulsarOptions {
 	// --------------------------------------------------------------------------------------------
 	// Scan specific options
 	// --------------------------------------------------------------------------------------------
+
+	public static final ConfigOption<List<String>> TOPIC = ConfigOptions
+			.key("topic")
+			.stringType()
+			.asList()
+			.noDefaultValue()
+			.withDescription("Topic names from which the table is read. Either 'topic' or 'topic-pattern' must be set for source. " +
+					"Option 'topic' is required for sink.");
+
+	public static final ConfigOption<String> TOPIC_PATTERN = ConfigOptions
+			.key("topic-pattern")
+			.stringType()
+			.noDefaultValue()
+			.withDescription("Optional topic pattern from which the table is read for source. Either 'topic' or 'topic-pattern' must be set.");
 
 	public static final ConfigOption<String> SCAN_STARTUP_MODE = ConfigOptions
 			.key("scan.startup.mode")
@@ -127,7 +137,7 @@ public class PulsarOptions {
 					+ "into pulsar's partitions valid enumerations are\n"
 					+ "\"fixed\": (each Flink partition ends up in at most one pulsar partition),\n"
 					+ "\"round-robin\": (a Flink partition is distributed to pulsar partitions round-robin)\n"
-					+ "\"custom class name\": (use a custom FlinkKafkaPartitioner subclass)");
+					+ "\"custom class name\": (use a custom FlinkPulsarPartitioner subclass)");
 
 	// --------------------------------------------------------------------------------------------
 	// Option enumerations
@@ -164,9 +174,22 @@ public class PulsarOptions {
 	// Validation
 	// --------------------------------------------------------------------------------------------
 
-	public static void validateTableOptions(ReadableConfig tableOptions) {
+	public static void validateTableSourceOptions(ReadableConfig tableOptions) {
+		validateSourceTopic(tableOptions);
 		validateScanStartupMode(tableOptions);
-		validateSinkPartitioner(tableOptions);
+	}
+
+	public static void validateSourceTopic(ReadableConfig tableOptions) {
+		Optional<List<String>> topic = tableOptions.getOptional(TOPIC);
+		Optional<String> pattern = tableOptions.getOptional(TOPIC_PATTERN);
+
+		if (topic.isPresent() && pattern.isPresent()) {
+			throw new ValidationException("Option 'topic' and 'topic-pattern' shouldn't be set together.");
+		}
+
+		if (!topic.isPresent() && !pattern.isPresent()) {
+			throw new ValidationException("Either 'topic' or 'topic-pattern' must be set.");
+		}
 	}
 
 	private static void validateScanStartupMode(ReadableConfig tableOptions) {
@@ -177,7 +200,7 @@ public class PulsarOptions {
 						throw new ValidationException(
 								String.format("Invalid value for option '%s'. Supported values are %s, but was: %s",
 										SCAN_STARTUP_MODE.key(),
-										"[earliest-offset, latest-offset, group-offsets, specific-offsets, timestamp]",
+										"[earliest, latest, specific-offsets, external-subscription]",
 										mode));
 					}
 
@@ -202,7 +225,11 @@ public class PulsarOptions {
 		});
 	}
 
-	private static void validateSinkPartitioner(ReadableConfig tableOptions) {
+	public static void validateTableSinkOptions(ReadableConfig tableOptions) {
+		validateSinkTopic(tableOptions);
+	}
+
+	public static void validateSinkPartitioner(ReadableConfig tableOptions) {
 		tableOptions.getOptional(SINK_PARTITIONER)
 				.ifPresent(partitioner -> {
 					if (!SINK_PARTITIONER_ENUMS.contains(partitioner.toLowerCase())) {
@@ -215,13 +242,33 @@ public class PulsarOptions {
 				});
 	}
 
+	public static void validateSinkTopic(ReadableConfig tableOptions) {
+		String errorMessageTemp = "Flink Pulsar sink currently only supports single topic, but got %s: %s.";
+		if (!isSingleTopic(tableOptions)) {
+			if (tableOptions.getOptional(TOPIC_PATTERN).isPresent()) {
+				throw new ValidationException(String.format(
+						errorMessageTemp, "'topic-pattern'", tableOptions.get(TOPIC_PATTERN)
+				));
+			} else {
+				throw new ValidationException(String.format(
+						errorMessageTemp, "'topic'", tableOptions.get(TOPIC)
+				));
+			}
+		}
+	}
+
+	private static boolean isSingleTopic(ReadableConfig tableOptions) {
+		// Option 'topic-pattern' is regarded as multi-topics.
+		return tableOptions.getOptional(TOPIC).map(t -> t.size() == 1).orElse(false);
+	}
+
 	// --------------------------------------------------------------------------------------------
 	// Utilities
 	// --------------------------------------------------------------------------------------------
 
 	public static StartupOptions getStartupOptions(
 			ReadableConfig tableOptions,
-			String topic) {
+			List<String> topics) {
 
 		final Map<String, MessageId> specificOffsets = new HashMap<>();
 		final List<String> subName = new ArrayList<>(1);
@@ -235,7 +282,6 @@ public class PulsarOptions {
 							return StartupMode.LATEST;
 
 						case PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_SPECIFIC_OFFSETS:
-							// TODO
 							String specificOffsetsStrOpt = tableOptions.get(SCAN_STARTUP_SPECIFIC_OFFSETS);
 
 							final Map<Integer, String> offsetList = parseSpecificOffsets(
@@ -243,8 +289,10 @@ public class PulsarOptions {
 									SCAN_STARTUP_SPECIFIC_OFFSETS.key());
 							offsetList.forEach((partition, offset) -> {
 								try {
-									specificOffsets.put(partition.toString(), MessageId.fromByteArray(offset.getBytes()));
-								} catch (IOException e) {
+
+									final MessageIdImpl messageId = parseMessageId(offset);
+									specificOffsets.put(partition.toString(), messageId);
+								} catch (Exception e) {
 									log.error("Failed to decode message id from properties {}",
 											ExceptionUtils.stringifyException(e));
 									throw new RuntimeException(e);
@@ -268,6 +316,15 @@ public class PulsarOptions {
 		}
 		return options;
 
+	}
+
+	private static MessageIdImpl parseMessageId(String offset) {
+		final String[] split = offset.split(":");
+		return new MessageIdImpl(
+				Long.parseLong(split[0]),
+				Long.parseLong(split[1]),
+				Integer.parseInt(split[2])
+		);
 	}
 
 	/**
@@ -297,7 +354,10 @@ public class PulsarOptions {
 		}
 
 		for (String pair : pairs) {
-			if (null == pair || pair.length() == 0 || !pair.contains(",")) {
+			if (null == pair || pair.length() == 0) {
+				break;
+			}
+			if (pair.contains(",")) {
 				throw new ValidationException(validationExceptionMessage);
 			}
 
@@ -323,6 +383,7 @@ public class PulsarOptions {
 	// --------------------------------------------------------------------------------------------
 
 	/** pulsar startup options. **/
+	@EqualsAndHashCode
 	public static class StartupOptions {
 		public StartupMode startupMode;
 		public Map<String, MessageId> specificOffsets;

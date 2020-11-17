@@ -12,4 +12,4 @@
 # limitations under the License.
 #
 
-org.apache.flink.table.PulsarDynamicTableFactory
+org.apache.flink.connector.pulsar.table.PulsarDynamicTableFactory

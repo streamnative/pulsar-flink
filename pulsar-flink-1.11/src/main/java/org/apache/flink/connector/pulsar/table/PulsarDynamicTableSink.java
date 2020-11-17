@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-package org.apache.flink.table;
+package org.apache.flink.connector.pulsar.table;
 
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
@@ -27,6 +27,7 @@ import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.util.Preconditions;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 
@@ -118,5 +119,26 @@ public class PulsarDynamicTableSink implements DynamicTableSink {
     @Override
     public String asSummaryString() {
         return "Pulsar universal table sink";
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof PulsarDynamicTableSink)) {
+            return false;
+        }
+        PulsarDynamicTableSink that = (PulsarDynamicTableSink) o;
+        return consumedDataType.equals(that.consumedDataType) &&
+                Objects.equals(topic, that.topic) &&
+                serviceUrl.equals(that.serviceUrl) &&
+                adminUrl.equals(that.adminUrl) &&
+                encodingFormat.equals(that.encodingFormat);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(consumedDataType, topic, serviceUrl, adminUrl, encodingFormat);
     }
 }

@@ -75,7 +75,8 @@ public class PulsarDynamicTableFactory implements
                 topics.get(0),
                 consumedDataType,
                 properties,
-                encodingFormat
+                encodingFormat,
+                PulsarOptions.getSinkSemantic(tableOptions)
         );
     }
 

@@ -37,6 +37,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import static org.apache.flink.connector.pulsar.table.PulsarSinkSemantic.AT_LEAST_ONCE;
+import static org.apache.flink.connector.pulsar.table.PulsarSinkSemantic.EXACTLY_ONCE;
+import static org.apache.flink.connector.pulsar.table.PulsarSinkSemantic.NONE;
+
 /**
  * Option utils for pulsar table source sink.
  */
@@ -139,6 +143,11 @@ public class PulsarOptions {
 					+ "\"round-robin\": (a Flink partition is distributed to pulsar partitions round-robin)\n"
 					+ "\"custom class name\": (use a custom FlinkPulsarPartitioner subclass)");
 
+	public static final ConfigOption<String> SINK_SEMANTIC = ConfigOptions.key("sink.semantic")
+			.stringType()
+			.defaultValue("at-least-once")
+			.withDescription("Optional semantic when commit. Valid enumerationns are [\"at-least-once\", \"exactly-once\", \"none\"]");
+
 	// --------------------------------------------------------------------------------------------
 	// Option enumerations
 	// --------------------------------------------------------------------------------------------
@@ -162,6 +171,17 @@ public class PulsarOptions {
 	private static final Set<String> SINK_PARTITIONER_ENUMS = new HashSet<>(Arrays.asList(
 			SINK_PARTITIONER_VALUE_FIXED,
 			SINK_PARTITIONER_VALUE_ROUND_ROBIN));
+
+	// Sink semantic
+	public static final String SINK_SEMANTIC_VALUE_EXACTLY_ONCE = "exactly-once";
+	public static final String SINK_SEMANTIC_VALUE_AT_LEAST_ONCE = "at-least-once";
+	public static final String SINK_SEMANTIC_VALUE_NONE = "none";
+
+	private static final Set<String> SINK_SEMANTIC_ENUMS = new HashSet<>(Arrays.asList(
+			SINK_SEMANTIC_VALUE_AT_LEAST_ONCE,
+			SINK_SEMANTIC_VALUE_EXACTLY_ONCE,
+			SINK_SEMANTIC_VALUE_NONE
+	));
 
 	// Prefix for pulsar specific properties.
 	public static final String PROPERTIES_PREFIX = "properties.";
@@ -227,6 +247,7 @@ public class PulsarOptions {
 
 	public static void validateTableSinkOptions(ReadableConfig tableOptions) {
 		validateSinkTopic(tableOptions);
+		validateSinkSemantic(tableOptions);
 	}
 
 	public static void validateSinkPartitioner(ReadableConfig tableOptions) {
@@ -257,14 +278,36 @@ public class PulsarOptions {
 		}
 	}
 
-	private static boolean isSingleTopic(ReadableConfig tableOptions) {
-		// Option 'topic-pattern' is regarded as multi-topics.
-		return tableOptions.getOptional(TOPIC).map(t -> t.size() == 1).orElse(false);
+	private static void validateSinkSemantic(ReadableConfig tableOptions) {
+		tableOptions.getOptional(SINK_SEMANTIC).ifPresent(semantic -> {
+			if (!SINK_SEMANTIC_ENUMS.contains(semantic)){
+				throw new ValidationException(
+						String.format("Unsupported value '%s' for '%s'. Supported values are ['at-least-once', 'exactly-once', 'none'].",
+								semantic, SINK_SEMANTIC.key()));
+			}
+		});
 	}
 
 	// --------------------------------------------------------------------------------------------
 	// Utilities
 	// --------------------------------------------------------------------------------------------
+
+	private static boolean isSingleTopic(ReadableConfig tableOptions) {
+		// Option 'topic-pattern' is regarded as multi-topics.
+		return tableOptions.getOptional(TOPIC).map(t -> t.size() == 1).orElse(false);
+	}
+	public static PulsarSinkSemantic getSinkSemantic(ReadableConfig tableOptions){
+		switch (tableOptions.get(SINK_SEMANTIC)){
+			case SINK_SEMANTIC_VALUE_EXACTLY_ONCE:
+				return EXACTLY_ONCE;
+			case SINK_SEMANTIC_VALUE_AT_LEAST_ONCE:
+				return AT_LEAST_ONCE;
+			case SINK_SEMANTIC_VALUE_NONE:
+				return NONE;
+			default:
+				throw new TableException("Validator should have checked that");
+		}
+	}
 
 	public static StartupOptions getStartupOptions(
 			ReadableConfig tableOptions,

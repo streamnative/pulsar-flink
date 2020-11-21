@@ -28,12 +28,22 @@ import java.io.Serializable;
  * An interface for the deserialization of Pulsar messages.
  */
 public interface MessageDeserializer<T> extends Serializable, ResultTypeQueryable<T> {
-
+    /**
+     * Initialization method for the schema. It is called before the actual working methods
+     * {@link #deserialize} and thus suitable for one time setup work.
+     *
+     * <p>The provided {@link DeserializationSchema.InitializationContext} can be used to access additional features such as e.g.
+     * registering user metrics.
+     *
+     * @param context Contextual information that can be used during initialization.
+     */
+    default void open(DeserializationSchema.InitializationContext context) throws Exception {
+    }
     /**
      * Deserialize a consumer record into the given collector.
      *
      * @param message the {@code Message} to deserialize.
-     * @throws Exception if the deserialization failed.
+     * @throws IOException if the deserialization failed.
      */
     void deserialize(Message<?> message, Collector<T> collector) throws IOException;
 

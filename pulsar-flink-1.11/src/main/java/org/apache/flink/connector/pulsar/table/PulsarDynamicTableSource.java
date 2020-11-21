@@ -18,22 +18,41 @@ import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.streaming.connectors.pulsar.FlinkPulsarSource;
 import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarDeserializationSchemaWrapper;
+import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.connector.ChangelogMode;
 import org.apache.flink.table.connector.format.DecodingFormat;
 import org.apache.flink.table.connector.source.DynamicTableSource;
 import org.apache.flink.table.connector.source.ScanTableSource;
 import org.apache.flink.table.connector.source.SourceFunctionProvider;
+import org.apache.flink.table.connector.source.abilities.SupportsReadingMetadata;
+import org.apache.flink.table.data.GenericMapData;
 import org.apache.flink.table.data.RowData;
+import org.apache.flink.table.data.StringData;
+import org.apache.flink.table.data.TimestampData;
+import org.apache.flink.table.data.binary.BinaryArrayData;
 import org.apache.flink.table.types.DataType;
+import org.apache.flink.table.types.utils.DataTypeUtils;
+import org.apache.flink.util.Preconditions;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 
+import javax.annotation.Nullable;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_EXTERNAL_SUB_DEFAULT_OFFSET;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_EARLIEST;
@@ -42,21 +61,31 @@ import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_START
  * pulsar dynamic table source.
  */
 @Slf4j
-public class PulsarDynamicTableSource implements ScanTableSource {
+public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadingMetadata {
 
     // --------------------------------------------------------------------------------------------
-    // Common attributes
+    // Mutable attributes
     // --------------------------------------------------------------------------------------------
-    protected final DataType outputDataType;
+
+    /** Data type that describes the final output of the source. */
+    protected DataType producedDataType;
+
+    /** Metadata that is appended at the end of a physical source row. */
+    protected List<String> metadataKeys;
 
     // --------------------------------------------------------------------------------------------
-    // Scan format attributes
+    // Format attributes
     // --------------------------------------------------------------------------------------------
+
+    private static final String VALUE_METADATA_PREFIX = "value.";
+
+    /** Data type to configure the formats. */
+    protected final DataType physicalDataType;
 
     /**
      * Scan format for decoding records from Pulsar.
      */
-    protected final DecodingFormat<DeserializationSchema<RowData>> decodingFormat;
+    protected final DecodingFormat<DeserializationSchema<RowData>> valueDecodingFormat;
 
     // --------------------------------------------------------------------------------------------
     // Pulsar-specific attributes
@@ -97,7 +126,7 @@ public class PulsarDynamicTableSource implements ScanTableSource {
      */
     private static final long DEFAULT_STARTUP_TIMESTAMP_MILLIS = 0L;
 
-    public PulsarDynamicTableSource(DataType outputDataType,
+    public PulsarDynamicTableSource(DataType physicalDataType,
                                     DecodingFormat<DeserializationSchema<RowData>> decodingFormat,
                                     List<String> topics,
                                     String topicPattern,
@@ -105,8 +134,9 @@ public class PulsarDynamicTableSource implements ScanTableSource {
                                     String adminUrl,
                                     Properties properties,
                                     PulsarOptions.StartupOptions startupOptions) {
-        this.outputDataType = outputDataType;
-        this.decodingFormat = decodingFormat;
+        this.physicalDataType = Preconditions.checkNotNull(physicalDataType, "Physical data type must not be null.");
+        this.producedDataType = physicalDataType;
+        this.valueDecodingFormat = decodingFormat;
         this.topics = topics;
         this.topicPattern = topicPattern;
         this.serviceUrl = serviceUrl;
@@ -114,6 +144,8 @@ public class PulsarDynamicTableSource implements ScanTableSource {
         setTopicInfo(properties, topics, topicPattern);
         this.properties = properties;
         this.startupOptions = startupOptions;
+        // Mutable attributes
+        this.metadataKeys = Collections.emptyList();
     }
 
     private void setTopicInfo(Properties properties, List<String> topics, String topicPattern) {
@@ -136,19 +168,20 @@ public class PulsarDynamicTableSource implements ScanTableSource {
 
     @Override
     public ChangelogMode getChangelogMode() {
-        return ChangelogMode.insertOnly();
+        return valueDecodingFormat.getChangelogMode();
     }
 
     @Override
-    public ScanRuntimeProvider getScanRuntimeProvider(ScanContext runtimeProviderContext) {
+    public ScanRuntimeProvider getScanRuntimeProvider(ScanContext context) {
 
-        DeserializationSchema<RowData> deserializationSchema =
-                this.decodingFormat.createRuntimeDecoder(runtimeProviderContext, this.outputDataType);
+        //valueProjection type int[]
+        final DeserializationSchema<RowData> valueDeserialization =
+                createDeserialization(context, valueDecodingFormat, new int[]{}, "");
 
         FlinkPulsarSource<RowData> source = new FlinkPulsarSource<>(
                 adminUrl,
                 newClientConf(serviceUrl),
-                new PulsarDeserializationSchemaWrapper<>(deserializationSchema),
+                new PulsarDeserializationSchemaWrapper<>(valueDeserialization),
                 properties
         );
         // TODO 调整结构
@@ -176,8 +209,8 @@ public class PulsarDynamicTableSource implements ScanTableSource {
     @Override
     public DynamicTableSource copy() {
         return new PulsarDynamicTableSource(
-                this.outputDataType,
-                this.decodingFormat,
+                this.physicalDataType,
+                this.valueDecodingFormat,
                 this.topics,
                 this.topicPattern,
                 this.serviceUrl,
@@ -207,8 +240,8 @@ public class PulsarDynamicTableSource implements ScanTableSource {
             return false;
         }
         PulsarDynamicTableSource that = (PulsarDynamicTableSource) o;
-        return outputDataType.equals(that.outputDataType) &&
-                decodingFormat.equals(that.decodingFormat) &&
+        return physicalDataType.equals(that.physicalDataType) &&
+                valueDecodingFormat.equals(that.valueDecodingFormat) &&
                 Objects.equals(topics, that.topics) &&
                 Objects.equals(topicPattern, that.topicPattern) &&
                 serviceUrl.equals(that.serviceUrl) &&
@@ -221,6 +254,121 @@ public class PulsarDynamicTableSource implements ScanTableSource {
 
     @Override
     public int hashCode() {
-        return Objects.hash(outputDataType, decodingFormat, topics, topicPattern, serviceUrl, adminUrl, startupOptions);
+        return Objects.hash(physicalDataType, valueDecodingFormat, topics, topicPattern, serviceUrl, adminUrl, startupOptions);
+    }
+
+    @Override
+    public Map<String, DataType> listReadableMetadata() {
+        final Map<String, DataType> metadataMap = new LinkedHashMap<>();
+
+        // according to convention, the order of the final row must be
+        // PHYSICAL + FORMAT METADATA + CONNECTOR METADATA
+        // where the format metadata has highest precedence
+
+        // add value format metadata with prefix
+        valueDecodingFormat
+                .listReadableMetadata()
+                .forEach((key, value) -> metadataMap.put(VALUE_METADATA_PREFIX + key, value));
+
+        // add connector metadata
+        Stream.of(ReadableMetadata.values())
+                .forEachOrdered(m -> metadataMap.putIfAbsent(m.key, m.dataType));
+
+        return metadataMap;
+    }
+
+    @Override
+    public void applyReadableMetadata(List<String> metadataKeys, DataType producedDataType) {
+        // separate connector and format metadata
+        final List<String> formatMetadataKeys = metadataKeys.stream()
+                .filter(k -> k.startsWith(VALUE_METADATA_PREFIX))
+                .collect(Collectors.toList());
+        final List<String> connectorMetadataKeys = new ArrayList<>(metadataKeys);
+        connectorMetadataKeys.removeAll(formatMetadataKeys);
+
+        // push down format metadata
+        final Map<String, DataType> formatMetadata = valueDecodingFormat.listReadableMetadata();
+        if (formatMetadata.size() > 0) {
+            final List<String> requestedFormatMetadataKeys = formatMetadataKeys.stream()
+                    .map(k -> k.substring(VALUE_METADATA_PREFIX.length()))
+                    .collect(Collectors.toList());
+            valueDecodingFormat.applyReadableMetadata(requestedFormatMetadataKeys);
+        }
+
+        this.metadataKeys = connectorMetadataKeys;
+        this.producedDataType = producedDataType;
+    }
+
+    private @Nullable
+    DeserializationSchema<RowData> createDeserialization(
+            DynamicTableSource.Context context,
+            @Nullable DecodingFormat<DeserializationSchema<RowData>> format,
+            int[] projection,
+            @Nullable String prefix) {
+        if (format == null) {
+            return null;
+        }
+        DataType physicalFormatDataType = DataTypeUtils.projectRow(this.physicalDataType, projection);
+        if (prefix != null) {
+            physicalFormatDataType = DataTypeUtils.stripRowPrefix(physicalFormatDataType, prefix);
+        }
+        return format.createRuntimeDecoder(context, physicalFormatDataType);
+    }
+
+    // --------------------------------------------------------------------------------------------
+    // Metadata handling
+    // --------------------------------------------------------------------------------------------
+
+    enum ReadableMetadata {
+
+        TOPIC(
+                "topic",
+                DataTypes.STRING().notNull(),
+                message -> StringData.fromString(message.getTopicName())
+        ),
+
+        MESSAGE_ID(
+                "messageId",
+                DataTypes.BYTES().notNull(),
+                message -> BinaryArrayData.fromPrimitiveArray(message.getMessageId().toByteArray())),
+
+        SEQUENCE_ID(
+                "sequenceId",
+                DataTypes.BIGINT().notNull(),
+                Message::getSequenceId),
+        KEY(
+                "key",
+                DataTypes.STRING().nullable(),
+                message -> StringData.fromString(message.getKey())
+        ),
+
+        PUBLISH_TIME(
+                "publishTime",
+                DataTypes.TIMESTAMP_WITH_LOCAL_TIME_ZONE(3).notNull(),
+                message -> TimestampData.fromEpochMillis(message.getPublishTime())),
+
+        EVENT_TIME(
+                "eventTime",
+                DataTypes.TIMESTAMP_WITH_LOCAL_TIME_ZONE(3).notNull(),
+                message -> TimestampData.fromEpochMillis(message.getEventTime())),
+
+        PROPERTIES(
+                "properties",
+                // key and value of the map are nullable to make handling easier in queries
+                DataTypes.MAP(DataTypes.STRING().nullable(), DataTypes.BYTES().nullable()).notNull(),
+                message -> new GenericMapData(message.getProperties())
+        );
+
+        final String key;
+
+        final DataType dataType;
+
+        final DynamicPulsarDeserializationSchema.MetadataConverter converter;
+
+        ReadableMetadata(String key, DataType dataType, DynamicPulsarDeserializationSchema.MetadataConverter converter) {
+            this.key = key;
+            this.dataType = dataType;
+            this.converter = converter;
+        }
     }
 }

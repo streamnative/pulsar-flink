@@ -428,8 +428,8 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
                 topic,
                 consumedDataType,
                 properties,
-                encodingFormat
-        );
+                encodingFormat,
+                PulsarOptions.getSinkSemantic(tableOptions));
     }
 
     private static CatalogTable createPulsarSourceCatalogTable() {

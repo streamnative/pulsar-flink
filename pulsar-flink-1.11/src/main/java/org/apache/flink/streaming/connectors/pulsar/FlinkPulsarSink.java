@@ -2,9 +2,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -14,10 +14,10 @@
 
 package org.apache.flink.streaming.connectors.pulsar;
 
-import org.apache.flink.streaming.connectors.pulsar.config.RecordSchemaType;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarClientUtils;
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarContextAware;
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarSerializationSchema;
 
-import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 
@@ -33,34 +33,24 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  */
 public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
 
-    private final Class<T> recordClazz;
+    //private final Class<T> recordClazz;
 
     /**
      * Type for serialized messages, default use AVRO.
      */
-    private final RecordSchemaType schemaType;
+    //private final RecordSchemaType schemaType;
+
+    private final PulsarSerializationSchema<T> serializationSchema;
 
     public FlinkPulsarSink(
             String adminUrl,
             Optional<String> defaultTopicName,
             ClientConfigurationData clientConf,
             Properties properties,
-            TopicKeyExtractor<T> topicKeyExtractor,
-            Class<T> recordClazz,
-            RecordSchemaType recordSchemaType) {
-        super(adminUrl, defaultTopicName, clientConf, properties, topicKeyExtractor);
-        this.recordClazz = recordClazz;
-        this.schemaType = recordSchemaType;
-    }
+            PulsarSerializationSchema serializationSchema) {
 
-    public FlinkPulsarSink(
-            String adminUrl,
-            Optional<String> defaultTopicName,
-            ClientConfigurationData clientConf,
-            Properties properties,
-            TopicKeyExtractor<T> topicKeyExtractor,
-            Class<T> recordClazz) {
-        this(adminUrl, defaultTopicName, clientConf, properties, topicKeyExtractor, recordClazz, RecordSchemaType.AVRO);
+        super(adminUrl, defaultTopicName, clientConf, properties, serializationSchema);
+        this.serializationSchema = serializationSchema;
     }
 
     public FlinkPulsarSink(
@@ -68,41 +58,14 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
             String adminUrl,
             Optional<String> defaultTopicName,
             Properties properties,
-            TopicKeyExtractor<T> topicKeyExtractor,
-            Class<T> recordClazz) {
+            PulsarSerializationSchema<T> serializationSchema) {
         this(
                 adminUrl,
                 defaultTopicName,
                 PulsarClientUtils.newClientConf(checkNotNull(serviceUrl), properties),
                 properties,
-                topicKeyExtractor,
-                recordClazz,
-                RecordSchemaType.AVRO
+                serializationSchema
         );
-    }
-
-    public FlinkPulsarSink(
-            String serviceUrl,
-            String adminUrl,
-            Optional<String> defaultTopicName,
-            Properties properties,
-            TopicKeyExtractor<T> topicKeyExtractor,
-            Class<T> recordClazz,
-            RecordSchemaType recordSchemaType) {
-        this(
-                adminUrl,
-                defaultTopicName,
-                PulsarClientUtils.newClientConf(checkNotNull(serviceUrl), properties),
-                properties,
-                topicKeyExtractor,
-                recordClazz,
-                recordSchemaType
-        );
-    }
-
-    @Override
-    protected Schema<T> getPulsarSchema() {
-        return buildSchema(recordClazz, schemaType);
     }
 
     @Override
@@ -110,25 +73,27 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
         checkErroneous();
         initializeSendCallback();
 
-        TypedMessageBuilder<T> mb;
+        //get topic for message
+        String targetTopic = null;
+        byte[] key = null;
+        if (serializationSchema instanceof PulsarContextAware) {
+            @SuppressWarnings("unchecked")
+            PulsarContextAware<T> contextAwareSchema =
+                    (PulsarContextAware<T>) serializationSchema;
 
-        if (forcedTopic) {
-            mb = (TypedMessageBuilder<T>) getProducer(defaultTopic).newMessage().value(value);
-        } else {
-            byte[] key = topicKeyExtractor.serializeKey(value);
-            String topic = topicKeyExtractor.getTopic(value);
+            targetTopic = contextAwareSchema.getTargetTopic(value);
+            key = contextAwareSchema.getKey(value);
+        }
+        if (targetTopic == null) {
+            targetTopic = defaultTopic;
+        }
 
-            if (topic == null) {
-                if (failOnWrite) {
-                    throw new NullPointerException("no topic present in the data.");
-                }
-                return;
-            }
+        //serialize the message
+        TypedMessageBuilder<byte[]> mb = getProducer(targetTopic).newMessage();
+        serializationSchema.serialize(value, mb);
 
-            mb = (TypedMessageBuilder<T>) getProducer(topic).newMessage().value(value);
-            if (key != null) {
-                mb.keyBytes(key);
-            }
+        if (key != null) {
+            mb.keyBytes(key);
         }
 
         if (flushOnCheckpoint) {
@@ -138,19 +103,4 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
         }
         mb.sendAsync().whenComplete(sendCallback);
     }
-
-    private Schema<T> buildSchema(Class<T> recordClazz, RecordSchemaType recordSchemaType) {
-        if (recordSchemaType == null) {
-            return Schema.AVRO(recordClazz);
-        }
-        switch (recordSchemaType) {
-            case AVRO:
-                return Schema.AVRO(recordClazz);
-            case JSON:
-                return Schema.JSON(recordClazz);
-            default:
-                throw new IllegalArgumentException("not support schema type " + recordSchemaType);
-        }
-    }
-
 }

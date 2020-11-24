@@ -15,7 +15,9 @@
 package org.apache.flink.streaming.connectors.pulsar;
 
 import org.apache.flink.api.common.serialization.DeserializationSchema;
+import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
+import org.apache.flink.streaming.connectors.pulsar.internal.JsonSer;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarCatalogSupport;
 import org.apache.flink.table.api.TableException;
 import org.apache.flink.table.api.TableSchema;
@@ -25,6 +27,7 @@ import org.apache.flink.table.descriptors.DescriptorProperties;
 import org.apache.flink.table.descriptors.PulsarValidator;
 import org.apache.flink.table.descriptors.SchemaValidator;
 import org.apache.flink.table.factories.DeserializationSchemaFactory;
+import org.apache.flink.table.factories.SerializationSchemaFactory;
 import org.apache.flink.table.factories.StreamTableSinkFactory;
 import org.apache.flink.table.factories.StreamTableSourceFactory;
 import org.apache.flink.table.factories.TableFactoryService;
@@ -55,7 +58,12 @@ import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CO
 import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CONNECTOR_TYPE;
 import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CONNECTOR_VERSION;
 import static org.apache.flink.table.descriptors.DescriptorProperties.EXPR;
+import static org.apache.flink.table.descriptors.DescriptorProperties.WATERMARK;
+import static org.apache.flink.table.descriptors.DescriptorProperties.WATERMARK_ROWTIME;
+import static org.apache.flink.table.descriptors.DescriptorProperties.WATERMARK_STRATEGY_DATA_TYPE;
+import static org.apache.flink.table.descriptors.DescriptorProperties.WATERMARK_STRATEGY_EXPR;
 import static org.apache.flink.table.descriptors.FormatDescriptorValidator.FORMAT;
+import static org.apache.flink.table.descriptors.FormatDescriptorValidator.FORMAT_TYPE;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_ADMIN_URL;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_EXTERNAL_SUB_NAME;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_PROPERTIES;
@@ -116,15 +124,15 @@ public class PulsarTableSourceSinkFactory
         final String topic = dp.getString(CONNECTOR_TOPIC);
         String serviceUrl = dp.getString(CONNECTOR_SERVICE_URL);
         String adminUrl = dp.getString(CONNECTOR_ADMIN_URL);
-
+        String formatType = dp.getString(FORMAT_TYPE);
         Optional<String> proctime = SchemaValidator.deriveProctimeAttribute(dp);
         List<RowtimeAttributeDescriptor> rowtimeAttributeDescriptors = SchemaValidator.deriveRowtimeAttributes(dp);
 
         // see also FLINK-9870
-        if (proctime.isPresent() || !rowtimeAttributeDescriptors.isEmpty() ||
+       /* if (proctime.isPresent() || !rowtimeAttributeDescriptors.isEmpty() ||
                 checkForCustomFieldMapping(dp, schema)) {
             throw new TableException("Time attributes and custom field mappings are not supported yet.");
-        }
+        }*/
 
         Properties sinkProp;
         if (isInPulsarCatalog) {
@@ -134,10 +142,14 @@ public class PulsarTableSourceSinkFactory
             sinkProp = getPulsarProperties(dp);
         }
         sinkProp.put(CONNECTOR_TOPIC, topic);
-
+        sinkProp.put(FORMAT_TYPE, formatType);
         Properties result = removeConnectorPrefix(sinkProp);
 
-        return new PulsarTableSink(serviceUrl, adminUrl, schema, Optional.of(topic), result);
+        SerializationSchema<Row> serializationSchema = getSerializationSchema(properties);
+
+        log.info("stream table sink use {} to serialize data", serializationSchema);
+
+        return new PulsarTableSink(serviceUrl, adminUrl, schema, topic, result, serializationSchema);
     }
 
     @Override
@@ -171,12 +183,14 @@ public class PulsarTableSourceSinkFactory
         if (isInPulsarCatalog) {
             sourceProp = new Properties();
             sourceProp.putAll(catalogProperties);
-            sourceProp.put(CONNECTOR + "." + USE_EXTEND_FIELD,  "true");
         } else {
             sourceProp = getPulsarProperties(descriptorProperties);
         }
-        sourceProp.put(CONNECTOR_TOPIC, topic);
 
+        boolean useExtendField = descriptorProperties.getOptionalBoolean(CONNECTOR + "." + USE_EXTEND_FIELD).orElse(false);
+        sourceProp.put(CONNECTOR + "." + USE_EXTEND_FIELD, useExtendField ? "true" : "false");
+
+        sourceProp.put(CONNECTOR_TOPIC, topic);
         Properties result = removeConnectorPrefix(sourceProp);
 
         DeserializationSchema<Row> deserializationSchema = null;
@@ -187,7 +201,7 @@ public class PulsarTableSourceSinkFactory
                     .map(DeserializationSchema::getProducedType)
                     .map(type -> SchemaValidator.deriveFieldMapping(descriptorProperties, Optional.of(type)));
         }
-
+        log.info("stream table source use {} to deserialize data", deserializationSchema);
         return new PulsarTableSource(
                 schema,
                 SchemaValidator.deriveProctimeAttribute(descriptorProperties),
@@ -289,6 +303,14 @@ public class PulsarTableSourceSinkFactory
         properties.add(SCHEMA + ".#." + ROWTIME_WATERMARKS_CLASS);
         properties.add(SCHEMA + ".#." + ROWTIME_WATERMARKS_SERIALIZED);
         properties.add(SCHEMA + ".#." + ROWTIME_WATERMARKS_DELAY);
+
+        // computed column
+        properties.add(SCHEMA + ".#." + EXPR);
+
+        // watermark
+        properties.add(SCHEMA + "." + WATERMARK + ".#."  + WATERMARK_ROWTIME);
+        properties.add(SCHEMA + "." + WATERMARK + ".#."  + WATERMARK_STRATEGY_EXPR);
+        properties.add(SCHEMA + "." + WATERMARK + ".#."  + WATERMARK_STRATEGY_DATA_TYPE);
 
         // format wildcard
         properties.add(FORMAT + ".*");
@@ -400,6 +422,20 @@ public class PulsarTableSourceSinkFactory
         } catch (Exception e) {
             log.warn("get deserializer from properties failed. using pulsar inner schema instead.");
             return null;
+        }
+    }
+
+    private SerializationSchema<Row> getSerializationSchema(Map<String, String> properties) {
+        try {
+            @SuppressWarnings("unchecked")
+            final SerializationSchemaFactory<Row> formatFactory = TableFactoryService.find(
+                    SerializationSchemaFactory.class,
+                    properties,
+                    this.getClass().getClassLoader());
+            return formatFactory.createSerializationSchema(properties);
+        } catch (Exception e) {
+            log.warn("get deserializer from properties failed. using json schema instead.");
+            return JsonSer.of(Row.class);
         }
     }
 }

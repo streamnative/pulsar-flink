@@ -14,6 +14,11 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
+import org.apache.flink.streaming.connectors.pulsar.config.RecordSchemaType;
+import org.apache.flink.table.api.DataTypes;
+import org.apache.flink.table.types.DataType;
+import org.apache.flink.table.types.utils.TypeConversions;
+
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.schema.GenericRecord;
@@ -30,6 +35,7 @@ import org.apache.pulsar.client.impl.schema.LocalDateTimeSchema;
 import org.apache.pulsar.client.impl.schema.LocalTimeSchema;
 import org.apache.pulsar.client.impl.schema.LongSchema;
 import org.apache.pulsar.client.impl.schema.ShortSchema;
+import org.apache.pulsar.client.impl.schema.StringSchema;
 import org.apache.pulsar.client.impl.schema.TimeSchema;
 import org.apache.pulsar.client.impl.schema.TimestampSchema;
 import org.apache.pulsar.client.impl.schema.generic.GenericSchemaImpl;
@@ -41,6 +47,7 @@ import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.shade.org.apache.avro.Schema;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 
 import static org.apache.pulsar.shade.com.google.common.base.Preconditions.checkNotNull;
 
@@ -189,5 +196,19 @@ public class SchemaUtils {
             numBytes += 1;
         }
         return numBytes;
+    }
+
+    public static <T> org.apache.pulsar.client.api.Schema<T> buildSchemaForRecordClazz(Class<T> recordClazz, RecordSchemaType recordSchemaType) {
+        if (recordSchemaType == null) {
+            return org.apache.pulsar.client.api.Schema.AVRO(recordClazz);
+        }
+        switch (recordSchemaType) {
+            case AVRO:
+                return org.apache.pulsar.client.api.Schema.AVRO(recordClazz);
+            case JSON:
+                return org.apache.pulsar.client.api.Schema.JSON(recordClazz);
+            default:
+                throw new IllegalArgumentException("not support schema type " + recordSchemaType);
+        }
     }
 }

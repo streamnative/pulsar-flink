@@ -15,6 +15,7 @@
 package org.apache.flink.streaming.connectors.pulsar;
 
 import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -206,6 +207,10 @@ public class PulsarAuthTest {
         @Override
         public String deserialize(Message message) throws IOException {
             return simpleStringSchema.deserialize(message.getData());
+        }
+
+        @Override
+        public void open(DeserializationSchema.InitializationContext context) throws Exception {
         }
 
         @Override

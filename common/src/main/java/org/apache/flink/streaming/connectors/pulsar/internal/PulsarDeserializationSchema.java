@@ -15,6 +15,7 @@
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import org.apache.flink.annotation.PublicEvolving;
+import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.java.typeutils.ResultTypeQueryable;
 import org.apache.flink.util.Collector;
 
@@ -67,4 +68,6 @@ public interface PulsarDeserializationSchema<T> extends Serializable, ResultType
             out.collect(deserialized);
         }
     }
+
+    void open(DeserializationSchema.InitializationContext context) throws Exception;
 }

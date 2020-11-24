@@ -23,11 +23,17 @@ import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.ReaderBuilder;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
+import org.apache.pulsar.client.impl.schema.generic.GenericAvroRecord;
 import org.apache.pulsar.common.schema.SchemaInfo;
 
 import java.io.IOException;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+
+import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.USE_EXTEND_FIELD;
 
 /**
  * Specific reader thread to read flink rows from a Pulsar partition.
@@ -36,7 +42,7 @@ import java.util.concurrent.ExecutionException;
 public class RowReaderThread extends ReaderThread<Row> {
 
     private final Schema<?> schema;
-
+    private final boolean useExtendField;
     public RowReaderThread(
             PulsarFetcher owner,
             PulsarTopicState state,
@@ -45,11 +51,13 @@ public class RowReaderThread extends ReaderThread<Row> {
             int pollTimeoutMs,
             SchemaInfo pulsarSchema,
             PulsarDeserializationSchema<Row> deserializer,
-            ExceptionProxy exceptionProxy) {
+            ExceptionProxy exceptionProxy,
+            boolean useExtendField) {
         super(owner, state, clientConf, readerConf,
                 deserializer,
                 pollTimeoutMs, exceptionProxy);
         this.schema = SchemaUtils.getPulsarSchema(pulsarSchema);
+        this.useExtendField = useExtendField;
     }
 
     @Override
@@ -67,11 +75,40 @@ public class RowReaderThread extends ReaderThread<Row> {
         reader = readerBuilder.create();
     }
 
+    private Row useMetaData(Row origin, Message message){
+        //RowUpdate fieldUpdater = new RowUpdater();
+        Row resultRow = new Row(origin.getArity() + PulsarOptions.META_FIELD_NAMES.size());
+        for(int i = 0; i < origin.getArity(); i++){
+            resultRow.setField(i, origin.getField(i));
+        }
+        int metaStartIdx = origin.getArity();
+        if (message.hasKey()) {
+            resultRow.setField(metaStartIdx, message.getKeyBytes());
+        } else {
+            resultRow.setField(metaStartIdx, null);
+        }
+
+        resultRow.setField(metaStartIdx + 1, message.getTopicName());
+        resultRow.setField(metaStartIdx + 2, message.getMessageId().toByteArray());
+        resultRow.setField(metaStartIdx + 3, LocalDateTime.ofInstant(Instant.ofEpochMilli(message.getPublishTime()), ZoneId.systemDefault()));
+
+        if (message.getEventTime() > 0L) {
+            resultRow.setField(metaStartIdx + 4, LocalDateTime.ofInstant(Instant.ofEpochMilli(message.getEventTime()), ZoneId.systemDefault()));
+        } else {
+            resultRow.setField(metaStartIdx + 4, null);
+        }
+        return resultRow;
+    }
+
+
     @Override
     protected void emitRecord(Message<?> message) throws IOException {
         try {
             MessageId messageId = message.getMessageId();
             Row record = deserializer.deserialize(message);
+            if(useExtendField){
+                record = useMetaData(record, message);
+            }
             if (deserializer.isEndOfStream(record)) {
                 return;
             }

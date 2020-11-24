@@ -17,29 +17,51 @@ package org.apache.flink.connector.pulsar.table;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 import org.apache.flink.streaming.connectors.pulsar.FlinkPulsarSink;
-import org.apache.flink.streaming.connectors.pulsar.TopicKeyExtractor;
+import org.apache.flink.streaming.connectors.pulsar.SupportsWritingMetadata;
 import org.apache.flink.streaming.connectors.pulsar.config.RecordSchemaType;
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
+import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.connector.ChangelogMode;
 import org.apache.flink.table.connector.format.EncodingFormat;
 import org.apache.flink.table.connector.sink.DynamicTableSink;
 import org.apache.flink.table.connector.sink.SinkFunctionProvider;
 import org.apache.flink.table.data.RowData;
+import org.apache.flink.table.descriptors.FormatDescriptorValidator;
 import org.apache.flink.table.types.DataType;
+import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.util.Preconditions;
 
+import org.apache.pulsar.client.api.Message;
+
+import java.io.Serializable;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 /**
  * pulsar dynamic table sink.
  */
-public class PulsarDynamicTableSink implements DynamicTableSink {
+public class PulsarDynamicTableSink implements DynamicTableSink, SupportsWritingMetadata {
+
+    // --------------------------------------------------------------------------------------------
+    // Mutable attributes
+    // --------------------------------------------------------------------------------------------
+
+    /** Metadata that is appended at the end of a physical sink row. */
+    protected List<String> metadataKeys;
 
     /**
-     * Consumed data type of the table.
+     *  Data type to configure the format.
      */
-    protected final DataType consumedDataType;
+    protected DataType physicalDataType;
 
     /**
      * The pulsar topic to write to.
@@ -53,6 +75,8 @@ public class PulsarDynamicTableSink implements DynamicTableSink {
      */
     protected final Properties properties;
 
+    protected final boolean useExtendField;
+
     /**
      * Sink format for encoding records to pulsar.
      */
@@ -62,15 +86,17 @@ public class PulsarDynamicTableSink implements DynamicTableSink {
             String serviceUrl,
             String adminUrl,
             String topic,
-            DataType consumedDataType,
+            DataType physicalDataType,
             Properties properties,
             EncodingFormat<SerializationSchema<RowData>> encodingFormat) {
         this.serviceUrl = Preconditions.checkNotNull(serviceUrl, "serviceUrl data type must not be null.");
         this.adminUrl = Preconditions.checkNotNull(adminUrl, "adminUrl data type must not be null.");
         this.topic = Preconditions.checkNotNull(topic, "Topic must not be null.");
-        this.consumedDataType = Preconditions.checkNotNull(consumedDataType, "Consumed data type must not be null.");
+        this.physicalDataType = Preconditions.checkNotNull(physicalDataType, "Consumed data type must not be null.");
         this.properties = Preconditions.checkNotNull(properties, "Properties must not be null.");
         this.encodingFormat = Preconditions.checkNotNull(encodingFormat, "Encoding format must not be null.");
+        this.metadataKeys = Collections.emptyList();
+        this.useExtendField = Boolean.parseBoolean(properties.getProperty(PulsarOptions.USE_EXTEND_FIELD, "false"));
     }
 
     @Override
@@ -81,7 +107,14 @@ public class PulsarDynamicTableSink implements DynamicTableSink {
     @Override
     public SinkRuntimeProvider getSinkRuntimeProvider(Context context) {
         SerializationSchema<RowData> serializationSchema =
-                this.encodingFormat.createRuntimeEncoder(context, this.consumedDataType);
+                this.encodingFormat.createRuntimeEncoder(context, this.physicalDataType);
+
+        //if we update to FLink 1.12, planner will auto inject metadataKeys and call applyWritableMetadata method.
+        if(useExtendField){
+            metadataKeys = Arrays.stream(WritableMetadata.values()).map(x -> x.key).collect(Collectors.toList());
+            applyWritableMetadata(metadataKeys, null);
+        }
+
         final SinkFunction<RowData> pulsarSink = createPulsarSink(
                 this.topic,
                 this.properties,
@@ -91,29 +124,58 @@ public class PulsarDynamicTableSink implements DynamicTableSink {
     }
 
     private SinkFunction<RowData> createPulsarSink(String topic, Properties properties,
-                                                   SerializationSchema<RowData> serializationSchema) {
+                                                   SerializationSchema<RowData> valueSerialization) {
+        final List<LogicalType> physicalChildren = physicalDataType.getLogicalType().getChildren();
+
+        final RowData.FieldGetter[] physicalFieldGetters = IntStream.range(0, physicalChildren.size())
+                .mapToObj(pos -> RowData.createFieldGetter(physicalChildren.get(pos), pos))
+                .toArray(RowData.FieldGetter[]::new);
+
+        // determine the positions of metadata in the sink row
+        final int[] metadataPositions = Stream.of(WritableMetadata.values())
+                .mapToInt(m -> {
+                    final int pos = metadataKeys.indexOf(m.key);
+                    if (pos < 0) {
+                        return -1;
+                    }
+                    return physicalChildren.size() + pos;
+                })
+                .toArray();
+
+        //get recordSchemaType to generate row schema for pulsar.
+        String formatName = properties.getProperty(FormatDescriptorValidator.FORMAT);
+        RecordSchemaType recordSchemaType = Enum.valueOf(RecordSchemaType.class, formatName.toUpperCase());
+
+        final DynamicPulsarSerializationSchema serializationSchema = new DynamicPulsarSerializationSchema(
+                topic,
+                valueSerialization,
+                metadataKeys.size() > 0,
+                metadataPositions,
+                physicalFieldGetters,
+                recordSchemaType,
+                physicalDataType);
 
         return new FlinkPulsarSink<RowData>(
                 serviceUrl,
                 adminUrl,
                 Optional.ofNullable(topic),
                 properties,
-                TopicKeyExtractor.NULL,
-                RowData.class,
-                RecordSchemaType.AVRO
+                serializationSchema
         );
     }
 
     @Override
     public DynamicTableSink copy() {
-        return new PulsarDynamicTableSink(
+        final PulsarDynamicTableSink copy = new PulsarDynamicTableSink(
                 this.serviceUrl,
                 this.adminUrl,
                 this.topic,
-                this.consumedDataType,
+                this.physicalDataType,
                 this.properties,
                 this.encodingFormat
         );
+        copy.metadataKeys = metadataKeys;
+        return copy;
     }
 
     @Override
@@ -126,19 +188,59 @@ public class PulsarDynamicTableSink implements DynamicTableSink {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof PulsarDynamicTableSink)) {
+        if (o == null || getClass() != o.getClass()) {
             return false;
         }
         PulsarDynamicTableSink that = (PulsarDynamicTableSink) o;
-        return consumedDataType.equals(that.consumedDataType) &&
+        return useExtendField == that.useExtendField &&
+                Objects.equals(metadataKeys, that.metadataKeys) &&
+                Objects.equals(physicalDataType, that.physicalDataType) &&
                 Objects.equals(topic, that.topic) &&
-                serviceUrl.equals(that.serviceUrl) &&
-                adminUrl.equals(that.adminUrl) &&
-                encodingFormat.equals(that.encodingFormat);
+                Objects.equals(serviceUrl, that.serviceUrl) &&
+                Objects.equals(adminUrl, that.adminUrl) &&
+                Objects.equals(properties, that.properties) &&
+                Objects.equals(encodingFormat, that.encodingFormat);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(consumedDataType, topic, serviceUrl, adminUrl, encodingFormat);
+        return Objects.hash(metadataKeys, physicalDataType, topic, serviceUrl, adminUrl, properties, useExtendField, encodingFormat);
+    }
+
+    @Override
+    public Map<String, DataType> listWritableMetadata() {
+        final Map<String, DataType> metadataMap = new LinkedHashMap<>();
+        Stream.of(WritableMetadata.values()).forEachOrdered(m -> metadataMap.put(m.key, m.dataType));
+        return metadataMap;
+    }
+
+    @Override
+    public void applyWritableMetadata(List<String> metadataKeys, DataType consumedDataType) {
+        this.metadataKeys = metadataKeys;
+    }
+
+    enum WritableMetadata {
+
+        TIMESTAMP(
+                "timestamp",
+                DataTypes.TIMESTAMP_WITH_LOCAL_TIME_ZONE(3).nullable(),
+                (row, pos) -> {
+                    if (row.isNullAt(pos)) {
+                        return null;
+                    }
+                    return row.getTimestamp(pos, 3).getMillisecond();
+                });
+
+        public final String key;
+
+        public final DataType dataType;
+
+        public final DynamicPulsarSerializationSchema.WritableRowDataMetadataConverter converter;
+
+        WritableMetadata(String key, DataType dataType, DynamicPulsarSerializationSchema.WritableRowDataMetadataConverter converter) {
+            this.key = key;
+            this.dataType = dataType;
+            this.converter = converter;
+        }
     }
 }

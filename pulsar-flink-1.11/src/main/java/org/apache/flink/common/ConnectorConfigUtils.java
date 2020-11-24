@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-package org.apache.flink.pulsar.common;
+package org.apache.flink.common;
 
 import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
 import org.apache.flink.shaded.netty4.io.netty.util.concurrent.FastThreadLocal;

@@ -14,14 +14,17 @@
 
 package org.apache.flink.streaming.connectors.pulsar;
 
+import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.formats.avro.AvroFormatFactory;
+import org.apache.flink.formats.avro.typeutils.AvroSchemaConverter;
+import org.apache.flink.formats.json.JsonFormatFactory;
 import org.apache.flink.streaming.connectors.pulsar.internal.DateTimeUtils;
-import org.apache.flink.streaming.connectors.pulsar.internal.IncompatibleSchemaException;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarClientUtils;
-import org.apache.flink.streaming.connectors.pulsar.internal.PulsarSerializer;
-import org.apache.flink.streaming.connectors.pulsar.internal.SimpleSchemaTranslator;
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarSerializationSchemaWrapper;
 import org.apache.flink.table.api.DataTypes;
+import org.apache.flink.table.descriptors.FormatDescriptorValidator;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.FieldsDataType;
 import org.apache.flink.table.types.logical.LogicalType;
@@ -29,13 +32,15 @@ import org.apache.flink.table.types.logical.LogicalTypeRoot;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.table.types.utils.TypeConversions;
 import org.apache.flink.types.Row;
-import org.apache.flink.util.ExceptionUtils;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
+import org.apache.pulsar.common.schema.SchemaInfo;
+import org.apache.pulsar.common.schema.SchemaType;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,30 +58,33 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * Write Flink Row to Pulsar.
  */
 @Slf4j
+@Deprecated
 public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
 
     protected final DataType dataType;
 
     private DataType valueType;
 
+    private  boolean isDegradation = false;
+
     private SerializableFunction<Row, Row> valueProjection;
 
     private SerializableFunction<Row, Row> metaProjection;
-
-    private transient PulsarSerializer serializer;
 
     public FlinkPulsarRowSink(
             String adminUrl,
             Optional<String> defaultTopicName,
             ClientConfigurationData clientConf,
             Properties properties,
+            SerializationSchema serializationSchema,
             DataType dataType) {
+
         super(
                 adminUrl,
                 defaultTopicName,
                 clientConf,
                 properties,
-                TopicKeyExtractor.DUMMY_FOR_ROW);
+                new PulsarSerializationSchemaWrapper<Row>(defaultTopicName.get(), serializationSchema, Schema.INSTANT));
 
         this.dataType = dataType;
         createProjection();
@@ -87,14 +95,16 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
             String adminUrl,
             Optional<String> defaultTopicName,
             Properties properties,
+            SerializationSchema<Row> serializationSchema,
             DataType dataType) {
-        this(adminUrl, defaultTopicName, PulsarClientUtils.newClientConf(checkNotNull(serviceUrl), properties), properties, dataType);
+        this(adminUrl, defaultTopicName, PulsarClientUtils.newClientConf(checkNotNull(serviceUrl), properties),
+                properties, serializationSchema, dataType);
     }
 
     @Override
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
-        this.serializer = new PulsarSerializer(valueType, false);
+        //this.serializer = new PulsarSerializer(valueType, false);
     }
 
     private void createProjection() {
@@ -157,12 +167,13 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
         List<RowType.RowField> nonInternalFields = rowFields.stream()
                 .filter(f -> !META_FIELD_NAMES.contains(f.getName())).collect(Collectors.toList());
 
-        if (nonInternalFields.size() == 1) {
+        /*if (nonInternalFields.size() == 1) {
             String fieldName = nonInternalFields.get(0).getName();
             int fieldIndex = rowType.getFieldIndex(fieldName);
             LogicalType logicalType = rowType.getTypeAt(fieldIndex);
             valueType = TypeConversions.fromLogicalToDataType(logicalType);
-        } else {
+            isDegradation = true;
+        } else {*/
             List<DataTypes.Field> fields = nonInternalFields.stream()
                     .map(f -> {
                         String fieldName = f.getName();
@@ -171,7 +182,7 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
                         return DataTypes.FIELD(fieldName, TypeConversions.fromLogicalToDataType(logicalType));
                     }).collect(Collectors.toList());
             valueType = DataTypes.ROW(fields.toArray(new DataTypes.Field[0]));
-        }
+        //}
 
         List<Integer> values = nonInternalFields.stream()
                 .map(f -> name2Type.get(f.getName()).f1).collect(Collectors.toList());
@@ -195,14 +206,31 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
         };
     }
 
-    @Override
     protected Schema<?> getPulsarSchema() {
-        try {
-            return SimpleSchemaTranslator.sqlType2PulsarSchema(valueType);
-        } catch (IncompatibleSchemaException e) {
-            log.error(ExceptionUtils.stringifyException(e));
-            throw new RuntimeException(e);
+        return dataType2PulsarSchema(valueType);
+    }
+
+   /* @Override
+    protected Schema<Row> buildSchema() {
+        return dataType2PulsarSchema(valueType);
+    }*/
+
+
+    private Schema dataType2PulsarSchema(DataType dataType) {
+        org.apache.avro.Schema avroSchema = AvroSchemaConverter.convertToSchema(dataType.getLogicalType());
+        byte[] schemaBytes = avroSchema.toString().getBytes(StandardCharsets.UTF_8);
+        SchemaInfo si = new SchemaInfo();
+        si.setSchema(schemaBytes);
+        // for now we just support avro and json serializationSchema
+        String formatName = properties.getProperty(FormatDescriptorValidator.FORMAT_TYPE, JsonFormatFactory.IDENTIFIER);
+        if (formatName.equals(AvroFormatFactory.IDENTIFIER)) {
+            si.setName("Avro");
+            si.setType(SchemaType.AVRO);
+        } else {
+            si.setName("Json");
+            si.setType(SchemaType.JSON);
         }
+        return Schema.generic(si);
     }
 
     @Override
@@ -212,7 +240,7 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
 
         Row metaRow = metaProjection.apply(value);
         Row valueRow = valueProjection.apply(value);
-        Object v = serializer.serialize(valueRow);
+        byte[] serializeValue = serializationSchema.serialize(valueRow);
 
         String topic;
         if (forcedTopic) {
@@ -231,7 +259,7 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
             return;
         }
 
-        TypedMessageBuilder builder = getProducer(topic).newMessage().value(v);
+        TypedMessageBuilder builder = getProducer(topic).newMessage().value(serializeValue);
 
         if (key != null) {
             builder.keyBytes(key.getBytes());

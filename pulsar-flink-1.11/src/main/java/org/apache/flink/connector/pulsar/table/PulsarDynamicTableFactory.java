@@ -18,6 +18,8 @@ import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.ReadableConfig;
+import org.apache.flink.streaming.connectors.pulsar.internal.JsonSer;
+import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils;
 import org.apache.flink.table.connector.format.DecodingFormat;
 import org.apache.flink.table.connector.format.EncodingFormat;
 import org.apache.flink.table.connector.sink.DynamicTableSink;
@@ -30,6 +32,9 @@ import org.apache.flink.table.factories.FactoryUtil;
 import org.apache.flink.table.factories.SerializationFormatFactory;
 import org.apache.flink.table.types.DataType;
 
+import org.apache.commons.lang.SerializationUtils;
+
+import java.util.Base64;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -67,13 +72,13 @@ public class PulsarDynamicTableFactory implements
 
         Properties properties = removeConnectorPrefix(context.getCatalogTable().toProperties());
 
-        DataType consumedDataType = context.getCatalogTable().getSchema().toPhysicalRowDataType();
+        DataType physicalDataType = context.getCatalogTable().getSchema().toPhysicalRowDataType();
 
         return new PulsarDynamicTableSink(
                 serverUrl,
                 adminUrl,
                 topics.get(0),
-                consumedDataType,
+                physicalDataType,
                 properties,
                 encodingFormat
         );
@@ -99,10 +104,10 @@ public class PulsarDynamicTableFactory implements
         PulsarOptions.validateTableSourceOptions(tableOptions);
         Properties properties = removeConnectorPrefix(context.getCatalogTable().toProperties());
 
-        DataType producedDataType = context.getCatalogTable().getSchema().toPhysicalRowDataType();
+        DataType physicalDataType = context.getCatalogTable().getSchema().toPhysicalRowDataType();
         final PulsarOptions.StartupOptions startupOptions = PulsarOptions.getStartupOptions(tableOptions, topics);
         return new PulsarDynamicTableSource(
-                producedDataType,
+                physicalDataType,
                 decodingFormat,
                 topics,
                 topicPattern,

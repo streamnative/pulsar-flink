@@ -17,7 +17,19 @@ package org.apache.flink.streaming.connectors.pulsar.internal;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.FieldsDataType;
+import org.apache.flink.table.types.logical.LogicalTypeRoot;
 
+import org.apache.pulsar.client.api.Schema;
+import org.apache.pulsar.client.impl.schema.BooleanSchema;
+import org.apache.pulsar.client.impl.schema.ByteSchema;
+import org.apache.pulsar.client.impl.schema.BytesSchema;
+import org.apache.pulsar.client.impl.schema.DoubleSchema;
+import org.apache.pulsar.client.impl.schema.FloatSchema;
+import org.apache.pulsar.client.impl.schema.IntSchema;
+import org.apache.pulsar.client.impl.schema.LocalDateSchema;
+import org.apache.pulsar.client.impl.schema.LocalDateTimeSchema;
+import org.apache.pulsar.client.impl.schema.LongSchema;
+import org.apache.pulsar.client.impl.schema.ShortSchema;
 import org.apache.pulsar.common.schema.SchemaInfo;
 
 import java.io.Serializable;
@@ -25,13 +37,43 @@ import java.io.Serializable;
 /**
  * schema translator.
  */
-public interface SchemaTranslator extends Serializable {
+public abstract class SchemaTranslator implements Serializable {
 
-    SchemaInfo tableSchemaToPulsarSchema(TableSchema schema) throws IncompatibleSchemaException;
+    public abstract SchemaInfo tableSchemaToPulsarSchema(TableSchema schema) throws IncompatibleSchemaException;
 
-    TableSchema pulsarSchemaToTableSchema(SchemaInfo pulsarSchema) throws IncompatibleSchemaException;
+    public abstract TableSchema pulsarSchemaToTableSchema(SchemaInfo pulsarSchema) throws IncompatibleSchemaException;
 
-    FieldsDataType pulsarSchemaToFieldsDataType(SchemaInfo pulsarSchema) throws IncompatibleSchemaException;
+    public abstract FieldsDataType pulsarSchemaToFieldsDataType(SchemaInfo pulsarSchema) throws IncompatibleSchemaException;
 
-    DataType schemaInfo2SqlType(SchemaInfo si) throws IncompatibleSchemaException;
+    public abstract DataType schemaInfo2SqlType(SchemaInfo si) throws IncompatibleSchemaException;
+
+    public static Schema atomicType2PulsarSchema(DataType flinkType) throws IncompatibleSchemaException {
+        LogicalTypeRoot type = flinkType.getLogicalType().getTypeRoot();
+        switch (type) {
+            case BOOLEAN:
+                return BooleanSchema.of();
+            case VARBINARY:
+                return BytesSchema.of();
+            case DATE:
+                return LocalDateSchema.of();
+            case VARCHAR:
+                return org.apache.pulsar.client.api.Schema.STRING;
+            case TIMESTAMP_WITHOUT_TIME_ZONE:
+                return LocalDateTimeSchema.of();
+            case TINYINT:
+                return ByteSchema.of();
+            case DOUBLE:
+                return DoubleSchema.of();
+            case FLOAT:
+                return FloatSchema.of();
+            case INTEGER:
+                return IntSchema.of();
+            case BIGINT:
+                return LongSchema.of();
+            case SMALLINT:
+                return ShortSchema.of();
+            default:
+                throw new IncompatibleSchemaException(String.format("%s is not supported by Pulsar yet", flinkType.toString()), null);
+        }
+    }
 }

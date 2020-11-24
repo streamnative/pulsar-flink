@@ -16,7 +16,7 @@ package org.apache.flink.table.catalog.pulsar.factories;
 
 import org.apache.flink.table.catalog.Catalog;
 import org.apache.flink.table.catalog.pulsar.PulsarCatalog;
-import org.apache.flink.table.catalog.pulsar.descriptors.PulsarCatalogValidator;
+import org.apache.flink.table.catalog.pulsar.PulsarCatalogValidator;
 import org.apache.flink.table.descriptors.DescriptorProperties;
 import org.apache.flink.table.factories.CatalogFactory;
 
@@ -25,12 +25,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.flink.table.catalog.pulsar.descriptors.PulsarCatalogValidator.CATALOG_ADMIN_URL;
-import static org.apache.flink.table.catalog.pulsar.descriptors.PulsarCatalogValidator.CATALOG_DEFAULT_PARTITIONS;
-import static org.apache.flink.table.catalog.pulsar.descriptors.PulsarCatalogValidator.CATALOG_PULSAR_VERSION;
-import static org.apache.flink.table.catalog.pulsar.descriptors.PulsarCatalogValidator.CATALOG_SERVICE_URL;
-import static org.apache.flink.table.catalog.pulsar.descriptors.PulsarCatalogValidator.CATALOG_STARTUP_MODE;
-import static org.apache.flink.table.catalog.pulsar.descriptors.PulsarCatalogValidator.CATALOG_TYPE_VALUE_PULSAR;
+import static org.apache.flink.table.catalog.pulsar.PulsarCatalogValidator.CATALOG_ADMIN_URL;
+import static org.apache.flink.table.catalog.pulsar.PulsarCatalogValidator.CATALOG_DEFAULT_PARTITIONS;
+import static org.apache.flink.table.catalog.pulsar.PulsarCatalogValidator.CATALOG_PULSAR_VERSION;
+import static org.apache.flink.table.catalog.pulsar.PulsarCatalogValidator.CATALOG_SERVICE_URL;
+import static org.apache.flink.table.catalog.pulsar.PulsarCatalogValidator.CATALOG_STARTUP_MODE;
+import static org.apache.flink.table.catalog.pulsar.PulsarCatalogValidator.CATALOG_TYPE_VALUE_PULSAR;
 import static org.apache.flink.table.descriptors.CatalogDescriptorValidator.CATALOG_DEFAULT_DATABASE;
 import static org.apache.flink.table.descriptors.CatalogDescriptorValidator.CATALOG_PROPERTY_VERSION;
 import static org.apache.flink.table.descriptors.CatalogDescriptorValidator.CATALOG_TYPE;

@@ -14,7 +14,7 @@
 
 package org.apache.flink.connector.pulsar.source.enumerator;
 
-import org.apache.flink.connector.base.source.utils.SerdeUtils;
+import org.apache.flink.connector.pulsar.source.util.SerdeUtils;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplitSerializer;
 import org.apache.flink.core.io.SimpleVersionedSerializer;

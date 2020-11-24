@@ -19,7 +19,9 @@ import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
 import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
 import org.apache.flink.streaming.connectors.pulsar.internal.JSONOptions;
+import org.apache.flink.streaming.connectors.pulsar.internal.JsonDeser;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarDeserializationSchema;
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarDeserializationSchemaWrapper;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarDeserializer;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarFetcher;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
@@ -47,12 +49,13 @@ import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOption
  * Emit Pulsar message as Row to Flink.
  */
 @Slf4j
+@Deprecated
 public class FlinkPulsarRowSource extends FlinkPulsarSource<Row> {
 
     private TypeInformation<Row> typeInformation;
 
     public FlinkPulsarRowSource(String adminUrl, ClientConfigurationData clientConf, Properties properties, PulsarDeserializationSchema<Row> deserializer) {
-        super(adminUrl, clientConf, deserializer, properties);
+        super(adminUrl, clientConf, null, properties);
     }
 
     public FlinkPulsarRowSource(String adminUrl, ClientConfigurationData clientConf, Properties properties) {
@@ -60,7 +63,7 @@ public class FlinkPulsarRowSource extends FlinkPulsarSource<Row> {
     }
 
     public FlinkPulsarRowSource(String serviceUrl, String adminUrl, Properties properties,  PulsarDeserializationSchema<Row> deserializer) {
-        super(serviceUrl, adminUrl, deserializer, properties);
+        super(serviceUrl, adminUrl, null, properties);
     }
 
     public FlinkPulsarRowSource(String serviceUrl, String adminUrl, Properties properties) {
@@ -77,7 +80,8 @@ public class FlinkPulsarRowSource extends FlinkPulsarSource<Row> {
         if (deserializer != null){
             return deserializer;
         }
-        boolean useExtendField = Boolean.parseBoolean((String) properties.get(USE_EXTEND_FIELD));
+        throw new RuntimeException("you must set a deserializer for row source");
+       /* boolean useExtendField = Boolean.parseBoolean((String) properties.get(USE_EXTEND_FIELD));
         try (PulsarMetadataReader reader = new PulsarMetadataReader(adminUrl, clientConfigurationData, "", caseInsensitiveParams, -1, -1)) {
             List<String> topics = reader.getTopics()
                     .stream()
@@ -93,7 +97,7 @@ public class FlinkPulsarRowSource extends FlinkPulsarSource<Row> {
         } catch (Exception e) {
             log.error("Failed to get schema for source with exception {}", ExceptionUtils.stringifyException(e));
             throw new RuntimeException(e);
-        }
+        }*/
     }
 
     @Override
@@ -106,7 +110,7 @@ public class FlinkPulsarRowSource extends FlinkPulsarSource<Row> {
             long autoWatermarkInterval,
             ClassLoader userCodeClassLoader,
             StreamingRuntimeContext streamingRuntime) throws Exception {
-
+        boolean useExtendField = Boolean.parseBoolean((String) properties.get(USE_EXTEND_FIELD));
         return new PulsarRowFetcher(
                 sourceContext,
                 seedTopicsWithInitialOffsets,
@@ -120,6 +124,8 @@ public class FlinkPulsarRowSource extends FlinkPulsarSource<Row> {
                 readerConf,
                 pollTimeoutMs,
                 deserializer,
-				metadataReader);
+				metadataReader,
+                useExtendField,
+                deserializer instanceof PulsarDeserializer);
     }
 }

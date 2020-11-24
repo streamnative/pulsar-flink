@@ -16,6 +16,7 @@ package org.apache.flink.table.descriptors;
 
 import org.apache.flink.streaming.connectors.pulsar.TopicKeyExtractor;
 import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.util.Preconditions;
 
 import org.apache.pulsar.client.api.MessageId;
@@ -28,6 +29,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
+import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CONNECTOR;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_ADMIN_URL;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_EXTERNAL_SUB_DEFAULT_OFFSET;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_EXTERNAL_SUB_NAME;
@@ -59,6 +61,8 @@ public class Pulsar extends ConnectorDescriptor {
 
     private StartupMode startupMode;
 
+    private boolean useExtendField;
+
     private Map<String, MessageId> specificOffsets;
 
     private String externalSubscriptionName;
@@ -72,7 +76,7 @@ public class Pulsar extends ConnectorDescriptor {
     private String subscriptionPosition;
 
     public Pulsar() {
-        super(CONNECTOR_TYPE_VALUE_PULSAR, 1, false);
+        super(CONNECTOR_TYPE_VALUE_PULSAR, 1, true);
     }
 
     public Pulsar urls(String serviceUrl, String adminUrl) {
@@ -109,6 +113,10 @@ public class Pulsar extends ConnectorDescriptor {
         return this;
     }
 
+    public Pulsar useExtendField(boolean useExtendField){
+        this.useExtendField = useExtendField;
+        return this;
+    }
     /**
      * Adds a configuration properties for the Pulsar consumer.
      *
@@ -229,6 +237,8 @@ public class Pulsar extends ConnectorDescriptor {
             properties.putString(CONNECTOR_SINK_EXTRACTOR, sinkExtractorType);
             properties.putClass(CONNECTOR_SINK_EXTRACTOR_CLASS, sinkExtractorClass);
         }
+
+        properties.putBoolean(CONNECTOR + "." + PulsarOptions.USE_EXTEND_FIELD, this.useExtendField);
 
         return properties.asMap();
     }

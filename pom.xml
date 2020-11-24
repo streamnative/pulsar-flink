@@ -18,8 +18,6 @@
   <packaging>pom</packaging>
   <modules>
     <module>managed-ledger-shaded</module>
-    <module>common</module>
-    <module>pulsar-flink-1.9</module>
     <module>pulsar-flink-1.11</module>
   </modules>
 

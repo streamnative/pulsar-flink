@@ -12,14 +12,17 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.connectors.pulsar.config;
+package org.apache.flink.streaming.connectors.pulsar.internal;
 
 /**
- * Record schema type for the Pulsar Sink.
+ * Exception designates the incompatibility between pulsar and flink type.
  */
-public enum RecordSchemaType {
+public class IncompatibleSchemaException extends Exception {
+    public IncompatibleSchemaException(String message, Throwable e) {
+        super(message, e);
+    }
 
-    AVRO,
-
-    JSON
+    public IncompatibleSchemaException(String message) {
+        this(message, null);
+    }
 }

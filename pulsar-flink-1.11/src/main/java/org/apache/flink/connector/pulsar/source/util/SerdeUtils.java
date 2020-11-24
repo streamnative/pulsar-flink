@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.base.source.utils;
+package org.apache.flink.connector.pulsar.source.util;
 
 import org.apache.flink.api.connector.source.SourceSplit;
 import org.apache.flink.core.io.SimpleVersionedSerializer;

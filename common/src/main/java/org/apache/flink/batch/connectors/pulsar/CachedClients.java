@@ -14,7 +14,7 @@
 
 package org.apache.flink.batch.connectors.pulsar;
 
-import org.apache.flink.pulsar.common.ConnectorConfig;
+import org.apache.flink.common.ConnectorConfig;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;

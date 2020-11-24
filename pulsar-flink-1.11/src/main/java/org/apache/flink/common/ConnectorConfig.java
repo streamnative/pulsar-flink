@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-package org.apache.flink.pulsar.common;
+package org.apache.flink.common;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

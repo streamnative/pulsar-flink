@@ -48,6 +48,7 @@ import org.apache.flink.streaming.connectors.pulsar.testutils.ValidatingExactlyO
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
 import org.apache.flink.streaming.util.OneInputStreamOperatorTestHarness;
 import org.apache.flink.table.api.DataTypes;
+import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.utils.LegacyTypeInfoDataTypeConverter;
 import org.apache.flink.test.util.SuccessException;
@@ -162,6 +163,67 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
             assertTrue(optionalThrowable.isPresent());
             assertTrue(optionalThrowable.get() instanceof PulsarClientException);
         }
+    }
+
+    @Test
+    public void testSQL() throws Exception{
+        StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
+        see.setParallelism(1);
+        StreamTableEnvironment tEnv = StreamTableEnvironment.create(see);
+
+        String topic = newTopic();
+
+        //sendTypedMessages(topic, SchemaType.AVRO, flList, Optional.empty(), SchemaData.FL.class);
+
+        final String createTable;
+        createTable = String.format(
+                "create table pulsar (\n" +
+                        "  id int \n" +
+                        ") with (\n" +
+                        "  'connector.type' = 'pulsar',\n" +
+                        "  'connector.topic' = '%s',\n" +
+                        "  'connector.service-url' = '%s',\n" +
+                        "  'connector.admin-url' = '%s',\n" +
+                        "  'connector.startup-mode' = 'earliest',\n" +
+                        "  'update-mode' = 'append', \n" +
+                        "  'format.type' ='avro', \n" +
+                        "  'format.derive-schema' ='true' \n" +
+                        ")",
+                topic,
+                serviceUrl,
+                adminUrl);
+        tEnv.sqlUpdate(createTable);
+        //tEnv.executeSql(createTable);
+
+       /* String initialValues = "INSERT INTO pulsar\n" +
+                "SELECT id \n" +
+                "FROM (VALUES (1), \n" +
+                "  (2), \n" +
+                "  (3), \n" +
+                "  (4), \n" +
+                "  (5), \n" +
+                "  (6))\n" +
+                "  AS orders (id)";*/
+        String initialValues = "INSERT INTO pulsar\n" +
+
+                "VALUES (1), \n" +
+                "  (2), \n" +
+                "  (3), \n" +
+                "  (4), \n" +
+                "  (5), \n" +
+                "  (6)\n";
+
+        tEnv.sqlUpdate(initialValues);
+
+        // ---------- Consume stream from Kafka -------------------
+
+        String query = "SELECT\n" +
+                "  id \n" +
+                "FROM pulsar \n";
+
+
+        DataStream<Row> result = tEnv.toAppendStream(tEnv.sqlQuery(query), Row.class);
+
     }
 
     @Test

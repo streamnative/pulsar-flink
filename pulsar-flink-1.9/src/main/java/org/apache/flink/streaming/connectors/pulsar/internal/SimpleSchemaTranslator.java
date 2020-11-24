@@ -63,7 +63,7 @@ import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOption
 /**
  * flink 1.9 schema translator.
  */
-public class SimpleSchemaTranslator implements SchemaTranslator {
+public class SimpleSchemaTranslator extends SchemaTranslator {
 
     private final boolean useExtendField;
 
@@ -100,33 +100,7 @@ public class SimpleSchemaTranslator implements SchemaTranslator {
 
     public static org.apache.pulsar.client.api.Schema sqlType2PulsarSchema(DataType flinkType) throws IncompatibleSchemaException {
         if (flinkType instanceof AtomicDataType) {
-            LogicalTypeRoot type = flinkType.getLogicalType().getTypeRoot();
-            switch (type) {
-                case BOOLEAN:
-                    return BooleanSchema.of();
-                case VARBINARY:
-                    return BytesSchema.of();
-                case DATE:
-                    return DateSchema.of();
-                case VARCHAR:
-                    return org.apache.pulsar.client.api.Schema.STRING;
-                case TIMESTAMP_WITHOUT_TIME_ZONE:
-                    return TimestampSchema.of();
-                case TINYINT:
-                    return ByteSchema.of();
-                case DOUBLE:
-                    return DoubleSchema.of();
-                case FLOAT:
-                    return FloatSchema.of();
-                case INTEGER:
-                    return IntSchema.of();
-                case BIGINT:
-                    return LongSchema.of();
-                case SMALLINT:
-                    return ShortSchema.of();
-                default:
-                    throw new IncompatibleSchemaException(String.format("%s is not supported by Pulsar yet", flinkType.toString()), null);
-            }
+            atomicType2PulsarSchema(flinkType);
         } else if (flinkType instanceof FieldsDataType) {
             return avroSchema2PulsarSchema(sqlType2AvroSchema(flinkType));
         }

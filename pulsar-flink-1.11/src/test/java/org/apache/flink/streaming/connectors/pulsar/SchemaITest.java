@@ -24,7 +24,9 @@ import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
+import org.apache.flink.table.descriptors.Atomic;
 import org.apache.flink.table.descriptors.ConnectorDescriptor;
+import org.apache.flink.table.descriptors.Json;
 import org.apache.flink.table.descriptors.Pulsar;
 import org.apache.flink.table.descriptors.Schema;
 import org.apache.flink.table.types.DataType;
@@ -72,47 +74,47 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
     @Test(timeout = 40 * 1000L)
     public void testBooleanRead() throws Exception {
-        checkRead(SchemaType.BOOLEAN, DataTypes.BOOLEAN(), BOOLEAN_LIST, null, null);
+        checkRead(SchemaType.BOOLEAN, DataTypes.BOOLEAN(), BOOLEAN_LIST, null, Boolean.class);
     }
 
     @Test(timeout = 40 * 1000L)
     public void testBooleanWrite() throws Exception {
-        checkWrite(SchemaType.BOOLEAN, DataTypes.BOOLEAN(), BOOLEAN_LIST, null, null);
+        checkWrite(SchemaType.BOOLEAN, DataTypes.BOOLEAN(), BOOLEAN_LIST, null, Boolean.class);
     }
 
-    @Test(timeout = 40 * 1000L)
+    @Test(timeout = 40 * 10000L)
     public void testINT32Read() throws Exception {
-        checkRead(SchemaType.INT32, DataTypes.INT(), INTEGER_LIST, null, null);
+        checkRead(SchemaType.INT32, DataTypes.INT(), INTEGER_LIST, null, Integer.class);
     }
 
     @Test(timeout = 40 * 1000L)
     public void testINT32Write() throws Exception {
-        checkWrite(SchemaType.INT32, DataTypes.INT(), INTEGER_LIST, null, null);
+        checkWrite(SchemaType.INT32, DataTypes.INT(), INTEGER_LIST, null, Integer.class);
     }
 
     @Test(timeout = 40 * 1000L)
     public void testINT64Read() throws Exception {
-        checkRead(SchemaType.INT64, DataTypes.BIGINT(), INT_64_LIST, null, null);
+        checkRead(SchemaType.INT64, DataTypes.BIGINT(), INT_64_LIST, null, Long.class);
     }
 
     @Test(timeout = 40 * 1000L)
     public void testINT64Write() throws Exception {
-        checkWrite(SchemaType.INT64, DataTypes.BIGINT(), INT_64_LIST, null, null);
+        checkWrite(SchemaType.INT64, DataTypes.BIGINT(), INT_64_LIST, null, Long.class);
     }
 
     @Test(timeout = 40 * 1000L)
     public void testStringRead() throws Exception {
-        checkRead(SchemaType.STRING, DataTypes.STRING(), STRING_LIST, null, null);
+        checkRead(SchemaType.STRING, DataTypes.STRING(), STRING_LIST, null, String.class);
     }
 
     @Test(timeout = 40 * 1000L)
     public void testStringWrite() throws Exception {
-        checkWrite(SchemaType.STRING, DataTypes.STRING(), STRING_LIST, null, null);
+        checkWrite(SchemaType.STRING, DataTypes.STRING(), STRING_LIST, null, String.class);
     }
 
     @Test(timeout = 40 * 1000L)
     public void testByteRead() throws Exception {
-        checkRead(SchemaType.INT8, DataTypes.TINYINT(), INT_8_LIST, null, null);
+        checkRead(SchemaType.INT8, DataTypes.TINYINT(), INT_8_LIST, null, Byte.class);
     }
 
     @Test
@@ -198,6 +200,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
         tEnv.connect(getPulsarSourceDescriptor(table))
                 .inAppendMode()
                 .withSchema(new Schema().schema(tSchema))
+                .withFormat(new Atomic().setClass(tClass.getCanonicalName()))
                 .createTemporaryTable(tableName);
 
         Table t = tEnv.sqlQuery("select `value` from " + tableName);
@@ -229,16 +232,12 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
         tEnv.connect(getPulsarSinkDescriptor(topic))
                 .withSchema(new Schema().schema(tSchema))
+                .withFormat(new Atomic().setClass(tClass.getCanonicalName()))
                 .inAppendMode()
                 .createTemporaryTable(tableName);
 
         tEnv.executeSql("insert into `" + tableName + "` select * from origin").print();
 
-//        tSchema = getTableSchema(topic);
-//        while (!tSchema.getFieldDataType(0).get().equals(dt)){
-//            tSchema = getTableSchema(topic);
-//            Thread.sleep(100);
-//        }
         Thread.sleep(3000);
         StreamExecutionEnvironment se2 = StreamExecutionEnvironment.getExecutionEnvironment();
         se2.setParallelism(1);
@@ -246,6 +245,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
         tEnv2.connect(getPulsarSourceDescriptor(topic))
                 .withSchema(new Schema().schema(tSchema))
+                .withFormat(new Atomic().setClass(tClass.getCanonicalName()))
                 .inAppendMode()
                 .createTemporaryTable(tableName);
 
@@ -284,7 +284,8 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
                 .urls(getServiceUrl(), getAdminUrl())
                 .topic(tableName)
                 .startFromEarliest()
-                .property(PulsarOptions.PARTITION_DISCOVERY_INTERVAL_MS_OPTION_KEY, "5000");
+                .property(PulsarOptions.PARTITION_DISCOVERY_INTERVAL_MS_OPTION_KEY, "5000")
+                .useExtendField(false);
     }
 
     private ConnectorDescriptor getPulsarSinkDescriptor(String tableName) {
@@ -292,6 +293,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
                 .urls(getServiceUrl(), getAdminUrl())
                 .topic(tableName)
                 .property(PulsarOptions.FLUSH_ON_CHECKPOINT_OPTION_KEY, "true")
-                .property(PulsarOptions.FAIL_ON_WRITE_OPTION_KEY, "true");
+                .property(PulsarOptions.FAIL_ON_WRITE_OPTION_KEY, "true")
+                .useExtendField(false);
     }
 }

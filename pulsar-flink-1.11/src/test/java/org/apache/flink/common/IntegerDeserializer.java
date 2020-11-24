@@ -22,6 +22,8 @@ import org.apache.flink.api.scala.typeutils.Types;
 import org.apache.flink.core.memory.DataInputView;
 import org.apache.flink.core.memory.DataInputViewStreamWrapper;
 
+import org.apache.pulsar.client.api.Schema;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
@@ -39,11 +41,7 @@ public class IntegerDeserializer implements DeserializationSchema<Integer> {
 
     @Override
     public Integer deserialize(byte[] message) throws IOException {
-
-        DataInputView in = new DataInputViewStreamWrapper(new ByteArrayInputStream(message));
-        Integer i = ser.deserialize(in);
-
-        return i;
+        return Schema.INT32.decode(message);
     }
 
     @Override

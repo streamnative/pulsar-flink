@@ -301,9 +301,9 @@ public class FlinkPulsarSinkTest extends TestLogger {
                     clientConf,
                     properties,
                     new PulsarSerializationSchemaWrapper.Builder<>((SerializationSchema) element -> new byte[0])
-                    .useSpecialMode(Schema.STRING)
-                    .setTopic(DUMMY_TOPIC)
-                    .build());
+                            .useSpecialMode(Schema.STRING)
+                            .setTopic(DUMMY_TOPIC)
+                            .build());
 
             this.mockProducer = mock(Producer.class);
             this.mockMessageBuilder = mock(TypedMessageBuilderImpl.class);

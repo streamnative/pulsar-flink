@@ -17,7 +17,6 @@ package org.apache.flink.streaming.connectors.pulsar;
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.table.api.TableSchema;
-import org.apache.flink.table.connector.source.ScanTableSource;
 import org.apache.flink.table.connector.source.abilities.SupportsProjectionPushDown;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.factories.Factory;
@@ -30,48 +29,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Interface for {@link ScanTableSource}s that support reading metadata columns.
- *
- * <p>Metadata columns add additional columns to the table's schema. A table source is responsible for
- * adding requested metadata columns at the end of produced rows. This includes potentially forwarding
- * metadata columns from contained formats.
- *
- * <p>Examples in SQL look like:
- * <pre>{@code
- *   // reads the column from corresponding metadata key `timestamp`
- *   CREATE TABLE t1 (i INT, s STRING, timestamp TIMESTAMP(3) WITH LOCAL TIME ZONE METADATA, d DOUBLE)
- *
- *   // reads the column from metadata key `timestamp` and casts to INT
- *   CREATE TABLE t2 (i INT, s STRING, myTimestamp INT METADATA FROM 'timestamp', d DOUBLE)
- * }</pre>
- *
- * <p>By default, if this interface is not implemented, the statements above would fail because the
- * table source does not provide a metadata key called `timestamp`.
- *
- * <p>If this interface is implemented, {@link #listReadableMetadata()} lists all metadata keys and
- * their corresponding data types that the source exposes to the planner. The planner will use this
- * information for validation and insertion of explicit casts if necessary.
- *
- * <p>The planner will select required metadata columns (i.e. perform projection push down) and will
- * call {@link #applyReadableMetadata(List, DataType)} with a list of metadata keys. An implementation
- * must ensure that metadata columns are appended at the end of the physical row in the order of the
- * provided list after the apply method has been called.
- *
- * <p>Note: The final output data type emitted by a source changes from the physically produced data
- * type to a data type with metadata columns. {@link #applyReadableMetadata(List, DataType)} will pass
- * the updated data type for convenience. If a source implements {@link SupportsProjectionPushDown},
- * the projection must be applied to the physical data in the first step. The passed updated data type
- * will have considered information from {@link SupportsProjectionPushDown} already.
- *
- * <p>The metadata column's data type must match with {@link #listReadableMetadata()}. For the examples
- * above, this means that a table source for `t2` returns a TIMESTAMP and not INT. The casting to INT
- * will be performed by the planner in a subsequent operation:
- *
- * <pre>{@code
- *   // for t1 and t2
- *   ROW < i INT, s STRING, d DOUBLE >                                              // physical output
- *   ROW < i INT, s STRING, d DOUBLE, timestamp TIMESTAMP(3) WITH LOCAL TIME ZONE > // final output
- * }</pre>
+ * Before Flink 1.12, we simulated this interface, after which we will use the official interface.
  */
 @PublicEvolving
 public interface SupportsReadingMetadata {

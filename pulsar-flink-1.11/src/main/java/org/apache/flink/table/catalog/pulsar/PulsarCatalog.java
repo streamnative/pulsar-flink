@@ -77,9 +77,9 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
         //properties.put(FormatDescriptorValidator.FORMAT_TYPE, formatType);
         //props.remove(FormatDescriptorValidator.FORMAT_TYPE);
         for (Map.Entry<String, String> kv : props.entrySet()) {
-            if(!kv.getKey().startsWith(FormatDescriptorValidator.FORMAT)){
+            if (!kv.getKey().startsWith(FormatDescriptorValidator.FORMAT)) {
                 properties.put(CONNECTOR + "." + kv.getKey(), kv.getValue());
-            }else{
+            } else {
                 properties.put(kv.getKey(), kv.getValue());
             }
         }
@@ -136,7 +136,7 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
             return catalogSupport.namespaceExists(databaseName);
         } catch (PulsarAdminException e) {
             return false;
-        } catch (Exception e){
+        } catch (Exception e) {
             log.warn(databaseName + " database does not exist.", e);
             return false;
         }

@@ -25,6 +25,9 @@ import org.apache.flink.types.Row;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
 
+/**
+ * a serializationSchema for row type in pulsar.
+ */
 public class PulsarRowSerializationSchema implements PulsarSerializationSchema<Row>, PulsarContextAware<Row> {
     private static final long serialVersionUID = 1L;
 
@@ -60,7 +63,7 @@ public class PulsarRowSerializationSchema implements PulsarSerializationSchema<R
             SerializationSchema<Row> valueSerialization,
             boolean hasMetadata,
             int[] metadataPositions,
-            int [] physicalPos,
+            int[] physicalPos,
             RecordSchemaType recordSchemaType,
             DataType dataType) {
         this.topic = topic;
@@ -78,7 +81,7 @@ public class PulsarRowSerializationSchema implements PulsarSerializationSchema<R
             SerializationSchema<Row> valueSerialization,
             boolean hasMetadata,
             int[] metadataPositions,
-            int [] physicalPos,
+            int[] physicalPos,
             RecordSchemaType recordSchemaType,
             DataType dataType) {
         this(topic, null, valueSerialization, hasMetadata, metadataPositions, physicalPos, recordSchemaType, dataType);
@@ -135,8 +138,11 @@ public class PulsarRowSerializationSchema implements PulsarSerializationSchema<R
 
     @Override
     public String getTargetTopic(Row element) {
-        if(topicExtractor == null) return topic;
-        else return topicExtractor.apply(element);
+        if (topicExtractor == null) {
+            return topic;
+        } else {
+            return topicExtractor.apply(element);
+        }
     }
 
     @Override
@@ -153,7 +159,7 @@ public class PulsarRowSerializationSchema implements PulsarSerializationSchema<R
         return (T) metadata.converter.read(consumedRow, pos);
     }
 
-    interface WritableRowMetadataConverter{
+    interface WritableRowMetadataConverter {
         Object read(Row consumedRow, int pos);
     }
 

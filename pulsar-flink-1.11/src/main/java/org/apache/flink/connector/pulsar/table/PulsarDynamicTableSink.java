@@ -107,7 +107,7 @@ public class PulsarDynamicTableSink implements DynamicTableSink, SupportsWriting
                 this.encodingFormat.createRuntimeEncoder(context, this.physicalDataType);
 
         //if we update to FLink 1.12, planner will auto inject metadataKeys and call applyWritableMetadata method.
-        if(useExtendField){
+        if (useExtendField) {
             metadataKeys = Arrays.stream(WritableMetadata.values()).map(x -> x.key).collect(Collectors.toList());
             applyWritableMetadata(metadataKeys, null);
         }

@@ -14,7 +14,6 @@
 
 package org.apache.flink.table.descriptors;
 
-import org.apache.flink.streaming.connectors.pulsar.TopicKeyExtractor;
 import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.util.Preconditions;
@@ -37,10 +36,6 @@ import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_PROPE
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_PROPERTIES_KEY;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_PROPERTIES_VALUE;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_SERVICE_URL;
-import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_SINK_EXTRACTOR;
-import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_SINK_EXTRACTOR_CLASS;
-import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_SINK_EXTRACTOR_CUSTOM;
-import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_SINK_EXTRACTOR_NONE;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_SPECIFIC_OFFSETS;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_SPECIFIC_OFFSETS_OFFSET;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_SPECIFIC_OFFSETS_PARTITION;
@@ -70,8 +65,6 @@ public class Pulsar extends ConnectorDescriptor {
     private Map<String, String> pulsarProperties;
 
     private String sinkExtractorType;
-
-    private Class<? extends TopicKeyExtractor> sinkExtractorClass;
 
     private String subscriptionPosition;
 
@@ -113,10 +106,11 @@ public class Pulsar extends ConnectorDescriptor {
         return this;
     }
 
-    public Pulsar useExtendField(boolean useExtendField){
+    public Pulsar useExtendField(boolean useExtendField) {
         this.useExtendField = useExtendField;
         return this;
     }
+
     /**
      * Adds a configuration properties for the Pulsar consumer.
      *
@@ -172,18 +166,6 @@ public class Pulsar extends ConnectorDescriptor {
         return this;
     }
 
-    public Pulsar sinkExtractorNone() {
-        sinkExtractorType = CONNECTOR_SINK_EXTRACTOR_NONE;
-        sinkExtractorClass = null;
-        return this;
-    }
-
-    public Pulsar sinkExtractorCustom(Class<? extends TopicKeyExtractor> extractorClass) {
-        sinkExtractorType = CONNECTOR_SINK_EXTRACTOR_CUSTOM;
-        sinkExtractorClass = Preconditions.checkNotNull(extractorClass);
-        return this;
-    }
-
     @Override
     protected Map<String, String> toConnectorProperties() {
         final DescriptorProperties properties = new DescriptorProperties();
@@ -231,11 +213,6 @@ public class Pulsar extends ConnectorDescriptor {
                             .map(e -> Arrays.asList(e.getKey(), e.getValue()))
                             .collect(Collectors.toList())
             );
-        }
-
-        if (sinkExtractorClass != null) {
-            properties.putString(CONNECTOR_SINK_EXTRACTOR, sinkExtractorType);
-            properties.putClass(CONNECTOR_SINK_EXTRACTOR_CLASS, sinkExtractorClass);
         }
 
         properties.putBoolean(CONNECTOR + "." + PulsarOptions.USE_EXTEND_FIELD, this.useExtendField);

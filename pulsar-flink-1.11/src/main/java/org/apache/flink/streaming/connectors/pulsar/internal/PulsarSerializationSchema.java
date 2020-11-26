@@ -23,8 +23,7 @@ import org.apache.pulsar.client.api.TypedMessageBuilder;
 import java.io.Serializable;
 
 /**
- * A {@link PulsarSerializationSchema} defines how to serialize values of type {@code T} into {@link
- * byte[]}.
+ * A {@link PulsarSerializationSchema} defines how to serialize values of type T into byte[].
  *
  * <p>Please also implement {@link PulsarContextAware} if your serialization schema needs
  * information

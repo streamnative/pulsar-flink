@@ -34,56 +34,56 @@ import static org.junit.Assert.assertEquals;
  * Unit tests for {@link org.apache.flink.connector.pulsar.source.PulsarSubscriber}.
  */
 public class PulsarSubscriberTest extends PulsarTestBase {
-	private static final String TOPIC1 = TopicName.get("topic1").toString();
-	private static final String TOPIC2 = TopicName.get("pattern-topic").toString();
-	private static final String TOPIC1_WITH_PARTITION = TopicName.get("topic1-partition-0").toString();
-	private static final String TOPIC2_WITH_PARTITION = TopicName.get("pattern-topic-partition-0").toString();
-	private static final Partition assignedPartition1 = new Partition(TOPIC1_WITH_PARTITION, Partition.AUTO_KEY_RANGE);
-	private static final Partition assignedPartition2 = new Partition(TOPIC2_WITH_PARTITION, Partition.AUTO_KEY_RANGE);
-	private static final Partition removedPartition = new Partition("removed", Partition.AUTO_KEY_RANGE);
-	private static final int NUM_PARTITIONS_PER_TOPIC = 10;
-	private static final Set<Partition> currentAssignment =
-			new HashSet<>(Arrays.asList(assignedPartition1, assignedPartition2, removedPartition));
+    private static final String TOPIC1 = TopicName.get("topic1").toString();
+    private static final String TOPIC2 = TopicName.get("pattern-topic").toString();
+    private static final String TOPIC1_WITH_PARTITION = TopicName.get("topic1-partition-0").toString();
+    private static final String TOPIC2_WITH_PARTITION = TopicName.get("pattern-topic-partition-0").toString();
+    private static final Partition assignedPartition1 = new Partition(TOPIC1_WITH_PARTITION, Partition.AUTO_KEY_RANGE);
+    private static final Partition assignedPartition2 = new Partition(TOPIC2_WITH_PARTITION, Partition.AUTO_KEY_RANGE);
+    private static final Partition removedPartition = new Partition("removed", Partition.AUTO_KEY_RANGE);
+    private static final int NUM_PARTITIONS_PER_TOPIC = 10;
+    private static final Set<Partition> currentAssignment =
+            new HashSet<>(Arrays.asList(assignedPartition1, assignedPartition2, removedPartition));
 
-	@BeforeClass
-	public static void setup() throws Exception {
-		pulsarAdmin = getPulsarAdmin();
-		pulsarClient = getPulsarClient();
-		createTestTopic(TOPIC1, NUM_PARTITIONS_PER_TOPIC);
-		createTestTopic(TOPIC2, NUM_PARTITIONS_PER_TOPIC);
-	}
+    @BeforeClass
+    public static void setup() throws Exception {
+        pulsarAdmin = getPulsarAdmin();
+        pulsarClient = getPulsarClient();
+        createTestTopic(TOPIC1, NUM_PARTITIONS_PER_TOPIC);
+        createTestTopic(TOPIC2, NUM_PARTITIONS_PER_TOPIC);
+    }
 
-	@Test
-	public void testTopicListSubscriber() throws Exception{
-		PulsarSubscriber subscriber =
-				PulsarSubscriber.getTopicListSubscriber(StickyKeyAssigner.AUTO, TOPIC1, TOPIC2);
-		PulsarSubscriber.PartitionChange change =
-				subscriber.getPartitionChanges(pulsarAdmin, currentAssignment);
-		Set<Partition> expectedNewPartitions = new HashSet<>(getPartitionsForTopic(TOPIC1));
-		expectedNewPartitions.addAll(getPartitionsForTopic(TOPIC2));
-		expectedNewPartitions.remove(assignedPartition1);
-		expectedNewPartitions.remove(assignedPartition2);
-		assertEquals(expectedNewPartitions, change.getNewPartitions());
-		assertEquals(Collections.singleton(removedPartition), change.getRemovedPartitions());
-	}
+    @Test
+    public void testTopicListSubscriber() throws Exception {
+        PulsarSubscriber subscriber =
+                PulsarSubscriber.getTopicListSubscriber(StickyKeyAssigner.AUTO, TOPIC1, TOPIC2);
+        PulsarSubscriber.PartitionChange change =
+                subscriber.getPartitionChanges(pulsarAdmin, currentAssignment);
+        Set<Partition> expectedNewPartitions = new HashSet<>(getPartitionsForTopic(TOPIC1));
+        expectedNewPartitions.addAll(getPartitionsForTopic(TOPIC2));
+        expectedNewPartitions.remove(assignedPartition1);
+        expectedNewPartitions.remove(assignedPartition2);
+        assertEquals(expectedNewPartitions, change.getNewPartitions());
+        assertEquals(Collections.singleton(removedPartition), change.getRemovedPartitions());
+    }
 
-	@Test
-	public void testTopicPatternSubscriber() throws Exception{
-		PulsarSubscriber subscriber = PulsarSubscriber.getTopicPatternSubscriber("public/default", StickyKeyAssigner.AUTO, "persistent://public/default/pattern.*");
-		PulsarSubscriber.PartitionChange change =
-				subscriber.getPartitionChanges(pulsarAdmin, currentAssignment);
+    @Test
+    public void testTopicPatternSubscriber() throws Exception {
+        PulsarSubscriber subscriber = PulsarSubscriber.getTopicPatternSubscriber("public/default", StickyKeyAssigner.AUTO, "persistent://public/default/pattern.*");
+        PulsarSubscriber.PartitionChange change =
+                subscriber.getPartitionChanges(pulsarAdmin, currentAssignment);
 
-		Set<Partition> expectedNewPartitions = new HashSet<>();
-		for (int i = 0; i < NUM_PARTITIONS_PER_TOPIC; i++) {
-			if (!(TOPIC2 + "-partition-" + i).equals(assignedPartition2.getTopic())) {
-				expectedNewPartitions.add(new Partition(TOPIC2 + "-partition-" + i, Partition.AUTO_KEY_RANGE));
-			}
-		}
-		Set<Partition> expectedRemovedPartitions =
-				new HashSet<>(Arrays.asList(assignedPartition1, removedPartition));
+        Set<Partition> expectedNewPartitions = new HashSet<>();
+        for (int i = 0; i < NUM_PARTITIONS_PER_TOPIC; i++) {
+            if (!(TOPIC2 + "-partition-" + i).equals(assignedPartition2.getTopic())) {
+                expectedNewPartitions.add(new Partition(TOPIC2 + "-partition-" + i, Partition.AUTO_KEY_RANGE));
+            }
+        }
+        Set<Partition> expectedRemovedPartitions =
+                new HashSet<>(Arrays.asList(assignedPartition1, removedPartition));
 
-		assertEquals(expectedNewPartitions, change.getNewPartitions());
-		assertEquals(expectedRemovedPartitions, change.getRemovedPartitions());
-	}
+        assertEquals(expectedNewPartitions, change.getNewPartitions());
+        assertEquals(expectedRemovedPartitions, change.getRemovedPartitions());
+    }
 
 }

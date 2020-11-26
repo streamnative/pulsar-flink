@@ -14,8 +14,6 @@
 
 package org.apache.flink.table.descriptors;
 
-import org.apache.flink.streaming.connectors.pulsar.TopicKeyExtractor;
-
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.impl.MessageIdImpl;
 
@@ -28,12 +26,13 @@ import java.util.Properties;
 /**
  * test for pulsar connector descriptor.
  */
-public class PulsarTest extends DescriptorTestBase{
+public class PulsarTest extends DescriptorTestBase {
     private static final String adminUrl = "http://localhost:8080";
     private static final String serviceUrl = "pulsar://localhost:6650";
     private static final MessageId messageId1 = new MessageIdImpl(1, 2, 0);
     private static final MessageId messageId2 = new MessageIdImpl(1, 4, 0);
     private static final MessageId messageId3 = new MessageIdImpl(2, 5, 1);
+
     @Override
     public List<Descriptor> descriptors() {
         final Descriptor earliestDesc =

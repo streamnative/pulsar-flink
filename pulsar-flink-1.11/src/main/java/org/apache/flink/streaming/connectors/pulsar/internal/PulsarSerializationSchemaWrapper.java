@@ -25,6 +25,9 @@ import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
 import org.apache.pulsar.shade.org.apache.http.util.Asserts;
 
+/**
+ * A wrapper that warp flink {@link SerializationSchema} to {@link PulsarSerializationSchema}.
+ */
 public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationSchema<T>, PulsarContextAware<T> {
     private final String topic;
     private final SerializationSchema<T> serializationSchema;

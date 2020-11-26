@@ -3,7 +3,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -271,7 +271,7 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
     }
 
     /**
-     * Use this class for compatibility, but we do not recommend you to use {@link FlinkPulsarRowSink}
+     * Use this class for compatibility, but we do not recommend you to use {@link FlinkPulsarRowSink}.
      */
     static class RowSinkSerializationSchema extends PulsarRowSerializationSchema {
         private SerializableFunction<Row, Row> valueProjection;

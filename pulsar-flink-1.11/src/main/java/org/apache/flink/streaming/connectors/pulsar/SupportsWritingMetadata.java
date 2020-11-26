@@ -15,8 +15,6 @@
 package org.apache.flink.streaming.connectors.pulsar;
 
 import org.apache.flink.annotation.PublicEvolving;
-import org.apache.flink.table.connector.format.EncodingFormat;
-import org.apache.flink.table.connector.sink.DynamicTableSink;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.factories.Factory;
 import org.apache.flink.table.types.DataType;
@@ -28,48 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Interface for {@link DynamicTableSink}s that support writing metadata columns.
- *
- * <p>Metadata columns add additional columns to the table's schema. A table sink is responsible for
- * accepting requested metadata columns at the end of consumed rows and persist them. This includes
- * potentially forwarding metadata columns to contained formats.
- *
- * <p>Examples in SQL look like:
- * <pre>{@code
- *   // writes data to the corresponding metadata key `timestamp`
- *   CREATE TABLE t1 (i INT, s STRING, timestamp TIMESTAMP(3) WITH LOCAL TIME ZONE METADATA, d DOUBLE)
- *
- *   // casts data from INT and writes to metadata key `timestamp`
- *   CREATE TABLE t2 (i INT, s STRING, myTimestamp INT METADATA FROM 'timestamp', d DOUBLE)
- *
- *   // metadata is not persisted because metadata column is virtual
- *   CREATE TABLE t3 (i INT, s STRING, timestamp TIMESTAMP(3) WITH LOCAL TIME ZONE METADATA VIRTUAL, d DOUBLE)
- * }</pre>
- *
- * <p>By default, if this interface is not implemented, the statements above would fail because the
- * table sink does not provide a metadata key called `timestamp`.
- *
- * <p>If this interface is implemented, {@link #listWritableMetadata()} lists all metadata keys and
- * their corresponding data types that the sink exposes to the planner. The planner will use this
- * information for validation and insertion of explicit casts if necessary.
- *
- * <p>The planner will select required metadata columns and will call {@link #applyWritableMetadata(List, DataType)}
- * with a list of metadata keys. An implementation must ensure that metadata columns are accepted at
- * the end of the physical row in the order of the provided list after the apply method has been called.
- *
- * <p>The metadata column's data type must match with {@link #listWritableMetadata()}. For the examples
- * above, this means that a table sink for `t2` accepts a TIMESTAMP and not INT. The casting from INT
- * will be performed by the planner in a preceding operation:
- *
- * <pre>{@code
- *   // for t1 and t2
- *   ROW < i INT, s STRING, d DOUBLE >                                              // physical input
- *   ROW < i INT, s STRING, d DOUBLE, timestamp TIMESTAMP(3) WITH LOCAL TIME ZONE > // final input
- *
- *   // for t3
- *   ROW < i INT, s STRING, d DOUBLE >                                              // physical input
- *   ROW < i INT, s STRING, d DOUBLE >                                              // final input
- * }</pre>
+ * Before Flink 1.12, we simulated this interface, after which we will use the official interface.
  */
 @PublicEvolving
 public interface SupportsWritingMetadata {

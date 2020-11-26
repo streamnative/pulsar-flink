@@ -319,6 +319,9 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
         this.producedDataType = producedDataType;
     }
 
+    /**
+     * readableMetadata for new table api.
+     */
     public enum ReadableMetadata {
         KEY_ATTRIBUTE(
                 KEY_ATTRIBUTE_NAME,

@@ -3,7 +3,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -331,7 +331,6 @@ public class PulsarTableSource
         return new PulsarDeserializationSchemaWrapper<>(deserializationSchema);
     }
 
-
     @Override
     public Map<String, DataType> listReadableMetadata() {
         final Map<String, DataType> metadataMap = new LinkedHashMap<>();
@@ -366,6 +365,9 @@ public class PulsarTableSource
         return fieldsDataType;
     }
 
+    /**
+     * readable metadata in source.
+     */
     public enum ReadableMetadata {
         KEY_ATTRIBUTE(
                 KEY_ATTRIBUTE_NAME,
@@ -386,12 +388,12 @@ public class PulsarTableSource
 
         PUBLISH_TIME(
                 PUBLISH_TIME_NAME,
-                DataTypes.TIMESTAMP(3).nullable(),
+                DataTypes.TIMESTAMP_WITH_LOCAL_TIME_ZONE(3).nullable(),
                 record -> LocalDateTime.ofInstant(Instant.ofEpochMilli(record.getPublishTime()), ZoneId.systemDefault())),
 
         EVENT_TIME(
                 EVENT_TIME_NAME,
-                DataTypes.TIMESTAMP(3).nullable(),
+                DataTypes.TIMESTAMP_WITH_LOCAL_TIME_ZONE(3).nullable(),
                 record -> LocalDateTime.ofInstant(Instant.ofEpochMilli(record.getEventTime()), ZoneId.systemDefault()));
 
         public final String key;

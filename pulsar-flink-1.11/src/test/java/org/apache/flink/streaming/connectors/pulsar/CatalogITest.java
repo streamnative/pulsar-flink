@@ -353,7 +353,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         SingletonStreamSink.compareWithList(expectedOutput);
     }
 
-    private  ExecutionContext createExecutionContext(String file, Map<String, String> replaceVars) throws Exception {
+    private ExecutionContext createExecutionContext(String file, Map<String, String> replaceVars) throws Exception {
         final Environment env = EnvironmentFileUtil.parseModified(
                 file,
                 replaceVars);

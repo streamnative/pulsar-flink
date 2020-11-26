@@ -67,7 +67,6 @@ import static org.apache.flink.streaming.connectors.pulsar.SchemaData.fmList;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.fooList;
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.TOPIC_SINGLE_OPTION_KEY;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 /**
  * Table API related Integration tests.
@@ -130,13 +129,13 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         ds.addSink(
                 new FlinkPulsarSink(
                         serviceUrl, adminUrl, Optional.of(tp), getSinkProperties(),
-                         new PulsarSerializationSchemaWrapper.Builder<>((SerializationSchema<SchemaData.Foo>) element -> {
-                             JSONSchema<SchemaData.Foo> jsonSchema = JSONSchema.of(SchemaData.Foo.class);
-                             return jsonSchema.encode(element);
-                         })
-                        .setTopic(tp)
-                        .usePojoMode(SchemaData.Foo.class, RecordSchemaType.JSON)
-                        .build()));
+                        new PulsarSerializationSchemaWrapper.Builder<>((SerializationSchema<SchemaData.Foo>) element -> {
+                            JSONSchema<SchemaData.Foo> jsonSchema = JSONSchema.of(SchemaData.Foo.class);
+                            return jsonSchema.encode(element);
+                        })
+                                .setTopic(tp)
+                                .usePojoMode(SchemaData.Foo.class, RecordSchemaType.JSON)
+                                .build()));
 
         see.execute("write first");
 
@@ -307,99 +306,12 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
                 fmList.subList(0, fmList.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
     }
 
-    /*@Test
-    public void testKafkaTableWithMultipleTopics() throws Exception {
-
-        if (isLegacyConnector) {
-            return;
-        }
-        // ---------- create source and sink tables -------------------
-        String tableTemp = "create table %s (\n" +
-                "  currency string\n" +
-                ") with (\n" +
-                "  'connector' = '%s',\n" +
-                "  'topic' = '%s',\n" +
-                "  'properties.bootstrap.servers' = '%s',\n" +
-                "  'properties.group.id' = '%s',\n" +
-                "  'scan.startup.mode' = 'earliest-offset',\n" +
-                "  %s\n" +
-                ")";
-        List<String> currencies = Arrays.asList("Euro", "Dollar", "Yen", "Dummy");
-        List<String> topics = currencies.stream()
-                .map(currency -> String.format("%s_%s", currency, format))
-                .collect(Collectors.toList());
-        // Because kafka connector currently doesn't support write data into multiple topic together,
-        // we have to create multiple sink tables.
-        IntStream.range(0, 4).forEach(index -> {
-            createTestTopic(topics.get(index), 1, 1);
-            tEnv.executeSql(String.format(
-                    tableTemp,
-                    currencies.get(index).toLowerCase(),
-                    KafkaDynamicTableFactory.IDENTIFIER,
-                    topics.get(index),
-                    bootstraps,
-                    groupId,
-                    formatOptions()
-            ));
-        });
-        // create source table
-        tEnv.executeSql(
-                String.format(
-                        tableTemp,
-                        "currencies_topic_list",
-                        KafkaDynamicTableFactory.IDENTIFIER,
-                        String.join(";", topics),
-                        bootstraps,
-                        groupId,
-                        formatOptions()));
-
-        // ---------- Prepare data in Kafka topics -------------------
-        String insertTemp = "INSERT INTO %s\n" +
-                "SELECT currency\n" +
-                " FROM (VALUES ('%s'))\n" +
-                " AS orders (currency)";
-        currencies.forEach(
-                currency -> {
-                    try {
-                        tEnv.executeSql(String.format(insertTemp, currency.toLowerCase(), currency)).await();
-                    } catch (Exception e) {
-                        fail(e.getMessage());
-                    }
-                });
-
-        // ------------- test the topic-list kafka source -------------------
-        DataStream<RowData> result = tEnv.toAppendStream(tEnv.sqlQuery("SELECT currency FROM currencies_topic_list"), RowData.class);
-        TestingSinkFunction sink = new TestingSinkFunction(4); // expect to receive 4 records
-        result.addSink(sink);
-
-        try {
-            env.execute("Job_3");
-        } catch (Throwable e) {
-            // we have to use a specific exception to indicate the job is finished,
-            // because the registered Kafka source is infinite.
-            if (!isCausedByJobFinished(e)) {
-                // re-throw
-                throw e;
-            }
-        }
-        List<String> expected = Arrays.asList(
-                "+I(Dollar)",
-                "+I(Dummy)",
-                "+I(Euro)",
-                "+I(Yen)");
-        TestingSinkFunction.rows.sort(Comparator.naturalOrder());
-        assertEquals(expected, TestingSinkFunction.rows);
-
-        // ------------- cleanup -------------------
-        topics.forEach(KafkaTestBase::deleteTestTopic);
-    }*/
-
     @Test
     public void testSimpleSQLWork() throws Exception {
         testSimpleSQL(true, JSON_FORMAT);
-        //testSimpleSQL(true, AVRO_FORMAT);
-        //testSimpleSQL(false, JSON_FORMAT);
-        //testSimpleSQL(false, AVRO_FORMAT);
+        testSimpleSQL(true, AVRO_FORMAT);
+        testSimpleSQL(false, JSON_FORMAT);
+        testSimpleSQL(false, AVRO_FORMAT);
     }
 
     public void testSimpleSQL(boolean isLegacyConnector, String format) throws Exception {
@@ -409,27 +321,27 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
 
         String topic = newTopic() + "_" + isLegacyConnector;
         final String createTable;
-        if(!isLegacyConnector){
-          createTable = String.format(
-                "create table pulsar (\n" +
-                        "  id int, \n" +
-                        "  compute as id + 1, \n" +
-                        "  log_ts timestamp(3),\n" +
-                        "  ts as log_ts + INTERVAL '1' SECOND,\n" +
-                        "  watermark for ts as ts\n" +
-                        ") with (\n" +
-                        "  'connector' = 'pulsar',\n" +
-                        "  'topic' = '%s',\n" +
-                        "  'service-url' = '%s',\n" +
-                        "  'admin-url' = '%s',\n" +
-                        "  'scan.startup.mode' = 'earliest', \n" +
-                        "  %s \n" +
-                        ")",
-                topic,
-                serviceUrl,
-                adminUrl,
-                formatOptions(isLegacyConnector, format));
-        }else{
+        if (!isLegacyConnector) {
+            createTable = String.format(
+                    "create table pulsar (\n" +
+                            "  id int, \n" +
+                            "  compute as id + 1, \n" +
+                            "  log_ts timestamp(3),\n" +
+                            "  ts as log_ts + INTERVAL '1' SECOND,\n" +
+                            "  watermark for ts as ts\n" +
+                            ") with (\n" +
+                            "  'connector' = 'pulsar',\n" +
+                            "  'topic' = '%s',\n" +
+                            "  'service-url' = '%s',\n" +
+                            "  'admin-url' = '%s',\n" +
+                            "  'scan.startup.mode' = 'earliest', \n" +
+                            "  %s \n" +
+                            ")",
+                    topic,
+                    serviceUrl,
+                    adminUrl,
+                    formatOptions(isLegacyConnector, format));
+        } else {
             createTable = String.format(
                     "create table pulsar (\n" +
                             "  id int, \n" +
@@ -443,7 +355,9 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
                             "  'connector.topic' = '%s', \n" +
                             "  'connector.service-url' = '%s', \n" +
                             "  'connector.admin-url' = '%s', \n" +
-                            "  'connector.use-extend-field' = 'true', \n" +
+                            // Prior to Flink version 1.12, we could not support metadata very well
+                            // and do not recommend using this configuration.
+                            //"  'connector.use-extend-field' = 'true', \n" +
                             "  'connector.startup-mode' = 'earliest', \n" +
                             "  'update-mode' = 'append', \n" +
                             "  %s \n" +
@@ -494,7 +408,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         List<String> expected = Arrays.asList(
                 "+I(2)",
                 "+I(3)",
-                "+I(4)","+I(5)","+I(6)","+I(7)");
+                "+I(4)", "+I(5)", "+I(6)", "+I(7)");
 
         assertEquals(expected, TestingSinkFunction.rows);
     }
@@ -518,7 +432,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
     }
 
     @Test
-    public void testPulsarSourceSink() throws Exception{
+    public void testPulsarSourceSink() throws Exception {
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.setParallelism(1);
         StreamTableEnvironment tEnv = StreamTableEnvironment.create(see);

@@ -24,6 +24,9 @@ import org.apache.pulsar.client.api.Message;
 import java.io.IOException;
 import java.io.Serializable;
 
+/**
+ * a deserializationSchema for row type in pulsar.
+ */
 public class PulsarRowDeserializationSchema implements PulsarDeserializationSchema<Row> {
     private static final long serialVersionUID = 1L;
 
@@ -80,8 +83,11 @@ public class PulsarRowDeserializationSchema implements PulsarDeserializationSche
 
     @Override
     public TypeInformation<Row> getProducedType() {
-        if(hasMetadata) return producedTypeInfo;
-        else return valueDeserialization.getProducedType();
+        if (hasMetadata) {
+            return producedTypeInfo;
+        } else {
+            return valueDeserialization.getProducedType();
+        }
     }
 
     // --------------------------------------------------------------------------------------------

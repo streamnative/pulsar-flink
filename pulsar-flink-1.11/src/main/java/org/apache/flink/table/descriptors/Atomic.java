@@ -18,10 +18,14 @@ import java.util.Map;
 
 import static org.apache.flink.table.descriptors.AtomicValidator.FORMAT_TYPE_VALUE;
 
-public class Atomic extends FormatDescriptor{
+/**
+ * Atomic {@link ConnectorDescriptor}.
+ */
+public class Atomic extends FormatDescriptor {
 
     //private boolean useExtendFields;
     private String className;
+
     /**
      * Format descriptor for JSON.
      */
@@ -34,7 +38,7 @@ public class Atomic extends FormatDescriptor{
         return this;
     }*/
 
-    public Atomic setClass(String className){
+    public Atomic setClass(String className) {
         this.className = className;
         return this;
     }

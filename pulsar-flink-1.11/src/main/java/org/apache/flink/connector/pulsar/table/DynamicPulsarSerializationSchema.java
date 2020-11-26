@@ -26,6 +26,9 @@ import org.apache.flink.table.types.DataType;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
 
+/**
+ * PulsarSerializationSchema for dynamic table.
+ */
 public class DynamicPulsarSerializationSchema implements PulsarSerializationSchema<RowData>, PulsarContextAware<RowData> {
     private static final long serialVersionUID = 1L;
 

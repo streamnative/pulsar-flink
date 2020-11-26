@@ -15,11 +15,8 @@
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import org.apache.flink.annotation.Internal;
-import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.formats.atomic.AtomicRowSerializationSchema;
-import org.apache.flink.formats.json.JsonRowSerializationSchema;
 
 import org.apache.pulsar.client.api.Message;
 

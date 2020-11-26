@@ -46,7 +46,6 @@ import org.apache.pulsar.client.impl.conf.ConsumerConfigurationData;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Test;
 
 import java.net.URI;
 import java.util.ArrayList;

@@ -28,68 +28,68 @@ import static org.junit.Assert.assertTrue;
  * Tests for the {@link PulsarValidator}.
  */
 public class PulsarValidatorTest {
-	private static final String adminUrl = "http://localhost:8080";
-	private static final String serviceUrl = "pulsar://localhost:6650";
+    private static final String adminUrl = "http://localhost:8080";
+    private static final String serviceUrl = "pulsar://localhost:6650";
 
-	@Test
-	public void testValidateWithoutUrls() {
-		// without adminUrl and serviceUrl
-		final Map<String, String> props = new HashMap<>();
-		props.put("connector.property-version", "1");
-		props.put("connector.type", "pulsar");
-		props.put("connector.topic", "MyTopic");
+    @Test
+    public void testValidateWithoutUrls() {
+        // without adminUrl and serviceUrl
+        final Map<String, String> props = new HashMap<>();
+        props.put("connector.property-version", "1");
+        props.put("connector.type", "pulsar");
+        props.put("connector.topic", "MyTopic");
 
-		final DescriptorProperties descriptorProperties = new DescriptorProperties();
-		descriptorProperties.putProperties(props);
-		try {
-			new PulsarValidator().validate(descriptorProperties);
-		} catch (Exception e) {
-			Optional<Throwable> throwable =
-				ExceptionUtils.findThrowableWithMessage(e,
-					"Could not find required property 'connector.service-url'.");
-			assertTrue(throwable.isPresent());
-		}
-	}
+        final DescriptorProperties descriptorProperties = new DescriptorProperties();
+        descriptorProperties.putProperties(props);
+        try {
+            new PulsarValidator().validate(descriptorProperties);
+        } catch (Exception e) {
+            Optional<Throwable> throwable =
+                    ExceptionUtils.findThrowableWithMessage(e,
+                            "Could not find required property 'connector.service-url'.");
+            assertTrue(throwable.isPresent());
+        }
+    }
 
-	@Test
-	public void testValidateWithoutTopic() {
-		// without topic
-		final Map<String, String> props = new HashMap<>();
-		props.put("connector.property-version", "1");
-		props.put("connector.type", "pulsar");
-		props.put("connector.service-url", serviceUrl);
-		props.put("connector.admin-url", adminUrl);
+    @Test
+    public void testValidateWithoutTopic() {
+        // without topic
+        final Map<String, String> props = new HashMap<>();
+        props.put("connector.property-version", "1");
+        props.put("connector.type", "pulsar");
+        props.put("connector.service-url", serviceUrl);
+        props.put("connector.admin-url", adminUrl);
 
-		final DescriptorProperties descriptorProperties = new DescriptorProperties();
-		descriptorProperties.putProperties(props);
-		try {
-			new PulsarValidator().validate(descriptorProperties);
-		} catch (Exception e) {
-			Optional<Throwable> throwable =
-					ExceptionUtils.findThrowableWithMessage(e,
-							"Could not find required property 'connector.topic'.");
-			assertTrue(throwable.isPresent());
-		}
-	}
+        final DescriptorProperties descriptorProperties = new DescriptorProperties();
+        descriptorProperties.putProperties(props);
+        try {
+            new PulsarValidator().validate(descriptorProperties);
+        } catch (Exception e) {
+            Optional<Throwable> throwable =
+                    ExceptionUtils.findThrowableWithMessage(e,
+                            "Could not find required property 'connector.topic'.");
+            assertTrue(throwable.isPresent());
+        }
+    }
 
-	@Test
-	public void testValidateWithoutExtendField() {
-		// without topic
-		final Map<String, String> props = new HashMap<>();
-		props.put("connector.property-version", "1");
-		props.put("connector.type", "pulsar");
-		props.put("connector.service-url", serviceUrl);
-		props.put("connector.admin-url", adminUrl);
+    @Test
+    public void testValidateWithoutExtendField() {
+        // without topic
+        final Map<String, String> props = new HashMap<>();
+        props.put("connector.property-version", "1");
+        props.put("connector.type", "pulsar");
+        props.put("connector.service-url", serviceUrl);
+        props.put("connector.admin-url", adminUrl);
 
-		final DescriptorProperties descriptorProperties = new DescriptorProperties();
-		descriptorProperties.putProperties(props);
-		try {
-			new PulsarValidator().validate(descriptorProperties);
-		} catch (Exception e) {
-			Optional<Throwable> throwable =
-					ExceptionUtils.findThrowableWithMessage(e,
-							"Could not find required property 'connector.topic'.");
-			assertTrue(throwable.isPresent());
-		}
-	}
+        final DescriptorProperties descriptorProperties = new DescriptorProperties();
+        descriptorProperties.putProperties(props);
+        try {
+            new PulsarValidator().validate(descriptorProperties);
+        } catch (Exception e) {
+            Optional<Throwable> throwable =
+                    ExceptionUtils.findThrowableWithMessage(e,
+                            "Could not find required property 'connector.topic'.");
+            assertTrue(throwable.isPresent());
+        }
+    }
 }

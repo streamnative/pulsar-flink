@@ -40,6 +40,7 @@ public class RowReaderThread extends ReaderThread<Row> {
 
     private final Schema<?> schema;
     private final boolean useExtendField;
+
     public RowReaderThread(
             PulsarFetcher owner,
             PulsarTopicState state,
@@ -72,10 +73,10 @@ public class RowReaderThread extends ReaderThread<Row> {
         reader = readerBuilder.create();
     }
 
-    private Row useMetaData(Row origin, Message message){
+    private Row useMetaData(Row origin, Message message) {
         //RowUpdate fieldUpdater = new RowUpdater();
         Row resultRow = new Row(origin.getArity() + PulsarOptions.META_FIELD_NAMES.size());
-        for(int i = 0; i < origin.getArity(); i++){
+        for (int i = 0; i < origin.getArity(); i++) {
             resultRow.setField(i, origin.getField(i));
         }
         int metaStartIdx = origin.getArity();
@@ -97,19 +98,18 @@ public class RowReaderThread extends ReaderThread<Row> {
         return resultRow;
     }
 
-
     @Override
     protected void emitRecord(Message<?> message) throws IOException {
         try {
             MessageId messageId = message.getMessageId();
             Row record = deserializer.deserialize(message);
-            if(useExtendField){
+            if (useExtendField) {
                 record = useMetaData(record, message);
             }
             if (deserializer.isEndOfStream(record)) {
                 return;
             }
-            if (record.getField(0) == null){
+            if (record.getField(0) == null) {
                 throw new RuntimeException("record index 0 is null");
             }
             owner.emitRecord(record, state, messageId);

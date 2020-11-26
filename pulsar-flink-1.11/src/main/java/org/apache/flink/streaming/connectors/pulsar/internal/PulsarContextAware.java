@@ -27,7 +27,6 @@ import org.apache.flink.annotation.PublicEvolving;
 @PublicEvolving
 public interface PulsarContextAware<T> {
 
-
     /**
      * Sets the number of the parallel subtask that the Kafka Producer is running on. The numbering
      * starts from 0 and goes up to parallelism-1 (parallelism as returned by {@link

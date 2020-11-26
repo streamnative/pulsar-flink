@@ -125,9 +125,9 @@ public class PulsarTableSourceSinkFactory
         String serviceUrl = dp.getString(CONNECTOR_SERVICE_URL);
         String adminUrl = dp.getString(CONNECTOR_ADMIN_URL);
         String formatType = null;
-        if(isInPulsarCatalog){
+        if (isInPulsarCatalog) {
             formatType = catalogProperties.getProperty(FORMAT_TYPE);
-        }else{
+        } else {
             formatType = dp.getString(FORMAT_TYPE);
         }
 
@@ -161,7 +161,7 @@ public class PulsarTableSourceSinkFactory
     @Override
     public TableSink<Row> createTableSink(TableSinkFactory.Context context) {
         Map<String, String> result = new HashMap<>(context.getTable().toProperties());
-        if (!result.containsKey(CONNECTOR_TOPIC)){
+        if (!result.containsKey(CONNECTOR_TOPIC)) {
             String topic = PulsarCatalogSupport.objectPath2TopicName(context.getObjectIdentifier().toObjectPath());
             result.put(CONNECTOR_TOPIC, topic);
         }
@@ -202,10 +202,10 @@ public class PulsarTableSourceSinkFactory
         DeserializationSchema<Row> deserializationSchema = null;
         Optional<Map<String, String>> fieldMapping = Optional.empty();
         //if (isInDDL) {
-            deserializationSchema = getDeserializationSchema(properties);
-            fieldMapping = Optional.ofNullable(deserializationSchema)
-                    .map(DeserializationSchema::getProducedType)
-                    .map(type -> SchemaValidator.deriveFieldMapping(descriptorProperties, Optional.of(type)));
+        deserializationSchema = getDeserializationSchema(properties);
+        fieldMapping = Optional.ofNullable(deserializationSchema)
+                .map(DeserializationSchema::getProducedType)
+                .map(type -> SchemaValidator.deriveFieldMapping(descriptorProperties, Optional.of(type)));
         //}
         log.info("stream table source use {} to deserialize data", deserializationSchema);
         return new PulsarTableSource(
@@ -314,9 +314,9 @@ public class PulsarTableSourceSinkFactory
         properties.add(SCHEMA + ".#." + EXPR);
 
         // watermark
-        properties.add(SCHEMA + "." + WATERMARK + ".#."  + WATERMARK_ROWTIME);
-        properties.add(SCHEMA + "." + WATERMARK + ".#."  + WATERMARK_STRATEGY_EXPR);
-        properties.add(SCHEMA + "." + WATERMARK + ".#."  + WATERMARK_STRATEGY_DATA_TYPE);
+        properties.add(SCHEMA + "." + WATERMARK + ".#." + WATERMARK_ROWTIME);
+        properties.add(SCHEMA + "." + WATERMARK + ".#." + WATERMARK_STRATEGY_EXPR);
+        properties.add(SCHEMA + "." + WATERMARK + ".#." + WATERMARK_STRATEGY_DATA_TYPE);
 
         // format wildcard
         properties.add(FORMAT + ".*");
@@ -419,8 +419,7 @@ public class PulsarTableSourceSinkFactory
 
     private DeserializationSchema<Row> getDeserializationSchema(Map<String, String> properties) {
         try {
-            @SuppressWarnings("unchecked")
-            final DeserializationSchemaFactory<Row> formatFactory = TableFactoryService.find(
+            @SuppressWarnings("unchecked") final DeserializationSchemaFactory<Row> formatFactory = TableFactoryService.find(
                     DeserializationSchemaFactory.class,
                     properties,
                     this.getClass().getClassLoader());
@@ -433,8 +432,7 @@ public class PulsarTableSourceSinkFactory
 
     private SerializationSchema<Row> getSerializationSchema(Map<String, String> properties) {
         try {
-            @SuppressWarnings("unchecked")
-            final SerializationSchemaFactory<Row> formatFactory = TableFactoryService.find(
+            @SuppressWarnings("unchecked") final SerializationSchemaFactory<Row> formatFactory = TableFactoryService.find(
                     SerializationSchemaFactory.class,
                     properties,
                     this.getClass().getClassLoader());

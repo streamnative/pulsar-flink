@@ -351,7 +351,7 @@ public class FlinkPulsarSource<T>
 
     @Override
     public void open(Configuration parameters) throws Exception {
-        if(this.deserializer != null){
+        if (this.deserializer != null) {
             this.deserializer.open(() -> getRuntimeContext().getMetricGroup().addGroup("user"));
         }
         this.taskIndex = getRuntimeContext().getIndexOfThisSubtask();
@@ -732,7 +732,7 @@ public class FlinkPulsarSource<T>
         }
     }
 
-//    @Override
+    //    @Override
     public void notifyCheckpointAborted(long checkpointId) throws Exception {
         log.error("checkpoint aborted, checkpointId: {}", checkpointId);
     }

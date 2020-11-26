@@ -241,12 +241,13 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
         }
     }
 
-/*    *//**
+    /*    */
+
+    /**
      * To determine how to generate schema for pulsar producer
      * @return the schema that our producer use.
      *//*
     protected abstract Schema<T> buildSchema();*/
-
     protected Producer<byte[]> createProducer(
             ClientConfigurationData clientConf,
             Map<String, Object> producerConf,

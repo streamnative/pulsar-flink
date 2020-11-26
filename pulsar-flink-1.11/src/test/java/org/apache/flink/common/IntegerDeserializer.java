@@ -19,12 +19,9 @@ import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeutils.TypeSerializer;
 import org.apache.flink.api.scala.typeutils.Types;
-import org.apache.flink.core.memory.DataInputView;
-import org.apache.flink.core.memory.DataInputViewStreamWrapper;
 
 import org.apache.pulsar.client.api.Schema;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
 /**

@@ -26,9 +26,13 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 
+/**
+ * an util wrapper for AtomicRowDeserializationSchema.
+ */
 public class AtomicRowDeserializationSchemaWrapper extends PulsarDeserializationSchemaWrapper<Row> {
 
     private final AtomicRowDeserializationSchema atomicRowDeserializationSchema;
+
     public AtomicRowDeserializationSchemaWrapper(AtomicRowDeserializationSchema deserializationSchema) {
         super(deserializationSchema);
         this.atomicRowDeserializationSchema = deserializationSchema;
@@ -37,16 +41,16 @@ public class AtomicRowDeserializationSchemaWrapper extends PulsarDeserialization
     @Override
     public Row deserialize(Message message) throws IOException {
         Row origin = super.deserialize(message);
-        if(atomicRowDeserializationSchema.isUseExtendFields()){
+        if (atomicRowDeserializationSchema.isUseExtendFields()) {
             //extract meta data
             return useMetaData(origin, message);
         }
         return origin;
     }
 
-    private Row useMetaData(Row origin, Message message){
+    private Row useMetaData(Row origin, Message message) {
         Row resultRow = new Row(origin.getArity() + PulsarOptions.META_FIELD_NAMES.size());
-        for(int i = 0; i < origin.getArity(); i++){
+        for (int i = 0; i < origin.getArity(); i++) {
             resultRow.setField(i, origin.getField(i));
         }
         int metaStartIdx = origin.getArity();

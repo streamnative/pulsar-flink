@@ -14,6 +14,9 @@
 
 package org.apache.flink.table.descriptors;
 
+/**
+ * Atomic connector validator.
+ */
 public class AtomicValidator extends FormatDescriptorValidator {
     public static final String FORMAT_TYPE_VALUE = "atomic";
     public static final String FORMAT_ATOMIC_SCHEMA = "format.atomic-schema";

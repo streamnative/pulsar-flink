@@ -24,10 +24,10 @@ import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.common.AtomicRowDeserializationSchemaWrapper;
 import org.apache.flink.common.IntegerDeserializer;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.formats.atomic.AtomicRowDeserializationSchema;
-import org.apache.flink.common.AtomicRowDeserializationSchemaWrapper;
 import org.apache.flink.formats.json.JsonRowDeserializationSchema;
 import org.apache.flink.formats.json.JsonRowSerializationSchema;
 import org.apache.flink.runtime.client.JobCancellationException;
@@ -1345,7 +1345,6 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
             List<SchemaData.FA> faList = SchemaData.faList;
             //List<SchemaData.Bar> list = new ArrayList<>();
 
-
             faList.forEach(r -> ctx.collect(r));
         }
 
@@ -1526,9 +1525,10 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
     });
 
     private static PulsarRowDeserializationSchema.ReadableRowMetadataConverter[] getTopicConverters() {
-        PulsarRowDeserializationSchema.ReadableRowMetadataConverter topicConverter
-                = PulsarTableSource.ReadableMetadata.TOPIC_ATTRIBUTE.converter;
-        PulsarRowDeserializationSchema.ReadableRowMetadataConverter[] converters = new PulsarRowDeserializationSchema.ReadableRowMetadataConverter[1];
+        PulsarRowDeserializationSchema.ReadableRowMetadataConverter topicConverter =
+                PulsarTableSource.ReadableMetadata.TOPIC_ATTRIBUTE.converter;
+        PulsarRowDeserializationSchema.ReadableRowMetadataConverter[] converters =
+                new PulsarRowDeserializationSchema.ReadableRowMetadataConverter[1];
         converters[0] = topicConverter;
         return converters;
     }

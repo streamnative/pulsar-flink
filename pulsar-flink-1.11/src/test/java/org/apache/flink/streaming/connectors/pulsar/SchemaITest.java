@@ -26,7 +26,6 @@ import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 import org.apache.flink.table.descriptors.Atomic;
 import org.apache.flink.table.descriptors.ConnectorDescriptor;
-import org.apache.flink.table.descriptors.Json;
 import org.apache.flink.table.descriptors.Pulsar;
 import org.apache.flink.table.descriptors.Schema;
 import org.apache.flink.table.types.DataType;
@@ -34,7 +33,6 @@ import org.apache.flink.table.types.utils.LegacyTypeInfoDataTypeConverter;
 import org.apache.flink.test.util.TestUtils;
 import org.apache.flink.util.StringUtils;
 
-import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.junit.Before;
@@ -48,7 +46,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -64,7 +61,6 @@ import static org.apache.flink.streaming.connectors.pulsar.SchemaData.INT_16_LIS
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.INT_64_LIST;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.INT_8_LIST;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.STRING_LIST;
-import static org.apache.flink.streaming.connectors.pulsar.SchemaData.faList;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.localDateList;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.localDateTimeList;
 
@@ -85,7 +81,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
     @Parameterized.Parameters
     public static Collection usernameData() {
-        return Arrays.asList(new Object[] {true, false});
+        return Arrays.asList(new Object[]{true, false});
     }
 
     @Before
@@ -219,7 +215,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
         String className = tClass.getCanonicalName();
         //for array type, we need to do some dirty work to match our logical.
-        if(tClass == byte[].class){
+        if (tClass == byte[].class) {
             className = "[B";
         }
 
@@ -256,7 +252,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
         String className = tClass.getCanonicalName();
         //for array type, we need to do some dirty work to match our logical.
-        if(tClass == byte[].class){
+        if (tClass == byte[].class) {
             className = "[B";
         }
 

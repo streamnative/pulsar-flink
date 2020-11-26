@@ -7,6 +7,7 @@ import org.apache.flink.streaming.connectors.pulsar.internal.IncompatibleSchemaE
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarDeserializer;
 import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.SimpleSchemaTranslator;
+import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.utils.TypeConversions;
 import org.apache.flink.types.Row;
@@ -15,7 +16,7 @@ import org.apache.pulsar.client.api.Schema;
 
 public class AtomicRowSerializationSchema implements SerializationSchema<Row> {
     private static final long serialVersionUID = -2885556750743978636L;
-
+    private final DataType atomicType;
     private final String className;
     private final boolean useExtendFields;
     private final Class<?> clazz;
@@ -30,6 +31,8 @@ public class AtomicRowSerializationSchema implements SerializationSchema<Row> {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+        this.atomicType = TypeConversions.fromClassToDataType(clazz).
+                orElseThrow(()->new IllegalStateException(clazz.getCanonicalName() + "cant cast to flink dataType"));
     }
 
     /**
@@ -68,16 +71,18 @@ public class AtomicRowSerializationSchema implements SerializationSchema<Row> {
     }
 
     private PulsarDeserializer.Function<Object, byte[]> getRuntimeConverter(Class<?> clazz){
-        DataType dataType = TypeConversions.fromClassToDataType(clazz).
-                orElseThrow(()->new IllegalStateException(clazz.getCanonicalName() + "cant cast to flink dataType"));
         return (PulsarDeserializer.Function<Object, byte[]>) o -> {
             try {
-                Schema schema = SimpleSchemaTranslator.sqlType2PulsarSchema(dataType);
+                Schema schema = SimpleSchemaTranslator.sqlType2PulsarSchema(atomicType);
                 return schema.encode(o);
             } catch (IncompatibleSchemaException e) {
                 throw new RuntimeException(e);
             }
         };
+    }
+
+    public DataType getAtomicType(){
+        return atomicType;
     }
 
     @Override

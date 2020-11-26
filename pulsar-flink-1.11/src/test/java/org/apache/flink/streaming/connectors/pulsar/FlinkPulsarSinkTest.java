@@ -28,6 +28,7 @@ import org.apache.flink.util.TestLogger;
 
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.Producer;
+import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.impl.TypedMessageBuilderImpl;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.junit.Assert;
@@ -299,12 +300,10 @@ public class FlinkPulsarSinkTest extends TestLogger {
                     Optional.of(DUMMY_TOPIC),
                     clientConf,
                     properties,
-                    new PulsarSerializationSchemaWrapper<T>(DUMMY_TOPIC, new SerializationSchema() {
-                        @Override
-                        public byte[] serialize(Object element) {
-                            return new byte[0];
-                        }
-                    }, null, null));
+                    new PulsarSerializationSchemaWrapper.Builder<>((SerializationSchema) element -> new byte[0])
+                    .useSpecialMode(Schema.STRING)
+                    .setTopic(DUMMY_TOPIC)
+                    .build());
 
             this.mockProducer = mock(Producer.class);
             this.mockMessageBuilder = mock(TypedMessageBuilderImpl.class);

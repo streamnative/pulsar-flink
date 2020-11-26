@@ -14,7 +14,15 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
+import org.apache.flink.formats.avro.typeutils.AvroSchemaConverter;
 import org.apache.flink.streaming.connectors.pulsar.config.RecordSchemaType;
+import org.apache.flink.table.data.RowData;
+import org.apache.flink.table.types.DataType;
+import org.apache.flink.table.types.FieldsDataType;
+import org.apache.flink.table.types.logical.LogicalType;
+import org.apache.flink.table.types.logical.RowType;
+import org.apache.flink.table.types.utils.TypeConversions;
+import org.apache.flink.types.Row;
 
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
@@ -191,6 +199,35 @@ public class SchemaUtils {
             numBytes += 1;
         }
         return numBytes;
+    }
+
+    public static org.apache.pulsar.client.api.Schema<?> buildRowSchema(DataType dataType, RecordSchemaType recordSchemaType){
+        org.apache.avro.Schema avroSchema = AvroSchemaConverter.convertToSchema(dataType.getLogicalType());
+        byte[] schemaBytes = avroSchema.toString().getBytes(StandardCharsets.UTF_8);
+        SchemaInfo si = new SchemaInfo();
+        si.setSchema(schemaBytes);
+        switch (recordSchemaType) {
+            case AVRO:
+                si.setName("Avro");
+                si.setType(SchemaType.AVRO);
+                break;
+            case JSON:
+                si.setName("Json");
+                si.setType(SchemaType.JSON);
+                break;
+            case ATOMIC:
+                try {
+                    FieldsDataType fieldType = (FieldsDataType) dataType;
+                    RowType rowType = (RowType) fieldType.getLogicalType();
+                    DataType atomicType = TypeConversions.fromLogicalToDataType(rowType.getTypeAt(0));
+                    return SimpleSchemaTranslator.atomicType2PulsarSchema(atomicType);
+                } catch (IncompatibleSchemaException e) {
+                    throw new RuntimeException(e);
+                }
+            default:
+                throw new IllegalStateException("for now we just support json、avro、atomic format for rowData");
+        }
+        return org.apache.pulsar.client.api.Schema.generic(si);
     }
 
     public static <T> org.apache.pulsar.client.api.Schema<T> buildSchemaForRecordClazz(Class<T> recordClazz, RecordSchemaType recordSchemaType) {

@@ -6,6 +6,7 @@ import org.apache.flink.streaming.connectors.pulsar.config.RecordSchemaType;
 import org.apache.flink.streaming.connectors.pulsar.internal.IncompatibleSchemaException;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarContextAware;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarSerializationSchema;
+import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.SimpleSchemaTranslator;
 import org.apache.flink.table.data.GenericRowData;
 import org.apache.flink.table.data.RowData;
@@ -40,11 +41,32 @@ public class PulsarRowSerializationSchema implements PulsarSerializationSchema<R
 
     private final DataType dataType;
 
+    private final SerializableFunction<Row, String> topicExtractor;
+
     private int[] partitions;
 
     private int parallelInstanceId;
 
     private int numParallelInstances;
+
+    PulsarRowSerializationSchema(
+            String topic,
+            SerializableFunction<Row, String> topicExtractor,
+            SerializationSchema<Row> valueSerialization,
+            boolean hasMetadata,
+            int[] metadataPositions,
+            int [] physicalPos,
+            RecordSchemaType recordSchemaType,
+            DataType dataType) {
+        this.topic = topic;
+        this.topicExtractor = topicExtractor;
+        this.valueSerialization = valueSerialization;
+        this.hasMetadata = hasMetadata;
+        this.metadataPositions = metadataPositions;
+        this.physicalPos = physicalPos;
+        this.recordSchemaType = recordSchemaType;
+        this.dataType = dataType;
+    }
 
     PulsarRowSerializationSchema(
             String topic,
@@ -54,13 +76,7 @@ public class PulsarRowSerializationSchema implements PulsarSerializationSchema<R
             int [] physicalPos,
             RecordSchemaType recordSchemaType,
             DataType dataType) {
-        this.topic = topic;
-        this.valueSerialization = valueSerialization;
-        this.hasMetadata = hasMetadata;
-        this.metadataPositions = metadataPositions;
-        this.physicalPos = physicalPos;
-        this.recordSchemaType = recordSchemaType;
-        this.dataType = dataType;
+        this(topic, null, valueSerialization, hasMetadata, metadataPositions, physicalPos, recordSchemaType, dataType);
     }
 
     @Override
@@ -94,31 +110,7 @@ public class PulsarRowSerializationSchema implements PulsarSerializationSchema<R
 
     @Override
     public Schema<?> getPulsarSchema() {
-        org.apache.avro.Schema avroSchema = AvroSchemaConverter.convertToSchema(dataType.getLogicalType());
-        byte[] schemaBytes = avroSchema.toString().getBytes(StandardCharsets.UTF_8);
-        SchemaInfo si = new SchemaInfo();
-        si.setSchema(schemaBytes);
-        //String formatName = properties.getProperty(FormatDescriptorValidator.FORMAT_TYPE, JsonFormatFactory.IDENTIFIER);
-        switch (recordSchemaType) {
-            case AVRO:
-                si.setName("Avro");
-                si.setType(SchemaType.AVRO);
-                break;
-            case JSON:
-                si.setName("Json");
-                si.setType(SchemaType.JSON);
-                break;
-            case ATOMIC:
-                try {
-                    return SimpleSchemaTranslator.atomicType2PulsarSchema(dataType);
-                } catch (IncompatibleSchemaException e) {
-                    throw new RuntimeException(e);
-                }
-            default:
-                throw new IllegalStateException("for now we just support json、avro、atomic format for rowData");
-        }
-        return Schema.generic(si);
-
+        return SchemaUtils.buildRowSchema(dataType, recordSchemaType);
     }
 
     @Override
@@ -138,7 +130,8 @@ public class PulsarRowSerializationSchema implements PulsarSerializationSchema<R
 
     @Override
     public String getTargetTopic(Row element) {
-        return topic;
+        if(topicExtractor == null) return topic;
+        else return topicExtractor.apply(element);
     }
 
     @Override

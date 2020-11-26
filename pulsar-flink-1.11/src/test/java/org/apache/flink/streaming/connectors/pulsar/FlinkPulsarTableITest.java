@@ -130,10 +130,13 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         ds.addSink(
                 new FlinkPulsarSink(
                         serviceUrl, adminUrl, Optional.of(tp), getSinkProperties(),
-                         new PulsarSerializationSchemaWrapper(tp, (SerializationSchema<SchemaData.Foo>) element -> {
+                         new PulsarSerializationSchemaWrapper.Builder<>((SerializationSchema<SchemaData.Foo>) element -> {
                              JSONSchema<SchemaData.Foo> jsonSchema = JSONSchema.of(SchemaData.Foo.class);
                              return jsonSchema.encode(element);
-                         }, RecordSchemaType.JSON, SchemaData.class)));
+                         })
+                        .setTopic(tp)
+                        .usePojoMode(SchemaData.Foo.class, RecordSchemaType.JSON)
+                        .build()));
 
         see.execute("write first");
 
@@ -146,6 +149,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
 
         tEnv.connect(getPulsarDescriptor(tp))
                 .withSchema(new Schema().schema(tSchema))
+                .withFormat(new Json())
                 .inAppendMode()
                 .createTemporaryTable(tableName);
 

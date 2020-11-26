@@ -43,7 +43,7 @@ public class AtomicRowFormatFactory extends TableFormatFactoryBase<Row>
     public DeserializationSchema<Row> createDeserializationSchema(Map<String, String> properties) {
         final DescriptorProperties descriptorProperties = getValidatedProperties(properties);
         String className = descriptorProperties.getString(AtomicValidator.FORMAT_CLASS_NAME);
-        boolean useExtendFields = descriptorProperties.getBoolean(CONNECTOR + "." + PulsarOptions.USE_EXTEND_FIELD);
+        boolean useExtendFields = descriptorProperties.getOptionalBoolean(CONNECTOR + "." + PulsarOptions.USE_EXTEND_FIELD).orElse(false);
         // create and configure
         final AtomicRowDeserializationSchema.Builder builder =
                 new AtomicRowDeserializationSchema.Builder(className);
@@ -55,7 +55,7 @@ public class AtomicRowFormatFactory extends TableFormatFactoryBase<Row>
     public SerializationSchema<Row> createSerializationSchema(Map<String, String> properties) {
         final DescriptorProperties descriptorProperties = getValidatedProperties(properties);
         String className = descriptorProperties.getString(AtomicValidator.FORMAT_CLASS_NAME);
-        boolean useExtendFields = descriptorProperties.getBoolean(CONNECTOR + "." + PulsarOptions.USE_EXTEND_FIELD);
+        boolean useExtendFields = descriptorProperties.getOptionalBoolean(CONNECTOR + "." + PulsarOptions.USE_EXTEND_FIELD).orElse(false);
         // create and configure
         final AtomicRowSerializationSchema.Builder builder =
                 new AtomicRowSerializationSchema.Builder(className);

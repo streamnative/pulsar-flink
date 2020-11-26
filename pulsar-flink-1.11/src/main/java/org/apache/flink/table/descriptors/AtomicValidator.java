@@ -10,5 +10,6 @@ public class AtomicValidator extends FormatDescriptorValidator {
     @Override
     public void validate(DescriptorProperties properties) {
         super.validate(properties);
+        //TODO add validate for classname
     }
 }

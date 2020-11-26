@@ -39,6 +39,7 @@ import org.apache.flink.table.catalog.exceptions.TableNotExistException;
 import org.apache.flink.table.catalog.exceptions.TableNotPartitionedException;
 import org.apache.flink.table.catalog.stats.CatalogColumnStatistics;
 import org.apache.flink.table.catalog.stats.CatalogTableStatistics;
+import org.apache.flink.table.descriptors.FormatDescriptorValidator;
 import org.apache.flink.table.expressions.Expression;
 import org.apache.flink.table.factories.TableFactory;
 
@@ -62,17 +63,25 @@ import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CO
 public class PulsarCatalog extends GenericInMemoryCatalog {
 
     private String adminUrl;
+    //private String formatType;
     private Map<String, String> properties;
 
     private PulsarCatalogSupport catalogSupport;
 
-    public PulsarCatalog(String adminUrl, String catalogName, Map<String, String> props, String defaultDatabase) {
+    public PulsarCatalog(String adminUrl, String catalogName, Map<String, String> props, String defaultDatabase, String formatType) {
         super(catalogName, defaultDatabase);
 
         this.adminUrl = adminUrl;
+        //this.formatType = formatType;
         this.properties = new HashMap<>();
+        //properties.put(FormatDescriptorValidator.FORMAT_TYPE, formatType);
+        //props.remove(FormatDescriptorValidator.FORMAT_TYPE);
         for (Map.Entry<String, String> kv : props.entrySet()) {
-            properties.put(CONNECTOR + "." + kv.getKey(), kv.getValue());
+            if(!kv.getKey().startsWith(FormatDescriptorValidator.FORMAT)){
+                properties.put(CONNECTOR + "." + kv.getKey(), kv.getValue());
+            }else{
+                properties.put(kv.getKey(), kv.getValue());
+            }
         }
         log.info("Created Pulsar Catalog {}", catalogName);
     }
@@ -81,6 +90,7 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
     public Optional<TableFactory> getTableFactory() {
         Properties props = new Properties();
         props.putAll(properties);
+        //props.put(FormatDescriptorValidator.FORMAT_TYPE, formatType);
         return Optional.of(new PulsarTableSourceSinkFactory(props));
     }
 
@@ -89,7 +99,7 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
         if (catalogSupport == null) {
             try {
                 catalogSupport = new PulsarCatalogSupport(adminUrl, new ClientConfigurationData(), "",
-                        new HashMap<>(), -1, -1, new SimpleSchemaTranslator(true));
+                        new HashMap<>(), -1, -1, new SimpleSchemaTranslator(false));
             } catch (PulsarClientException e) {
                 throw new CatalogException("Failed to create Pulsar admin using " + adminUrl, e);
             }

@@ -225,7 +225,7 @@ public class PulsarTableSource
 
     @Override
     public DataStream<Row> getDataStream(StreamExecutionEnvironment execEnv) {
-        //TypeInformation<Row> producedTypeInfo = null;
+
         //if we update to FLink 1.12, planner will auto inject metadataKeys and call applyReadableMetadata method.
         if (useExtendField) {
             metadataKeys = Arrays.stream(ReadableMetadata.values()).map(x -> x.key).collect(Collectors.toList());

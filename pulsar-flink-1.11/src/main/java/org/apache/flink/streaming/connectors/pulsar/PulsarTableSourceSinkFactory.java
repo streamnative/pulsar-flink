@@ -124,7 +124,13 @@ public class PulsarTableSourceSinkFactory
         final String topic = dp.getString(CONNECTOR_TOPIC);
         String serviceUrl = dp.getString(CONNECTOR_SERVICE_URL);
         String adminUrl = dp.getString(CONNECTOR_ADMIN_URL);
-        String formatType = dp.getString(FORMAT_TYPE);
+        String formatType = null;
+        if(isInPulsarCatalog){
+            formatType = catalogProperties.getProperty(FORMAT_TYPE);
+        }else{
+            formatType = dp.getString(FORMAT_TYPE);
+        }
+
         Optional<String> proctime = SchemaValidator.deriveProctimeAttribute(dp);
         List<RowtimeAttributeDescriptor> rowtimeAttributeDescriptors = SchemaValidator.deriveRowtimeAttributes(dp);
 
@@ -195,12 +201,12 @@ public class PulsarTableSourceSinkFactory
 
         DeserializationSchema<Row> deserializationSchema = null;
         Optional<Map<String, String>> fieldMapping = Optional.empty();
-        if (isInDDL) {
+        //if (isInDDL) {
             deserializationSchema = getDeserializationSchema(properties);
             fieldMapping = Optional.ofNullable(deserializationSchema)
                     .map(DeserializationSchema::getProducedType)
                     .map(type -> SchemaValidator.deriveFieldMapping(descriptorProperties, Optional.of(type)));
-        }
+        //}
         log.info("stream table source use {} to deserialize data", deserializationSchema);
         return new PulsarTableSource(
                 schema,

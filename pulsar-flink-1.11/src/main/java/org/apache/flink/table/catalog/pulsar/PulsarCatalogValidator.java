@@ -18,6 +18,7 @@ import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.table.api.ValidationException;
 import org.apache.flink.table.descriptors.CatalogDescriptorValidator;
 import org.apache.flink.table.descriptors.DescriptorProperties;
+import org.apache.flink.table.descriptors.FormatDescriptorValidator;
 
 /**
  * Pulsar {@CatalogDescriptorValidator}.
@@ -39,6 +40,7 @@ public class PulsarCatalogValidator extends CatalogDescriptorValidator {
         properties.validateString(CATALOG_SERVICE_URL, false, 1);
         properties.validateString(CATALOG_ADMIN_URL, false, 1);
         properties.validateInt(CATALOG_DEFAULT_PARTITIONS, true, 1);
+        properties.validateString(FormatDescriptorValidator.FORMAT_TYPE, false);
         validateStartingOffsets(properties);
     }
 

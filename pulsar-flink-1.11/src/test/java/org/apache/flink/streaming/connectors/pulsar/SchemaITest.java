@@ -34,13 +34,21 @@ import org.apache.flink.table.types.utils.LegacyTypeInfoDataTypeConverter;
 import org.apache.flink.test.util.TestUtils;
 import org.apache.flink.util.StringUtils;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -56,15 +64,29 @@ import static org.apache.flink.streaming.connectors.pulsar.SchemaData.INT_16_LIS
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.INT_64_LIST;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.INT_8_LIST;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.STRING_LIST;
+import static org.apache.flink.streaming.connectors.pulsar.SchemaData.faList;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.localDateList;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.localDateTimeList;
 
 /**
  * Schema related integration tests.
  */
+
+@RunWith(Parameterized.class)
 public class SchemaITest extends PulsarTestBaseWithFlink {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SchemaITest.class);
+
+    private boolean useExtendField;
+
+    public SchemaITest(boolean useExtendField) {
+        this.useExtendField = useExtendField;
+    }
+
+    @Parameterized.Parameters
+    public static Collection usernameData() {
+        return Arrays.asList(new Object[] {true, false});
+    }
 
     @Before
     public void clearState() {
@@ -119,72 +141,72 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
     @Test
     public void testByteWrite() throws Exception {
-        checkWrite(SchemaType.INT8, DataTypes.TINYINT(), INT_8_LIST, null, null);
+        checkWrite(SchemaType.INT8, DataTypes.TINYINT(), INT_8_LIST, null, Byte.class);
     }
 
     @Test(timeout = 40 * 1000L)
     public void testShortRead() throws Exception {
-        checkRead(SchemaType.INT16, DataTypes.SMALLINT(), INT_16_LIST, null, null);
+        checkRead(SchemaType.INT16, DataTypes.SMALLINT(), INT_16_LIST, null, Short.class);
     }
 
     @Test(timeout = 40 * 1000L)
     public void testShortWrite() throws Exception {
-        checkWrite(SchemaType.INT16, DataTypes.SMALLINT(), INT_16_LIST, null, null);
+        checkWrite(SchemaType.INT16, DataTypes.SMALLINT(), INT_16_LIST, null, Short.class);
     }
 
     @Test(timeout = 40 * 1000L)
     public void testFloatRead() throws Exception {
-        checkRead(SchemaType.FLOAT, DataTypes.FLOAT(), FLOAT_LIST, null, null);
+        checkRead(SchemaType.FLOAT, DataTypes.FLOAT(), FLOAT_LIST, null, Float.class);
     }
 
     @Test(timeout = 40 * 1000L)
     public void testFloatWrite() throws Exception {
-        checkWrite(SchemaType.FLOAT, DataTypes.FLOAT(), FLOAT_LIST, null, null);
+        checkWrite(SchemaType.FLOAT, DataTypes.FLOAT(), FLOAT_LIST, null, Float.class);
     }
 
     @Test(timeout = 40 * 1000L)
     public void testDoubleRead() throws Exception {
-        checkRead(SchemaType.DOUBLE, DataTypes.DOUBLE(), DOUBLE_LIST, null, null);
+        checkRead(SchemaType.DOUBLE, DataTypes.DOUBLE(), DOUBLE_LIST, null, Double.class);
     }
 
     @Test(timeout = 40 * 1000L)
     public void testDoubleWrite() throws Exception {
-        checkWrite(SchemaType.DOUBLE, DataTypes.DOUBLE(), DOUBLE_LIST, null, null);
+        checkWrite(SchemaType.DOUBLE, DataTypes.DOUBLE(), DOUBLE_LIST, null, Double.class);
     }
 
     @Test(timeout = 40 * 1000L)
     public void testDateRead() throws Exception {
         checkRead(SchemaType.LOCAL_DATE, DataTypes.DATE(),
-                localDateList, null, null);
+                localDateList, null, LocalDate.class);
     }
 
     @Test(timeout = 40 * 1000L)
     public void testDateWrite() throws Exception {
         checkWrite(SchemaType.LOCAL_DATE,
                 DataTypes.DATE(),
-                localDateList, null, null);
+                localDateList, null, LocalDate.class);
     }
 
     @Test(timeout = 40 * 1000L)
     public void testTimestampRead() throws Exception {
         checkRead(SchemaType.LOCAL_DATE_TIME,
-                DataTypes.TIMESTAMP(3), localDateTimeList, null, null);
+                DataTypes.TIMESTAMP(3), localDateTimeList, null, LocalDateTime.class);
     }
 
     @Test(timeout = 40 * 1000L)
     public void testTimestampWrite() throws Exception {
         checkWrite(SchemaType.LOCAL_DATE_TIME,
-                DataTypes.TIMESTAMP(3), localDateTimeList, null, null);
+                DataTypes.TIMESTAMP(3), localDateTimeList, null, LocalDateTime.class);
     }
 
     @Test(timeout = 40 * 1000L)
     public void testByteArrayRead() throws Exception {
-        checkRead(SchemaType.BYTES, DataTypes.BYTES(), BYTES_LIST, t -> StringUtils.arrayAwareToString(t), null);
+        checkRead(SchemaType.BYTES, DataTypes.BYTES(), BYTES_LIST, t -> StringUtils.arrayAwareToString(t), byte[].class);
     }
 
     @Test(timeout = 40 * 1000L)
     public void testByteArrayWrite() throws Exception {
-        checkWrite(SchemaType.BYTES, DataTypes.BYTES(), BYTES_LIST, t -> StringUtils.arrayAwareToString(t), null);
+        checkWrite(SchemaType.BYTES, DataTypes.BYTES(), BYTES_LIST, t -> StringUtils.arrayAwareToString(t), byte[].class);
     }
 
     private <T> void checkRead(SchemaType type, DataType dt, List<T> datas, Function<T, String> toStr, Class<T> tClass) throws Exception {
@@ -195,12 +217,18 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
         String tableName = TopicName.get(table).getLocalName();
         sendTypedMessages(table, type, datas, Optional.empty(), tClass);
 
+        String className = tClass.getCanonicalName();
+        //for array type, we need to do some dirty work to match our logical.
+        if(tClass == byte[].class){
+            className = "[B";
+        }
+
         TableSchema tSchema = TableSchema.builder().field("value", dt).build();
 
         tEnv.connect(getPulsarSourceDescriptor(table))
                 .inAppendMode()
                 .withSchema(new Schema().schema(tSchema))
-                .withFormat(new Atomic().setClass(tClass.getCanonicalName()))
+                .withFormat(new Atomic().setClass(className))
                 .createTemporaryTable(tableName);
 
         Table t = tEnv.sqlQuery("select `value` from " + tableName);
@@ -226,13 +254,19 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
         TableSchema tSchema = TableSchema.builder().field("value", dt).build();
 
+        String className = tClass.getCanonicalName();
+        //for array type, we need to do some dirty work to match our logical.
+        if(tClass == byte[].class){
+            className = "[B";
+        }
+
         TypeInformation<T> ti = (TypeInformation<T>) LegacyTypeInfoDataTypeConverter.toLegacyTypeInfo(dt);
         DataStream stream = see.fromCollection(datas, ti);
         tEnv.registerDataStream("origin", stream);
 
         tEnv.connect(getPulsarSinkDescriptor(topic))
                 .withSchema(new Schema().schema(tSchema))
-                .withFormat(new Atomic().setClass(tClass.getCanonicalName()))
+                .withFormat(new Atomic().setClass(className))
                 .inAppendMode()
                 .createTemporaryTable(tableName);
 
@@ -242,10 +276,9 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
         StreamExecutionEnvironment se2 = StreamExecutionEnvironment.getExecutionEnvironment();
         se2.setParallelism(1);
         StreamTableEnvironment tEnv2 = StreamTableEnvironment.create(se2);
-
         tEnv2.connect(getPulsarSourceDescriptor(topic))
                 .withSchema(new Schema().schema(tSchema))
-                .withFormat(new Atomic().setClass(tClass.getCanonicalName()))
+                .withFormat(new Atomic().setClass(className))
                 .inAppendMode()
                 .createTemporaryTable(tableName);
 
@@ -285,7 +318,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
                 .topic(tableName)
                 .startFromEarliest()
                 .property(PulsarOptions.PARTITION_DISCOVERY_INTERVAL_MS_OPTION_KEY, "5000")
-                .useExtendField(false);
+                .useExtendField(useExtendField);
     }
 
     private ConnectorDescriptor getPulsarSinkDescriptor(String tableName) {
@@ -294,6 +327,6 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
                 .topic(tableName)
                 .property(PulsarOptions.FLUSH_ON_CHECKPOINT_OPTION_KEY, "true")
                 .property(PulsarOptions.FAIL_ON_WRITE_OPTION_KEY, "true")
-                .useExtendField(false);
+                .useExtendField(useExtendField);
     }
 }

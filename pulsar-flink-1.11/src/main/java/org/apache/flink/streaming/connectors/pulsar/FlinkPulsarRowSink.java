@@ -2,9 +2,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,6 +20,7 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.formats.avro.AvroFormatFactory;
 import org.apache.flink.formats.avro.typeutils.AvroSchemaConverter;
 import org.apache.flink.formats.json.JsonFormatFactory;
+import org.apache.flink.streaming.connectors.pulsar.config.RecordSchemaType;
 import org.apache.flink.streaming.connectors.pulsar.internal.DateTimeUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarClientUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarSerializationSchemaWrapper;
@@ -65,8 +66,6 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
 
     private DataType valueType;
 
-    private  boolean isDegradation = false;
-
     private SerializableFunction<Row, Row> valueProjection;
 
     private SerializableFunction<Row, Row> metaProjection;
@@ -78,14 +77,12 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
             Properties properties,
             SerializationSchema serializationSchema,
             DataType dataType) {
-
         super(
                 adminUrl,
                 defaultTopicName,
                 clientConf,
                 properties,
-                new PulsarSerializationSchemaWrapper<Row>(defaultTopicName.get(), serializationSchema, Schema.INSTANT));
-
+                new RowSinkSerializationSchema(defaultTopicName.get(), serializationSchema, RecordSchemaType.AVRO, dataType));
         this.dataType = dataType;
         createProjection();
     }
@@ -174,14 +171,14 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
             valueType = TypeConversions.fromLogicalToDataType(logicalType);
             isDegradation = true;
         } else {*/
-            List<DataTypes.Field> fields = nonInternalFields.stream()
-                    .map(f -> {
-                        String fieldName = f.getName();
-                        int fieldIndex = rowType.getFieldIndex(fieldName);
-                        LogicalType logicalType = rowType.getTypeAt(fieldIndex);
-                        return DataTypes.FIELD(fieldName, TypeConversions.fromLogicalToDataType(logicalType));
-                    }).collect(Collectors.toList());
-            valueType = DataTypes.ROW(fields.toArray(new DataTypes.Field[0]));
+        List<DataTypes.Field> fields = nonInternalFields.stream()
+                .map(f -> {
+                    String fieldName = f.getName();
+                    int fieldIndex = rowType.getFieldIndex(fieldName);
+                    LogicalType logicalType = rowType.getTypeAt(fieldIndex);
+                    return DataTypes.FIELD(fieldName, TypeConversions.fromLogicalToDataType(logicalType));
+                }).collect(Collectors.toList());
+        valueType = DataTypes.ROW(fields.toArray(new DataTypes.Field[0]));
         //}
 
         List<Integer> values = nonInternalFields.stream()
@@ -209,12 +206,6 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
     protected Schema<?> getPulsarSchema() {
         return dataType2PulsarSchema(valueType);
     }
-
-   /* @Override
-    protected Schema<Row> buildSchema() {
-        return dataType2PulsarSchema(valueType);
-    }*/
-
 
     private Schema dataType2PulsarSchema(DataType dataType) {
         org.apache.avro.Schema avroSchema = AvroSchemaConverter.convertToSchema(dataType.getLogicalType());
@@ -278,5 +269,39 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
             }
         }
         builder.sendAsync().whenComplete(sendCallback);
+    }
+
+    /**
+     * Use this class for compatibility, but we do not recommend you to use {@link FlinkPulsarRowSink}
+     */
+    static class RowSinkSerializationSchema extends PulsarRowSerializationSchema {
+        private SerializableFunction<Row, Row> valueProjection;
+        private SerializationSchema<Row> valueSerialization;
+
+        //private SerializableFunction<Row, Row> metaProjection;
+        RowSinkSerializationSchema(String topic,
+                                   SerializationSchema<Row> valueSerialization,
+                                   RecordSchemaType recordSchemaType,
+                                   DataType dataType) {
+            super(topic,
+                    valueSerialization,
+                    false,
+                    null,
+                    null,
+                    recordSchemaType,
+                    dataType);
+            this.valueSerialization = valueSerialization;
+        }
+
+        public void setValueProjection(SerializableFunction<Row, Row> valueProjection) {
+            this.valueProjection = valueProjection;
+        }
+
+        @Override
+        public byte[] serialize(Row element) {
+            checkNotNull(valueProjection, "valueProjection must be not null");
+            Row value = valueProjection.apply(element);
+            return valueSerialization.serialize(value);
+        }
     }
 }

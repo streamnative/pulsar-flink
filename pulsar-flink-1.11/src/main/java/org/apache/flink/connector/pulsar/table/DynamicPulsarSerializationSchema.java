@@ -6,6 +6,7 @@ import org.apache.flink.streaming.connectors.pulsar.config.RecordSchemaType;
 import org.apache.flink.streaming.connectors.pulsar.internal.IncompatibleSchemaException;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarContextAware;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarSerializationSchema;
+import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.SimpleSchemaTranslator;
 import org.apache.flink.table.data.GenericRowData;
 import org.apache.flink.table.data.RowData;
@@ -97,31 +98,7 @@ public class DynamicPulsarSerializationSchema implements PulsarSerializationSche
 
     @Override
     public Schema<?> getPulsarSchema() {
-        org.apache.avro.Schema avroSchema = AvroSchemaConverter.convertToSchema(dataType.getLogicalType());
-        byte[] schemaBytes = avroSchema.toString().getBytes(StandardCharsets.UTF_8);
-        SchemaInfo si = new SchemaInfo();
-        si.setSchema(schemaBytes);
-        //String formatName = properties.getProperty(FormatDescriptorValidator.FORMAT_TYPE, JsonFormatFactory.IDENTIFIER);
-        switch (recordSchemaType) {
-            case AVRO:
-                si.setName("Avro");
-                si.setType(SchemaType.AVRO);
-                break;
-            case JSON:
-                si.setName("Json");
-                si.setType(SchemaType.JSON);
-                break;
-            case ATOMIC:
-                try {
-                    return SimpleSchemaTranslator.atomicType2PulsarSchema(dataType);
-                } catch (IncompatibleSchemaException e) {
-                    throw new RuntimeException(e);
-                }
-            default:
-                throw new IllegalStateException("for now we just support json、avro、atomic format for rowData");
-        }
-        return Schema.generic(si);
-
+        return SchemaUtils.buildRowSchema(dataType, recordSchemaType);
     }
 
     @Override

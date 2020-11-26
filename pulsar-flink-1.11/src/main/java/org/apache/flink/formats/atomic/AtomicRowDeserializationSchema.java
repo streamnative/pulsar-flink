@@ -24,6 +24,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import static org.apache.flink.util.Preconditions.checkArgument;
@@ -72,7 +73,15 @@ public class AtomicRowDeserializationSchema implements DeserializationSchema<Row
 
     @Override
     public TypeInformation<Row> getProducedType() {
-        List<DataTypes.Field> mainSchema = new ArrayList<>();
+        DataType dataType = TypeConversions.fromClassToDataType(clazz).
+                orElseThrow(()->new IllegalStateException(clazz.getCanonicalName() + "cant cast to flink dataType"));
+        RowType.RowField rowField = new RowType.RowField("value", dataType.getLogicalType());
+        List<RowType.RowField> fields = Collections.singletonList(rowField);
+        return (TypeInformation<Row>) TypeConversions.fromDataTypeToLegacyInfo(TypeConversions.fromLogicalToDataType(new RowType(fields)));
+
+        //return (TypeInformation<Row>) TypeConversions.fromDataTypeToLegacyInfo(dataType);
+
+        /*List<DataTypes.Field> mainSchema = new ArrayList<>();
         DataType dataType = TypeConversions.fromClassToDataType(clazz).
                 orElseThrow(()->new IllegalStateException(clazz.getCanonicalName() + "cant cast to flink dataType"));
         if (dataType instanceof FieldsDataType) {
@@ -93,7 +102,7 @@ public class AtomicRowDeserializationSchema implements DeserializationSchema<Row
             mainSchema.addAll(SimpleSchemaTranslator.METADATA_FIELDS);
         }
         FieldsDataType fieldsDataType = (FieldsDataType) DataTypes.ROW(mainSchema.toArray(new DataTypes.Field[0]));
-        return (TypeInformation<Row>) TypeConversions.fromDataTypeToLegacyInfo(fieldsDataType);
+        return (TypeInformation<Row>) TypeConversions.fromDataTypeToLegacyInfo(fieldsDataType);*/
     }
 
     /**

@@ -240,7 +240,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         SingletonStreamSink.compareWithList(INTEGER_LIST.subList(0, INTEGER_LIST.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
     }
 
-    @Test(timeout = 40 * 1000L)
+    @Test(timeout = 40 * 10000L)
     public void testTableSink() throws Exception {
         String tp = newTopic();
         String tableName = TopicName.get(tp).getLocalName();

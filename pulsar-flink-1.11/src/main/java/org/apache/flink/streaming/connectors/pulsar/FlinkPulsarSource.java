@@ -497,7 +497,7 @@ public class FlinkPulsarSource<T>
             ClassLoader userCodeClassLoader,
             StreamingRuntimeContext streamingRuntime) throws Exception {
 
-        readerConf.putIfAbsent(PulsarOptions.SUBSCRIPTION_ROLE_OPTION_KEY, getSubscriptionName());
+        //readerConf.putIfAbsent(PulsarOptions.SUBSCRIPTION_ROLE_OPTION_KEY, getSubscriptionName());
 
         return new PulsarFetcher(
                 sourceContext,

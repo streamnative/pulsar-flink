@@ -45,12 +45,12 @@ public class SourceSinkTest extends TestLogger {
     }
 
     private void testRange(int countOfSubTasks) {
-        log.info("test pulsar range {}", countOfSubTasks);
+        //log.info("test pulsar range {}", countOfSubTasks);
         List<Range> ranges = new ArrayList<>(countOfSubTasks);
         for (int i = 0; i < countOfSubTasks; i++) {
             ranges.add(SourceSinkUtils.distributeRange(countOfSubTasks, i));
         }
-        log.info(ranges.toString());
+        //log.info(ranges.toString());
         Collections.sort(ranges, Comparator.comparingInt(Range::getStart));
         Assert.assertEquals(ranges.get(0).getStart(), 0);
         Assert.assertEquals(ranges.get(ranges.size() - 1).getEnd(), SerializableRange.fullRangeEnd);

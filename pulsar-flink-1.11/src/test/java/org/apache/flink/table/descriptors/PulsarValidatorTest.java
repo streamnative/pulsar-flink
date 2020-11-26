@@ -76,4 +76,25 @@ public class PulsarValidatorTest {
 			assertTrue(throwable.isPresent());
 		}
 	}
+
+	@Test
+	public void testValidateWithoutExtendField() {
+		// without topic
+		final Map<String, String> props = new HashMap<>();
+		props.put("connector.property-version", "1");
+		props.put("connector.type", "pulsar");
+		props.put("connector.service-url", serviceUrl);
+		props.put("connector.admin-url", adminUrl);
+
+		final DescriptorProperties descriptorProperties = new DescriptorProperties();
+		descriptorProperties.putProperties(props);
+		try {
+			new PulsarValidator().validate(descriptorProperties);
+		} catch (Exception e) {
+			Optional<Throwable> throwable =
+					ExceptionUtils.findThrowableWithMessage(e,
+							"Could not find required property 'connector.topic'.");
+			assertTrue(throwable.isPresent());
+		}
+	}
 }

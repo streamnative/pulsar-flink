@@ -85,6 +85,7 @@ public class SchemaData {
         );
     }
 
+
     /**
      * Foo type.
      */

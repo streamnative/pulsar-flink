@@ -198,7 +198,7 @@ public class PulsarDynamicTableSink implements DynamicTableSink, SupportsWriting
                 Objects.equals(topic, that.topic) &&
                 Objects.equals(serviceUrl, that.serviceUrl) &&
                 Objects.equals(adminUrl, that.adminUrl) &&
-                Objects.equals(properties, that.properties) &&
+                //Objects.equals(properties, that.properties) &&
                 Objects.equals(encodingFormat, that.encodingFormat);
     }
 

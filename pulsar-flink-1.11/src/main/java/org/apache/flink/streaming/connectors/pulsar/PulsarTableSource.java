@@ -2,9 +2,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * <p>
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,8 +16,6 @@ package org.apache.flink.streaming.connectors.pulsar;
 
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.connector.pulsar.table.DynamicPulsarDeserializationSchema;
-import org.apache.flink.connector.pulsar.table.PulsarDynamicTableSource;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
@@ -34,9 +32,6 @@ import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.api.Types;
 import org.apache.flink.table.api.ValidationException;
-import org.apache.flink.table.data.RowData;
-import org.apache.flink.table.data.StringData;
-import org.apache.flink.table.data.TimestampData;
 import org.apache.flink.table.sources.DefinedFieldMapping;
 import org.apache.flink.table.sources.DefinedProctimeAttribute;
 import org.apache.flink.table.sources.DefinedRowtimeAttributes;
@@ -78,7 +73,6 @@ import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOption
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.MESSAGE_ID_NAME;
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.PUBLISH_TIME_NAME;
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.TOPIC_ATTRIBUTE_NAME;
-import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CONNECTOR;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_EXTERNAL_SUB_DEFAULT_OFFSET;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_EARLIEST;
 import static org.apache.flink.util.Preconditions.checkNotNull;
@@ -200,8 +194,11 @@ public class PulsarTableSource
 
     @Override
     public TypeInformation<Row> getReturnType() {
-        if(useExtendField) return producedTypeInfo;
-        else return deserializationSchema.getProducedType();
+        if (useExtendField) {
+            return producedTypeInfo;
+        } else {
+            return deserializationSchema.getProducedType();
+        }
     }
 
     /*  @Override

@@ -18,30 +18,21 @@ import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
 import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
-import org.apache.flink.streaming.connectors.pulsar.internal.JSONOptions;
-import org.apache.flink.streaming.connectors.pulsar.internal.JsonDeser;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarDeserializationSchema;
-import org.apache.flink.streaming.connectors.pulsar.internal.PulsarDeserializationSchemaWrapper;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarDeserializer;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarFetcher;
-import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarRowFetcher;
 import org.apache.flink.streaming.connectors.pulsar.internal.TopicRange;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
 import org.apache.flink.types.Row;
-import org.apache.flink.util.ExceptionUtils;
 import org.apache.flink.util.SerializedValue;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
-import org.apache.pulsar.common.schema.SchemaInfo;
 
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.stream.Collectors;
 
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.USE_EXTEND_FIELD;
 
@@ -62,7 +53,7 @@ public class FlinkPulsarRowSource extends FlinkPulsarSource<Row> {
         super(adminUrl, clientConf, (PulsarDeserializationSchema<Row>) null, properties);
     }
 
-    public FlinkPulsarRowSource(String serviceUrl, String adminUrl, Properties properties,  PulsarDeserializationSchema<Row> deserializer) {
+    public FlinkPulsarRowSource(String serviceUrl, String adminUrl, Properties properties, PulsarDeserializationSchema<Row> deserializer) {
         super(serviceUrl, adminUrl, null, properties);
     }
 
@@ -76,8 +67,8 @@ public class FlinkPulsarRowSource extends FlinkPulsarSource<Row> {
         return deserializer.getProducedType();
     }
 
-    protected PulsarDeserializationSchema<Row> getDeserializer(){
-        if (deserializer != null){
+    protected PulsarDeserializationSchema<Row> getDeserializer() {
+        if (deserializer != null) {
             return deserializer;
         }
         throw new RuntimeException("you must set a deserializer for row source");
@@ -124,7 +115,7 @@ public class FlinkPulsarRowSource extends FlinkPulsarSource<Row> {
                 readerConf,
                 pollTimeoutMs,
                 deserializer,
-				metadataReader,
+                metadataReader,
                 useExtendField,
                 deserializer instanceof PulsarDeserializer);
     }

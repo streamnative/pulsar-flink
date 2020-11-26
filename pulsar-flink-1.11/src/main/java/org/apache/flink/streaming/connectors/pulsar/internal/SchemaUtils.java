@@ -16,13 +16,10 @@ package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import org.apache.flink.formats.avro.typeutils.AvroSchemaConverter;
 import org.apache.flink.streaming.connectors.pulsar.config.RecordSchemaType;
-import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.FieldsDataType;
-import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.table.types.utils.TypeConversions;
-import org.apache.flink.types.Row;
 
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
@@ -104,10 +101,10 @@ public class SchemaUtils {
 
     private static String getSchemaString(SchemaInfo schemaInfo) {
         final byte[] schemaData = schemaInfo.getSchema();
-        if (null == schemaData){
+        if (null == schemaData) {
             return null;
         }
-        if (schemaInfo.getType() == SchemaType.KEY_VALUE){
+        if (schemaInfo.getType() == SchemaType.KEY_VALUE) {
             return DefaultImplementation.convertKeyValueSchemaInfoDataToString(
                     DefaultImplementation.decodeKeyValueSchemaInfo(schemaInfo)
             );
@@ -150,7 +147,7 @@ public class SchemaUtils {
                 return TimeSchema.of();
             case TIMESTAMP:
                 return TimestampSchema.of();
-                // 需要注意，这是新版本才有的类型
+            // 需要注意，这是新版本才有的类型
             case LOCAL_DATE:
                 return LocalDateSchema.of();
             case LOCAL_TIME:
@@ -201,7 +198,7 @@ public class SchemaUtils {
         return numBytes;
     }
 
-    public static org.apache.pulsar.client.api.Schema<?> buildRowSchema(DataType dataType, RecordSchemaType recordSchemaType){
+    public static org.apache.pulsar.client.api.Schema<?> buildRowSchema(DataType dataType, RecordSchemaType recordSchemaType) {
         org.apache.avro.Schema avroSchema = AvroSchemaConverter.convertToSchema(dataType.getLogicalType());
         byte[] schemaBytes = avroSchema.toString().getBytes(StandardCharsets.UTF_8);
         SchemaInfo si = new SchemaInfo();

@@ -28,16 +28,6 @@ import org.apache.flink.table.types.utils.TypeConversions;
 
 import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.apache.pulsar.client.api.schema.GenericSchema;
-import org.apache.pulsar.client.impl.schema.BooleanSchema;
-import org.apache.pulsar.client.impl.schema.ByteSchema;
-import org.apache.pulsar.client.impl.schema.BytesSchema;
-import org.apache.pulsar.client.impl.schema.DoubleSchema;
-import org.apache.pulsar.client.impl.schema.FloatSchema;
-import org.apache.pulsar.client.impl.schema.IntSchema;
-import org.apache.pulsar.client.impl.schema.LocalDateSchema;
-import org.apache.pulsar.client.impl.schema.LocalDateTimeSchema;
-import org.apache.pulsar.client.impl.schema.LongSchema;
-import org.apache.pulsar.client.impl.schema.ShortSchema;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.shade.com.google.common.collect.ImmutableList;
@@ -256,7 +246,7 @@ public class SimpleSchemaTranslator extends SchemaTranslator {
         if (dataType instanceof FieldsDataType) {
             FieldsDataType fieldsDataType = (FieldsDataType) dataType;
             RowType rowType = (RowType) fieldsDataType.getLogicalType();
-            List<String> fieldNames  = rowType.getFieldNames();
+            List<String> fieldNames = rowType.getFieldNames();
             for (int i = 0; i < fieldNames.size(); i++) {
                 org.apache.flink.table.types.logical.LogicalType logicalType = rowType.getTypeAt(i);
                 DataTypes.Field field = DataTypes.FIELD(fieldNames.get(i), TypeConversions.fromLogicalToDataType(logicalType));
@@ -267,7 +257,7 @@ public class SimpleSchemaTranslator extends SchemaTranslator {
             mainSchema.add(DataTypes.FIELD("value", dataType));
         }
 
-        if (useExtendField){
+        if (useExtendField) {
             mainSchema.addAll(METADATA_FIELDS);
         }
         return (FieldsDataType) DataTypes.ROW(mainSchema.toArray(new DataTypes.Field[0]));

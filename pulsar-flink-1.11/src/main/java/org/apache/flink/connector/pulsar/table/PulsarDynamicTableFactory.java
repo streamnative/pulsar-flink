@@ -18,8 +18,6 @@ import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.ReadableConfig;
-import org.apache.flink.streaming.connectors.pulsar.internal.JsonSer;
-import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils;
 import org.apache.flink.table.connector.format.DecodingFormat;
 import org.apache.flink.table.connector.format.EncodingFormat;
 import org.apache.flink.table.connector.sink.DynamicTableSink;
@@ -32,9 +30,6 @@ import org.apache.flink.table.factories.FactoryUtil;
 import org.apache.flink.table.factories.SerializationFormatFactory;
 import org.apache.flink.table.types.DataType;
 
-import org.apache.commons.lang.SerializationUtils;
-
-import java.util.Base64;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;

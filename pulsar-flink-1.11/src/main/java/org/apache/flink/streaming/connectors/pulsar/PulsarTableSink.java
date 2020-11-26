@@ -3,7 +3,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,13 +19,11 @@ import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSink;
 import org.apache.flink.streaming.connectors.pulsar.config.RecordSchemaType;
-import org.apache.flink.streaming.connectors.pulsar.internal.JsonSer;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarClientUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.api.ValidationException;
-import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.data.TimestampData;
 import org.apache.flink.table.descriptors.FormatDescriptorValidator;
 import org.apache.flink.table.sinks.AppendStreamTableSink;
@@ -36,14 +34,9 @@ import org.apache.flink.table.utils.TableConnectorUtils;
 import org.apache.flink.types.Row;
 
 import lombok.EqualsAndHashCode;
-import org.apache.commons.lang.SerializationUtils;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 
-import javax.annotation.Nullable;
-
-import java.io.Serializable;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -94,7 +87,7 @@ public class PulsarTableSink implements AppendStreamTableSink<Row>, SupportsWrit
                            ClientConfigurationData clientConf,
                            Properties properties,
                            SerializationSchema serializationSchema
-                           ) {
+    ) {
         this.adminUrl = checkNotNull(adminUrl);
         this.schema = checkNotNull(schema);
         this.defaultTopicName = defaultTopicName;
@@ -121,7 +114,7 @@ public class PulsarTableSink implements AppendStreamTableSink<Row>, SupportsWrit
     public DataStreamSink<?> consumeDataStream(DataStream<Row> dataStream) {
 
         //if we update to FLink 1.12, planner will auto inject metadataKeys and call applyWritableMetadata method.
-        if(useExtendField){
+        if (useExtendField) {
             metadataKeys = Arrays.stream(WritableMetadata.values()).map(x -> x.key).collect(Collectors.toList());
             applyWritableMetadata(metadataKeys, null);
         }
@@ -209,7 +202,7 @@ public class PulsarTableSink implements AppendStreamTableSink<Row>, SupportsWrit
                     if (row.getField(pos) == null) {
                         return null;
                     }
-                    return ((TimestampData)row.getField(pos)).getMillisecond();
+                    return ((TimestampData) row.getField(pos)).getMillisecond();
                 });
 
         public final String key;

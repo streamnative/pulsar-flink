@@ -1,19 +1,33 @@
+/**
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.flink.formats.atomic;
 
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.api.common.serialization.SerializationSchema;
-import org.apache.flink.formats.json.JsonRowSerializationSchema;
 import org.apache.flink.streaming.connectors.pulsar.internal.IncompatibleSchemaException;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarDeserializer;
-import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.SimpleSchemaTranslator;
-import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.utils.TypeConversions;
 import org.apache.flink.types.Row;
 
 import org.apache.pulsar.client.api.Schema;
 
+/**
+ * rowSerializationSchema for atomic type.
+ */
 public class AtomicRowSerializationSchema implements SerializationSchema<Row> {
     private static final long serialVersionUID = -2885556750743978636L;
     private final DataType atomicType;
@@ -32,7 +46,7 @@ public class AtomicRowSerializationSchema implements SerializationSchema<Row> {
             throw new RuntimeException(e);
         }
         this.atomicType = TypeConversions.fromClassToDataType(clazz).
-                orElseThrow(()->new IllegalStateException(clazz.getCanonicalName() + "cant cast to flink dataType"));
+                orElseThrow(() -> new IllegalStateException(clazz.getCanonicalName() + "cant cast to flink dataType"));
     }
 
     /**
@@ -70,7 +84,7 @@ public class AtomicRowSerializationSchema implements SerializationSchema<Row> {
         }
     }
 
-    private PulsarDeserializer.Function<Object, byte[]> getRuntimeConverter(Class<?> clazz){
+    private PulsarDeserializer.Function<Object, byte[]> getRuntimeConverter(Class<?> clazz) {
         return (PulsarDeserializer.Function<Object, byte[]>) o -> {
             try {
                 Schema schema = SimpleSchemaTranslator.sqlType2PulsarSchema(atomicType);
@@ -81,7 +95,7 @@ public class AtomicRowSerializationSchema implements SerializationSchema<Row> {
         };
     }
 
-    public DataType getAtomicType(){
+    public DataType getAtomicType() {
         return atomicType;
     }
 

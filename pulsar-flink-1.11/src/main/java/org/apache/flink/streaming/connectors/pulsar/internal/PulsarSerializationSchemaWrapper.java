@@ -1,15 +1,25 @@
+/**
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.api.common.serialization.SerializationSchema;
-import org.apache.flink.formats.atomic.AtomicRowSerializationSchema;
 import org.apache.flink.streaming.connectors.pulsar.SerializableFunction;
 import org.apache.flink.streaming.connectors.pulsar.config.RecordSchemaType;
 import org.apache.flink.table.types.AtomicDataType;
 import org.apache.flink.table.types.DataType;
-import org.apache.flink.table.types.utils.DataTypeDefaultVisitor;
-import org.apache.flink.util.Preconditions;
-import org.apache.flink.util.StringUtils;
 
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
@@ -48,13 +58,13 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
     }*/
 
     private PulsarSerializationSchemaWrapper(String topic,
-                                            SerializationSchema<T> serializationSchema,
-                                            RecordSchemaType recordSchemaType,
-                                            Class<?> clazz,
-                                            Schema<?> schema,
-                                            DataType dataType,
-                                            SchemaMode schemaMode,
-                                            SerializableFunction<T, String> topicExtractor) {
+                                             SerializationSchema<T> serializationSchema,
+                                             RecordSchemaType recordSchemaType,
+                                             Class<?> clazz,
+                                             Schema<?> schema,
+                                             DataType dataType,
+                                             SchemaMode schemaMode,
+                                             SerializableFunction<T, String> topicExtractor) {
         this.topic = topic;
         this.serializationSchema = serializationSchema;
         this.recordSchemaType = recordSchemaType;
@@ -116,12 +126,12 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
             return this;
         }
 
-        public PulsarSerializationSchemaWrapper.Builder<T> setTopicExtractor(SerializableFunction<T, String> topicExtractor){
+        public PulsarSerializationSchemaWrapper.Builder<T> setTopicExtractor(SerializableFunction<T, String> topicExtractor) {
             this.topicExtractor = topicExtractor;
             return this;
         }
 
-        public PulsarSerializationSchemaWrapper.Builder<T> setTopic(String topic){
+        public PulsarSerializationSchemaWrapper.Builder<T> setTopic(String topic) {
             this.topic = topic;
             return this;
         }
@@ -187,7 +197,7 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
                 case ROW:
                     return SchemaUtils.buildRowSchema(dataType, recordSchemaType);
             }
-        }catch (IncompatibleSchemaException e){
+        } catch (IncompatibleSchemaException e) {
             throw new IllegalStateException(e);
         }
         if (schema != null) {
@@ -212,7 +222,7 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
         return null;
     }
 
-    enum SchemaMode{
+    enum SchemaMode {
         ATOMIC,
         POJO,
         SPECIAL,

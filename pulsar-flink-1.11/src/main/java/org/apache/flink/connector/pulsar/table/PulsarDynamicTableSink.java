@@ -31,9 +31,6 @@ import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.util.Preconditions;
 
-import org.apache.pulsar.client.api.Message;
-
-import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;

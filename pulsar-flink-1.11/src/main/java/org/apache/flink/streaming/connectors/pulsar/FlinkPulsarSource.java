@@ -351,7 +351,9 @@ public class FlinkPulsarSource<T>
 
     @Override
     public void open(Configuration parameters) throws Exception {
-        this.deserializer.open(() -> getRuntimeContext().getMetricGroup().addGroup("user"));
+        if(this.deserializer != null){
+            this.deserializer.open(() -> getRuntimeContext().getMetricGroup().addGroup("user"));
+        }
         this.taskIndex = getRuntimeContext().getIndexOfThisSubtask();
         this.numParallelTasks = getRuntimeContext().getNumberOfParallelSubtasks();
 

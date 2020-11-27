@@ -18,7 +18,9 @@ import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.connectors.pulsar.internal.IncompatibleSchemaException;
 import org.apache.flink.streaming.connectors.pulsar.internal.SimpleSchemaTranslator;
+import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.types.DataType;
+import org.apache.flink.table.types.FieldsDataType;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.table.types.utils.TypeConversions;
 import org.apache.flink.types.Row;
@@ -26,6 +28,7 @@ import org.apache.flink.types.Row;
 import org.apache.pulsar.client.api.Schema;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -76,15 +79,15 @@ public class AtomicRowDeserializationSchema implements DeserializationSchema<Row
 
     @Override
     public TypeInformation<Row> getProducedType() {
-        DataType dataType = TypeConversions.fromClassToDataType(clazz).
+  /*      DataType dataType = TypeConversions.fromClassToDataType(clazz).
                 orElseThrow(() -> new IllegalStateException(clazz.getCanonicalName() + "cant cast to flink dataType"));
         RowType.RowField rowField = new RowType.RowField("value", dataType.getLogicalType());
         List<RowType.RowField> fields = Collections.singletonList(rowField);
-        return (TypeInformation<Row>) TypeConversions.fromDataTypeToLegacyInfo(TypeConversions.fromLogicalToDataType(new RowType(fields)));
+        return (TypeInformation<Row>) TypeConversions.fromDataTypeToLegacyInfo(TypeConversions.fromLogicalToDataType(new RowType(fields)));*/
 
         //return (TypeInformation<Row>) TypeConversions.fromDataTypeToLegacyInfo(dataType);
 
-        /*List<DataTypes.Field> mainSchema = new ArrayList<>();
+        List<DataTypes.Field> mainSchema = new ArrayList<>();
         DataType dataType = TypeConversions.fromClassToDataType(clazz).
                 orElseThrow(()->new IllegalStateException(clazz.getCanonicalName() + "cant cast to flink dataType"));
         if (dataType instanceof FieldsDataType) {
@@ -105,7 +108,7 @@ public class AtomicRowDeserializationSchema implements DeserializationSchema<Row
             mainSchema.addAll(SimpleSchemaTranslator.METADATA_FIELDS);
         }
         FieldsDataType fieldsDataType = (FieldsDataType) DataTypes.ROW(mainSchema.toArray(new DataTypes.Field[0]));
-        return (TypeInformation<Row>) TypeConversions.fromDataTypeToLegacyInfo(fieldsDataType);*/
+        return (TypeInformation<Row>) TypeConversions.fromDataTypeToLegacyInfo(fieldsDataType);
     }
 
     /**

@@ -96,7 +96,7 @@ public abstract class PulsarTestBase extends TestLogger {
         log.info("    Starting PulsarTestBase ");
         log.info("-------------------------------------------------------------------------");
 
-        System.setProperty("pulsar.systemtest.image", "streamnative/pulsar:2.6.0-sn-18-3");
+        System.setProperty("pulsar.systemtest.image", "streamnative/pulsar:2.7.0-rc-pm-2");
         PulsarServiceSpec spec = PulsarServiceSpec.builder()
                 .clusterName("standalone-" + UUID.randomUUID())
                 .enableContainerLogging(false)

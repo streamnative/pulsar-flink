@@ -314,7 +314,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
                 .topic(tableName)
                 .startFromEarliest()
                 .property(PulsarOptions.PARTITION_DISCOVERY_INTERVAL_MS_OPTION_KEY, "5000")
-                .useExtendField(useExtendField);
+                .property(PulsarOptions.USE_EXTEND_FIELD, String.valueOf(useExtendField));
     }
 
     private ConnectorDescriptor getPulsarSinkDescriptor(String tableName) {
@@ -323,6 +323,6 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
                 .topic(tableName)
                 .property(PulsarOptions.FLUSH_ON_CHECKPOINT_OPTION_KEY, "true")
                 .property(PulsarOptions.FAIL_ON_WRITE_OPTION_KEY, "true")
-                .useExtendField(useExtendField);
+                .property(PulsarOptions.USE_EXTEND_FIELD, String.valueOf(useExtendField));
     }
 }

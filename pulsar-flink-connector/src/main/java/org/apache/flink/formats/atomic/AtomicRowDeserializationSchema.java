@@ -29,7 +29,6 @@ import org.apache.pulsar.client.api.Schema;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 
@@ -89,7 +88,7 @@ public class AtomicRowDeserializationSchema implements DeserializationSchema<Row
 
         List<DataTypes.Field> mainSchema = new ArrayList<>();
         DataType dataType = TypeConversions.fromClassToDataType(clazz).
-                orElseThrow(()->new IllegalStateException(clazz.getCanonicalName() + "cant cast to flink dataType"));
+                orElseThrow(() -> new IllegalStateException(clazz.getCanonicalName() + "cant cast to flink dataType"));
         if (dataType instanceof FieldsDataType) {
             FieldsDataType fieldsDataType = (FieldsDataType) dataType;
             RowType rowType = (RowType) fieldsDataType.getLogicalType();

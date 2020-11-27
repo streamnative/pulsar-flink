@@ -119,7 +119,7 @@ public abstract class PulsarTestBase extends TestLogger {
         consumerConfigurationData.setSubscriptionName("flink-" + UUID.randomUUID());
 
         zkUrl = pulsarService.getZkUrl();
-        Thread.sleep(80 * 100L);
+        Thread.sleep(80 * 1000L);
 
         log.info("-------------------------------------------------------------------------");
         log.info("Successfully started pulsar service at cluster " + spec.clusterName());

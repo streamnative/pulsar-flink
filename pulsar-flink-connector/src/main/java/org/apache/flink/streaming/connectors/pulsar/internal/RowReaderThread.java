@@ -36,6 +36,7 @@ import java.util.concurrent.ExecutionException;
  * Specific reader thread to read flink rows from a Pulsar partition.
  */
 @Slf4j
+@Deprecated
 public class RowReaderThread extends ReaderThread<Row> {
 
     private final Schema<?> schema;

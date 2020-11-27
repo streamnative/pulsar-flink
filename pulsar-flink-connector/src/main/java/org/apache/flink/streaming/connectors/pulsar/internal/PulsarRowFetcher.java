@@ -34,6 +34,7 @@ import java.util.stream.Collectors;
  * Pulsar Fetcher that specific to Row emitting.
  */
 @Slf4j
+@Deprecated
 public class PulsarRowFetcher extends PulsarFetcher<Row> {
     private final boolean useExtendField;
     private final boolean usePulsarDeser;

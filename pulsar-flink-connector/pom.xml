@@ -15,27 +15,28 @@
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <parent>
-    <artifactId>pulsar-flink-connector</artifactId>
+    <artifactId>pulsar-flink-parent</artifactId>
     <groupId>io.streamnative.connectors</groupId>
     <version>2.5.6-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
-  <artifactId>pulsar-flink-${scala.binary.version}-${flink.version}</artifactId>
+  <artifactId>pulsar-flink-connector-${scala.binary.version}-${flink.binary.version}</artifactId>
   <packaging>jar</packaging>
 
   <properties>
-    <flink.version>1.9.0</flink.version>
+    <flink.version>1.11.1</flink.version>
+    <flink.binary.version>1.11</flink.binary.version>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>io.streamnative.connectors</groupId>
-      <artifactId>pulsar-flink-connector-common</artifactId>
+      <artifactId>managed-ledger-shaded</artifactId>
       <version>${project.version}</version>
       <exclusions>
         <exclusion>
-          <groupId>org.apache.flink</groupId>
+          <groupId>*</groupId>
           <artifactId>*</artifactId>
         </exclusion>
       </exclusions>
@@ -70,8 +71,14 @@
       <scope>provided</scope>
     </dependency>
 
-    <!-- test dependencies -->
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-avro</artifactId>
+      <version>${flink.version}</version>
+      <scope>provided</scope>
+    </dependency>
 
+    <!-- test dependencies -->
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-metrics-jmx_${scala.binary.version}</artifactId>
@@ -92,6 +99,13 @@
       <artifactId>flink-test-utils_${scala.binary.version}</artifactId>
       <version>${flink.version}</version>
       <scope>test</scope>
+      <!-- exclusion log4j-->
+<!--            <exclusions>-->
+<!--              <exclusion>-->
+<!--                <groupId>log4j</groupId>-->
+<!--                <artifactId>log4j</artifactId>-->
+<!--              </exclusion>-->
+<!--            </exclusions>-->
     </dependency>
 
     <dependency>
@@ -99,6 +113,21 @@
       <artifactId>flink-test-utils-junit</artifactId>
       <version>${flink.version}</version>
       <scope>test</scope>
+      <!-- exclusion log4j2-->
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.logging.log4j</groupId>
+          <artifactId>log4j-slf4j-impl</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.logging.log4j</groupId>
+          <artifactId>log4j-api</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.logging.log4j</groupId>
+          <artifactId>log4j-core</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <dependency>
@@ -116,6 +145,14 @@
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
+
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-connector-base</artifactId>
+      <version>${flink.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-core</artifactId>
@@ -147,6 +184,13 @@
       <artifactId>flink-sql-client_${scala.binary.version}</artifactId>
       <version>${flink.version}</version>
       <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <scope>test</scope>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-log4j12</artifactId>
+      <version>1.7.25</version>
     </dependency>
   </dependencies>
   <profiles>

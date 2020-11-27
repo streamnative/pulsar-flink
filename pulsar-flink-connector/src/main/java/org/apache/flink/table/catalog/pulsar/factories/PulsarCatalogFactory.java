@@ -46,8 +46,7 @@ public class PulsarCatalogFactory implements CatalogFactory {
         DescriptorProperties dp = getValidateProperties(properties);
         String defaultDB = dp.getOptionalString(CATALOG_DEFAULT_DATABASE).orElse("public/default");
         String adminUrl = dp.getString(CATALOG_ADMIN_URL);
-        String formatType = dp.getString(FormatDescriptorValidator.FORMAT_TYPE);
-        return new PulsarCatalog(adminUrl, name, dp.asMap(), defaultDB, formatType);
+        return new PulsarCatalog(adminUrl, name, dp.asMap(), defaultDB);
     }
 
     @Override
@@ -67,7 +66,6 @@ public class PulsarCatalogFactory implements CatalogFactory {
         props.add(CATALOG_ADMIN_URL);
         props.add(CATALOG_STARTUP_MODE);
         props.add(CATALOG_DEFAULT_PARTITIONS);
-        //props.add(FormatDescriptorValidator.FORMAT_TYPE);
         props.add(FormatDescriptorValidator.FORMAT + ".*");
         return props;
     }

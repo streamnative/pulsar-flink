@@ -199,14 +199,10 @@ public class PulsarTableSourceSinkFactory
         sourceProp.put(CONNECTOR_TOPIC, topic);
         Properties result = removeConnectorPrefix(sourceProp);
 
-        DeserializationSchema<Row> deserializationSchema = null;
-        Optional<Map<String, String>> fieldMapping = Optional.empty();
-        //if (isInDDL) {
-        deserializationSchema = getDeserializationSchema(properties);
-        fieldMapping = Optional.ofNullable(deserializationSchema)
+        DeserializationSchema<Row> deserializationSchema = getDeserializationSchema(properties);
+        Optional<Map<String, String>> fieldMapping = Optional.ofNullable(deserializationSchema)
                 .map(DeserializationSchema::getProducedType)
                 .map(type -> SchemaValidator.deriveFieldMapping(descriptorProperties, Optional.of(type)));
-        //}
         log.info("stream table source use {} to deserialize data", deserializationSchema);
         return new PulsarTableSource(
                 schema,

@@ -201,15 +201,6 @@ public class PulsarTableSource
         }
     }
 
-    /*  @Override
-      public DataType getProducedDataType() {
-          if (getDeserializationSchema() != null) {
-              TypeInformation<Row> legacyType = deserializationSchema.getProducedType();
-              return TypeConversions.fromLegacyInfoToDataType(legacyType);
-          }
-          return schema.toRowDataType();
-      }
-  */
     @Override
     public TableSchema getTableSchema() {
         return schema;

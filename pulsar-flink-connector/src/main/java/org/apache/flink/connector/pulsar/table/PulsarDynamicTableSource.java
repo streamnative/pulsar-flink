@@ -208,7 +208,6 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
                 ),
                 properties
         );
-        // TODO 调整结构
         switch (startupOptions.startupMode) {
             case EARLIEST:
                 source.setStartFromEarliest();

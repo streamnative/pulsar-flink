@@ -63,19 +63,15 @@ import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CO
 public class PulsarCatalog extends GenericInMemoryCatalog {
 
     private String adminUrl;
-    //private String formatType;
+
     private Map<String, String> properties;
 
     private PulsarCatalogSupport catalogSupport;
 
-    public PulsarCatalog(String adminUrl, String catalogName, Map<String, String> props, String defaultDatabase, String formatType) {
+    public PulsarCatalog(String adminUrl, String catalogName, Map<String, String> props, String defaultDatabase) {
         super(catalogName, defaultDatabase);
-
         this.adminUrl = adminUrl;
-        //this.formatType = formatType;
         this.properties = new HashMap<>();
-        //properties.put(FormatDescriptorValidator.FORMAT_TYPE, formatType);
-        //props.remove(FormatDescriptorValidator.FORMAT_TYPE);
         for (Map.Entry<String, String> kv : props.entrySet()) {
             if (!kv.getKey().startsWith(FormatDescriptorValidator.FORMAT)) {
                 properties.put(CONNECTOR + "." + kv.getKey(), kv.getValue());

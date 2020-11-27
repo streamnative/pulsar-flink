@@ -25,7 +25,3 @@ public enum RecordSchemaType {
 
     ATOMIC
 }
-
-
-
-

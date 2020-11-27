@@ -147,7 +147,7 @@ public class SchemaUtils {
                 return TimeSchema.of();
             case TIMESTAMP:
                 return TimestampSchema.of();
-            // 需要注意，这是新版本才有的类型
+            // Note that this is a type only available in Pulsar 2.7.
             case LOCAL_DATE:
                 return LocalDateSchema.of();
             case LOCAL_TIME:

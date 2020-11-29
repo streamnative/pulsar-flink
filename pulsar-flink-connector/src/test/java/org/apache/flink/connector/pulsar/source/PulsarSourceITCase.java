@@ -73,7 +73,6 @@ public class PulsarSourceITCase extends PulsarTestBaseWithFlink {
         try {
 
             StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
-            see.getConfig().disableSysoutLogging();
             see.setRestartStrategy(RestartStrategies.noRestart());
             see.setParallelism(1);
 
@@ -103,7 +102,6 @@ public class PulsarSourceITCase extends PulsarTestBaseWithFlink {
 
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.setParallelism(1);
-        see.getConfig().disableSysoutLogging();
         see.setRestartStrategy(RestartStrategies.noRestart());
 
         PulsarSource<SchemaData.Foo> source = PulsarSource.builder()
@@ -136,7 +134,6 @@ public class PulsarSourceITCase extends PulsarTestBaseWithFlink {
 
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.setParallelism(1);
-        see.getConfig().disableSysoutLogging();
         see.setRestartStrategy(RestartStrategies.noRestart());
 
         PulsarSource<SchemaData.Foo> source = PulsarSource.builder()
@@ -174,7 +171,6 @@ public class PulsarSourceITCase extends PulsarTestBaseWithFlink {
         offset.put(new Partition(topic, Partition.AUTO_KEY_RANGE), mids.get(4));
 
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
-        see.getConfig().disableSysoutLogging();
         see.setParallelism(1);
 
         PulsarSource<String> source = PulsarSource.builder()

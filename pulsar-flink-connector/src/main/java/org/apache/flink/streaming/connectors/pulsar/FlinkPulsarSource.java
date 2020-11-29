@@ -15,6 +15,7 @@
 package org.apache.flink.streaming.connectors.pulsar;
 
 import org.apache.flink.api.common.ExecutionConfig;
+import org.apache.flink.api.common.serialization.RuntimeContextInitializationContextAdapters;
 import org.apache.flink.api.common.state.ListState;
 import org.apache.flink.api.common.state.ListStateDescriptor;
 import org.apache.flink.api.common.state.OperatorStateStore;
@@ -352,7 +353,12 @@ public class FlinkPulsarSource<T>
     @Override
     public void open(Configuration parameters) throws Exception {
         if (this.deserializer != null) {
-            this.deserializer.open(() -> getRuntimeContext().getMetricGroup().addGroup("user"));
+            this.deserializer.open(
+                    RuntimeContextInitializationContextAdapters.deserializationAdapter(
+                            getRuntimeContext(),
+                            metricGroup -> metricGroup.addGroup("user")
+                    )
+            );
         }
         this.taskIndex = getRuntimeContext().getIndexOfThisSubtask();
         this.numParallelTasks = getRuntimeContext().getNumberOfParallelSubtasks();

@@ -185,7 +185,7 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
         if (useExtendField) {
             metadataKeys = Arrays.stream(ReadableMetadata.values()).map(x -> x.key).collect(Collectors.toList());
             applyReadableMetadata(metadataKeys, generateProducedDataType());
-            producedTypeInfo = (TypeInformation<RowData>) runtimeProviderContext.createTypeInformation(producedDataType);
+            producedTypeInfo = runtimeProviderContext.createTypeInformation(producedDataType);
         }
 
         final DynamicPulsarDeserializationSchema.ReadableRowDataMetadataConverter[] metadataConverters = metadataKeys.stream()

@@ -53,7 +53,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.function.Consumer;
 
-import static org.apache.flink.util.CoreMatchers.containsCause;
+import static org.apache.flink.core.testutils.FlinkMatchers.containsCause;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -137,7 +137,8 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
                 objectIdentifier,
                 catalogTable,
                 new Configuration(),
-                Thread.currentThread().getContextClassLoader());
+                Thread.currentThread().getContextClassLoader(),
+                false);
 
         // Test scan source equals
         final PulsarDynamicTableSource expectedPulsarSource = createExpectedScanSource(
@@ -188,8 +189,8 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
                 objectIdentifier,
                 catalogTable,
                 new Configuration(),
-                Thread.currentThread().getContextClassLoader()
-        );
+                Thread.currentThread().getContextClassLoader(),
+                false);
 
         final PulsarOptions.StartupOptions startupOptions = new PulsarOptions.StartupOptions();
         startupOptions.startupMode = StartupMode.EARLIEST;
@@ -281,8 +282,8 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
                 objectIdentifier,
                 catalogTable,
                 new Configuration(),
-                Thread.currentThread().getContextClassLoader()
-        );
+                Thread.currentThread().getContextClassLoader(),
+                false);
     }
 
     @Test
@@ -307,8 +308,8 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
                 objectIdentifier,
                 catalogTable,
                 new Configuration(),
-                Thread.currentThread().getContextClassLoader()
-        );
+                Thread.currentThread().getContextClassLoader(),
+                false);
     }
 
     @Test
@@ -330,8 +331,8 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
                 objectIdentifier,
                 catalogTable,
                 new Configuration(),
-                Thread.currentThread().getContextClassLoader()
-        );
+                Thread.currentThread().getContextClassLoader(),
+                false);
     }
 
     @Test
@@ -357,8 +358,8 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
                     objectIdentifier,
                     sinkTable,
                     new Configuration(),
-                    Thread.currentThread().getContextClassLoader()
-            );
+                    Thread.currentThread().getContextClassLoader(),
+                    false);
         } catch (Throwable t) {
             assertEquals(
                     String.format(errorMessageTemp, "'topic'", String.format("[%s]", String.join(", ", TOPIC_LIST))),
@@ -376,8 +377,8 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
                     objectIdentifier,
                     sinkTable,
                     new Configuration(),
-                    Thread.currentThread().getContextClassLoader()
-            );
+                    Thread.currentThread().getContextClassLoader(),
+                    false);
         } catch (Throwable t) {
             assertEquals(String.format(errorMessageTemp, "'topic-pattern'", TOPIC_REGEX), t.getCause().getMessage());
         }

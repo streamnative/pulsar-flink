@@ -14,6 +14,7 @@
 
 package org.apache.flink.streaming.connectors.pulsar;
 
+import org.apache.flink.api.common.serialization.RuntimeContextInitializationContextAdapters;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.state.FunctionInitializationContext;
 import org.apache.flink.runtime.state.FunctionSnapshotContext;
@@ -181,7 +182,12 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
 
         admin = PulsarClientUtils.newAdminFromConf(adminUrl, clientConfigurationData);
 
-        serializationSchema.open(() -> getRuntimeContext().getMetricGroup().addGroup("user"));
+        serializationSchema.open(
+                RuntimeContextInitializationContextAdapters.serializationAdapter(
+                        getRuntimeContext(),
+                        metricGroup -> metricGroup.addGroup("user")
+                )
+        );
 
         if (forcedTopic) {
             uploadSchema(defaultTopic);

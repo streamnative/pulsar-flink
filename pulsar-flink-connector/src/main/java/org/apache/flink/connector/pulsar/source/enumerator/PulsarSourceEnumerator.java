@@ -15,12 +15,10 @@
 package org.apache.flink.connector.pulsar.source.enumerator;
 
 import org.apache.flink.annotation.VisibleForTesting;
-import org.apache.flink.api.connector.source.SourceEvent;
 import org.apache.flink.api.connector.source.SplitEnumerator;
 import org.apache.flink.api.connector.source.SplitEnumeratorContext;
 import org.apache.flink.api.connector.source.SplitsAssignment;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.connector.base.source.event.NoMoreSplitsEvent;
 import org.apache.flink.connector.pulsar.source.Partition;
 import org.apache.flink.connector.pulsar.source.PulsarSourceOptions;
 import org.apache.flink.connector.pulsar.source.PulsarSubscriber;
@@ -34,6 +32,8 @@ import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nullable;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -119,8 +119,8 @@ public class PulsarSourceEnumerator implements SplitEnumerator<PulsarPartitionSp
     }
 
     @Override
-    public void handleSourceEvent(int subtaskId, SourceEvent sourceEvent) {
-
+    public void handleSplitRequest(int subtaskId, @Nullable String requesterHostname) {
+        // the pulsar source pushes splits eagerly, rather than act upon split requests
     }
 
     @Override
@@ -216,7 +216,7 @@ public class PulsarSourceEnumerator implements SplitEnumerator<PulsarPartitionSp
             pendingPartitionSplitAssignment.remove(readerOwner);
             // Sends NoMoreSplitsEvent to the readers if there is no more partition splits to be assigned.
             if (noMoreNewPartitionSplits) {
-                context.sendEventToSourceReader(readerOwner, new NoMoreSplitsEvent());
+                context.signalNoMoreSplits(readerOwner);
             }
         });
     }

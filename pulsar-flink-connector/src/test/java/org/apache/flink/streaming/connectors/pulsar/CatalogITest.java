@@ -15,6 +15,7 @@
 package org.apache.flink.streaming.connectors.pulsar;
 
 import org.apache.flink.client.cli.DefaultCLI;
+import org.apache.flink.client.cli.GenericCLI;
 import org.apache.flink.client.deployment.DefaultClusterClientServiceLoader;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -365,7 +366,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
                 flinkConfig,
                 new DefaultClusterClientServiceLoader(),
                 new Options(),
-                Collections.singletonList(new DefaultCLI(flinkConfig))).build();
+                Collections.singletonList(new GenericCLI(flinkConfig,""))).build();
     }
 
     private Map<String, String> getStreamingConfs() {

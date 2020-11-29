@@ -25,8 +25,8 @@
   <packaging>jar</packaging>
 
   <properties>
-    <flink.version>1.11.1</flink.version>
-    <flink.binary.version>1.11</flink.binary.version>
+    <flink.version>1.12-SNAPSHOT</flink.version>
+    <flink.binary.version>1.12</flink.binary.version>
   </properties>
 
   <dependencies>

@@ -32,6 +32,7 @@ import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 import org.apache.flink.connector.pulsar.source.util.AsyncUtils;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.ExceptionUtils;
+import org.apache.flink.util.Preconditions;
 import org.apache.flink.util.function.SupplierWithException;
 import org.apache.flink.util.function.ThrowingRunnable;
 
@@ -51,6 +52,8 @@ import org.apache.pulsar.shade.com.google.common.io.Closer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.time.Duration;
@@ -63,7 +66,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.PriorityQueue;
-import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -170,24 +172,20 @@ public class PulsarPartitionSplitReader<T> implements SplitReader<ParsedMessage<
     }
 
     @Override
-    public void handleSplitsChanges(Queue<SplitsChange<PulsarPartitionSplit>> splitsChanges) {
-        for (final SplitsChange<PulsarPartitionSplit> splitsChange : splitsChanges) {
-            if (!(splitsChange instanceof SplitsAddition)) {
-                throw new UnsupportedOperationException(String.format(
-                        "The SplitChange type of %s is not supported.", splitsChange.getClass()));
-            }
-            try {
-                AsyncUtils.parallelAsync(splitsChange.splits(), this::createPartitionReaderAsync, (partition, reader) -> readerQueue.add(reader), PulsarClientException.class);
-            } catch (PulsarClientException e) {
-                throw new IllegalStateException("Cannot create reader", e);
-            } catch (TimeoutException e) {
-                throw new IllegalStateException("Cannot create reader: " + e.getMessage());
-            } catch (InterruptedException e) {
-                Thread.interrupted();
-                return;
-            }
+    public void handleSplitsChanges(SplitsChange<PulsarPartitionSplit> splitsChange) {
+        if (!(splitsChange instanceof SplitsAddition)) {
+            throw new UnsupportedOperationException(String.format(
+                    "The SplitChange type of %s is not supported.", splitsChange.getClass()));
         }
-        splitsChanges.clear();
+        try {
+            AsyncUtils.parallelAsync(splitsChange.splits(), this::createPartitionReaderAsync, (partition, reader) -> readerQueue.add(reader), PulsarClientException.class);
+        } catch (PulsarClientException e) {
+            throw new IllegalStateException("Cannot create reader", e);
+        } catch (TimeoutException e) {
+            throw new IllegalStateException("Cannot create reader: " + e.getMessage());
+        } catch (InterruptedException e) {
+            Thread.interrupted();
+        }
     }
 
     public CompletableFuture<PartitionReader> createPartitionReaderAsync(PulsarPartitionSplit split) throws PulsarClientException {
@@ -282,10 +280,13 @@ public class PulsarPartitionSplitReader<T> implements SplitReader<ParsedMessage<
     private static class PulsarPartitionSplitRecords<T> implements RecordsWithSplitIds<T> {
         private final Map<String, Collection<T>> recordsBySplits;
         private final Set<String> finishedSplits;
+        private Iterator<Map.Entry<String, Collection<T>>> splitIterator;
+        private String currentSplitId;
+        private Iterator<T> recordIterator;
 
         private PulsarPartitionSplitRecords() {
-            recordsBySplits = new HashMap<>();
-            finishedSplits = new HashSet<>();
+            this.recordsBySplits = new HashMap<>();
+            this.finishedSplits = new HashSet<>();
         }
 
         private Collection<T> recordsForSplit(String splitId) {
@@ -296,14 +297,35 @@ public class PulsarPartitionSplitReader<T> implements SplitReader<ParsedMessage<
             finishedSplits.add(splitId);
         }
 
-        @Override
-        public Collection<String> splitIds() {
-            return recordsBySplits.keySet();
+        private void prepareForRead() {
+            splitIterator = recordsBySplits.entrySet().iterator();
         }
 
         @Override
-        public Map<String, Collection<T>> recordsBySplits() {
-            return recordsBySplits;
+        @Nullable
+        public String nextSplit() {
+            if (splitIterator.hasNext()) {
+                Map.Entry<String, Collection<T>> entry = splitIterator.next();
+                currentSplitId = entry.getKey();
+                recordIterator = entry.getValue().iterator();
+                return currentSplitId;
+            } else {
+                currentSplitId = null;
+                recordIterator = null;
+                return null;
+            }
+        }
+
+        @Override
+        @Nullable
+        public T nextRecordFromSplit() {
+            Preconditions.checkNotNull(currentSplitId, "Make sure nextSplit() did not return null before " +
+                    "iterate over the records split.");
+            if (recordIterator.hasNext()) {
+                return recordIterator.next();
+            } else {
+                return null;
+            }
         }
 
         @Override

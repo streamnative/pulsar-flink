@@ -123,8 +123,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         String tableName = TopicName.get(tp).getLocalName();
 
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
-        see.getConfig().disableSysoutLogging();
-        see.setParallelism(1);
+                see.setParallelism(1);
         DataStreamSource ds = see.fromCollection(fooList);
         ds.addSink(
                 new FlinkPulsarSink(
@@ -140,8 +139,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         see.execute("write first");
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        env.getConfig().disableSysoutLogging();
-        env.setParallelism(1);
+                env.setParallelism(1);
 
         StreamTableEnvironment tEnv = StreamTableEnvironment.create(env);
         TableSchema tSchema = getTableSchema(tp);

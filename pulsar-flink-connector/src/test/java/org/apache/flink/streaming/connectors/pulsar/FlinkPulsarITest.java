@@ -141,8 +141,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
             Properties props = MapUtils.toProperties(Collections.singletonMap(TOPIC_SINGLE_OPTION_KEY, "tp"));
 
             StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
-            see.getConfig().disableSysoutLogging();
-            see.setRestartStrategy(RestartStrategies.noRestart());
+                        see.setRestartStrategy(RestartStrategies.noRestart());
             see.setParallelism(1);
 
             FlinkPulsarSource<String> source =
@@ -166,8 +165,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
 
         sendTypedMessages(tp, SchemaType.INT32, messages, Optional.empty());
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
-        see.getConfig().disableSysoutLogging();
-
+        
         Properties props = MapUtils.toProperties(Collections.singletonMap(TOPIC_SINGLE_OPTION_KEY, tp));
         props.setProperty("pulsar.reader.receiverQueueSize", "1000000");
 
@@ -217,8 +215,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         int numElements = 20;
 
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
-        see.getConfig().disableSysoutLogging();
-        see.setParallelism(1);
+                see.setParallelism(1);
 
         List<String> topics = new ArrayList<>();
         for (int i = 0; i < numTopic; i++) {
@@ -242,8 +239,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         int numElements = 20;
 
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
-        see.getConfig().disableSysoutLogging();
-        see.setParallelism(3);
+                see.setParallelism(3);
 
         List<String> topics = new ArrayList<>();
         for (int i = 0; i < numTopic; i++) {
@@ -265,8 +261,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         int numElements = 20;
 
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
-        see.getConfig().disableSysoutLogging();
-        see.setParallelism(1);
+                see.setParallelism(1);
 
         List<String> topics = new ArrayList<>();
         for (int i = 0; i < numTopic; i++) {
@@ -280,8 +275,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         see.execute("write with topics");
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        env.getConfig().disableSysoutLogging();
-        Properties sourceProp = sourceProperties();
+                Properties sourceProp = sourceProperties();
         sourceProp.setProperty(TOPIC_MULTI_OPTION_KEY, StringUtils.join(topics.toArray(), ','));
         sourceProp.setProperty(USE_EXTEND_FIELD, "true");
 
@@ -317,8 +311,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         }
 
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
-        see.getConfig().disableSysoutLogging();
-        see.setParallelism(3);
+                see.setParallelism(3);
         see.enableCheckpointing(200);
 
         String subName = UUID.randomUUID().toString();
@@ -380,8 +373,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
 
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.setParallelism(1);
-        see.getConfig().disableSysoutLogging();
-        see.setRestartStrategy(RestartStrategies.noRestart());
+                see.setRestartStrategy(RestartStrategies.noRestart());
 
         Properties sourceProps = sourceProperties();
         sourceProps.setProperty(TOPIC_SINGLE_OPTION_KEY, topic);
@@ -410,8 +402,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
 
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.setParallelism(1);
-        see.getConfig().disableSysoutLogging();
-        see.setRestartStrategy(RestartStrategies.noRestart());
+                see.setRestartStrategy(RestartStrategies.noRestart());
 
         //String subName = UUID.randomUUID().toString();
 
@@ -451,8 +442,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         }
 
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
-        see.getConfig().disableSysoutLogging();
-        see.setParallelism(3);
+                see.setParallelism(3);
 
         Properties sourceProps = sourceProperties();
         sourceProps.setProperty(TOPIC_MULTI_OPTION_KEY, StringUtils.join(topics, ','));
@@ -485,8 +475,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         }
 
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
-        see.getConfig().disableSysoutLogging();
-        see.setParallelism(3);
+                see.setParallelism(3);
 
         Properties sourceProps = sourceProperties();
         sourceProps.setProperty(TOPIC_MULTI_OPTION_KEY, StringUtils.join(topics, ','));
@@ -548,8 +537,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         offset.put(topic, mids.get(3));
 
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
-        see.getConfig().disableSysoutLogging();
-        see.setParallelism(1);
+                see.setParallelism(1);
 
         Properties sourceProps = sourceProperties();
         sourceProps.setProperty(TOPIC_SINGLE_OPTION_KEY, topic);
@@ -580,8 +568,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         expectedData.put(topic, new HashSet<>(Arrays.asList(2, 3, 10, 11, 12)));
 
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
-        see.getConfig().disableSysoutLogging();
-        see.setParallelism(1);
+                see.setParallelism(1);
 
         Properties sourceProps = sourceProperties();
         sourceProps.setProperty(TOPIC_SINGLE_OPTION_KEY, topic);
@@ -721,8 +708,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         env.enableCheckpointing(500);
         env.setParallelism(parallelism);
         env.setRestartStrategy(RestartStrategies.fixedDelayRestart(1, 0));
-        env.getConfig().disableSysoutLogging();
-        Properties sourceProps = sourceProperties();
+                Properties sourceProps = sourceProperties();
         sourceProps.setProperty(TOPIC_MULTI_OPTION_KEY, StringUtils.join(allTopicNames, ','));
         sourceProps.setProperty(USE_EXTEND_FIELD, "true");
 
@@ -825,8 +811,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         env.enableCheckpointing(500);
         env.setParallelism(parallelism);
         env.setRestartStrategy(RestartStrategies.fixedDelayRestart(1, 0));
-        env.getConfig().disableSysoutLogging();
-
+        
         Properties sourceProps = sourceProperties();
         sourceProps.setProperty(TOPIC_MULTI_OPTION_KEY, StringUtils.join(allTopicNames, ','));
         sourceProps.setProperty(USE_EXTEND_FIELD, "true");
@@ -868,8 +853,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(parallelism);
         env.enableCheckpointing(100);
-        env.getConfig().disableSysoutLogging();
-
+        
         Properties prop = sourceProperties();
         prop.setProperty(TOPIC_SINGLE_OPTION_KEY, tp);
         env.addSource(new FlinkPulsarSource<String>(
@@ -936,8 +920,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(parallelism);
         env.enableCheckpointing(100);
-        env.getConfig().disableSysoutLogging();
-
+        
         Properties prop = sourceProperties();
         prop.setProperty(TOPIC_SINGLE_OPTION_KEY, tp);
 
@@ -1324,8 +1307,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
             int numElements,
             boolean randomizedOrder) throws Exception {
         see.setParallelism(numPartitions);
-        see.getConfig().disableSysoutLogging();
-        see.setRestartStrategy(RestartStrategies.noRestart());
+                see.setRestartStrategy(RestartStrategies.noRestart());
 
         DataStream stream = see.addSource(new RandomizedIntegerRowSeq(tp, numPartitions, numElements, randomizedOrder));
         produceIntoPulsar(stream, intRowType(), sinkProperties(), intRowTypeInfo());

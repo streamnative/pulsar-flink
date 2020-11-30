@@ -12,35 +12,37 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.pulsar.table;
+package org.apache.flink.streaming.connectors.pulsar.table;
 
 import org.apache.flink.api.common.serialization.DeserializationSchema;
-import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.connectors.pulsar.FlinkPulsarSource;
-import org.apache.flink.streaming.connectors.pulsar.SupportsReadingMetadata;
 import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
-import org.apache.flink.streaming.connectors.pulsar.internal.SimpleSchemaTranslator;
+import org.apache.flink.streaming.util.serialization.PulsarDeserializationSchema;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.connector.ChangelogMode;
 import org.apache.flink.table.connector.format.DecodingFormat;
 import org.apache.flink.table.connector.source.DynamicTableSource;
 import org.apache.flink.table.connector.source.ScanTableSource;
 import org.apache.flink.table.connector.source.SourceFunctionProvider;
+import org.apache.flink.table.connector.source.abilities.SupportsReadingMetadata;
+import org.apache.flink.table.data.GenericMapData;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.data.StringData;
 import org.apache.flink.table.data.TimestampData;
+import org.apache.flink.table.data.binary.BinaryArrayData;
 import org.apache.flink.table.types.DataType;
-import org.apache.flink.table.types.FieldsDataType;
-import org.apache.flink.table.types.logical.RowType;
-import org.apache.flink.table.types.utils.TypeConversions;
+import org.apache.flink.table.types.utils.DataTypeUtils;
+import org.apache.flink.util.Preconditions;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 
+import javax.annotation.Nullable;
+
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -50,11 +52,6 @@ import java.util.Properties;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.EVENT_TIME_NAME;
-import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.KEY_ATTRIBUTE_NAME;
-import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.MESSAGE_ID_NAME;
-import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.PUBLISH_TIME_NAME;
-import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.TOPIC_ATTRIBUTE_NAME;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_EXTERNAL_SUB_DEFAULT_OFFSET;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_EARLIEST;
 
@@ -65,25 +62,28 @@ import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_START
 public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadingMetadata {
 
     // --------------------------------------------------------------------------------------------
-    // Common attributes
+    // Mutable attributes
     // --------------------------------------------------------------------------------------------
+
     /** Data type that describes the final output of the source. */
     protected DataType producedDataType;
-
-    /** Data type to configure the format. */
-    protected final DataType physicalDataType;
 
     /** Metadata that is appended at the end of a physical source row. */
     protected List<String> metadataKeys;
 
     // --------------------------------------------------------------------------------------------
-    // Scan format attributes
+    // Format attributes
     // --------------------------------------------------------------------------------------------
+
+    private static final String VALUE_METADATA_PREFIX = "value.";
+
+    /** Data type to configure the formats. */
+    protected final DataType physicalDataType;
 
     /**
      * Scan format for decoding records from Pulsar.
      */
-    protected final DecodingFormat<DeserializationSchema<RowData>> decodingFormat;
+    protected final DecodingFormat<DeserializationSchema<RowData>> valueDecodingFormat;
 
     // --------------------------------------------------------------------------------------------
     // Pulsar-specific attributes
@@ -103,8 +103,6 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
      * The Pulsar topic to consume.
      */
     protected final String serviceUrl;
-
-    protected final boolean useExtendField;
 
     /**
      * The Pulsar topic to consume.
@@ -134,9 +132,9 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
                                     String adminUrl,
                                     Properties properties,
                                     PulsarOptions.StartupOptions startupOptions) {
-        this.physicalDataType = physicalDataType;
-        this.decodingFormat = decodingFormat;
+        this.physicalDataType = Preconditions.checkNotNull(physicalDataType, "Physical data type must not be null.");
         this.producedDataType = physicalDataType;
+        this.valueDecodingFormat = decodingFormat;
         this.topics = topics;
         this.topicPattern = topicPattern;
         this.serviceUrl = serviceUrl;
@@ -144,15 +142,12 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
         setTopicInfo(properties, topics, topicPattern);
         this.properties = properties;
         this.startupOptions = startupOptions;
+        // Mutable attributes
         this.metadataKeys = Collections.emptyList();
-        this.useExtendField = Boolean.parseBoolean(
-                properties.getProperty(
-                        org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.USE_EXTEND_FIELD, "false"
-                ));
     }
 
     private void setTopicInfo(Properties properties, List<String> topics, String topicPattern) {
-        if (StringUtils.isNotBlank(topicPattern)) {
+        if (StringUtils.isNotBlank(topicPattern)){
             properties.putIfAbsent("topicspattern", topicPattern);
             properties.remove("topic");
             properties.remove("topics");
@@ -160,7 +155,7 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
             properties.putIfAbsent("topics", StringUtils.join(topics, ","));
             properties.remove("topicspattern");
             properties.remove("topic");
-        } else if (topics != null && topics.size() == 1) {
+        } else if (topics != null && topics.size() == 1){
             properties.putIfAbsent("topic", StringUtils.join(topics, ","));
             properties.remove("topicspattern");
             properties.remove("topics");
@@ -171,41 +166,21 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
 
     @Override
     public ChangelogMode getChangelogMode() {
-        return ChangelogMode.insertOnly();
+        return valueDecodingFormat.getChangelogMode();
     }
 
     @Override
-    public ScanRuntimeProvider getScanRuntimeProvider(ScanContext runtimeProviderContext) {
+    public ScanRuntimeProvider getScanRuntimeProvider(ScanContext context) {
 
-        DeserializationSchema<RowData> deserializationSchema =
-                this.decodingFormat.createRuntimeDecoder(runtimeProviderContext, physicalDataType);
+        //valueProjection type int[]
+        final DeserializationSchema<RowData> valueDeserialization =
+                createDeserialization(context, valueDecodingFormat, new int[]{}, "");
 
-        TypeInformation<RowData> producedTypeInfo = null;
-        //if we update to FLink 1.12, planner will auto inject metadataKeys and call applyReadableMetadata method.
-        if (useExtendField) {
-            metadataKeys = Arrays.stream(ReadableMetadata.values()).map(x -> x.key).collect(Collectors.toList());
-            applyReadableMetadata(metadataKeys, generateProducedDataType());
-            producedTypeInfo = runtimeProviderContext.createTypeInformation(producedDataType);
-        }
-
-        final DynamicPulsarDeserializationSchema.ReadableRowDataMetadataConverter[] metadataConverters = metadataKeys.stream()
-                .map(k ->
-                        Stream.of(ReadableMetadata.values())
-                                .filter(rm -> rm.key.equals(k))
-                                .findFirst()
-                                .orElseThrow(IllegalStateException::new))
-                .map(m -> m.converter)
-                .toArray(DynamicPulsarDeserializationSchema.ReadableRowDataMetadataConverter[]::new);
-
+        final ClientConfigurationData clientConfigurationData = newClientConf(serviceUrl);
         FlinkPulsarSource<RowData> source = new FlinkPulsarSource<RowData>(
                 adminUrl,
-                newClientConf(serviceUrl),
-                new DynamicPulsarDeserializationSchema(
-                        deserializationSchema,
-                        metadataKeys.size() > 0,
-                        metadataConverters,
-                        producedTypeInfo
-                ),
+                clientConfigurationData,
+                PulsarDeserializationSchema.valueOnly(valueDeserialization),
                 properties
         );
         switch (startupOptions.startupMode) {
@@ -229,32 +204,11 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
         return SourceFunctionProvider.of(source, false);
     }
 
-    private DataType generateProducedDataType() {
-        List<DataTypes.Field> mainSchema = new ArrayList<>();
-        if (physicalDataType instanceof FieldsDataType) {
-            FieldsDataType fieldsDataType = (FieldsDataType) physicalDataType;
-            RowType rowType = (RowType) fieldsDataType.getLogicalType();
-            List<String> fieldNames = rowType.getFieldNames();
-            for (int i = 0; i < fieldNames.size(); i++) {
-                org.apache.flink.table.types.logical.LogicalType logicalType = rowType.getTypeAt(i);
-                DataTypes.Field field = DataTypes.FIELD(fieldNames.get(i), TypeConversions.fromLogicalToDataType(logicalType));
-                mainSchema.add(field);
-            }
-        } else {
-            mainSchema.add(DataTypes.FIELD("value", physicalDataType));
-        }
-        if (useExtendField) {
-            mainSchema.addAll(SimpleSchemaTranslator.METADATA_FIELDS);
-        }
-        FieldsDataType fieldsDataType = (FieldsDataType) DataTypes.ROW(mainSchema.toArray(new DataTypes.Field[0]));
-        return fieldsDataType;
-    }
-
     @Override
     public DynamicTableSource copy() {
-        final PulsarDynamicTableSource copy = new PulsarDynamicTableSource(
-                this.producedDataType,
-                this.decodingFormat,
+        return new PulsarDynamicTableSource(
+                this.physicalDataType,
+                this.valueDecodingFormat,
                 this.topics,
                 this.topicPattern,
                 this.serviceUrl,
@@ -262,9 +216,6 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
                 this.properties,
                 this.startupOptions
         );
-        copy.producedDataType = producedDataType;
-        copy.metadataKeys = metadataKeys;
-        return copy;
     }
 
     @Override
@@ -283,83 +234,139 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
         if (this == o) {
             return true;
         }
-        if (o == null || getClass() != o.getClass()) {
+        if (!(o instanceof PulsarDynamicTableSource)) {
             return false;
         }
         PulsarDynamicTableSource that = (PulsarDynamicTableSource) o;
-        return useExtendField == that.useExtendField &&
-                Objects.equals(producedDataType, that.producedDataType) &&
-                Objects.equals(physicalDataType, that.physicalDataType) &&
-                Objects.equals(metadataKeys, that.metadataKeys) &&
-                Objects.equals(decodingFormat, that.decodingFormat) &&
+        return physicalDataType.equals(that.physicalDataType) &&
+                valueDecodingFormat.equals(that.valueDecodingFormat) &&
                 Objects.equals(topics, that.topics) &&
                 Objects.equals(topicPattern, that.topicPattern) &&
-                Objects.equals(serviceUrl, that.serviceUrl) &&
-                Objects.equals(adminUrl, that.adminUrl) &&
-                //Objects.equals(properties, that.properties) &&
-                Objects.equals(startupOptions, that.startupOptions);
+                serviceUrl.equals(that.serviceUrl) &&
+                adminUrl.equals(that.adminUrl) &&
+                //The properties generated by flink can't be compared to your own strength for now,
+                // because the content is always a bit different.
+                // properties.equals(that.properties) &&
+                startupOptions.equals(that.startupOptions);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(producedDataType, physicalDataType, metadataKeys, decodingFormat, topics, topicPattern, serviceUrl, useExtendField, adminUrl, properties, startupOptions);
+        return Objects.hash(physicalDataType, valueDecodingFormat, topics, topicPattern, serviceUrl, adminUrl, startupOptions);
     }
 
     @Override
     public Map<String, DataType> listReadableMetadata() {
         final Map<String, DataType> metadataMap = new LinkedHashMap<>();
-        Stream.of(ReadableMetadata.values()).forEachOrdered(m -> metadataMap.put(m.key, m.dataType));
+
+        // according to convention, the order of the final row must be
+        // PHYSICAL + FORMAT METADATA + CONNECTOR METADATA
+        // where the format metadata has highest precedence
+
+        // add value format metadata with prefix
+        valueDecodingFormat
+                .listReadableMetadata()
+                .forEach((key, value) -> metadataMap.put(VALUE_METADATA_PREFIX + key, value));
+
+        // add connector metadata
+        Stream.of(ReadableMetadata.values())
+                .forEachOrdered(m -> metadataMap.putIfAbsent(m.key, m.dataType));
+
         return metadataMap;
     }
 
     @Override
     public void applyReadableMetadata(List<String> metadataKeys, DataType producedDataType) {
-        this.metadataKeys = metadataKeys;
+        // separate connector and format metadata
+        final List<String> formatMetadataKeys = metadataKeys.stream()
+                .filter(k -> k.startsWith(VALUE_METADATA_PREFIX))
+                .collect(Collectors.toList());
+        final List<String> connectorMetadataKeys = new ArrayList<>(metadataKeys);
+        connectorMetadataKeys.removeAll(formatMetadataKeys);
+
+        // push down format metadata
+        final Map<String, DataType> formatMetadata = valueDecodingFormat.listReadableMetadata();
+        if (formatMetadata.size() > 0) {
+            final List<String> requestedFormatMetadataKeys = formatMetadataKeys.stream()
+                    .map(k -> k.substring(VALUE_METADATA_PREFIX.length()))
+                    .collect(Collectors.toList());
+            valueDecodingFormat.applyReadableMetadata(requestedFormatMetadataKeys);
+        }
+
+        this.metadataKeys = connectorMetadataKeys;
         this.producedDataType = producedDataType;
     }
 
-    /**
-     * readableMetadata for new table api.
-     */
-    public enum ReadableMetadata {
-        KEY_ATTRIBUTE(
-                KEY_ATTRIBUTE_NAME,
-                DataTypes.BYTES().nullable(),
-                record -> record.getKeyBytes()
-        ),
+    private @Nullable
+    DeserializationSchema<RowData> createDeserialization(
+            DynamicTableSource.Context context,
+            @Nullable DecodingFormat<DeserializationSchema<RowData>> format,
+            int[] projection,
+            @Nullable String prefix) {
+        if (format == null) {
+            return null;
+        }
+        DataType physicalFormatDataType = DataTypeUtils.projectRow(this.physicalDataType, projection);
+        if (prefix != null) {
+            physicalFormatDataType = DataTypeUtils.stripRowPrefix(physicalFormatDataType, prefix);
+        }
+        return format.createRuntimeDecoder(context, physicalFormatDataType);
+    }
 
-        TOPIC_ATTRIBUTE(
-                TOPIC_ATTRIBUTE_NAME,
-                DataTypes.STRING().nullable(),
-                record -> StringData.fromString(record.getTopicName())
+    // --------------------------------------------------------------------------------------------
+    // Metadata handling
+    // --------------------------------------------------------------------------------------------
+
+    enum ReadableMetadata {
+
+        TOPIC(
+                "topic",
+                DataTypes.STRING().notNull(),
+                message -> StringData.fromString(message.getTopicName())
         ),
 
         MESSAGE_ID(
-                MESSAGE_ID_NAME,
-                DataTypes.BYTES().nullable(),
-                record -> record.getMessageId().toByteArray()),
+                "messageId",
+                DataTypes.BYTES().notNull(),
+                message -> BinaryArrayData.fromPrimitiveArray(message.getMessageId().toByteArray())),
 
-        EVENT_TIME(
-                EVENT_TIME_NAME,
-                DataTypes.TIMESTAMP_WITH_LOCAL_TIME_ZONE(3).nullable(),
-                record -> TimestampData.fromEpochMillis(record.getEventTime())),
+        SEQUENCE_ID(
+                "sequenceId",
+                DataTypes.BIGINT().notNull(),
+                Message::getSequenceId),
+        KEY(
+                "key",
+                DataTypes.STRING().nullable(),
+                message -> StringData.fromString(message.getKey())
+        ),
 
         PUBLISH_TIME(
-                PUBLISH_TIME_NAME,
-                DataTypes.TIMESTAMP_WITH_LOCAL_TIME_ZONE(3).nullable(),
-                record -> TimestampData.fromEpochMillis(record.getPublishTime()));
+                "publishTime",
+                DataTypes.TIMESTAMP_WITH_LOCAL_TIME_ZONE(3).notNull(),
+                message -> TimestampData.fromEpochMillis(message.getPublishTime())),
 
-        public final String key;
+        EVENT_TIME(
+                "eventTime",
+                DataTypes.TIMESTAMP_WITH_LOCAL_TIME_ZONE(3).notNull(),
+                message -> TimestampData.fromEpochMillis(message.getEventTime())),
 
-        public final DataType dataType;
+        PROPERTIES(
+                "properties",
+                // key and value of the map are nullable to make handling easier in queries
+                DataTypes.MAP(DataTypes.STRING().nullable(), DataTypes.BYTES().nullable()).notNull(),
+                message -> new GenericMapData(message.getProperties())
+        );
 
-        public final DynamicPulsarDeserializationSchema.ReadableRowDataMetadataConverter converter;
+        final String key;
 
-        ReadableMetadata(String key, DataType dataType, DynamicPulsarDeserializationSchema.ReadableRowDataMetadataConverter converter) {
+        final DataType dataType;
+
+        final DynamicPulsarDeserializationSchema.MetadataConverter converter;
+
+        ReadableMetadata(String key, DataType dataType, DynamicPulsarDeserializationSchema.MetadataConverter converter) {
             this.key = key;
             this.dataType = dataType;
             this.converter = converter;
         }
     }
-
 }

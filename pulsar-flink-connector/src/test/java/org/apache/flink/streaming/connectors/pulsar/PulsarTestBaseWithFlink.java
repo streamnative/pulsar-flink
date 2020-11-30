@@ -20,6 +20,7 @@ import org.apache.flink.runtime.client.JobStatusMessage;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
 import org.apache.flink.test.util.MiniClusterWithClientResource;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.pulsar.common.naming.TopicName;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -85,9 +86,6 @@ public abstract class PulsarTestBaseWithFlink extends PulsarTestBase {
     public static final AtomicInteger TOPIC_ID = new AtomicInteger(0);
 
     public static String newTopic() {
-        synchronized (TOPIC_ID) {
-            int i = TOPIC_ID.getAndIncrement();
-            return TopicName.get("topic" + i).toString();
-        }
+        return TopicName.get("topic" + RandomStringUtils.randomNumeric(8)).toString();
     }
 }

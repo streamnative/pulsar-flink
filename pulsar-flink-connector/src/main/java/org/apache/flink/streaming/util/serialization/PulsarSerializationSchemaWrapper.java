@@ -12,18 +12,24 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.connectors.pulsar.internal;
+package org.apache.flink.streaming.util.serialization;
 
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.api.common.serialization.SerializationSchema;
+import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.connectors.pulsar.SerializableFunction;
 import org.apache.flink.streaming.connectors.pulsar.config.RecordSchemaType;
+import org.apache.flink.streaming.connectors.pulsar.internal.IncompatibleSchemaException;
+import org.apache.flink.streaming.connectors.pulsar.internal.SchemaTranslator;
+import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils;
 import org.apache.flink.table.types.AtomicDataType;
 import org.apache.flink.table.types.DataType;
 
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
 import org.apache.pulsar.shade.org.apache.http.util.Asserts;
+
+import java.util.Optional;
 
 /**
  * A wrapper that warp flink {@link SerializationSchema} to {@link PulsarSerializationSchema}.
@@ -38,29 +44,7 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
     private final SchemaMode schemaMode;
     private final SerializableFunction<T, String> topicExtractor;
 
-    private int parallelInstanceId;
-    private int numParallelInstances;
-
-    /*public PulsarSerializationSchemaWrapper(String topic,
-                                            SerializationSchema<T> serializationSchema,
-                                            DataType dataType) {
-        this(topic, serializationSchema, null, null, null, dataType);
-    }
-
     public PulsarSerializationSchemaWrapper(String topic,
-                                            SerializationSchema<T> serializationSchema,
-                                            RecordSchemaType recordSchemaType,
-                                            Class<?> clazz) {
-        this(topic, serializationSchema, recordSchemaType, clazz, null, null);
-    }
-
-    public PulsarSerializationSchemaWrapper(String topic,
-                                            SerializationSchema<T> serializationSchema,
-                                            Schema<?> schema) {
-        this(topic, serializationSchema, null, null, schema, null);
-    }*/
-
-    private PulsarSerializationSchemaWrapper(String topic,
                                              SerializationSchema<T> serializationSchema,
                                              RecordSchemaType recordSchemaType,
                                              Class<?> clazz,
@@ -79,13 +63,79 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
 
     }
 
+    @Override
+    public TypeInformation<T> getProducedType() {
+        return null;
+    }
+
+    @Override
+    public Optional<String> getTargetTopic(T element) {
+        return Optional.of(topic);
+    }
+
+    @Override
+    public void serialize(T element, TypedMessageBuilder<T> messageBuilder) {
+        messageBuilder.value(element);
+    }
+
+    @Override
+    public void open(SerializationSchema.InitializationContext context) throws Exception {
+        this.serializationSchema.open(context);
+    }
+
+    @Override
+    public Schema<T> getSchema() {
+        try {
+            switch (schemaMode) {
+                case SPECIAL:
+                    return new FlinkSchema<>(schema.getSchemaInfo(), serializationSchema, null);
+                case ATOMIC:
+                    return new FlinkSchema<>(SchemaTranslator.atomicType2PulsarSchema(dataType).getSchemaInfo(),
+                            serializationSchema, null);
+                case POJO:
+                    return new FlinkSchema<>(
+                            SchemaUtils.buildSchemaForRecordClazz(clazz, recordSchemaType).getSchemaInfo(),
+                            serializationSchema, null);
+                case ROW:
+                    return new FlinkSchema<>(SchemaUtils.buildRowSchema(dataType, recordSchemaType).getSchemaInfo(),
+                            serializationSchema, null);
+            }
+        } catch (IncompatibleSchemaException e) {
+            throw new IllegalStateException(e);
+        }
+        if (schema != null) {
+            return new FlinkSchema<>(schema.getSchemaInfo(), serializationSchema, null);
+        }
+        try {
+            if (dataType instanceof AtomicDataType) {
+                return new FlinkSchema<>(SchemaTranslator.atomicType2PulsarSchema(dataType).getSchemaInfo(),
+                        serializationSchema, null);
+            } else {
+                // for pojo type, use avro or json
+                Asserts.notNull(clazz, "for non-atomic type, you must set clazz");
+                Asserts.notNull(recordSchemaType, "for non-atomic type, you must set recordSchemaType");
+                return new FlinkSchema<>(SchemaUtils.buildRowSchema(dataType, recordSchemaType).getSchemaInfo(),
+                        serializationSchema, null);
+            }
+        } catch (IncompatibleSchemaException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    enum SchemaMode {
+        ATOMIC,
+        POJO,
+        SPECIAL,
+        ROW
+    }
+
     /**
      * Builder for {@link PulsarSerializationSchemaWrapper}.
      */
     @PublicEvolving
     public static class Builder<T> {
-        private String topic;
         private final SerializationSchema<T> serializationSchema;
+        private String topic;
         private RecordSchemaType recordSchemaType;
         private Schema<?> schema;
         private Class<?> clazz;
@@ -112,16 +162,19 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
             return this;
         }
 
-        public PulsarSerializationSchemaWrapper.Builder<T> usePojoMode(Class<?> clazz, RecordSchemaType recordSchemaType) {
+        public PulsarSerializationSchemaWrapper.Builder<T> usePojoMode(Class<?> clazz,
+                                                                       RecordSchemaType recordSchemaType) {
             Asserts.check(mode == null, "you can only set one schemaMode");
             this.mode = SchemaMode.POJO;
-            Asserts.check(recordSchemaType != RecordSchemaType.ATOMIC, "cant ues RecordSchemaType.ATOMIC to build pojo type schema");
+            Asserts.check(recordSchemaType != RecordSchemaType.ATOMIC,
+                    "cant ues RecordSchemaType.ATOMIC to build pojo type schema");
             this.clazz = clazz;
             this.recordSchemaType = recordSchemaType;
             return this;
         }
 
-        public PulsarSerializationSchemaWrapper.Builder<T> useRowMode(DataType dataType, RecordSchemaType recordSchemaType) {
+        public PulsarSerializationSchemaWrapper.Builder<T> useRowMode(DataType dataType,
+                                                                      RecordSchemaType recordSchemaType) {
             Asserts.check(mode == null, "you can only set one schemaMode");
             this.mode = SchemaMode.ROW;
             this.dataType = dataType;
@@ -129,7 +182,8 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
             return this;
         }
 
-        public PulsarSerializationSchemaWrapper.Builder<T> setTopicExtractor(SerializableFunction<T, String> topicExtractor) {
+        public PulsarSerializationSchemaWrapper.Builder<T> setTopicExtractor(
+                SerializableFunction<T, String> topicExtractor) {
             this.topicExtractor = topicExtractor;
             return this;
         }
@@ -150,85 +204,5 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
                     mode,
                     topicExtractor);
         }
-    }
-
-    @Override
-    public void setParallelInstanceId(int parallelInstanceId) {
-        this.parallelInstanceId = parallelInstanceId;
-    }
-
-    @Override
-    public void setNumParallelInstances(int numParallelInstances) {
-        this.numParallelInstances = numParallelInstances;
-    }
-
-    @Override
-    public void setPartitions(int[] partitions) {
-        return;
-    }
-
-    @Override
-    public String getTargetTopic(T element) {
-        return topic;
-    }
-
-    @Override
-    public void open(SerializationSchema.InitializationContext context) throws Exception {
-        this.serializationSchema.open(context);
-    }
-
-    @Override
-    public byte[] serialize(T element) {
-        return serializationSchema.serialize(element);
-    }
-
-    @Override
-    public void serialize(T element, TypedMessageBuilder<byte[]> messageBuilder) {
-        messageBuilder.value(serializationSchema.serialize(element));
-    }
-
-    @Override
-    public Schema<?> getPulsarSchema() {
-        try {
-            switch (schemaMode) {
-                case SPECIAL:
-                    return schema;
-                case ATOMIC:
-                    return SchemaTranslator.atomicType2PulsarSchema(dataType);
-                case POJO:
-                    return SchemaUtils.buildSchemaForRecordClazz(clazz, recordSchemaType);
-                case ROW:
-                    return SchemaUtils.buildRowSchema(dataType, recordSchemaType);
-            }
-        } catch (IncompatibleSchemaException e) {
-            throw new IllegalStateException(e);
-        }
-        if (schema != null) {
-            return schema;
-        }
-        try {
-            if (dataType instanceof AtomicDataType) {
-                return SchemaTranslator.atomicType2PulsarSchema(dataType);
-            } else {
-                // for pojo type, use avro or json
-                Asserts.notNull(clazz, "for non-atomic type, you must set clazz");
-                Asserts.notNull(clazz, "for non-atomic type, you must set recordSchemaType");
-                return SchemaUtils.buildSchemaForRecordClazz(clazz, recordSchemaType);
-            }
-        } catch (IncompatibleSchemaException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public byte[] getKey(T element) {
-        return null;
-    }
-
-    enum SchemaMode {
-        ATOMIC,
-        POJO,
-        SPECIAL,
-        ROW
     }
 }

@@ -35,7 +35,6 @@ import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.api.operators.StreamSource;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarCommitCallback;
-import org.apache.flink.streaming.connectors.pulsar.internal.PulsarDeserializationSchema;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarFetcher;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
 import org.apache.flink.streaming.connectors.pulsar.internal.TopicRange;
@@ -45,6 +44,7 @@ import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
 import org.apache.flink.streaming.runtime.tasks.TestProcessingTimeService;
 import org.apache.flink.streaming.util.AbstractStreamOperatorTestHarness;
 import org.apache.flink.streaming.util.MockStreamingRuntimeContext;
+import org.apache.flink.streaming.util.serialization.PulsarDeserializationSchema;
 import org.apache.flink.util.ExceptionUtils;
 import org.apache.flink.util.FlinkException;
 import org.apache.flink.util.Preconditions;
@@ -603,7 +603,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
 
         @Override
         protected PulsarFetcher<T> createFetcher(
-                SourceContext sourceContext,
+                SourceContext<T> sourceContext,
                 Map<TopicRange, MessageId> seedTopicsWithInitialOffsets,
                 SerializedValue<AssignerWithPeriodicWatermarks<T>> watermarksPeriodic,
                 SerializedValue<AssignerWithPunctuatedWatermarks<T>> watermarksPunctuated,
@@ -653,7 +653,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
 
         @Override
         protected PulsarFetcher<T> createFetcher(
-                SourceContext sourceContext,
+                SourceContext<T> sourceContext,
                 Map<TopicRange, MessageId> seedTopicsWithInitialOffsets,
                 SerializedValue<AssignerWithPeriodicWatermarks<T>> watermarksPeriodic,
                 SerializedValue<AssignerWithPunctuatedWatermarks<T>> watermarksPunctuated,

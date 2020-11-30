@@ -88,11 +88,13 @@ public class SchemaUtils {
                             String.format("Create schema for %s get 404", TopicName.get(topic).toString()), pae);
                 } else {
                     throw new RuntimeException(
-                            String.format("Failed to create schema information for %s", TopicName.get(topic).toString()), pae);
+                            String.format("Failed to create schema information for %s",
+                                    TopicName.get(topic).toString()), pae);
                 }
             } catch (Throwable e) {
                 throw new RuntimeException(
-                        String.format("Failed to create schema information for %s", TopicName.get(topic).toString()), e);
+                        String.format("Failed to create schema information for %s", TopicName.get(topic).toString()),
+                        e);
             }
         } else if (!existingSchema.equals(schemaInfo) && !compatibleSchema(existingSchema, schemaInfo)) {
             throw new RuntimeException("Writing to a topic which have incompatible schema");
@@ -198,7 +200,8 @@ public class SchemaUtils {
         return numBytes;
     }
 
-    public static org.apache.pulsar.client.api.Schema<?> buildRowSchema(DataType dataType, RecordSchemaType recordSchemaType) {
+    public static org.apache.pulsar.client.api.Schema<?> buildRowSchema(DataType dataType,
+                                                                        RecordSchemaType recordSchemaType) {
         org.apache.avro.Schema avroSchema = AvroSchemaConverter.convertToSchema(dataType.getLogicalType());
         byte[] schemaBytes = avroSchema.toString().getBytes(StandardCharsets.UTF_8);
         SchemaInfo si = new SchemaInfo();
@@ -227,7 +230,8 @@ public class SchemaUtils {
         return org.apache.pulsar.client.api.Schema.generic(si);
     }
 
-    public static <T> org.apache.pulsar.client.api.Schema<T> buildSchemaForRecordClazz(Class<T> recordClazz, RecordSchemaType recordSchemaType) {
+    public static <T> org.apache.pulsar.client.api.Schema<T> buildSchemaForRecordClazz(Class<T> recordClazz,
+                                                                                       RecordSchemaType recordSchemaType) {
         if (recordSchemaType == null) {
             return org.apache.pulsar.client.api.Schema.AVRO(recordClazz);
         }

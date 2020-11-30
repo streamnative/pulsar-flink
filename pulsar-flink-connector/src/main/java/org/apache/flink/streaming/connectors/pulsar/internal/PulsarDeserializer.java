@@ -16,6 +16,7 @@ package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.streaming.util.serialization.PulsarDeserializationSchema;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.types.CollectionDataType;
 import org.apache.flink.table.types.DataType;
@@ -78,7 +79,7 @@ import static org.apache.pulsar.shade.org.apache.avro.Schema.Type.UNION;
  * Deserialize Pulsar message into Flink row.
  */
 @Slf4j
-public class PulsarDeserializer implements PulsarDeserializationSchema<Row>{
+public class PulsarDeserializer implements PulsarDeserializationSchema<Row> {
 
     private final Function<Message<?>, Row> converter;
 
@@ -508,6 +509,11 @@ public class PulsarDeserializer implements PulsarDeserializationSchema<Row>{
     @Override
     public TypeInformation<Row> getProducedType() {
         return (TypeInformation<Row>) TypeConversions.fromDataTypeToLegacyInfo(fieldsDataType);
+    }
+
+    @Override
+    public org.apache.pulsar.client.api.Schema<Row> getSchema() {
+        return null;
     }
 
     /**

@@ -15,8 +15,7 @@
 package org.apache.flink.streaming.connectors.pulsar;
 
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarClientUtils;
-import org.apache.flink.streaming.connectors.pulsar.internal.PulsarContextAware;
-import org.apache.flink.streaming.connectors.pulsar.internal.PulsarSerializationSchema;
+import org.apache.flink.streaming.util.serialization.PulsarSerializationSchema;
 
 import org.apache.pulsar.client.api.TypedMessageBuilder;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
@@ -27,18 +26,11 @@ import java.util.Properties;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
- * Write Pojo class to Flink.
+ * Write data to Flink.
  *
- * @param <T> Type of the Pojo class.
+ * @param <T> Type of the Pojo or RowData class.
  */
 public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
-
-    //private final Class<T> recordClazz;
-
-    /**
-     * Type for serialized messages, default use AVRO.
-     */
-    //private final RecordSchemaType schemaType;
 
     private final PulsarSerializationSchema<T> serializationSchema;
 
@@ -72,29 +64,14 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
     public void invoke(T value, Context context) throws Exception {
         checkErroneous();
         initializeSendCallback();
+        final Optional<String> targetTopic = serializationSchema.getTargetTopic(value);
+        if (!targetTopic.isPresent() && failOnWrite) {
+                    throw new NullPointerException("no topic present in the data.");
 
-        //get topic for message
-        String targetTopic = null;
-        byte[] key = null;
-        if (serializationSchema instanceof PulsarContextAware) {
-            @SuppressWarnings("unchecked")
-            PulsarContextAware<T> contextAwareSchema =
-                    (PulsarContextAware<T>) serializationSchema;
-
-            targetTopic = contextAwareSchema.getTargetTopic(value);
-            key = contextAwareSchema.getKey(value);
         }
-        if (targetTopic == null) {
-            targetTopic = defaultTopic;
-        }
-
-        //serialize the message
-        TypedMessageBuilder<byte[]> mb = getProducer(targetTopic).newMessage();
+        String topic = targetTopic.orElse(defaultTopic);
+        TypedMessageBuilder<T> mb = getProducer(topic).newMessage();
         serializationSchema.serialize(value, mb);
-
-        if (key != null) {
-            mb.keyBytes(key);
-        }
 
         if (flushOnCheckpoint) {
             synchronized (pendingRecordsLock) {

@@ -27,6 +27,9 @@ import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.streaming.util.TestStreamEnvironment;
 import org.apache.flink.util.TestLogger;
 
+import io.streamnative.tests.common.framework.FrameworkUtils;
+import io.streamnative.tests.pulsar.service.PulsarService;
+import io.streamnative.tests.pulsar.service.PulsarServiceFactory;
 import io.streamnative.tests.pulsar.service.PulsarServiceSpec;
 import io.streamnative.tests.pulsar.service.testcontainers.PulsarStandaloneContainerService;
 import lombok.extern.slf4j.Slf4j;
@@ -63,7 +66,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public abstract class PulsarTestBase extends TestLogger {
 
-    protected static PulsarStandaloneContainerService pulsarService;
+    protected static PulsarService pulsarService;
 
     protected static String serviceUrl;
 
@@ -102,9 +105,8 @@ public abstract class PulsarTestBase extends TestLogger {
                 .enableContainerLogging(false)
                 .build();
 
-        pulsarService = new PulsarStandaloneContainerService(spec);
+        pulsarService = PulsarServiceFactory.createPulsarService(spec);
         pulsarService.start();
-
         for (URI uri : pulsarService.getServiceUris()) {
             if (uri != null && uri.getScheme().equals("pulsar")) {
                 serviceUrl = uri.toString();
@@ -118,7 +120,14 @@ public abstract class PulsarTestBase extends TestLogger {
         consumerConfigurationData.setSubscriptionType(SubscriptionType.Exclusive);
         consumerConfigurationData.setSubscriptionName("flink-" + UUID.randomUUID());
 
-        zkUrl = pulsarService.getZkUrl();
+        if (pulsarService instanceof PulsarStandaloneContainerService){
+            zkUrl = ((PulsarStandaloneContainerService) pulsarService).getZkUrl();
+        } else {
+            zkUrl = FrameworkUtils.getConfig(
+                    "pulsar.external.service.domain",
+                    "localhost"
+            ) + ":2181";
+        }
         Thread.sleep(80 * 1000L);
 
         log.info("-------------------------------------------------------------------------");

@@ -21,9 +21,10 @@ import org.apache.flink.core.testutils.MultiShotLatch;
 import org.apache.flink.runtime.state.FunctionSnapshotContext;
 import org.apache.flink.streaming.api.operators.StreamSink;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
-import org.apache.flink.streaming.connectors.pulsar.internal.PulsarSerializationSchemaWrapper;
+import org.apache.flink.streaming.util.serialization.PulsarDeserializationSchemaWrapper;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
 import org.apache.flink.streaming.util.OneInputStreamOperatorTestHarness;
+import org.apache.flink.streaming.util.serialization.PulsarSerializationSchemaWrapper;
 import org.apache.flink.util.TestLogger;
 
 import org.apache.pulsar.client.api.MessageId;
@@ -283,7 +284,7 @@ public class FlinkPulsarSinkTest extends TestLogger {
 
         private static final String DUMMY_TOPIC = "dummy-topic";
 
-        private transient Producer<byte[]> mockProducer;
+        private transient Producer<T> mockProducer;
         private transient TypedMessageBuilderImpl<T> mockMessageBuilder;
 
         public List<BiConsumer<MessageId, Throwable>> getPendingCallbacks() {
@@ -380,7 +381,7 @@ public class FlinkPulsarSinkTest extends TestLogger {
         }
 
         @Override
-        protected Producer<byte[]> getProducer(String topic) {
+        protected Producer<T> getProducer(String topic) {
             return mockProducer;
         }
 

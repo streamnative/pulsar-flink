@@ -23,9 +23,9 @@ import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
 import org.apache.flink.streaming.connectors.pulsar.internal.CachedPulsarClient;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarClientUtils;
-import org.apache.flink.streaming.connectors.pulsar.internal.PulsarSerializationSchema;
 import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.SourceSinkUtils;
+import org.apache.flink.streaming.util.serialization.PulsarSerializationSchema;
 import org.apache.flink.util.ExceptionUtils;
 import org.apache.flink.util.SerializableObject;
 
@@ -93,9 +93,9 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
 
     protected transient BiConsumer<MessageId, Throwable> sendCallback;
 
-    protected transient Producer<byte[]> singleProducer;
+    protected transient Producer<T> singleProducer;
 
-    protected transient Map<String, Producer<byte[]>> topic2Producer;
+    protected transient Map<String, Producer<T>> topic2Producer;
 
     public FlinkPulsarSinkBase(
             String adminUrl,
@@ -191,7 +191,8 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
 
         if (forcedTopic) {
             uploadSchema(defaultTopic);
-            singleProducer = createProducer(clientConfigurationData, producerConf, defaultTopic);
+            singleProducer = createProducer(clientConfigurationData, producerConf, defaultTopic,
+                    serializationSchema.getSchema());
         } else {
             topic2Producer = new HashMap<>();
         }
@@ -222,7 +223,7 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
     }
 
     private void uploadSchema(String topic) {
-        SchemaUtils.uploadPulsarSchema(admin, topic, serializationSchema.getPulsarSchema().getSchemaInfo());
+        SchemaUtils.uploadPulsarSchema(admin, topic, serializationSchema.getSchema().getSchemaInfo());
     }
 
     @Override
@@ -232,7 +233,7 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
         checkErroneous();
     }
 
-    protected Producer<byte[]> getProducer(String topic) {
+    protected Producer<T> getProducer(String topic) {
         if (forcedTopic) {
             return singleProducer;
         }
@@ -241,7 +242,7 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
             return topic2Producer.get(topic);
         } else {
             uploadSchema(topic);
-            Producer p = createProducer(clientConfigurationData, producerConf, topic);
+            Producer<T> p = createProducer(clientConfigurationData, producerConf, topic, serializationSchema.getSchema());
             topic2Producer.put(topic, p);
             return p;
         }
@@ -254,15 +255,16 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
      * @return the schema that our producer use.
      *//*
     protected abstract Schema<T> buildSchema();*/
-    protected Producer<byte[]> createProducer(
+    protected Producer<T> createProducer(
             ClientConfigurationData clientConf,
             Map<String, Object> producerConf,
-            String topic
-    ) {
+            String topic,
+            Schema<T> schema) {
+
         try {
             return CachedPulsarClient
                     .getOrCreate(clientConf)
-                    .newProducer(Schema.AUTO_PRODUCE_BYTES(serializationSchema.getPulsarSchema()))
+                    .newProducer(schema)
                     .topic(topic)
                     .batchingMaxPublishDelay(100, TimeUnit.MILLISECONDS)
                     // maximizing the throughput

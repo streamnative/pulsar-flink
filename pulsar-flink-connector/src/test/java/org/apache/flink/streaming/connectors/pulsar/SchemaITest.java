@@ -272,6 +272,24 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
         StreamExecutionEnvironment se2 = StreamExecutionEnvironment.getExecutionEnvironment();
         se2.setParallelism(1);
         StreamTableEnvironment tEnv2 = StreamTableEnvironment.create(se2);
+
+        final String createTable;
+        createTable = String.format(
+                "create table pulsar (\n" +
+                        "  value date\n" +
+                         ") with (\n" +
+                        "  'connector' = 'pulsar',\n" +
+                        "  'topic' = '%s',\n" +
+                        "  'service-url' = '%s',\n" +
+                        "  'admin-url' = '%s',\n" +
+                        "  'scan.startup.mode' = 'earliest', \n" +
+                        "  'format' ='avro' \n" +
+                        ")",
+
+                topic,
+                serviceUrl,
+                adminUrl);
+        tEnv.executeSql(createTable);
         tEnv2.connect(getPulsarSourceDescriptor(topic))
                 .withSchema(new Schema().schema(tSchema))
                 .withFormat(new Atomic().setClass(className))

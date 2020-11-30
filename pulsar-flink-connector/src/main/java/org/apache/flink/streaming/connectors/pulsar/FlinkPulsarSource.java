@@ -38,13 +38,13 @@ import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
 import org.apache.flink.streaming.connectors.pulsar.internal.CachedPulsarClient;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarClientUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarCommitCallback;
-import org.apache.flink.streaming.connectors.pulsar.internal.PulsarDeserializationSchema;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarFetcher;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.streaming.connectors.pulsar.internal.SourceSinkUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.TopicRange;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
+import org.apache.flink.streaming.util.serialization.PulsarDeserializationSchema;
 import org.apache.flink.util.ExceptionUtils;
 import org.apache.flink.util.SerializedValue;
 
@@ -339,7 +339,8 @@ public class FlinkPulsarSource<T>
         return this;
     }
 
-    public FlinkPulsarSource<T> setStartFromSubscription(String externalSubscriptionName, MessageId subscriptionPosition) {
+    public FlinkPulsarSource<T> setStartFromSubscription(String externalSubscriptionName,
+                                                         MessageId subscriptionPosition) {
         this.startupMode = StartupMode.EXTERNAL_SUBSCRIPTION;
         this.externalSubscriptionName = checkNotNull(externalSubscriptionName);
         this.subscriptionPosition = checkNotNull(subscriptionPosition);
@@ -496,7 +497,7 @@ public class FlinkPulsarSource<T>
     }
 
     protected PulsarFetcher<T> createFetcher(
-            SourceContext sourceContext,
+            SourceContext<T> sourceContext,
             Map<TopicRange, MessageId> seedTopicsWithInitialOffsets,
             SerializedValue<AssignerWithPeriodicWatermarks<T>> watermarksPeriodic,
             SerializedValue<AssignerWithPunctuatedWatermarks<T>> watermarksPunctuated,
@@ -507,7 +508,7 @@ public class FlinkPulsarSource<T>
 
         //readerConf.putIfAbsent(PulsarOptions.SUBSCRIPTION_ROLE_OPTION_KEY, getSubscriptionName());
 
-        return new PulsarFetcher(
+        return new PulsarFetcher<T>(
                 sourceContext,
                 seedTopicsWithInitialOffsets,
                 watermarksPeriodic,
@@ -738,7 +739,7 @@ public class FlinkPulsarSource<T>
         }
     }
 
-    //    @Override
+    @Override
     public void notifyCheckpointAborted(long checkpointId) throws Exception {
         log.error("checkpoint aborted, checkpointId: {}", checkpointId);
     }

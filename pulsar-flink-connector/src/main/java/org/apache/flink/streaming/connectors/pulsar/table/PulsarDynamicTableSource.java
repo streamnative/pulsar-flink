@@ -14,6 +14,7 @@
 
 package org.apache.flink.streaming.connectors.pulsar.table;
 
+import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.streaming.connectors.pulsar.FlinkPulsarSource;
 import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
@@ -71,6 +72,10 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
     /** Metadata that is appended at the end of a physical source row. */
     protected List<String> metadataKeys;
 
+    /** Watermark strategy that is used to generate per-partition watermark. */
+    protected @Nullable
+    WatermarkStrategy<RowData> watermarkStrategy;
+
     // --------------------------------------------------------------------------------------------
     // Format attributes
     // --------------------------------------------------------------------------------------------
@@ -80,11 +85,20 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
     /** Data type to configure the formats. */
     protected final DataType physicalDataType;
 
-    /**
-     * Scan format for decoding records from Pulsar.
-     */
+    /** Optional format for decoding keys from Kafka. */
+    protected final @Nullable DecodingFormat<DeserializationSchema<RowData>> keyDecodingFormat;
+
+    /** Format for decoding values from Kafka. */
     protected final DecodingFormat<DeserializationSchema<RowData>> valueDecodingFormat;
 
+    /** Indices that determine the key fields and the target position in the produced row. */
+    protected final int[] keyProjection;
+
+    /** Indices that determine the value fields and the target position in the produced row. */
+    protected final int[] valueProjection;
+
+    /** Prefix that needs to be removed from fields when constructing the physical data type. */
+    protected final @Nullable String keyPrefix;
     // --------------------------------------------------------------------------------------------
     // Pulsar-specific attributes
     // --------------------------------------------------------------------------------------------
@@ -124,26 +138,49 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
      */
     private static final long DEFAULT_STARTUP_TIMESTAMP_MILLIS = 0L;
 
-    public PulsarDynamicTableSource(DataType physicalDataType,
-                                    DecodingFormat<DeserializationSchema<RowData>> decodingFormat,
-                                    List<String> topics,
-                                    String topicPattern,
-                                    String serviceUrl,
-                                    String adminUrl,
-                                    Properties properties,
-                                    PulsarOptions.StartupOptions startupOptions) {
-        this.physicalDataType = Preconditions.checkNotNull(physicalDataType, "Physical data type must not be null.");
+    /** Flag to determine source mode. In upsert mode, it will keep the tombstone message. **/
+    protected final boolean upsertMode;
+
+    public PulsarDynamicTableSource(
+            DataType physicalDataType,
+            @Nullable DecodingFormat<DeserializationSchema<RowData>> keyDecodingFormat,
+            DecodingFormat<DeserializationSchema<RowData>> valueDecodingFormat,
+            int[] keyProjection,
+            int[] valueProjection,
+            @Nullable String keyPrefix,
+            List<String> topics,
+            String topicPattern,
+            String serviceUrl,
+            String adminUrl,
+            Properties properties,
+            PulsarOptions.StartupOptions startupOptions,
+            boolean upsertMode) {
         this.producedDataType = physicalDataType;
-        this.valueDecodingFormat = decodingFormat;
+        setTopicInfo(properties, topics, topicPattern);
+
+        // Format attributes
+        this.physicalDataType = Preconditions.checkNotNull(physicalDataType, "Physical data type must not be null.");
+        this.keyDecodingFormat = keyDecodingFormat;
+        this.valueDecodingFormat = Preconditions.checkNotNull(
+                valueDecodingFormat, "Value decoding format must not be null.");
+        this.keyProjection = Preconditions.checkNotNull(keyProjection, "Key projection must not be null.");
+        this.valueProjection = Preconditions.checkNotNull(valueProjection, "Value projection must not be null.");
+        this.keyPrefix = keyPrefix;
+        // Mutable attributes
+        this.producedDataType = physicalDataType;
+        this.metadataKeys = Collections.emptyList();
+        this.watermarkStrategy = null;
+        // Kafka-specific attributes
+        Preconditions.checkArgument((topics != null && topicPattern == null) ||
+                        (topics == null && topicPattern != null),
+                "Either Topic or Topic Pattern must be set for source.");
         this.topics = topics;
         this.topicPattern = topicPattern;
-        this.serviceUrl = serviceUrl;
         this.adminUrl = adminUrl;
-        setTopicInfo(properties, topics, topicPattern);
-        this.properties = properties;
+        this.serviceUrl = serviceUrl;
+        this.properties = Preconditions.checkNotNull(properties, "Properties must not be null.");
         this.startupOptions = startupOptions;
-        // Mutable attributes
-        this.metadataKeys = Collections.emptyList();
+        this.upsertMode = upsertMode;
     }
 
     private void setTopicInfo(Properties properties, List<String> topics, String topicPattern) {
@@ -174,7 +211,7 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
 
         //valueProjection type int[]
         final DeserializationSchema<RowData> valueDeserialization =
-                createDeserialization(context, valueDecodingFormat, new int[]{}, "");
+                createDeserialization(context, valueDecodingFormat, valueProjection, "");
 
         final ClientConfigurationData clientConfigurationData = newClientConf(serviceUrl);
         FlinkPulsarSource<RowData> source = new FlinkPulsarSource<RowData>(
@@ -207,15 +244,19 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
     @Override
     public DynamicTableSource copy() {
         return new PulsarDynamicTableSource(
-                this.physicalDataType,
-                this.valueDecodingFormat,
-                this.topics,
-                this.topicPattern,
-                this.serviceUrl,
-                this.adminUrl,
-                this.properties,
-                this.startupOptions
-        );
+                physicalDataType,
+                keyDecodingFormat,
+                valueDecodingFormat,
+                keyProjection,
+                valueProjection,
+                keyPrefix,
+                topics,
+                topicPattern,
+                serviceUrl,
+                adminUrl,
+                properties,
+                startupOptions,
+                false);
     }
 
     @Override

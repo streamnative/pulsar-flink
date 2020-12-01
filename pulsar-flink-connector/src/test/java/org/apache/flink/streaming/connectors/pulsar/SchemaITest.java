@@ -3,7 +3,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,37 +15,42 @@
 package org.apache.flink.streaming.connectors.pulsar;
 
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.formats.avro.AvroRowDataSerializationSchema;
+import org.apache.flink.formats.avro.typeutils.AvroSchemaConverter;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper;
 import org.apache.flink.streaming.connectors.pulsar.testutils.SingletonStreamSink;
+import org.apache.flink.streaming.connectors.pulsar.util.RowDataUtil;
+import org.apache.flink.streaming.util.serialization.FlinkSchema;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
-import org.apache.flink.table.descriptors.Atomic;
-import org.apache.flink.table.descriptors.ConnectorDescriptor;
-import org.apache.flink.table.descriptors.Pulsar;
-import org.apache.flink.table.descriptors.Schema;
+import org.apache.flink.table.data.GenericRowData;
+import org.apache.flink.table.data.RowData;
+import org.apache.flink.table.data.StringData;
+import org.apache.flink.table.data.TimestampData;
+import org.apache.flink.table.runtime.typeutils.InternalTypeInfo;
 import org.apache.flink.table.types.DataType;
-import org.apache.flink.table.types.utils.LegacyTypeInfoDataTypeConverter;
+import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.test.util.TestUtils;
+import org.apache.flink.types.RowKind;
 import org.apache.flink.util.StringUtils;
 
+import org.apache.avro.Schema;
 import org.apache.pulsar.common.naming.TopicName;
+import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.Collection;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -67,22 +72,9 @@ import static org.apache.flink.streaming.connectors.pulsar.SchemaData.localDateT
 /**
  * Schema related integration tests.
  */
-
-@RunWith(Parameterized.class)
 public class SchemaITest extends PulsarTestBaseWithFlink {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SchemaITest.class);
-
-    private boolean useExtendField;
-
-    public SchemaITest(boolean useExtendField) {
-        this.useExtendField = useExtendField;
-    }
-
-    @Parameterized.Parameters
-    public static Collection usernameData() {
-        return Arrays.asList(new Object[]{true, false});
-    }
 
     @Before
     public void clearState() {
@@ -90,157 +82,175 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
         FailingIdentityMapper.failedBefore = false;
     }
 
-    @Test(timeout = 40 * 1000L)
+    @Test(timeout = 100 * 1000L)
     public void testBooleanRead() throws Exception {
         checkRead(SchemaType.BOOLEAN, DataTypes.BOOLEAN(), BOOLEAN_LIST, null, Boolean.class);
     }
 
-    @Test(timeout = 40 * 1000L)
+    @Test(timeout = 100 * 1000L)
     public void testBooleanWrite() throws Exception {
-        checkWrite(SchemaType.BOOLEAN, DataTypes.BOOLEAN(), BOOLEAN_LIST, null, Boolean.class);
+        checkWrite(SchemaType.BOOLEAN, DataTypes.BOOLEAN(), BOOLEAN_LIST, null, null);
     }
 
-    @Test(timeout = 40 * 10000L)
+    @Test(timeout = 100 * 1000L)
     public void testINT32Read() throws Exception {
-        checkRead(SchemaType.INT32, DataTypes.INT(), INTEGER_LIST, null, Integer.class);
+        checkRead(SchemaType.INT32, DataTypes.INT(), INTEGER_LIST, null, null);
     }
 
-    @Test(timeout = 40 * 1000L)
+    @Test(timeout = 100 * 1000L)
     public void testINT32Write() throws Exception {
-        checkWrite(SchemaType.INT32, DataTypes.INT(), INTEGER_LIST, null, Integer.class);
+        checkWrite(SchemaType.INT32, DataTypes.INT(), INTEGER_LIST, null, null);
     }
 
-    @Test(timeout = 40 * 1000L)
+    @Test(timeout = 100 * 1000L)
     public void testINT64Read() throws Exception {
-        checkRead(SchemaType.INT64, DataTypes.BIGINT(), INT_64_LIST, null, Long.class);
+        checkRead(SchemaType.INT64, DataTypes.BIGINT(), INT_64_LIST, null, null);
     }
 
-    @Test(timeout = 40 * 1000L)
+    @Test(timeout = 100 * 1000L)
     public void testINT64Write() throws Exception {
-        checkWrite(SchemaType.INT64, DataTypes.BIGINT(), INT_64_LIST, null, Long.class);
+        checkWrite(SchemaType.INT64, DataTypes.BIGINT(), INT_64_LIST, null, null);
     }
 
-    @Test(timeout = 40 * 1000L)
+    @Test(timeout = 100 * 1000L)
     public void testStringRead() throws Exception {
-        checkRead(SchemaType.STRING, DataTypes.STRING(), STRING_LIST, null, String.class);
+        checkRead(SchemaType.STRING, DataTypes.STRING(), STRING_LIST, null, null);
     }
 
-    @Test(timeout = 40 * 1000L)
+    @Test(timeout = 100 * 1000L)
     public void testStringWrite() throws Exception {
-        checkWrite(SchemaType.STRING, DataTypes.STRING(), STRING_LIST, null, String.class);
+        checkWrite(SchemaType.STRING, DataTypes.STRING(), STRING_LIST, null, null);
     }
 
-    @Test(timeout = 40 * 1000L)
+    @Test(timeout = 100 * 1000L)
     public void testByteRead() throws Exception {
-        checkRead(SchemaType.INT8, DataTypes.TINYINT(), INT_8_LIST, null, Byte.class);
+        checkRead(SchemaType.INT8, DataTypes.TINYINT(), INT_8_LIST, null, null);
     }
 
     @Test
     public void testByteWrite() throws Exception {
-        checkWrite(SchemaType.INT8, DataTypes.TINYINT(), INT_8_LIST, null, Byte.class);
+        checkWrite(SchemaType.INT8, DataTypes.TINYINT(), INT_8_LIST, null, null);
     }
 
-    @Test(timeout = 40 * 1000L)
+    @Test(timeout = 100 * 1000L)
     public void testShortRead() throws Exception {
-        checkRead(SchemaType.INT16, DataTypes.SMALLINT(), INT_16_LIST, null, Short.class);
+        checkRead(SchemaType.INT16, DataTypes.SMALLINT(), INT_16_LIST, null, null);
     }
 
-    @Test(timeout = 40 * 1000L)
+    @Test(timeout = 100 * 1000L)
     public void testShortWrite() throws Exception {
-        checkWrite(SchemaType.INT16, DataTypes.SMALLINT(), INT_16_LIST, null, Short.class);
+        checkWrite(SchemaType.INT16, DataTypes.SMALLINT(), INT_16_LIST, null, null);
     }
 
-    @Test(timeout = 40 * 1000L)
+    @Test(timeout = 100 * 1000L)
     public void testFloatRead() throws Exception {
-        checkRead(SchemaType.FLOAT, DataTypes.FLOAT(), FLOAT_LIST, null, Float.class);
+        checkRead(SchemaType.FLOAT, DataTypes.FLOAT(), FLOAT_LIST, null, null);
     }
 
-    @Test(timeout = 40 * 1000L)
+    @Test(timeout = 100 * 1000L)
     public void testFloatWrite() throws Exception {
-        checkWrite(SchemaType.FLOAT, DataTypes.FLOAT(), FLOAT_LIST, null, Float.class);
+        checkWrite(SchemaType.FLOAT, DataTypes.FLOAT(), FLOAT_LIST, null, null);
     }
 
-    @Test(timeout = 40 * 1000L)
+    @Test(timeout = 100 * 1000L)
     public void testDoubleRead() throws Exception {
-        checkRead(SchemaType.DOUBLE, DataTypes.DOUBLE(), DOUBLE_LIST, null, Double.class);
+        checkRead(SchemaType.DOUBLE, DataTypes.DOUBLE(), DOUBLE_LIST, null, null);
     }
 
-    @Test(timeout = 40 * 1000L)
+    @Test(timeout = 100 * 1000L)
     public void testDoubleWrite() throws Exception {
-        checkWrite(SchemaType.DOUBLE, DataTypes.DOUBLE(), DOUBLE_LIST, null, Double.class);
+        checkWrite(SchemaType.DOUBLE, DataTypes.DOUBLE(), DOUBLE_LIST, null, null);
     }
 
-    @Test(timeout = 40 * 1000L)
+    @Test(timeout = 100 * 1000L)
     public void testDateRead() throws Exception {
         checkRead(SchemaType.LOCAL_DATE, DataTypes.DATE(),
-                localDateList, null, LocalDate.class);
+                localDateList, null, null);
     }
 
-    @Test(timeout = 40 * 1000L)
+    @Test
     public void testDateWrite() throws Exception {
         checkWrite(SchemaType.LOCAL_DATE,
                 DataTypes.DATE(),
-                localDateList, null, LocalDate.class);
+                localDateList, null, null);
     }
 
-    @Test(timeout = 40 * 1000L)
+    @Test(timeout = 100 * 1000L)
     public void testTimestampRead() throws Exception {
         checkRead(SchemaType.LOCAL_DATE_TIME,
-                DataTypes.TIMESTAMP(3), localDateTimeList, null, LocalDateTime.class);
+                DataTypes.TIMESTAMP(3), localDateTimeList, null, null);
     }
 
-    @Test(timeout = 40 * 1000L)
+    @Test(timeout = 100 * 1000L)
     public void testTimestampWrite() throws Exception {
         checkWrite(SchemaType.LOCAL_DATE_TIME,
-                DataTypes.TIMESTAMP(3), localDateTimeList, null, LocalDateTime.class);
+                DataTypes.TIMESTAMP(3), localDateTimeList, null, null);
     }
 
-    @Test(timeout = 40 * 1000L)
+    @Test(timeout = 100 * 1000L)
     public void testByteArrayRead() throws Exception {
-        checkRead(SchemaType.BYTES, DataTypes.BYTES(), BYTES_LIST, t -> StringUtils.arrayAwareToString(t), byte[].class);
+        checkRead(SchemaType.BYTES, DataTypes.BYTES(), BYTES_LIST, t -> StringUtils.arrayAwareToString(t), null);
     }
 
-    @Test(timeout = 40 * 1000L)
+    @Test(timeout = 100 * 1000L)
     public void testByteArrayWrite() throws Exception {
-        checkWrite(SchemaType.BYTES, DataTypes.BYTES(), BYTES_LIST, t -> StringUtils.arrayAwareToString(t), byte[].class);
+        checkWrite(SchemaType.BYTES, DataTypes.BYTES(), BYTES_LIST, t -> StringUtils.arrayAwareToString(t), null);
     }
 
-    private <T> void checkRead(SchemaType type, DataType dt, List<T> datas, Function<T, String> toStr, Class<T> tClass) throws Exception {
+    private <T> void checkRead(SchemaType type, DataType dt, List<T> datas, Function<T, String> toStr, Class<T> tClass)
+            throws Exception {
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.setParallelism(1);
         StreamTableEnvironment tEnv = StreamTableEnvironment.create(see);
         String table = newTopic();
         String tableName = TopicName.get(table).getLocalName();
-        sendTypedMessages(table, type, datas, Optional.empty(), tClass);
-
-        String className = tClass.getCanonicalName();
-        //for array type, we need to do some dirty work to match our logical.
-        if (tClass == byte[].class) {
-            className = "[B";
-        }
 
         TableSchema tSchema = TableSchema.builder().field("value", dt).build();
 
-        tEnv.connect(getPulsarSourceDescriptor(table))
-                .inAppendMode()
-                .withSchema(new Schema().schema(tSchema))
-                .withFormat(new Atomic().setClass(className))
-                .createTemporaryTable(tableName);
+        final Schema schema = AvroSchemaConverter.convertToSchema(tSchema.toRowDataType().getLogicalType());
+
+        final AvroRowDataSerializationSchema serializationSchema =
+                new AvroRowDataSerializationSchema((RowType) tSchema.toRowDataType().getLogicalType());
+        serializationSchema.open(null);
+        final FlinkSchema<RowData> flinkSchema = new FlinkSchema<>(avroSchema2SchemaInfo(schema),
+                serializationSchema, null);
+        List<RowData> rowData = wrapperRowData(datas);
+        sendAvroMessages(table, type, rowData, Optional.empty(), flinkSchema);
+
+        tEnv.executeSql(createTableSql(tableName, table, dt)).print();
 
         Table t = tEnv.sqlQuery("select `value` from " + tableName);
 
-        tEnv.toAppendStream(t, t.getSchema().toRowType())
+        tEnv.toAppendStream(t, InternalTypeInfo.of(tSchema.toRowDataType().getLogicalType()))
                 .map(new FailingIdentityMapper<>(datas.size()))
                 .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
         TestUtils.tryExecute(see, "read from earliest");
         if (toStr == null) {
-            SingletonStreamSink.compareWithList(datas.subList(0, datas.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
+            SingletonStreamSink.compareWithList(rowData.subList(0, datas.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
         } else {
-            SingletonStreamSink.compareWithList(datas.subList(0, datas.size() - 1).stream().map(e -> toStr.apply(e)).collect(Collectors.toList()));
+//            SingletonStreamSink.compareWithList(rowData.subList(0, datas.size() - 1).stream().map(e -> toStr.apply(e)).collect(Collectors.toList()));
         }
     }
 
-    private <T> void checkWrite(SchemaType type, DataType dt, List<T> datas, Function<T, String> toStr, Class<T> tClass) throws Exception {
+    private <T> List<RowData> wrapperRowData(List<T> datas) {
+        return datas.stream().map(t -> {
+            GenericRowData rowData = new GenericRowData(RowKind.INSERT, 1);
+            RowDataUtil.setField(rowData, 0, t);
+            return rowData;
+        }).collect(Collectors.toList());
+    }
+
+    private SchemaInfo avroSchema2SchemaInfo(Schema schema) {
+        byte[] schemaBytes = schema.toString().getBytes(StandardCharsets.UTF_8);
+        SchemaInfo si = new SchemaInfo();
+        si.setName("Avro");
+        si.setSchema(schemaBytes);
+        si.setType(SchemaType.AVRO);
+        return si;
+    }
+
+    private <T> void checkWrite(SchemaType type, DataType dt, List<T> datas, Function<T, String> toStr, Class<T> tClass)
+            throws Exception {
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.setParallelism(1);
         StreamTableEnvironment tEnv = StreamTableEnvironment.create(see);
@@ -250,53 +260,19 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
         TableSchema tSchema = TableSchema.builder().field("value", dt).build();
 
-        String className = tClass.getCanonicalName();
-        //for array type, we need to do some dirty work to match our logical.
-        if (tClass == byte[].class) {
-            className = "[B";
-        }
+        TypeInformation<RowData> ti = InternalTypeInfo.of(tSchema.toRowDataType().getLogicalType());
 
-        TypeInformation<T> ti = (TypeInformation<T>) LegacyTypeInfoDataTypeConverter.toLegacyTypeInfo(dt);
-        DataStream stream = see.fromCollection(datas, ti);
-        tEnv.registerDataStream("origin", stream);
-
-        tEnv.connect(getPulsarSinkDescriptor(topic))
-                .withSchema(new Schema().schema(tSchema))
-                .withFormat(new Atomic().setClass(className))
-                .inAppendMode()
-                .createTemporaryTable(tableName);
-
-        tEnv.executeSql("insert into `" + tableName + "` select * from origin").print();
+        DataStream<RowData> stream = see.fromCollection(wrapperRowData(datas),ti);
+        tEnv.executeSql(createTableSql(tableName, topic, dt)).print();
+        tEnv.fromDataStream(stream).executeInsert(tableName).print();
 
         Thread.sleep(3000);
         StreamExecutionEnvironment se2 = StreamExecutionEnvironment.getExecutionEnvironment();
         se2.setParallelism(1);
         StreamTableEnvironment tEnv2 = StreamTableEnvironment.create(se2);
 
-        final String createTable;
-        createTable = String.format(
-                "create table pulsar (\n" +
-                        "  value date\n" +
-                         ") with (\n" +
-                        "  'connector' = 'pulsar',\n" +
-                        "  'topic' = '%s',\n" +
-                        "  'service-url' = '%s',\n" +
-                        "  'admin-url' = '%s',\n" +
-                        "  'scan.startup.mode' = 'earliest', \n" +
-                        "  'format' ='avro' \n" +
-                        ")",
-
-                topic,
-                serviceUrl,
-                adminUrl);
-        tEnv.executeSql(createTable);
-        tEnv2.connect(getPulsarSourceDescriptor(topic))
-                .withSchema(new Schema().schema(tSchema))
-                .withFormat(new Atomic().setClass(className))
-                .inAppendMode()
-                .createTemporaryTable(tableName);
-
-        Table t = tEnv2.scan(tableName).select("value");
+        tEnv2.executeSql(createTableSql(tableName, topic, dt)).print();
+        Table t = tEnv2.sqlQuery("select `value` from " + tableName);
         tEnv2.toAppendStream(t, t.getSchema().toRowType())
                 .map(new FailingIdentityMapper<>(datas.size()))
                 .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
@@ -320,27 +296,35 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
         reader.join();
 
         if (toStr == null) {
-            SingletonStreamSink.compareWithList(datas.subList(0, datas.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
+            SingletonStreamSink.compareWithList(
+                    datas.subList(0, datas.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
         } else {
-            SingletonStreamSink.compareWithList(datas.subList(0, datas.size() - 1).stream().map(e -> toStr.apply(e)).collect(Collectors.toList()));
+            SingletonStreamSink.compareWithList(
+                    datas.subList(0, datas.size() - 1).stream().map(e -> toStr.apply(e)).collect(Collectors.toList()));
         }
     }
 
-    private ConnectorDescriptor getPulsarSourceDescriptor(String tableName) {
-        return new Pulsar()
-                .urls(getServiceUrl(), getAdminUrl())
-                .topic(tableName)
-                .startFromEarliest()
-                .property(PulsarOptions.PARTITION_DISCOVERY_INTERVAL_MS_OPTION_KEY, "5000")
-                .property(PulsarOptions.USE_EXTEND_FIELD, String.valueOf(useExtendField));
-    }
+    private String createTableSql(String tableName, String topic, DataType dataType) {
+        final String sqlType = dataType.getLogicalType().asSerializableString();
 
-    private ConnectorDescriptor getPulsarSinkDescriptor(String tableName) {
-        return new Pulsar()
-                .urls(getServiceUrl(), getAdminUrl())
-                .topic(tableName)
-                .property(PulsarOptions.FLUSH_ON_CHECKPOINT_OPTION_KEY, "true")
-                .property(PulsarOptions.FAIL_ON_WRITE_OPTION_KEY, "true")
-                .property(PulsarOptions.USE_EXTEND_FIELD, String.valueOf(useExtendField));
+
+        String sql = "create table " + tableName + "(\n" +
+                "   `value` " + sqlType + "\n" +
+                ") with (\n" +
+                "   'connector' = 'pulsar',\n" +
+                "   'topic' = '" + topic + "',\n" +
+                "   'service-url' = '" + getServiceUrl() + "',\n" +
+                "   'admin-url' = '" + getAdminUrl() + "',\n" +
+                "   'scan.startup.mode' = 'earliest',  //订阅模式\n" +
+                "   'partition.discovery.interval-millis' = '5000'," +
+//                "   'connector.properties.0.key' = 'partitiondiscoveryintervalmillis',\n" +
+//                "   'connector.properties.0.value' = '5000',\n" +
+//                "   'connector.properties.1.key' = 'failonwrite',\n" +
+//                "   'connector.properties.1.value' = 'true',\n" +
+//                "   'connector.properties.2.key' = 'flushoncheckpoint',\n" +
+//                "   'connector.properties.2.value' = 'true',\n" +
+                "   'format' = 'avro'\n" +
+                ")";
+        return sql;
     }
 }

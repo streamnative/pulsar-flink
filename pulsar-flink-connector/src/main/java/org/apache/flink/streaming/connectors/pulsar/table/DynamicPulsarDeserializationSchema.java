@@ -100,6 +100,13 @@ class DynamicPulsarDeserializationSchema implements PulsarDeserializationSchema<
     }
 
     @Override
+    public RowData deserialize(Message<RowData> message) throws IOException {
+        final SimpleCollector<RowData> collector = new SimpleCollector<>();
+        deserialize(message, collector);
+        return collector.getRecord();
+    }
+
+    @Override
     public void deserialize(Message<RowData> message, Collector<RowData> collector) throws IOException {
         // shortcut in case no output projection is required,
         // also not for a cartesian product with the keys
@@ -158,6 +165,28 @@ class DynamicPulsarDeserializationSchema implements PulsarDeserializationSchema<
         @Override
         public void close() {
             // nothing to do
+        }
+    }
+
+    private static class SimpleCollector<T> implements Collector<T> {
+        private T record ;
+
+        @Override
+        public void collect(T record) {
+            this.record = record;
+        }
+
+        @Override
+        public void close() {
+
+        }
+
+        private T getRecord() {
+            return record;
+        }
+
+        private void reset() {
+            record = null;
         }
     }
 

@@ -200,7 +200,7 @@ public class SchemaUtils {
         return numBytes;
     }
 
-    public static org.apache.pulsar.client.api.Schema<?> buildRowSchema(DataType dataType,
+    public static SchemaInfo buildRowSchema(DataType dataType,
                                                                         RecordSchemaType recordSchemaType) {
         org.apache.avro.Schema avroSchema = AvroSchemaConverter.convertToSchema(dataType.getLogicalType());
         byte[] schemaBytes = avroSchema.toString().getBytes(StandardCharsets.UTF_8);
@@ -220,14 +220,14 @@ public class SchemaUtils {
                     FieldsDataType fieldType = (FieldsDataType) dataType;
                     RowType rowType = (RowType) fieldType.getLogicalType();
                     DataType atomicType = TypeConversions.fromLogicalToDataType(rowType.getTypeAt(0));
-                    return SimpleSchemaTranslator.atomicType2PulsarSchema(atomicType);
+                    return SimpleSchemaTranslator.atomicType2PulsarSchema(atomicType).getSchemaInfo();
                 } catch (IncompatibleSchemaException e) {
                     throw new RuntimeException(e);
                 }
             default:
                 throw new IllegalStateException("for now we just support json、avro、atomic format for rowData");
         }
-        return org.apache.pulsar.client.api.Schema.generic(si);
+        return si;
     }
 
     public static <T> org.apache.pulsar.client.api.Schema<T> buildSchemaForRecordClazz(Class<T> recordClazz,

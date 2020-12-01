@@ -65,10 +65,6 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
         checkErroneous();
         initializeSendCallback();
         final Optional<String> targetTopic = serializationSchema.getTargetTopic(value);
-        if (!targetTopic.isPresent() && failOnWrite) {
-                    throw new NullPointerException("no topic present in the data.");
-
-        }
         String topic = targetTopic.orElse(defaultTopic);
         TypedMessageBuilder<T> mb = getProducer(topic).newMessage();
         serializationSchema.serialize(value, mb);

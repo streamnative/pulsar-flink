@@ -198,7 +198,7 @@ public class ReaderThread<T> extends Thread {
 
     protected void emitRecord(Message<T> message) throws IOException {
         MessageId messageId = message.getMessageId();
-        final T record = message.getValue();
+        final T record = deserializer.deserialize(message);
         if (deserializer.isEndOfStream(record)) {
             running = false;
             return;

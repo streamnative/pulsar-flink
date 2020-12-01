@@ -92,7 +92,7 @@ public class PulsarDeserializationSchemaWrapper<T> implements PulsarDeserializat
     }
 
     @Override
-    public void deserialize(Message<T> message, Collector<T> out) throws IOException {
-        out.collect(message.getValue());
+    public T deserialize(Message<T> message) throws IOException {
+        return message.getValue();
     }
 }

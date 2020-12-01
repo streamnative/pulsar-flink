@@ -33,17 +33,17 @@ public class RowDataUtil {
 
     public static void setField(GenericRowData rowData, int pos, Object value) {
         if (value instanceof LocalDate) {
-            rowData.setField(0, (int) ((LocalDate) value).toEpochDay());
+            rowData.setField(pos, (int) ((LocalDate) value).toEpochDay());
         } else if (value instanceof LocalTime) {
-            rowData.setField(0, ((LocalTime) value).toSecondOfDay());
+            rowData.setField(pos, ((LocalTime) value).toSecondOfDay());
         } else if (value instanceof String) {
-            rowData.setField(0, StringData.fromString((String) value));
+            rowData.setField(pos, StringData.fromString((String) value));
         } else if (value instanceof LocalDateTime) {
-            rowData.setField(0, TimestampData.fromLocalDateTime((LocalDateTime) value));
+            rowData.setField(pos, TimestampData.fromLocalDateTime((LocalDateTime) value));
         } else if (value instanceof Map) {
-            rowData.setField(0, new GenericMapData((Map<?, ?>) value));
+            rowData.setField(pos, new GenericMapData((Map<?, ?>) value));
         } else {
-            rowData.setField(0, value);
+            rowData.setField(pos, value);
         }
     }
 

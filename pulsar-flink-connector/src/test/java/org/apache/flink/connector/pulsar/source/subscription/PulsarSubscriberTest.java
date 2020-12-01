@@ -70,7 +70,7 @@ public class PulsarSubscriberTest extends PulsarTestBase {
         subscriber.setContext(context);
         PulsarSubscriber.PartitionChange change =
                 subscriber.getPartitionChanges(pulsarAdmin, currentAssignment);
-        assertEquals(change.getNewPartitions().size(), 10);
+        assertEquals(change.getNewPartitions().size(), 50);
     }
 
     @Test

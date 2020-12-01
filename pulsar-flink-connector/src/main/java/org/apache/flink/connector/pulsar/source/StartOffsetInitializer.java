@@ -48,7 +48,7 @@ public interface StartOffsetInitializer extends Serializable {
      * @param partition     the partition for which the consumer is about to be created
      * @param configuration the configuration used to create consumer
      */
-    default void initializeBeforeCreation(Partition partition, CreationConfiguration configuration) {
+    default void initializeBeforeCreation(AbstractPartition partition, CreationConfiguration configuration) {
     }
 
     /**
@@ -57,7 +57,7 @@ public interface StartOffsetInitializer extends Serializable {
      * @param partition the partition for which the consumer has been created
      * @param consumer  the consumer
      */
-    default void initializeAfterCreation(Partition partition, Consumer<?> consumer) throws PulsarClientException {
+    default void initializeAfterCreation(AbstractPartition partition, Consumer<?> consumer) throws PulsarClientException {
     }
 
     /**
@@ -67,7 +67,7 @@ public interface StartOffsetInitializer extends Serializable {
      * @see PulsarSourceOptions#VERIFY_INITIAL_OFFSETS
      */
     default Optional<String> verifyOffset(
-            Partition partition,
+            AbstractPartition partition,
             Supplier<Optional<MessageId>> lastMessageIdFetcher,
             Supplier<Optional<Message<byte[]>>> firstMessageFetcher) {
         return Optional.empty();
@@ -111,11 +111,11 @@ public interface StartOffsetInitializer extends Serializable {
         return offsets(Collections.emptyMap(), offset, inclusive);
     }
 
-    static StartOffsetInitializer offsets(Map<Partition, MessageId> offsets) {
+    static StartOffsetInitializer offsets(Map<AbstractPartition, MessageId> offsets) {
         return offsets(offsets, MessageId.earliest, true);
     }
 
-    static StartOffsetInitializer offsets(Map<Partition, MessageId> offsets, MessageId defaultOffset, boolean inclusive) {
+    static StartOffsetInitializer offsets(Map<AbstractPartition, MessageId> offsets, MessageId defaultOffset, boolean inclusive) {
         return new SpecifiedStartOffsetInitializer(offsets, defaultOffset, inclusive);
     }
 

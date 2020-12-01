@@ -14,7 +14,7 @@
 
 package org.apache.flink.connector.pulsar.source.offset;
 
-import org.apache.flink.connector.pulsar.source.Partition;
+import org.apache.flink.connector.pulsar.source.AbstractPartition;
 import org.apache.flink.connector.pulsar.source.StartOffsetInitializer;
 
 import org.apache.pulsar.client.api.Message;
@@ -40,13 +40,13 @@ public class RollbackStartOffsetInitializer implements StartOffsetInitializer {
     }
 
     @Override
-    public void initializeBeforeCreation(Partition partition, CreationConfiguration creationConfiguration) {
+    public void initializeBeforeCreation(AbstractPartition partition, CreationConfiguration creationConfiguration) {
         creationConfiguration.setRollbackInS(rollbackTimeInS);
     }
 
     @Override
     public Optional<String> verifyOffset(
-            Partition partition,
+            AbstractPartition partition,
             Supplier<Optional<MessageId>> lastMessageIdFetcher,
             Supplier<Optional<Message<byte[]>>> firstMessageFetcher) {
         return firstMessageFetcher.get().isPresent() ?

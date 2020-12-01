@@ -25,6 +25,7 @@ import org.apache.flink.streaming.connectors.pulsar.PulsarTestBaseWithFlink;
 import org.apache.flink.streaming.connectors.pulsar.SchemaData;
 import org.apache.flink.streaming.connectors.pulsar.internal.AvroDeser;
 import org.apache.flink.streaming.connectors.pulsar.internal.JsonDeser;
+import org.apache.flink.streaming.connectors.pulsar.internal.TopicRange;
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper;
 import org.apache.flink.streaming.connectors.pulsar.testutils.SingletonStreamSink;
 import org.apache.flink.test.util.SuccessException;
@@ -161,17 +162,58 @@ public class PulsarSourceITCase extends PulsarTestBaseWithFlink {
                 fooList.subList(0, fooList.size() - 1).stream().map(SchemaData.Foo::getI).map(Objects::toString).collect(Collectors.toList()));
     }
 
+    @Test
+    public void testKeyShared() throws Exception {
+        String topic = newTopic();
+        pulsarAdmin = getPulsarAdmin();
+        pulsarAdmin.topics().createPartitionedTopic(topic, 5);
+        List<String> datas = Arrays.asList(
+                "1", "2", "3", "4", "5", "6", "7", "8", "9");
+        int partitions = 5;
+        Set<String> expectedData = new HashSet<>();
+        for (int i = 0; i < partitions; i++) {
+            int partitionIdx = i;
+            List<String> stringDatas = datas.stream().map(x -> x + "_" + partitionIdx).collect(Collectors.toList());
+            sendTypedMessages(topic, SchemaType.STRING, stringDatas, Optional.of(partitionIdx));
+            expectedData.addAll(stringDatas);
+        }
+
+        StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
+        see.getConfig().disableSysoutLogging();
+        see.setParallelism(3);
+
+        PulsarSource<String> source = PulsarSource.builder()
+                .setTopics(new UniformSplitDivisionStrategy(), topic)
+                .setDeserializer(MessageDeserializer.valueOnly(new SimpleStringSchema()))
+                .startAt(StartOffsetInitializer.earliest())
+                .stopAt(StopCondition.stopAfterLast())
+                .setSplitSchedulingStrategy(new KeySharedSplitSchedulingStrategy())
+                .configure(conf -> {
+                    conf.set(PulsarSourceOptions.ADMIN_URL, adminUrl);
+
+                })
+                .configurePulsarClient(conf -> {
+                    conf.setServiceUrl(serviceUrl);
+                })
+                .build();
+
+        DataStream stream = see.fromSource(source, WatermarkStrategy.noWatermarks(), "source");
+        stream.flatMap(new CheckAllMessageExist(expectedData, 45)).setParallelism(1);
+
+        TestUtils.tryExecute(see, "start from specific");
+    }
+
     @Test(timeout = 40 * 1000L)
     public void testStartFromSpecific() throws Exception {
         String topic = newTopic();
         List<MessageId> mids = sendTypedMessages(topic, SchemaType.STRING, Arrays.asList(
-                //  0,   1,   2, 3, 4, 5,  6,  7,  8
+                //  0,   1,     2,    3,   4,   5,   6,    7,    8
                 "-20", "-21", "-22", "1", "2", "3", "10", "11", "12"), Optional.empty());
         Set<String> expectedData = new HashSet<>();
         expectedData.addAll(Arrays.asList("2", "3", "10", "11", "12"));
 
-        Map<Partition, MessageId> offset = new HashMap<>();
-        offset.put(new Partition(topic, Partition.AUTO_KEY_RANGE), mids.get(4));
+        Map<AbstractPartition, MessageId> offset = new HashMap<>();
+        offset.put(new BrokerPartition(new TopicRange(topic, BrokerPartition.FULL_RANGE)), mids.get(4));
 
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.getConfig().disableSysoutLogging();
@@ -180,7 +222,7 @@ public class PulsarSourceITCase extends PulsarTestBaseWithFlink {
         PulsarSource<String> source = PulsarSource.builder()
                 .setTopics(topic)
                 .setDeserializer(MessageDeserializer.valueOnly(new SimpleStringSchema()))
-                .startAt(new SpecifiedStartOffsetInitializer(offset, mids.get(0), true))
+                .startAt(new SpecifiedStartOffsetInitializer(offset, mids.get(4), true))
                 .stopAt(StopCondition.stopAfterLast())
                 .configure(conf -> {
                     conf.set(PulsarSourceOptions.ADMIN_URL, adminUrl);

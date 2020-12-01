@@ -32,7 +32,7 @@ import static org.apache.flink.connector.pulsar.source.StopCondition.StopResult.
  * An interface to control when to stop.
  */
 public interface StopCondition extends Serializable {
-    StopResult shouldStop(Partition partition, Message<?> message);
+    StopResult shouldStop(AbstractPartition partition, Message<?> message);
 
     /**
      * Enum for stop condition.
@@ -53,7 +53,7 @@ public interface StopCondition extends Serializable {
         }
     };
 
-    default void init(Partition partition, Consumer<byte[]> consumer) throws PulsarClientException {
+    default void init(AbstractPartition partition, Consumer<byte[]> consumer) throws PulsarClientException {
     }
 
     static StopCondition stopAtMessageId(MessageId id) {
@@ -68,11 +68,11 @@ public interface StopCondition extends Serializable {
         return (partition, message) -> hitMessageId(message, id) ? STOP_AFTER : DONT_STOP;
     }
 
-    static StopCondition stopAtMessageIds(Map<Partition, MessageId> ids) {
+    static StopCondition stopAtMessageIds(Map<AbstractPartition, MessageId> ids) {
         return (partition, message) -> hitMessageId(message, ids.get(partition)) ? STOP_BEFORE : DONT_STOP;
     }
 
-    static StopCondition stopAfterMessageIds(Map<Partition, MessageId> ids) {
+    static StopCondition stopAfterMessageIds(Map<AbstractPartition, MessageId> ids) {
         return (partition, message) -> hitMessageId(message, ids.get(partition)) ? STOP_AFTER : DONT_STOP;
     }
 
@@ -87,7 +87,7 @@ public interface StopCondition extends Serializable {
     static StopCondition stopAtLast() {
         return new LastStopCondition() {
             @Override
-            public StopResult shouldStop(Partition partition, Message<?> message) {
+            public StopResult shouldStop(AbstractPartition partition, Message<?> message) {
                 return lastId == null || hitMessageId(message, lastId) ? STOP_BEFORE : DONT_STOP;
             }
         };
@@ -96,7 +96,7 @@ public interface StopCondition extends Serializable {
     static StopCondition stopAfterLast() {
         return new LastStopCondition() {
             @Override
-            public StopResult shouldStop(Partition partition, Message<?> message) {
+            public StopResult shouldStop(AbstractPartition partition, Message<?> message) {
                 if (lastId == null) {
                     return STOP_BEFORE;
                 }
@@ -114,7 +114,7 @@ abstract class LastStopCondition implements StopCondition {
     MessageId lastId;
 
     @Override
-    public void init(Partition partition, Consumer<byte[]> consumer) throws PulsarClientException {
+    public void init(AbstractPartition partition, Consumer<byte[]> consumer) throws PulsarClientException {
         if (lastId == null) {
             lastId = consumer.getLastMessageId();
         }

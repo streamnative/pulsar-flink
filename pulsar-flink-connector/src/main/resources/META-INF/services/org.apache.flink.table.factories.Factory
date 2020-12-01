@@ -13,3 +13,4 @@
 #
 
 org.apache.flink.streaming.connectors.pulsar.table.PulsarDynamicTableFactory
+org.apache.flink.formats.atomic.AtomicRowFormatFactory

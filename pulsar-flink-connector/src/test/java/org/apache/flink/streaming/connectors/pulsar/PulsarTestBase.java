@@ -34,6 +34,8 @@ import io.streamnative.tests.pulsar.service.PulsarServiceSpec;
 import io.streamnative.tests.pulsar.service.testcontainers.PulsarStandaloneContainerService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.NotImplementedException;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.Producer;
@@ -46,6 +48,7 @@ import org.apache.pulsar.client.api.schema.SchemaDefinition;
 import org.apache.pulsar.client.impl.ClientBuilderImpl;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.client.impl.conf.ConsumerConfigurationData;
+import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -59,6 +62,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import static org.mockito.Mockito.mock;
 
 /**
  * Start / stop a Pulsar cluster.
@@ -84,6 +89,8 @@ public abstract class PulsarTestBase extends TestLogger {
 
     protected static PulsarClient pulsarClient;
 
+    protected static List<String> topics = new ArrayList<>();
+
     public static String getServiceUrl() {
         return serviceUrl;
     }
@@ -95,43 +102,46 @@ public abstract class PulsarTestBase extends TestLogger {
     @BeforeClass
     public static void prepare() throws Exception {
 
+        adminUrl = System.getenv("PULSAR_ADMIN_URL");
+        serviceUrl = System.getenv("PULSAR_SERVICE_URL");
+        zkUrl = System.getenv("PULSAR_ZK_URL");
+
+
+
         log.info("-------------------------------------------------------------------------");
         log.info("    Starting PulsarTestBase ");
         log.info("-------------------------------------------------------------------------");
 
-        System.setProperty("pulsar.systemtest.image", "streamnative/pulsar:2.7.0-rc-pm-2");
-        PulsarServiceSpec spec = PulsarServiceSpec.builder()
-                .clusterName("standalone-" + UUID.randomUUID())
-                .enableContainerLogging(false)
-                .build();
+        if (StringUtils.isNotBlank(adminUrl) && StringUtils.isNotBlank(serviceUrl)){
+            pulsarService = mock(PulsarStandaloneContainerService.class);
+            log.info("    Use extend Pulsar Service ");
+        } else {
 
-        pulsarService = PulsarServiceFactory.createPulsarService(spec);
-        pulsarService.start();
-        for (URI uri : pulsarService.getServiceUris()) {
-            if (uri != null && uri.getScheme().equals("pulsar")) {
-                serviceUrl = uri.toString();
-            } else if (uri != null && !uri.getScheme().equals("pulsar")) {
-                adminUrl = uri.toString();
+            System.setProperty("pulsar.systemtest.image", "streamnative/pulsar:2.7.0-rc-pm-2");
+            PulsarServiceSpec spec = PulsarServiceSpec.builder()
+                    .clusterName("standalone-" + UUID.randomUUID())
+                    .enableContainerLogging(false)
+                    .build();
+
+            pulsarService = new PulsarStandaloneContainerService(spec);
+            pulsarService.start();
+            for (URI uri : pulsarService.getServiceUris()) {
+                if (uri != null && uri.getScheme().equals("pulsar")) {
+                    serviceUrl = uri.toString();
+                } else if (uri != null && !uri.getScheme().equals("pulsar")) {
+                    adminUrl = uri.toString();
+                }
             }
+            zkUrl = ((PulsarStandaloneContainerService) pulsarService).getZkUrl();
+            Thread.sleep(80 * 1000L);
         }
-
         clientConfigurationData.setServiceUrl(serviceUrl);
         consumerConfigurationData.setSubscriptionMode(SubscriptionMode.NonDurable);
         consumerConfigurationData.setSubscriptionType(SubscriptionType.Exclusive);
         consumerConfigurationData.setSubscriptionName("flink-" + UUID.randomUUID());
 
-        if (pulsarService instanceof PulsarStandaloneContainerService){
-            zkUrl = ((PulsarStandaloneContainerService) pulsarService).getZkUrl();
-        } else {
-            zkUrl = FrameworkUtils.getConfig(
-                    "pulsar.external.service.domain",
-                    "localhost"
-            ) + ":2181";
-        }
-        Thread.sleep(80 * 1000L);
-
         log.info("-------------------------------------------------------------------------");
-        log.info("Successfully started pulsar service at cluster " + spec.clusterName());
+        log.info("Successfully started pulsar service");
         log.info("-------------------------------------------------------------------------");
     }
 
@@ -142,7 +152,6 @@ public abstract class PulsarTestBase extends TestLogger {
         log.info("-------------------------------------------------------------------------");
 
         TestStreamEnvironment.unsetAsContext();
-
         if (pulsarService != null) {
             pulsarService.stop();
         }
@@ -317,5 +326,49 @@ public abstract class PulsarTestBase extends TestLogger {
             });
         }
         return splitsByOwners;
+    }
+
+    public static <T> List<MessageId> sendAvroMessages(
+            String topic,
+            SchemaType type,
+            List<T> messages,
+            Optional<Integer> partition,
+            Schema<T> schema) throws PulsarClientException {
+
+        String topicName;
+        if (partition.isPresent()) {
+            topicName = topic + PulsarOptions.PARTITION_SUFFIX + partition.get();
+        } else {
+            topicName = topic;
+        }
+
+        Producer producer = null;
+        List<MessageId> mids = new ArrayList<>();
+
+        try (PulsarClient client = PulsarClient.builder().serviceUrl(getServiceUrl()).build()) {
+            producer = (Producer<T>) client.newProducer(schema).topic(topicName).create();
+
+
+            for (T message : messages) {
+                MessageId mid = producer.send(message);
+                log.info("Sent {} of mid: {}", message.toString(), mid.toString());
+                mids.add(mid);
+            }
+
+        } catch (Exception e) {
+            log.error("message send failed", e);
+        } finally {
+            if (producer != null) {
+                producer.flush();
+                producer.close();
+            }
+        }
+        return mids;
+    }
+
+    public static String newTopic() {
+        final String topic = TopicName.get("topic" + RandomStringUtils.randomNumeric(8)).toString();
+        topics.add(topic);
+        return topic;
     }
 }

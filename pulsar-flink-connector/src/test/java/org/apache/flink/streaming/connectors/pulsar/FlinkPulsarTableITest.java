@@ -548,35 +548,4 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
             }
         }
     }
-
-    private String createTableSql(String tableName, String topic, TableSchema tableSchema, String formatType) {
-
-        List<String> columns = new ArrayList<>();
-        for (TableColumn tableColumn : tableSchema.getTableColumns()) {
-            final String column = MessageFormat.format(" `{0}` {1}",
-                    tableColumn.getName(),
-                    tableColumn.getType().getLogicalType().asSerializableString());
-            columns.add(column);
-        }
-
-
-        String sql = "create table " + tableName + "(\n" +
-                " " + StringUtils.join(columns, ",\n") +
-                ") with (\n" +
-                "   'connector' = 'pulsar',\n" +
-                "   'topic' = '" + topic + "',\n" +
-                "   'service-url' = '" + getServiceUrl() + "',\n" +
-                "   'admin-url' = '" + getAdminUrl() + "',\n" +
-                "   'scan.startup.mode' = 'earliest',  //订阅模式\n" +
-                "   'partition.discovery.interval-millis' = '5000'," +
-//                "   'connector.properties.0.key' = 'partitiondiscoveryintervalmillis',\n" +
-//                "   'connector.properties.0.value' = '5000',\n" +
-//                "   'connector.properties.1.key' = 'failonwrite',\n" +
-//                "   'connector.properties.1.value' = 'true',\n" +
-//                "   'connector.properties.2.key' = 'flushoncheckpoint',\n" +
-//                "   'connector.properties.2.value' = 'true',\n" +
-                "   'format' = '" + formatType + "'\n" +
-                ")";
-        return sql;
-    }
 }

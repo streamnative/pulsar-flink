@@ -217,7 +217,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
         List<RowData> rowData = wrapperRowData(datas);
         sendAvroMessages(table, type, rowData, Optional.empty(), flinkSchema);
 
-        tEnv.executeSql(createTableSql(tableName, table, dt)).print();
+        tEnv.executeSql(createTableSql(tableName, table, tSchema, "avro")).print();
 
         Table t = tEnv.sqlQuery("select `value` from " + tableName);
 
@@ -263,7 +263,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
         TypeInformation<RowData> ti = InternalTypeInfo.of(tSchema.toRowDataType().getLogicalType());
 
         DataStream<RowData> stream = see.fromCollection(wrapperRowData(datas),ti);
-        tEnv.executeSql(createTableSql(tableName, topic, dt)).print();
+        tEnv.executeSql(createTableSql(tableName, topic, tSchema, "avro")).print();
         tEnv.fromDataStream(stream).executeInsert(tableName).print();
 
         Thread.sleep(3000);
@@ -271,7 +271,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
         se2.setParallelism(1);
         StreamTableEnvironment tEnv2 = StreamTableEnvironment.create(se2);
 
-        tEnv2.executeSql(createTableSql(tableName, topic, dt)).print();
+        tEnv2.executeSql(createTableSql(tableName, topic, tSchema, "avro")).print();
         Table t = tEnv2.sqlQuery("select `value` from " + tableName);
         tEnv2.toAppendStream(t, t.getSchema().toRowType())
                 .map(new FailingIdentityMapper<>(datas.size()))
@@ -302,29 +302,5 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
             SingletonStreamSink.compareWithList(
                     datas.subList(0, datas.size() - 1).stream().map(e -> toStr.apply(e)).collect(Collectors.toList()));
         }
-    }
-
-    private String createTableSql(String tableName, String topic, DataType dataType) {
-        final String sqlType = dataType.getLogicalType().asSerializableString();
-
-
-        String sql = "create table " + tableName + "(\n" +
-                "   `value` " + sqlType + "\n" +
-                ") with (\n" +
-                "   'connector' = 'pulsar',\n" +
-                "   'topic' = '" + topic + "',\n" +
-                "   'service-url' = '" + getServiceUrl() + "',\n" +
-                "   'admin-url' = '" + getAdminUrl() + "',\n" +
-                "   'scan.startup.mode' = 'earliest',  //订阅模式\n" +
-                "   'partition.discovery.interval-millis' = '5000'," +
-//                "   'connector.properties.0.key' = 'partitiondiscoveryintervalmillis',\n" +
-//                "   'connector.properties.0.value' = '5000',\n" +
-//                "   'connector.properties.1.key' = 'failonwrite',\n" +
-//                "   'connector.properties.1.value' = 'true',\n" +
-//                "   'connector.properties.2.key' = 'flushoncheckpoint',\n" +
-//                "   'connector.properties.2.value' = 'true',\n" +
-                "   'format' = 'avro'\n" +
-                ")";
-        return sql;
     }
 }

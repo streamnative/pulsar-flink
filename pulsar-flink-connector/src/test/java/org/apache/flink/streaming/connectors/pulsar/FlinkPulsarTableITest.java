@@ -146,7 +146,6 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
                             JSONSchema<SchemaData.Foo> jsonSchema = JSONSchema.of(SchemaData.Foo.class);
                             return jsonSchema.encode(element);
                         })
-                                .setTopic(tp)
                                 .usePojoMode(SchemaData.Foo.class, RecordSchemaType.JSON)
                                 .build()));
 
@@ -185,12 +184,6 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         sendTypedMessages(table, SchemaType.JSON, fooList, Optional.empty(), SchemaData.Foo.class);
         TableSchema tSchema = getTableSchema(table);
         tEnv.executeSql(createTableSql(tableName, table, tSchema,"json")).print();
-//        tEnv
-//                .connect()
-//                .withSchema(new Schema().schema(tSchema))
-//                .inAppendMode()
-//                .withFormat(new Json())
-//                .createTemporaryTable(tableName);
 
         Table t = tEnv.scan(tableName).select("i, f, bar");
         tEnv.toAppendStream(t, t.getSchema().toRowType())

@@ -366,7 +366,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
                 flinkConfig,
                 new DefaultClusterClientServiceLoader(),
                 new Options(),
-                Collections.singletonList(new GenericCLI(flinkConfig,""))).build();
+                Collections.singletonList(new DefaultCLI())).build();
     }
 
     private Map<String, String> getStreamingConfs() {

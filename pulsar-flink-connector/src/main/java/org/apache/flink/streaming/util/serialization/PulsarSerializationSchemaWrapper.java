@@ -35,7 +35,6 @@ import java.util.Optional;
  * A wrapper that warp flink {@link SerializationSchema} to {@link PulsarSerializationSchema}.
  */
 public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationSchema<T>, PulsarContextAware<T> {
-    private final String topic;
     private final SerializationSchema<T> serializationSchema;
     private final RecordSchemaType recordSchemaType;
     private final Schema<?> schema;
@@ -44,15 +43,13 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
     private final SchemaMode schemaMode;
     private final SerializableFunction<T, String> topicExtractor;
 
-    public PulsarSerializationSchemaWrapper(String topic,
-                                             SerializationSchema<T> serializationSchema,
-                                             RecordSchemaType recordSchemaType,
-                                             Class<?> clazz,
-                                             Schema<?> schema,
-                                             DataType dataType,
-                                             SchemaMode schemaMode,
-                                             SerializableFunction<T, String> topicExtractor) {
-        this.topic = topic;
+    public PulsarSerializationSchemaWrapper(SerializationSchema<T> serializationSchema,
+                                            RecordSchemaType recordSchemaType,
+                                            Class<?> clazz,
+                                            Schema<?> schema,
+                                            DataType dataType,
+                                            SchemaMode schemaMode,
+                                            SerializableFunction<T, String> topicExtractor) {
         this.serializationSchema = serializationSchema;
         this.recordSchemaType = recordSchemaType;
         this.schema = schema;
@@ -70,7 +67,7 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
 
     @Override
     public Optional<String> getTargetTopic(T element) {
-        return Optional.of(topic);
+        return Optional.ofNullable(topicExtractor.apply(element));
     }
 
     @Override
@@ -97,7 +94,7 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
                             SchemaUtils.buildSchemaForRecordClazz(clazz, recordSchemaType).getSchemaInfo(),
                             serializationSchema, null);
                 case ROW:
-                    return new FlinkSchema<>(SchemaUtils.buildRowSchema(dataType, recordSchemaType).getSchemaInfo(),
+                    return new FlinkSchema<>(SchemaUtils.buildRowSchema(dataType, recordSchemaType),
                             serializationSchema, null);
             }
         } catch (IncompatibleSchemaException e) {
@@ -114,7 +111,7 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
                 // for pojo type, use avro or json
                 Asserts.notNull(clazz, "for non-atomic type, you must set clazz");
                 Asserts.notNull(recordSchemaType, "for non-atomic type, you must set recordSchemaType");
-                return new FlinkSchema<>(SchemaUtils.buildRowSchema(dataType, recordSchemaType).getSchemaInfo(),
+                return new FlinkSchema<>(SchemaUtils.buildRowSchema(dataType, recordSchemaType),
                         serializationSchema, null);
             }
         } catch (IncompatibleSchemaException e) {
@@ -141,7 +138,7 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
         private Class<?> clazz;
         private DataType dataType;
         private SchemaMode mode;
-        private SerializableFunction<T, String> topicExtractor;
+        private SerializableFunction<T, String> topicExtractor = (T) -> null;
 
         public Builder(SerializationSchema<T> serializationSchema) {
             this.serializationSchema = serializationSchema;
@@ -188,14 +185,8 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
             return this;
         }
 
-        public PulsarSerializationSchemaWrapper.Builder<T> setTopic(String topic) {
-            this.topic = topic;
-            return this;
-        }
-
         public PulsarSerializationSchemaWrapper<T> build() {
             return (PulsarSerializationSchemaWrapper<T>) new PulsarSerializationSchemaWrapper<>(
-                    topic,
                     serializationSchema,
                     recordSchemaType,
                     clazz,

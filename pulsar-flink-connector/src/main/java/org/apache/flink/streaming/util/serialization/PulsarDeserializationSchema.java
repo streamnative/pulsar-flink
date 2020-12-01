@@ -55,6 +55,11 @@ public interface PulsarDeserializationSchema<T> extends PulsarContextAware<T>, S
             }
 
             @Override
+            public V deserialize(Message<V> message) throws IOException {
+                return valueDeserializer.deserialize(message.getData());
+            }
+
+            @Override
             public void deserialize(Message<V> message, Collector<V> collector) throws IOException {
                 valueDeserializer.deserialize(message.getData(), collector);
             }
@@ -97,9 +102,7 @@ public interface PulsarDeserializationSchema<T> extends PulsarContextAware<T>, S
      *
      * @param message The message, as a byte array.
      */
-    default T deserialize(Message<T> message) throws IOException {
-        throw new UnsupportedOperationException();
-    }
+    T deserialize(Message<T> message) throws IOException;
 
     /**
      * Deserializes the Pulsar message.

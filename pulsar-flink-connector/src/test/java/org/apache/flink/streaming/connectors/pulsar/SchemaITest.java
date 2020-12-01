@@ -189,7 +189,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
     @Test(timeout = 100 * 1000L)
     public void testByteArrayRead() throws Exception {
-        checkRead(SchemaType.BYTES, DataTypes.BYTES(), BYTES_LIST, t -> StringUtils.arrayAwareToString(t), null);
+        checkRead(SchemaType.BYTES, DataTypes.BYTES(), BYTES_LIST, null, null);
     }
 
     @Test(timeout = 100 * 1000L)

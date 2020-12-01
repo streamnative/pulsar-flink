@@ -303,7 +303,6 @@ public class FlinkPulsarSinkTest extends TestLogger {
                     properties,
                     new PulsarSerializationSchemaWrapper.Builder<>((SerializationSchema) element -> new byte[0])
                             .useSpecialMode(Schema.STRING)
-                            .setTopic(DUMMY_TOPIC)
                             .build());
 
             this.mockProducer = mock(Producer.class);

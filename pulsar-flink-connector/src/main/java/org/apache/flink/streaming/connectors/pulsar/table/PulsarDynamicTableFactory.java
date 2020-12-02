@@ -157,9 +157,11 @@ public class PulsarDynamicTableFactory implements
         helper.validateExcept(PROPERTIES_PREFIX);
         // Validate the option values.
         validateTableSourceOptions(tableOptions);
+
+        validatePKConstraints(context.getObjectIdentifier(), context.getCatalogTable(), valueDecodingFormat);
+
         Properties properties = removeConnectorPrefix(context.getCatalogTable().toProperties());
 
-        DataType producedDataType = context.getCatalogTable().getSchema().toPhysicalRowDataType();
         final PulsarOptions.StartupOptions startupOptions = PulsarOptions.getStartupOptions(tableOptions, topics);
 
         final DataType physicalDataType = context.getCatalogTable().getSchema().toPhysicalRowDataType();
@@ -294,7 +296,7 @@ public class PulsarDynamicTableFactory implements
             Configuration options = Configuration.fromMap(catalogTable.getOptions());
             String formatName = options.getOptional(FactoryUtil.FORMAT).orElse(options.get(VALUE_FORMAT));
             throw new ValidationException(String.format(
-                    "The Kafka table '%s' with '%s' format doesn't support defining PRIMARY KEY constraint" +
+                    "The Pulsar table '%s' with '%s' format doesn't support defining PRIMARY KEY constraint" +
                             " on the table, because it can't guarantee the semantic of primary key.",
                     tableName.asSummaryString(),
                     formatName
@@ -332,7 +334,7 @@ public class PulsarDynamicTableFactory implements
                 false);
     }
 
-//    protected KafkaDynamicSink createKafkaTableSink(
+//    protected PulsarDynamicSink createPulsarTableSink(
 //            DataType physicalDataType,
 //            @Nullable EncodingFormat<SerializationSchema<RowData>> keyEncodingFormat,
 //            EncodingFormat<SerializationSchema<RowData>> valueEncodingFormat,
@@ -341,10 +343,10 @@ public class PulsarDynamicTableFactory implements
 //            @Nullable String keyPrefix,
 //            String topic,
 //            Properties properties,
-//            FlinkKafkaPartitioner<RowData> partitioner,
-//            KafkaSinkSemantic semantic,
+//            FlinkPulsarPartitioner<RowData> partitioner,
+//            PulsarSinkSemantic semantic,
 //            Integer parallelism) {
-//        return new KafkaDynamicSink(
+//        return new PulsarDynamicSink(
 //                physicalDataType,
 //                keyEncodingFormat,
 //                valueEncodingFormat,

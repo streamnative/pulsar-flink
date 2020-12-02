@@ -42,8 +42,8 @@ class DynamicPulsarDeserializationSchema implements PulsarDeserializationSchema<
 
     private static final long serialVersionUID = 1L;
 
-    private final @Nullable
-    DeserializationSchema<RowData> keyDeserialization;
+    @Nullable
+    private final DeserializationSchema<RowData> keyDeserialization;
 
     private final DeserializationSchema<RowData> valueDeserialization;
 
@@ -169,7 +169,7 @@ class DynamicPulsarDeserializationSchema implements PulsarDeserializationSchema<
     }
 
     private static class SimpleCollector<T> implements Collector<T> {
-        private T record ;
+        private T record;
 
         @Override
         public void collect(T record) {

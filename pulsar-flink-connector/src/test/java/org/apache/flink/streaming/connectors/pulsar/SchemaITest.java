@@ -3,7 +3,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -29,8 +29,6 @@ import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 import org.apache.flink.table.data.GenericRowData;
 import org.apache.flink.table.data.RowData;
-import org.apache.flink.table.data.StringData;
-import org.apache.flink.table.data.TimestampData;
 import org.apache.flink.table.runtime.typeutils.InternalTypeInfo;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.logical.RowType;
@@ -48,9 +46,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -226,7 +221,8 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
                 .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
         TestUtils.tryExecute(see, "read from earliest");
         if (toStr == null) {
-            SingletonStreamSink.compareWithList(rowData.subList(0, datas.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
+            SingletonStreamSink.compareWithList(
+                    rowData.subList(0, datas.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
         } else {
 //            SingletonStreamSink.compareWithList(rowData.subList(0, datas.size() - 1).stream().map(e -> toStr.apply(e)).collect(Collectors.toList()));
         }
@@ -262,7 +258,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
         TypeInformation<RowData> ti = InternalTypeInfo.of(tSchema.toRowDataType().getLogicalType());
 
-        DataStream<RowData> stream = see.fromCollection(wrapperRowData(datas),ti);
+        DataStream<RowData> stream = see.fromCollection(wrapperRowData(datas), ti);
         tEnv.executeSql(createTableSql(tableName, topic, tSchema, "avro")).print();
         tEnv.fromDataStream(stream).executeInsert(tableName).print();
 

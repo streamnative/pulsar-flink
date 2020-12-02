@@ -40,6 +40,5 @@ public interface PulsarContextAware<T> extends ResultTypeQueryable<T> {
         return Optional.empty();
     }
 
-
     Schema<T> getSchema();
 }

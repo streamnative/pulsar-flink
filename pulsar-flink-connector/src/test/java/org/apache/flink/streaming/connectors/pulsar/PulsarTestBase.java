@@ -105,13 +105,11 @@ public abstract class PulsarTestBase extends TestLogger {
         serviceUrl = System.getenv("PULSAR_SERVICE_URL");
         zkUrl = System.getenv("PULSAR_ZK_URL");
 
-
-
         log.info("-------------------------------------------------------------------------");
         log.info("    Starting PulsarTestBase ");
         log.info("-------------------------------------------------------------------------");
 
-        if (StringUtils.isNotBlank(adminUrl) && StringUtils.isNotBlank(serviceUrl)){
+        if (StringUtils.isNotBlank(adminUrl) && StringUtils.isNotBlank(serviceUrl)) {
             pulsarService = mock(PulsarStandaloneContainerService.class);
             log.info("    Use extend Pulsar Service ");
         } else {
@@ -167,7 +165,8 @@ public abstract class PulsarTestBase extends TestLogger {
         Configuration flinkConfig = new Configuration();
 
         flinkConfig.setString(TaskManagerOptions.MANAGED_MEMORY_SIZE.key(), "16m");
-        flinkConfig.setString(ConfigConstants.METRICS_REPORTER_PREFIX + "my_reporter." + ConfigConstants.METRICS_REPORTER_CLASS_SUFFIX, JMXReporter.class.getName());
+        flinkConfig.setString(ConfigConstants.METRICS_REPORTER_PREFIX + "my_reporter." +
+                ConfigConstants.METRICS_REPORTER_CLASS_SUFFIX, JMXReporter.class.getName());
         return flinkConfig;
     }
 
@@ -241,7 +240,8 @@ public abstract class PulsarTestBase extends TestLogger {
                 case AVRO:
                     SchemaDefinition<Object> schemaDefinition =
                             SchemaDefinition.builder().withPojo(tClass).withJSR310ConversionEnabled(true).build();
-                    producer = (Producer<T>) client.newProducer(Schema.AVRO(schemaDefinition)).topic(topicName).create();
+                    producer =
+                            (Producer<T>) client.newProducer(Schema.AVRO(schemaDefinition)).topic(topicName).create();
                     break;
                 case JSON:
                     producer = (Producer<T>) client.newProducer(Schema.JSON(tClass)).topic(topicName).create();

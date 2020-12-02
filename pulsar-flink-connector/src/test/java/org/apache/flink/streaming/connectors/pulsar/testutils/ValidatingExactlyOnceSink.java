@@ -19,7 +19,6 @@ import org.apache.flink.streaming.api.checkpoint.ListCheckpointed;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.test.util.SuccessException;
-import org.apache.flink.types.Row;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

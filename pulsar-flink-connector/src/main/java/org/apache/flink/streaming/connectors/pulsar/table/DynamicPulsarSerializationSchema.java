@@ -28,7 +28,6 @@ import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.types.RowKind;
 
-import com.google.common.base.Preconditions;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
@@ -41,6 +40,8 @@ import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
+import static org.apache.flink.shaded.guava18.com.google.common.base.Preconditions.checkArgument;
+
 /**
  * A specific {@link MessageSerializer} for {@link PulsarDynamicTableSink}.
  */
@@ -48,8 +49,6 @@ class DynamicPulsarSerializationSchema
         implements PulsarSerializationSchema<RowData>, PulsarContextAware<RowData> {
 
     private static final long serialVersionUID = 1L;
-
-    private final String topic;
 
     private final @Nullable
     SerializationSchema<RowData> keySerialization;
@@ -81,7 +80,6 @@ class DynamicPulsarSerializationSchema
     private String valueFormatType;
 
     DynamicPulsarSerializationSchema(
-            String topic,
             @Nullable SerializationSchema<RowData> keySerialization,
             SerializationSchema<RowData> valueSerialization,
             RowData.FieldGetter[] keyFieldGetters,
@@ -92,10 +90,9 @@ class DynamicPulsarSerializationSchema
             DataType valueDataType,
             String valueFormatType) {
         if (upsertMode) {
-            Preconditions.checkArgument(keySerialization != null && keyFieldGetters.length > 0,
+            checkArgument(keySerialization != null && keyFieldGetters.length > 0,
                     "Key must be set in upsert mode for serialization schema.");
         }
-        this.topic = topic;
         this.keySerialization = keySerialization;
         this.valueSerialization = valueSerialization;
         this.keyFieldGetters = keyFieldGetters;
@@ -179,7 +176,6 @@ class DynamicPulsarSerializationSchema
         final RowType rowType = (RowType) valueDataType.getLogicalType();
         return InternalTypeInfo.of(rowType);
     }
-
 
     @Override
     public Schema<RowData> getSchema() {

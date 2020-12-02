@@ -16,6 +16,7 @@ package org.apache.flink.streaming.connectors.pulsar.table;
 
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
+import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.connectors.pulsar.FlinkPulsarSource;
 import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
 import org.apache.flink.streaming.util.serialization.PulsarDeserializationSchema;
@@ -51,6 +52,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_EXTERNAL_SUB_DEFAULT_OFFSET;
@@ -99,8 +101,8 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
     protected final int[] valueProjection;
 
     /** Prefix that needs to be removed from fields when constructing the physical data type. */
-    protected final @Nullable
-    String keyPrefix;
+    @Nullable
+    protected final String keyPrefix;
     // --------------------------------------------------------------------------------------------
     // Pulsar-specific attributes
     // --------------------------------------------------------------------------------------------
@@ -213,16 +215,18 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
 
         final DeserializationSchema<RowData> keyDeserialization =
                 createDeserialization(context, keyDecodingFormat, keyProjection, keyPrefix);
-
-        //valueProjection type int[]
         final DeserializationSchema<RowData> valueDeserialization =
                 createDeserialization(context, valueDecodingFormat, valueProjection, "");
-
+        final TypeInformation<RowData> producedTypeInfo =
+                context.createTypeInformation(producedDataType);
+        PulsarDeserializationSchema<RowData> deserializationSchema = createPulsarDeserialization(keyDeserialization,
+                valueDeserialization,
+                producedTypeInfo);
         final ClientConfigurationData clientConfigurationData = newClientConf(serviceUrl);
         FlinkPulsarSource<RowData> source = new FlinkPulsarSource<RowData>(
                 adminUrl,
                 clientConfigurationData,
-                PulsarDeserializationSchema.valueOnly(valueDeserialization),
+                deserializationSchema,
                 properties
         );
         switch (startupOptions.startupMode) {
@@ -244,6 +248,42 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
                 source.setStartFromSubscription(startupOptions.externalSubscriptionName, subscriptionPosition);
         }
         return SourceFunctionProvider.of(source, false);
+    }
+
+    private PulsarDeserializationSchema<RowData> createPulsarDeserialization(
+            DeserializationSchema<RowData> keyDeserialization, DeserializationSchema<RowData> valueDeserialization,
+            TypeInformation<RowData> producedTypeInfo) {
+        final DynamicPulsarDeserializationSchema.MetadataConverter[] metadataConverters = metadataKeys.stream()
+                .map(k ->
+                        Stream.of(ReadableMetadata.values())
+                                .filter(rm -> rm.key.equals(k))
+                                .findFirst()
+                                .orElseThrow(IllegalStateException::new))
+                .map(m -> m.converter)
+                .toArray(DynamicPulsarDeserializationSchema.MetadataConverter[]::new);
+
+        // check if connector metadata is used at all
+        final boolean hasMetadata = metadataKeys.size() > 0;
+
+        // adjust physical arity with value format's metadata
+        final int adjustedPhysicalArity = producedDataType.getChildren().size() - metadataKeys.size();
+
+        // adjust value format projection to include value format's metadata columns at the end
+        final int[] adjustedValueProjection = IntStream.concat(
+                IntStream.of(valueProjection),
+                IntStream.range(keyProjection.length + valueProjection.length, adjustedPhysicalArity))
+                .toArray();
+
+        return new DynamicPulsarDeserializationSchema(
+                adjustedPhysicalArity,
+                keyDeserialization,
+                keyProjection,
+                valueDeserialization,
+                adjustedValueProjection,
+                hasMetadata,
+                metadataConverters,
+                producedTypeInfo,
+                upsertMode);
     }
 
     @Override

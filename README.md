@@ -3,6 +3,8 @@ The Pulsar Flink connector implements the function of elastic data processing us
 
 Chinese document: [README_CN](doc/README_CN.md)
 
+>Note: The pulsar-flink connector uses a multi-branch approach for Flink versions. The current master branch is based on Flink 1.11. flink 1.9 is maintained in the branch flink-1.9.
+
 ## Prerequisites
 
 - Java 8 or higher
@@ -224,15 +226,19 @@ It allows the record stream to be written to one or more Pulsar topics.
 Example:
 
 ```java
-FlinkPulsarSink<Person> sink = new FlinkPulsarSink(
-  serviceUrl,
-  adminUrl,
-  Optional.of(topic), // mandatory target topic or use `Optional.empty()` if sink to different topics for each record
-  props,
-  TopicKeyExtractor.NULL, // replace this to extract key or topic for each record
-  Person.class,
-  RecordSchemaType.AVRO);
-
+        PulsarSerializationSchema<Person> pulsarSerialization = new PulsarSerializationSchemaWrapper.Builder<>(
+                (SerializationSchema<Person>) element -> { 
+                    JSONSchema<SchemaData.Foo> jsonSchema = JSONSchema.of(SchemaData.Foo.class);
+                    return jsonSchema.encode(element); 
+                })
+                .usePojoMode(Person.class, RecordSchemaType.JSON)
+                .build();
+        new FlinkPulsarSink(
+                serviceUrl,
+                adminUrl,
+                Optional.of(topic),
+                getSinkProperties(),
+                pulsarSerialization);
 stream.addSink(sink);
 ```
 
@@ -324,51 +330,37 @@ Note: Because the delete operation is dangerous, deleting `tenant/namespace` and
 set global.disable.operator.chain = true;
 
 create table test_flink_sql(
-`rip` VARCHAR,
-`rtime` VARCHAR,
-`uid` bigint,
-  `rchannel` VARCHAR,
-  `be_time` bigint,
-  `be_time` VARCHAR,
-`activity_id` VARCHAR,
-`country_code` VARCHAR,
-`os` VARCHAR,
-`recv_time` bigint,
-`remark` VARCHAR,
-`client_ip` VARCHAR,
-`day` as TO_DATE(rtime),
-`hour` as date_format(rtime,'HH')
+    `rip` VARCHAR,
+    `rtime` VARCHAR,
+    `uid` bigint,
+    `client_ip` VARCHAR,
+    `day` as TO_DATE(rtime),
+    `hour` as date_format(rtime,'HH')
 ) with (
-'connector.type' ='pulsar',
-'connector.version' = '1',
-'connector.topic' ='persistent://test/test-gray/test_flink_sql',
-  'connector.service-url' ='pulsar://xxx',
-  'connector.admin-url' ='http://xxx',
-'connector.startup-mode' ='external-subscription',
-'connector.sub-name' ='test_flink_sql_v1',
-'connector.properties.0.key' ='pulsar.reader.readerName',
-'connector.properties.0.value' ='test_flink_sql_v1',
-'connector.properties.1.key' ='pulsar.reader.subscriptionRolePrefix',
-'connector.properties.1.value' ='test_flink_sql_v1',
-'connector.properties.2.key' ='pulsar.reader.receiverQueueSize',
-'connector.properties.2.value' = '1000',
-'connector.properties.3.key' ='partitiondiscoveryintervalmillis',
-'connector.properties.3.value' = '5000',
-'format.type' ='json',
-'format.derive-schema' ='true',
-'format.ignore-parse-errors' ='true',
-  'update-mode' ='append'
+    'connector.type' ='pulsar',
+    'connector.version' = '1',
+    'connector.topic' ='persistent://public/default/test_flink_sql',
+    'connector.service-url' ='pulsar://xxx',
+    'connector.admin-url' ='http://xxx',
+    'connector.startup-mode' ='external-subscription',
+    'connector.sub-name' ='test_flink_sql_v1',
+    'connector.properties.0.key' ='pulsar.reader.readerName',
+    'connector.properties.0.value' ='test_flink_sql_v1',
+    'connector.properties.1.key' ='pulsar.reader.subscriptionRolePrefix',
+    'connector.properties.1.value' ='test_flink_sql_v1',
+    'connector.properties.2.key' ='pulsar.reader.receiverQueueSize',
+    'connector.properties.2.value' = '1000',
+    'connector.properties.3.key' ='partitiondiscoveryintervalmillis',
+    'connector.properties.3.value' = '5000',
+    'format.type' ='json',
+    'format.derive-schema' ='true',
+    'update-mode' ='append'
 );
 
 insert into hive.test.test_flink_sql
 select
 rip, rtime,
 if (uid is null, 0, uid) as uid,
-if (activity_id is null,'', activity_id) as activity_id,
-if (country_code is null,'', country_code) as country_code,
-if (os is null,'', os) as os,
-if (recv_time is null, 0, recv_time) as recv_time,
-if (remark is null,'', remark) as remark,
 if (client_ip is null,'', client_ip) as client_ip,
 cast(`day` as string) as `day`,
 cast(`hour` as string) as `hour`
@@ -535,3 +527,8 @@ If you want to build a Pulsar Flink connector reading data from Pulsar and writi
     $ mvn clean install
     ```
 Once the installation is finished, there is a fat jar generated under both local maven repo and `target` directory.
+
+> Note: If you are using intellij IDEA to debug this project, you may encounter the `org.apache.pulsar.shade.org.apache
+.bookkeeper.ledger` error, solution: run `mvn clean install' first.
+ -DskipTests` install jar to local repository, then disable `managed-ledger-shaded'.
+module, the project refresh error will disappear.

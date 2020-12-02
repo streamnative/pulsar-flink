@@ -285,68 +285,38 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
 
     @Test
     public void testSimpleSQLWork() throws Exception {
-//        testSimpleSQL(true, JSON_FORMAT);
-//        testSimpleSQL(true, AVRO_FORMAT);
-        testSimpleSQL(false, JSON_FORMAT);
-        testSimpleSQL(false, AVRO_FORMAT);
+        testSimpleSQL(JSON_FORMAT);
+        testSimpleSQL(AVRO_FORMAT);
     }
 
-    public void testSimpleSQL(boolean isLegacyConnector, String format) throws Exception {
+    public void testSimpleSQL(String format) throws Exception {
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.setParallelism(1);
         StreamTableEnvironment tEnv = StreamTableEnvironment.create(see);
 
-        String topic = newTopic() + "_" + isLegacyConnector;
+        String topic = newTopic();
         final String createTable;
-        if (!isLegacyConnector) {
-            createTable = String.format(
-                    "create table pulsar (\n" +
-                            "  id int, \n" +
-                            "  compute as id + 1, \n" +
-                            "  log_ts timestamp(3),\n" +
-                            "  ts as log_ts + INTERVAL '1' SECOND,\n" +
-                            "  watermark for ts as ts\n" +
-                            ") with (\n" +
-                            "  'connector' = 'pulsar',\n" +
-                            "  'topic' = '%s',\n" +
-                            "  'service-url' = '%s',\n" +
-                            "  'admin-url' = '%s',\n" +
-                            "  'scan.startup.mode' = 'earliest', \n" +
-                            "  %s \n" +
-                            ")",
-                    topic,
-                    serviceUrl,
-                    adminUrl,
-                    formatOptions(isLegacyConnector, format));
-        } else {
-            createTable = String.format(
-                    "create table pulsar (\n" +
-                            "  id int, \n" +
-                            //"  compute as id + 1, \n" +
-                            "  log_ts timestamp(3)\n" +
-                            //"  ts as log_ts + INTERVAL '1' SECOND,\n" +
-                            //"  watermark for ts as ts\n" +
-                            ") with (\n" +
-                            "  'connector.type' = 'pulsar', \n" +
-                            "  'connector.version' = '1', \n" +
-                            "  'connector.topic' = '%s', \n" +
-                            "  'connector.service-url' = '%s', \n" +
-                            "  'connector.admin-url' = '%s', \n" +
-                            // Prior to Flink version 1.12, we could not support metadata very well
-                            // and do not recommend using this configuration.
-                            //"  'connector.use-extend-field' = 'true', \n" +
-                            "  'connector.startup-mode' = 'earliest', \n" +
-                            "  'update-mode' = 'append', \n" +
-                            "  %s \n" +
-                            ")",
-                    topic,
-                    serviceUrl,
-                    adminUrl,
-                    formatOptions(isLegacyConnector, format));
-        }
-        tEnv.executeSql(createTable);
-        System.out.println("DDL OK");
-        Thread.sleep(1000);
+        createTable = String.format(
+                "create table pulsar (\n" +
+                        "  id int, \n" +
+                        "  compute as id + 1, \n" +
+                        "  log_ts timestamp(3),\n" +
+                        "  ts as log_ts + INTERVAL '1' SECOND,\n" +
+                        "  watermark for ts as ts\n" +
+                        ") with (\n" +
+                        "  'connector' = 'pulsar',\n" +
+                        "  'topic' = '%s',\n" +
+                        "  'service-url' = '%s',\n" +
+                        "  'admin-url' = '%s',\n" +
+                        "  'scan.startup.mode' = 'earliest', \n" +
+                        "  %s \n" +
+                        ")",
+                topic,
+                serviceUrl,
+                adminUrl,
+                String.format("'format' = '%s'", format));
+
+        tEnv.executeSql(createTable).await();
         String initialValues = "INSERT INTO pulsar\n" +
                 "SELECT id, CAST(ts AS TIMESTAMP(3)) \n" +
                 "FROM (VALUES (1, '2019-12-12 00:00:01.001001'), \n" +
@@ -356,16 +326,13 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
                 "  (5, '2019-12-12 00:00:01.001001'), \n" +
                 "  (6, '2019-12-12 00:00:01.001001'))\n" +
                 "  AS orders (id, ts)";
-        tEnv.executeSql(initialValues);
-        Thread.sleep(1000);
+        tEnv.executeSql(initialValues).await();
+
         // ---------- Consume stream from Pulsar -------------------
         System.out.println("Insert ok");
         String query = "SELECT \n" +
                 "  id + 1 \n" +
                 "FROM pulsar \n";
-
-        //CloseableIterator<Row> collect = tEnv.sqlQuery(query).execute().collect();
-        //System.out.println("query ok");
         DataStream<RowData> result = tEnv.toAppendStream(tEnv.sqlQuery(query), RowData.class);
         TestingSinkFunction sink = new TestingSinkFunction(6);
         result.addSink(sink).setParallelism(1);
@@ -388,24 +355,6 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
                 "+I(4)", "+I(5)", "+I(6)", "+I(7)");
 
         assertEquals(expected, TestingSinkFunction.rows);
-    }
-
-    private String formatOptions(boolean isLegacyConnector, String format) {
-        if (!isLegacyConnector) {
-            return String.format("'format' = '%s'", format);
-        } else {
-            String formatType = String.format("'format.type' = '%s'", format);
-            if (format.equals(AVRO_FORMAT)) {
-                // legacy connector requires to specify avro-schema
-                String avroSchema = "{\"type\":\"record\",\"name\":\"row_0\",\"fields\":" +
-                        "[{\"name\":\"id\",\"type\":[\"int\"," +
-                        "\"null\"]},{\"name\":\"log_ts\",\"type\":{\"type\":\"long\"," +
-                        "\"logicalType\":\"timestamp-millis\"}}]}";
-                return formatType + String.format(", 'format.avro-schema' = '%s'", avroSchema);
-            } else {
-                return formatType;
-            }
-        }
     }
 
     @Test

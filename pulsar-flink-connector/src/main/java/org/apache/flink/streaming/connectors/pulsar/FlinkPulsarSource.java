@@ -15,6 +15,7 @@
 package org.apache.flink.streaming.connectors.pulsar;
 
 import org.apache.flink.api.common.ExecutionConfig;
+import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.serialization.RuntimeContextInitializationContextAdapters;
 import org.apache.flink.api.common.state.ListState;
 import org.apache.flink.api.common.state.ListStateDescriptor;
@@ -43,6 +44,8 @@ import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReade
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.streaming.connectors.pulsar.internal.SourceSinkUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.TopicRange;
+import org.apache.flink.streaming.runtime.operators.util.AssignerWithPeriodicWatermarksAdapter;
+import org.apache.flink.streaming.runtime.operators.util.AssignerWithPunctuatedWatermarksAdapter;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
 import org.apache.flink.streaming.util.serialization.PulsarDeserializationSchema;
 import org.apache.flink.util.ExceptionUtils;
@@ -69,8 +72,10 @@ import java.util.stream.Collectors;
 
 import static org.apache.flink.streaming.connectors.pulsar.internal.metrics.PulsarSourceMetrics.COMMITS_FAILED_METRICS_COUNTER;
 import static org.apache.flink.streaming.connectors.pulsar.internal.metrics.PulsarSourceMetrics.COMMITS_SUCCEEDED_METRICS_COUNTER;
+import static org.apache.flink.streaming.connectors.pulsar.internal.metrics.PulsarSourceMetrics.PULSAR_SOURCE_METRICS_GROUP;
 import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
+import static org.apache.flink.util.PropertiesUtil.getBoolean;
 
 /**
  * Pulsar data source.
@@ -86,6 +91,9 @@ public class FlinkPulsarSource<T>
 
     /** The maximum number of pending non-committed checkpoints to track, to avoid memory leaks. */
     public static final int MAX_NUM_PENDING_CHECKPOINTS = 100;
+
+    /** Boolean configuration key to disable metrics tracking. **/
+    public static final String KEY_DISABLE_METRICS = "flink.disable-metrics";
 
     /** State name of the consumer's partition offset states. */
     private static final String OFFSETS_STATE_NAME = "topic-partition-offset-states";
@@ -106,15 +114,12 @@ public class FlinkPulsarSource<T>
 
     private Map<TopicRange, MessageId> ownedTopicStarts;
 
-    /** Optional timestamp extractor / watermark generator that will be run per pulsar partition,
-     * to exploit per-partition timestamp characteristics.
-     * The assigner is kept in serialized form, to deserialize it into multiple copies. */
-    private SerializedValue<AssignerWithPeriodicWatermarks<T>> periodicWatermarkAssigner;
-
-    /** Optional timestamp extractor / watermark generator that will be run per pulsar partition,
-     * to exploit per-partition timestamp characteristics.
-     * The assigner is kept in serialized form, to deserialize it into multiple copies. */
-    private SerializedValue<AssignerWithPunctuatedWatermarks<T>> punctuatedWatermarkAssigner;
+    /**
+     * Optional watermark strategy that will be run per Kafka partition, to exploit per-partition
+     * timestamp characteristics. The watermark strategy is kept in serialized form, to deserialize
+     * it into multiple copies.
+     */
+    private SerializedValue<WatermarkStrategy<T>> watermarkStrategy;
 
     /** User configured value for discovery interval, in milliseconds. */
     private final long discoveryIntervalMillis;
@@ -182,6 +187,14 @@ public class FlinkPulsarSource<T>
     /** Flag indicating whether the consumer is still running. */
     private volatile boolean running = true;
 
+    /**
+     * Flag indicating whether or not metrics should be exposed.
+     * If {@code true}, offset metrics (e.g. current offset, committed offset) and
+     * other metrics will be registered.
+     */
+    private final boolean useMetrics;
+
+
     /** Counter for successful Pulsar offset commits. */
     private transient Counter successfulCommits;
 
@@ -214,6 +227,8 @@ public class FlinkPulsarSource<T>
                 SourceSinkUtils.getPollTimeoutMs(caseInsensitiveParams);
         this.commitMaxRetries =
                 SourceSinkUtils.getCommitMaxRetries(caseInsensitiveParams);
+        this.useMetrics =
+                SourceSinkUtils.getUseMetrics(caseInsensitiveParams);
 
         CachedPulsarClient.setCacheSize(SourceSinkUtils.getClientCacheSize(caseInsensitiveParams));
 
@@ -256,16 +271,19 @@ public class FlinkPulsarSource<T>
      * @param assigner The timestamp assigner / watermark generator to use.
      * @return The reader object, to allow function chaining.
      */
+    @Deprecated
     public FlinkPulsarSource<T> assignTimestampsAndWatermarks(AssignerWithPunctuatedWatermarks<T> assigner) {
         checkNotNull(assigner);
 
-        if (this.periodicWatermarkAssigner != null) {
-            throw new IllegalStateException("A periodic watermark emitter has already been set.");
+        if (this.watermarkStrategy != null) {
+            throw new IllegalStateException("Some watermark strategy has already been set.");
         }
+
         try {
             ClosureCleaner.clean(assigner, ExecutionConfig.ClosureCleanerLevel.RECURSIVE, true);
-            this.punctuatedWatermarkAssigner = new SerializedValue<>(assigner);
-            return this;
+            final WatermarkStrategy<T> wms = new AssignerWithPunctuatedWatermarksAdapter.Strategy<>(assigner);
+
+            return assignTimestampsAndWatermarks(wms);
         } catch (Exception e) {
             throw new IllegalArgumentException("The given assigner is not serializable", e);
         }
@@ -293,19 +311,55 @@ public class FlinkPulsarSource<T>
      * @param assigner The timestamp assigner / watermark generator to use.
      * @return The reader object, to allow function chaining.
      */
+    @Deprecated
     public FlinkPulsarSource<T> assignTimestampsAndWatermarks(AssignerWithPeriodicWatermarks<T> assigner) {
         checkNotNull(assigner);
 
-        if (this.punctuatedWatermarkAssigner != null) {
-            throw new IllegalStateException("A punctuated watermark emitter has already been set.");
+        if (this.watermarkStrategy != null) {
+            throw new IllegalStateException("Some watermark strategy has already been set.");
         }
+
         try {
             ClosureCleaner.clean(assigner, ExecutionConfig.ClosureCleanerLevel.RECURSIVE, true);
-            this.periodicWatermarkAssigner = new SerializedValue<>(assigner);
-            return this;
+            final WatermarkStrategy<T> wms = new AssignerWithPeriodicWatermarksAdapter.Strategy<>(assigner);
+
+            return assignTimestampsAndWatermarks(wms);
         } catch (Exception e) {
             throw new IllegalArgumentException("The given assigner is not serializable", e);
         }
+    }
+
+    /**
+     * Sets the given {@link WatermarkStrategy} on this consumer. These will be used to assign
+     * timestamps to records and generates watermarks to signal event time progress.
+     *
+     * <p>Running timestamp extractors / watermark generators directly inside the Kafka source
+     * (which you can do by using this method), per Kafka partition, allows users to let them
+     * exploit the per-partition characteristics.
+     *
+     * <p>When a subtask of a FlinkKafkaConsumer source reads multiple Kafka partitions,
+     * the streams from the partitions are unioned in a "first come first serve" fashion.
+     * Per-partition characteristics are usually lost that way. For example, if the timestamps are
+     * strictly ascending per Kafka partition, they will not be strictly ascending in the resulting
+     * Flink DataStream, if the parallel source subtask reads more than one partition.
+     *
+     * <p>Common watermark generation patterns can be found as static methods in the
+     * {@link org.apache.flink.api.common.eventtime.WatermarkStrategy} class.
+     *
+     * @return The consumer object, to allow function chaining.
+     */
+    public FlinkPulsarSource<T> assignTimestampsAndWatermarks(
+            WatermarkStrategy<T> watermarkStrategy) {
+        checkNotNull(watermarkStrategy);
+
+        try {
+            ClosureCleaner.clean(watermarkStrategy, ExecutionConfig.ClosureCleanerLevel.RECURSIVE, true);
+            this.watermarkStrategy = new SerializedValue<>(watermarkStrategy);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("The given WatermarkStrategy is not serializable", e);
+        }
+
+        return this;
     }
 
     public FlinkPulsarSource<T> setStartFromEarliest() {
@@ -478,12 +532,12 @@ public class FlinkPulsarSource<T>
         this.pulsarFetcher = createFetcher(
                 ctx,
                 ownedTopicStarts,
-                periodicWatermarkAssigner,
-                punctuatedWatermarkAssigner,
+                watermarkStrategy,
                 streamingRuntime.getProcessingTimeService(),
                 streamingRuntime.getExecutionConfig().getAutoWatermarkInterval(),
                 getRuntimeContext().getUserCodeClassLoader(),
-                streamingRuntime);
+                streamingRuntime,
+                useMetrics);
 
         if (!running) {
             return;
@@ -499,20 +553,19 @@ public class FlinkPulsarSource<T>
     protected PulsarFetcher<T> createFetcher(
             SourceContext<T> sourceContext,
             Map<TopicRange, MessageId> seedTopicsWithInitialOffsets,
-            SerializedValue<AssignerWithPeriodicWatermarks<T>> watermarksPeriodic,
-            SerializedValue<AssignerWithPunctuatedWatermarks<T>> watermarksPunctuated,
+            SerializedValue<WatermarkStrategy<T>> watermarkStrategy,
             ProcessingTimeService processingTimeProvider,
             long autoWatermarkInterval,
             ClassLoader userCodeClassLoader,
-            StreamingRuntimeContext streamingRuntime) throws Exception {
+            StreamingRuntimeContext streamingRuntime,
+            boolean useMetrics) throws Exception {
 
         //readerConf.putIfAbsent(PulsarOptions.SUBSCRIPTION_ROLE_OPTION_KEY, getSubscriptionName());
 
-        return new PulsarFetcher<T>(
+        return new PulsarFetcher<>(
                 sourceContext,
                 seedTopicsWithInitialOffsets,
-                watermarksPeriodic,
-                watermarksPunctuated,
+                watermarkStrategy,
                 processingTimeProvider,
                 autoWatermarkInterval,
                 userCodeClassLoader,
@@ -522,7 +575,9 @@ public class FlinkPulsarSource<T>
                 pollTimeoutMs,
                 commitMaxRetries,
                 deserializer,
-                metadataReader);
+                metadataReader,
+                streamingRuntime.getMetricGroup().addGroup(PULSAR_SOURCE_METRICS_GROUP),
+                useMetrics);
     }
 
     public void joinDiscoveryLoopThread() throws InterruptedException {

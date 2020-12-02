@@ -27,6 +27,7 @@ import org.apache.flink.table.connector.source.DynamicTableSource;
 import org.apache.flink.table.connector.source.ScanTableSource;
 import org.apache.flink.table.connector.source.SourceFunctionProvider;
 import org.apache.flink.table.connector.source.abilities.SupportsReadingMetadata;
+import org.apache.flink.table.connector.source.abilities.SupportsWatermarkPushDown;
 import org.apache.flink.table.data.GenericMapData;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.data.StringData;
@@ -62,7 +63,7 @@ import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_START
  * pulsar dynamic table source.
  */
 @Slf4j
-public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadingMetadata {
+public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadingMetadata, SupportsWatermarkPushDown {
 
     // --------------------------------------------------------------------------------------------
     // Mutable attributes
@@ -215,6 +216,7 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
 
         final DeserializationSchema<RowData> keyDeserialization =
                 createDeserialization(context, keyDecodingFormat, keyProjection, keyPrefix);
+
         final DeserializationSchema<RowData> valueDeserialization =
                 createDeserialization(context, valueDecodingFormat, valueProjection, "");
         final TypeInformation<RowData> producedTypeInfo =
@@ -223,12 +225,17 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
                 valueDeserialization,
                 producedTypeInfo);
         final ClientConfigurationData clientConfigurationData = newClientConf(serviceUrl);
-        FlinkPulsarSource<RowData> source = new FlinkPulsarSource<RowData>(
+        FlinkPulsarSource<RowData> source = new FlinkPulsarSource<>(
                 adminUrl,
                 clientConfigurationData,
                 deserializationSchema,
                 properties
         );
+
+        if (watermarkStrategy != null) {
+            source.assignTimestampsAndWatermarks(watermarkStrategy);
+        }
+
         switch (startupOptions.startupMode) {
             case EARLIEST:
                 source.setStartFromEarliest();
@@ -288,7 +295,7 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
 
     @Override
     public DynamicTableSource copy() {
-        return new PulsarDynamicTableSource(
+        final PulsarDynamicTableSource copy = new PulsarDynamicTableSource(
                 physicalDataType,
                 keyDecodingFormat,
                 valueDecodingFormat,
@@ -302,6 +309,10 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
                 properties,
                 startupOptions,
                 false);
+        copy.producedDataType = producedDataType;
+        copy.metadataKeys = metadataKeys;
+        copy.watermarkStrategy = watermarkStrategy;
+        return copy;
     }
 
     @Override
@@ -408,6 +419,11 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
             physicalFormatDataType = DataTypeUtils.stripRowPrefix(physicalFormatDataType, prefix);
         }
         return format.createRuntimeDecoder(context, physicalFormatDataType);
+    }
+
+    @Override
+    public void applyWatermark(WatermarkStrategy<RowData> watermarkStrategy) {
+        this.watermarkStrategy = watermarkStrategy;
     }
 
     // --------------------------------------------------------------------------------------------

@@ -134,7 +134,6 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
     @PublicEvolving
     public static class Builder<T> {
         private final SerializationSchema<T> serializationSchema;
-        private String topic;
         private RecordSchemaType recordSchemaType;
         private Schema<?> schema;
         private Class<?> clazz;
@@ -188,7 +187,7 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
         }
 
         public PulsarSerializationSchemaWrapper<T> build() {
-            return (PulsarSerializationSchemaWrapper<T>) new PulsarSerializationSchemaWrapper<>(
+            return new PulsarSerializationSchemaWrapper<>(
                     serializationSchema,
                     recordSchemaType,
                     clazz,

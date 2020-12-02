@@ -39,10 +39,8 @@ import org.apache.flink.table.catalog.exceptions.TableNotExistException;
 import org.apache.flink.table.catalog.exceptions.TableNotPartitionedException;
 import org.apache.flink.table.catalog.stats.CatalogColumnStatistics;
 import org.apache.flink.table.catalog.stats.CatalogTableStatistics;
-import org.apache.flink.table.descriptors.FormatDescriptorValidator;
 import org.apache.flink.table.expressions.Expression;
 import org.apache.flink.table.factories.Factory;
-import org.apache.flink.table.factories.TableFactory;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdminException;
@@ -72,14 +70,14 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
     public PulsarCatalog(String adminUrl, String catalogName, Map<String, String> props, String defaultDatabase) {
         super(catalogName, defaultDatabase);
         this.adminUrl = adminUrl;
-        this.properties = new HashMap<>();
-        for (Map.Entry<String, String> kv : props.entrySet()) {
-            if (!kv.getKey().startsWith(FormatDescriptorValidator.FORMAT)) {
-                properties.put(CONNECTOR + "." + kv.getKey(), kv.getValue());
-            } else {
-                properties.put(kv.getKey(), kv.getValue());
-            }
-        }
+        this.properties = new HashMap<>(props);
+//        for (Map.Entry<String, String> kv : props.entrySet()) {
+//            if (!kv.getKey().startsWith(FormatDescriptorValidator.FORMAT)) {
+//                properties.put(CONNECTOR + "." + kv.getKey(), kv.getValue());
+//            } else {
+//                properties.put(kv.getKey(), kv.getValue());
+//            }
+//        }
         log.info("Created Pulsar Catalog {}", catalogName);
     }
 

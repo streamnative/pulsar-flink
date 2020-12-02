@@ -23,6 +23,10 @@ import org.apache.pulsar.common.schema.SchemaInfo;
 import java.io.IOException;
 import java.io.Serializable;
 
+/**
+ * flink format for Pulsar schema.
+ * @param <T>
+ */
 public class FlinkSchema<T> implements Schema<T>, Serializable {
 
     private final SchemaInfo schemaInfo;

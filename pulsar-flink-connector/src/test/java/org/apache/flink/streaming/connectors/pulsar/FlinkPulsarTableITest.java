@@ -23,7 +23,6 @@ import org.apache.flink.streaming.connectors.pulsar.config.RecordSchemaType;
 import org.apache.flink.streaming.connectors.pulsar.internal.IncompatibleSchemaException;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
-import org.apache.flink.streaming.util.serialization.PulsarDeserializationSchemaWrapper;
 import org.apache.flink.streaming.connectors.pulsar.internal.SimpleSchemaTranslator;
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper;
 import org.apache.flink.streaming.connectors.pulsar.testutils.SingletonStreamSink;
@@ -33,19 +32,13 @@ import org.apache.flink.table.api.TableColumn;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 import org.apache.flink.table.data.RowData;
-import org.apache.flink.table.descriptors.Atomic;
 import org.apache.flink.table.descriptors.ConnectorDescriptor;
-import org.apache.flink.table.descriptors.Json;
 import org.apache.flink.table.descriptors.Pulsar;
-import org.apache.flink.table.descriptors.Schema;
-import org.apache.flink.table.types.DataType;
 import org.apache.flink.test.util.SuccessException;
 import org.apache.flink.test.util.TestUtils;
 import org.apache.flink.types.Row;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
@@ -54,7 +47,6 @@ import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.text.MessageFormat;
@@ -112,8 +104,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
             columns.add(column);
         }
 
-        tEnv.executeSql(createTableSql(tableName,table,tSchema,"atomic")).print();
-
+        tEnv.executeSql(createTableSql(tableName, table, tSchema, "atomic")).print();
 
         Table t = tEnv.scan(tableName).select("value");
 
@@ -128,7 +119,8 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         }
 
         SingletonStreamSink.compareWithList(
-                BOOLEAN_LIST.subList(0, BOOLEAN_LIST.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
+                BOOLEAN_LIST.subList(0, BOOLEAN_LIST.size() - 1).stream().map(Objects::toString)
+                        .collect(Collectors.toList()));
     }
 
     @Test(timeout = 40 * 1000L)
@@ -137,29 +129,29 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         String tableName = TopicName.get(tp).getLocalName();
 
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
-                see.setParallelism(1);
+        see.setParallelism(1);
         DataStreamSource ds = see.fromCollection(fooList);
         ds.addSink(
                 new FlinkPulsarSink(
                         serviceUrl, adminUrl, Optional.of(tp), getSinkProperties(),
-                        new PulsarSerializationSchemaWrapper.Builder<>((SerializationSchema<SchemaData.Foo>) element -> {
-                            JSONSchema<SchemaData.Foo> jsonSchema = JSONSchema.of(SchemaData.Foo.class);
-                            return jsonSchema.encode(element);
-                        })
+                        new PulsarSerializationSchemaWrapper.Builder<>(
+                                (SerializationSchema<SchemaData.Foo>) element -> {
+                                    JSONSchema<SchemaData.Foo> jsonSchema = JSONSchema.of(SchemaData.Foo.class);
+                                    return jsonSchema.encode(element);
+                                })
                                 .usePojoMode(SchemaData.Foo.class, RecordSchemaType.JSON)
                                 .build()));
 
         see.execute("write first");
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-                env.setParallelism(1);
+        env.setParallelism(1);
 
         StreamTableEnvironment tEnv = StreamTableEnvironment.create(env);
         TableSchema tSchema = getTableSchema(tp);
 
-        tEnv.executeSql(createTableSql(tableName, tp, tSchema,"json")).print();
-
-        Table t = tEnv.scan(tableName).select("i, f, bar");
+        tEnv.executeSql(createTableSql(tableName, tp, tSchema, "json")).print();
+        Table t = tEnv.sqlQuery("select i, f, bar from " + tableName);
         tEnv.toAppendStream(t, t.getSchema().toRowType())
                 .map(new FailingIdentityMapper<Row>(fooList.size()))
                 .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
@@ -169,7 +161,8 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         } catch (Exception e) {
 
         }
-        SingletonStreamSink.compareWithList(fooList.subList(0, fooList.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
+        SingletonStreamSink.compareWithList(
+                fooList.subList(0, fooList.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
     }
 
     @Test(timeout = 40 * 1000L)
@@ -183,7 +176,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
 
         sendTypedMessages(table, SchemaType.JSON, fooList, Optional.empty(), SchemaData.Foo.class);
         TableSchema tSchema = getTableSchema(table);
-        tEnv.executeSql(createTableSql(tableName, table, tSchema,"json")).print();
+        tEnv.executeSql(createTableSql(tableName, table, tSchema, "json")).print();
 
         Table t = tEnv.scan(tableName).select("i, f, bar");
         tEnv.toAppendStream(t, t.getSchema().toRowType())
@@ -206,7 +199,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
 
         sendTypedMessages(table, SchemaType.JSON, flList, Optional.empty(), SchemaData.FL.class);
         TableSchema tSchema = getTableSchema(table);
-        tEnv.executeSql(createTableSql(tableName, table, tSchema,"json")).print();
+        tEnv.executeSql(createTableSql(tableName, table, tSchema, "json")).print();
 
         Table t = tEnv.scan(tableName).select("l");
         tEnv.toAppendStream(t, t.getSchema().toRowType())
@@ -226,7 +219,8 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
             IncompatibleSchemaException {
         Map<String, String> caseInsensitiveParams = new HashMap<>();
         caseInsensitiveParams.put(TOPIC_SINGLE_OPTION_KEY, topicName);
-        PulsarMetadataReader reader = new PulsarMetadataReader(adminUrl, new ClientConfigurationData(), "", caseInsensitiveParams, -1, -1);
+        PulsarMetadataReader reader =
+                new PulsarMetadataReader(adminUrl, new ClientConfigurationData(), "", caseInsensitiveParams, -1, -1);
         SchemaInfo pulsarSchema = reader.getPulsarSchema(topicName);
         final SimpleSchemaTranslator schemaTranslator = new SimpleSchemaTranslator();
         return schemaTranslator.pulsarSchemaToTableSchema(pulsarSchema);
@@ -244,7 +238,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         sendTypedMessages(table, SchemaType.JSON, faList, Optional.empty(), SchemaData.FA.class);
         TableSchema tSchema = getTableSchema(table);
 
-        tEnv.executeSql(createTableSql(tableName, table, tSchema,"json")).print();
+        tEnv.executeSql(createTableSql(tableName, table, tSchema, "json")).print();
 
         Table t = tEnv.scan(tableName).select("l");
         tEnv.toAppendStream(t, t.getSchema().toRowType())
@@ -272,8 +266,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         sendTypedMessages(table, SchemaType.JSON, fmList, Optional.empty(), SchemaData.FM.class);
         TableSchema tSchema = getTableSchema(table);
 
-        tEnv.executeSql(createTableSql(tableName, table, tSchema,"json")).print();
-
+        tEnv.executeSql(createTableSql(tableName, table, tSchema, "json")).print();
 
         Table t = tEnv.scan(tableName).select("m");
 

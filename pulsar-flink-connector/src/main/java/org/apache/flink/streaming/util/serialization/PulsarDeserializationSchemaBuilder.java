@@ -23,6 +23,10 @@ import org.apache.pulsar.client.api.Schema;
 
 import java.io.Serializable;
 
+/**
+ * Pulsar deserialization schema builder.
+ * @param <V>
+ */
 public class PulsarDeserializationSchemaBuilder<V> implements Serializable {
 
     private DeserializationSchema<V> valueDeserializer;

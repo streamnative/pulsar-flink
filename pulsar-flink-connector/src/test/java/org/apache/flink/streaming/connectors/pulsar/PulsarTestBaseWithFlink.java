@@ -32,7 +32,6 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
@@ -97,7 +96,6 @@ public abstract class PulsarTestBaseWithFlink extends PulsarTestBase {
                     tableColumn.getType().getLogicalType().asSerializableString());
             columns.add(column);
         }
-
 
         String sql = "create table " + tableName + "(\n" +
                 " " + StringUtils.join(columns, ",\n") +

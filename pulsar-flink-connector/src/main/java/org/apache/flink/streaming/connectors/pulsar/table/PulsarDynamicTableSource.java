@@ -44,7 +44,7 @@ import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import javax.annotation.Nullable;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -85,10 +85,11 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
     /** Data type to configure the formats. */
     protected final DataType physicalDataType;
 
-    /** Optional format for decoding keys from Kafka. */
-    protected final @Nullable DecodingFormat<DeserializationSchema<RowData>> keyDecodingFormat;
+    /** Optional format for decoding keys from Pulsar. */
+    protected final @Nullable
+    DecodingFormat<DeserializationSchema<RowData>> keyDecodingFormat;
 
-    /** Format for decoding values from Kafka. */
+    /** Format for decoding values from Pulsar. */
     protected final DecodingFormat<DeserializationSchema<RowData>> valueDecodingFormat;
 
     /** Indices that determine the key fields and the target position in the produced row. */
@@ -98,7 +99,8 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
     protected final int[] valueProjection;
 
     /** Prefix that needs to be removed from fields when constructing the physical data type. */
-    protected final @Nullable String keyPrefix;
+    protected final @Nullable
+    String keyPrefix;
     // --------------------------------------------------------------------------------------------
     // Pulsar-specific attributes
     // --------------------------------------------------------------------------------------------
@@ -168,9 +170,9 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
         this.keyPrefix = keyPrefix;
         // Mutable attributes
         this.producedDataType = physicalDataType;
-        this.metadataKeys = Collections.emptyList();
+        this.metadataKeys = new ArrayList<>();
         this.watermarkStrategy = null;
-        // Kafka-specific attributes
+        // Pulsar-specific attributes
         Preconditions.checkArgument((topics != null && topicPattern == null) ||
                         (topics == null && topicPattern != null),
                 "Either Topic or Topic Pattern must be set for source.");
@@ -184,7 +186,7 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
     }
 
     private void setTopicInfo(Properties properties, List<String> topics, String topicPattern) {
-        if (StringUtils.isNotBlank(topicPattern)){
+        if (StringUtils.isNotBlank(topicPattern)) {
             properties.putIfAbsent("topicspattern", topicPattern);
             properties.remove("topic");
             properties.remove("topics");
@@ -192,7 +194,7 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
             properties.putIfAbsent("topics", StringUtils.join(topics, ","));
             properties.remove("topicspattern");
             properties.remove("topic");
-        } else if (topics != null && topics.size() == 1){
+        } else if (topics != null && topics.size() == 1) {
             properties.putIfAbsent("topic", StringUtils.join(topics, ","));
             properties.remove("topicspattern");
             properties.remove("topics");
@@ -208,6 +210,9 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
 
     @Override
     public ScanRuntimeProvider getScanRuntimeProvider(ScanContext context) {
+
+        final DeserializationSchema<RowData> keyDeserialization =
+                createDeserialization(context, keyDecodingFormat, keyProjection, keyPrefix);
 
         //valueProjection type int[]
         final DeserializationSchema<RowData> valueDeserialization =
@@ -279,21 +284,32 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
             return false;
         }
         PulsarDynamicTableSource that = (PulsarDynamicTableSource) o;
-        return physicalDataType.equals(that.physicalDataType) &&
-                valueDecodingFormat.equals(that.valueDecodingFormat) &&
+        return upsertMode == that.upsertMode &&
+                Objects.equals(producedDataType, that.producedDataType) &&
+                Objects.equals(metadataKeys, that.metadataKeys) &&
+                Objects.equals(watermarkStrategy, that.watermarkStrategy) &&
+                Objects.equals(physicalDataType, that.physicalDataType) &&
+                Objects.equals(keyDecodingFormat, that.keyDecodingFormat) &&
+                Objects.equals(valueDecodingFormat, that.valueDecodingFormat) &&
+                Arrays.equals(keyProjection, that.keyProjection) &&
+                Arrays.equals(valueProjection, that.valueProjection) &&
+                Objects.equals(keyPrefix, that.keyPrefix) &&
                 Objects.equals(topics, that.topics) &&
                 Objects.equals(topicPattern, that.topicPattern) &&
-                serviceUrl.equals(that.serviceUrl) &&
-                adminUrl.equals(that.adminUrl) &&
-                //The properties generated by flink can't be compared to your own strength for now,
-                // because the content is always a bit different.
-                // properties.equals(that.properties) &&
-                startupOptions.equals(that.startupOptions);
+                Objects.equals(serviceUrl, that.serviceUrl) &&
+                Objects.equals(adminUrl, that.adminUrl) &&
+                Objects.equals(startupOptions, that.startupOptions);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(physicalDataType, valueDecodingFormat, topics, topicPattern, serviceUrl, adminUrl, startupOptions);
+        int result =
+                Objects.hash(producedDataType, metadataKeys, watermarkStrategy, physicalDataType, keyDecodingFormat,
+                        valueDecodingFormat, keyPrefix, topics, topicPattern, serviceUrl, adminUrl, startupOptions,
+                        upsertMode);
+        result = 31 * result + Arrays.hashCode(keyProjection);
+        result = 31 * result + Arrays.hashCode(valueProjection);
+        return result;
     }
 
     @Override
@@ -404,7 +420,8 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
 
         final DynamicPulsarDeserializationSchema.MetadataConverter converter;
 
-        ReadableMetadata(String key, DataType dataType, DynamicPulsarDeserializationSchema.MetadataConverter converter) {
+        ReadableMetadata(String key, DataType dataType,
+                         DynamicPulsarDeserializationSchema.MetadataConverter converter) {
             this.key = key;
             this.dataType = dataType;
             this.converter = converter;

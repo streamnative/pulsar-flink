@@ -40,7 +40,7 @@ public class PulsarCatalogValidator extends CatalogDescriptorValidator {
         properties.validateString(CATALOG_SERVICE_URL, false, 1);
         properties.validateString(CATALOG_ADMIN_URL, false, 1);
         properties.validateInt(CATALOG_DEFAULT_PARTITIONS, true, 1);
-        properties.validateString(FormatDescriptorValidator.FORMAT_TYPE, false);
+        properties.validateString(FormatDescriptorValidator.FORMAT, false);
         validateStartingOffsets(properties);
     }
 

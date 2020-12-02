@@ -76,7 +76,7 @@ public class PulsarDynamicTableSink implements DynamicTableSink, SupportsWriting
      */
     protected final Properties properties;
 
-    /** Optional format for encoding keys to Kafka. */
+    /** Optional format for encoding keys to Pulsar. */
     protected final @Nullable
     EncodingFormat<SerializationSchema<RowData>> keyEncodingFormat;
     /**
@@ -176,7 +176,6 @@ public class PulsarDynamicTableSink implements DynamicTableSink, SupportsWriting
         final boolean hasMetadata = metadataKeys.size() > 0;
 
         final DynamicPulsarSerializationSchema pulsarSerializer = new DynamicPulsarSerializationSchema(
-                topic,
                 keySerialization,
                 valueSerialization,
                 keyFieldGetters,

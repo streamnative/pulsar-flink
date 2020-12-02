@@ -15,9 +15,7 @@
 package org.apache.flink.streaming.util.serialization;
 
 import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.util.Collector;
 
-import com.google.common.base.Preconditions;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
@@ -49,13 +47,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.apache.flink.shaded.guava18.com.google.common.base.Preconditions.checkArgument;
+
 /**
  * pulsar primitive deserialization.
  */
 public class PulsarPrimitiveSchema<T> implements PulsarSerializationSchema<T>,
         PulsarDeserializationSchema<T>, PulsarContextAware<T> {
 
-    private final static Map<Class<?>, Schema<?>> pulsarPrimitives = new HashMap<>();
+    private static final Map<Class<?>, Schema<?>> pulsarPrimitives = new HashMap<>();
 
     static {
         pulsarPrimitives.put(Boolean.class, BooleanSchema.of());
@@ -87,7 +87,7 @@ public class PulsarPrimitiveSchema<T> implements PulsarSerializationSchema<T>,
 
     @SuppressWarnings("unchecked")
     public PulsarPrimitiveSchema(Class<T> recordClazz) {
-        Preconditions.checkArgument(pulsarPrimitives.containsKey(recordClazz), "Must be of Pulsar primitive types");
+        checkArgument(pulsarPrimitives.containsKey(recordClazz), "Must be of Pulsar primitive types");
         this.recordClazz = recordClazz;
     }
 

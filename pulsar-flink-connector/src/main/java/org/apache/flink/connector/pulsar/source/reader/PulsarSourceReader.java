@@ -24,7 +24,6 @@ import org.apache.flink.connector.base.source.reader.synchronization.FutureCompl
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 import org.apache.flink.util.function.RunnableWithException;
 
-import java.util.Collection;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -46,7 +45,6 @@ public class PulsarSourceReader<T>
         super(elementsQueue, splitReaderSupplier, recordEmitter, config, context);
         this.closeCallback = closeCallback;
     }
-
 
     @Override
     public void close() throws Exception {

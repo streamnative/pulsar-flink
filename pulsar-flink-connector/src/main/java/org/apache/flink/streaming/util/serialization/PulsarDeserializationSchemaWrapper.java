@@ -21,7 +21,6 @@ import org.apache.flink.formats.avro.AvroDeserializationSchema;
 import org.apache.flink.formats.avro.typeutils.AvroSchemaConverter;
 import org.apache.flink.formats.json.JsonNodeDeserializationSchema;
 import org.apache.flink.table.types.DataType;
-import org.apache.flink.util.Collector;
 
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.Schema;

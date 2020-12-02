@@ -39,6 +39,7 @@ public interface MessageDeserializer<T> extends Serializable, ResultTypeQueryabl
      */
     default void open(DeserializationSchema.InitializationContext context) throws Exception {
     }
+
     /**
      * Deserialize a consumer record into the given collector.
      *

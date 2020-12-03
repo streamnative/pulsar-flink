@@ -200,7 +200,6 @@ class DynamicPulsarSerializationSchema
         }
     }
 
-
     // --------------------------------------------------------------------------------------------
 
     interface MetadataConverter extends Serializable {

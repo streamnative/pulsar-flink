@@ -71,7 +71,7 @@
     <scala.binary.version>2.11</scala.binary.version>
 
     <!-- use Pulsar stable version -->
-    <pulsar.version>2.7.0-snapshot</pulsar.version>
+    <pulsar.version>2.7.0-SNAPSHOT</pulsar.version>
     <streamnative-tests.version>2.5.1</streamnative-tests.version>
     <testcontainers.version>1.14.3</testcontainers.version>
     <hamcrest.version>1.3</hamcrest.version>
@@ -364,7 +364,7 @@
     <repository>
       <id>apache-snapshots</id>
       <url>
-        https://repository.apache.org/content/repositories/snapshots/"
+        https://repository.apache.org/content/repositories/snapshots/
       </url>
       <snapshots>
         <enabled>true</enabled>

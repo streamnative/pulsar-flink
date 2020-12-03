@@ -439,7 +439,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
     }
 
     @Test
-    public void testKafkaSourceSinkWithMetadata() throws Exception {
+    public void testPulsarSourceSinkWithMetadata() throws Exception {
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.setParallelism(1);
         StreamTableEnvironment tEnv = StreamTableEnvironment.create(see);

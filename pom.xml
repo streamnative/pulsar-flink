@@ -71,7 +71,7 @@
     <scala.binary.version>2.11</scala.binary.version>
 
     <!-- use Pulsar stable version -->
-    <pulsar.version>2.6.0-sn-18-2</pulsar.version>
+    <pulsar.version>2.7.0-snapshot</pulsar.version>
     <streamnative-tests.version>2.5.1</streamnative-tests.version>
     <testcontainers.version>1.14.3</testcontainers.version>
     <hamcrest.version>1.3</hamcrest.version>

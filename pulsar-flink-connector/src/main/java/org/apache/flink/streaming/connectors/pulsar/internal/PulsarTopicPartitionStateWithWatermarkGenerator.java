@@ -20,7 +20,7 @@ import org.apache.flink.api.common.eventtime.WatermarkGenerator;
 import org.apache.flink.api.common.eventtime.WatermarkOutput;
 
 /**
- * A special version of the per-kafka-partition-state that additionally holds a {@link
+ * A special version of the per-pulsar-partition-state that additionally holds a {@link
  * TimestampAssigner}, {@link WatermarkGenerator}, an immediate {@link WatermarkOutput}, and a
  * deferred {@link WatermarkOutput} for this partition.
  *

@@ -83,7 +83,7 @@ public class PulsarFetcher<T> {
     private final int timestampWatermarkMode;
 
     /**
-     * Optional watermark strategy that will be run per Kafka partition, to exploit per-partition
+     * Optional watermark strategy that will be run per pulsar partition, to exploit per-partition
      * timestamp characteristics. The watermark strategy is kept in serialized form, to deserialize
      * it into multiple copies.
      */
@@ -133,7 +133,7 @@ public class PulsarFetcher<T> {
     /**
      * Flag indicating whether or not metrics should be exposed.
      * If {@code true}, offset metrics (e.g. current offset, committed offset) and
-     * Kafka-shipped metrics will be registered.
+     * pulsar-shipped metrics will be registered.
      */
     private final boolean useMetrics;
 
@@ -241,6 +241,11 @@ public class PulsarFetcher<T> {
         // all seed partitions are not assigned yet, so should be added to the unassigned partitions queue
         for (PulsarTopicState<T> state : subscribedPartitionStates) {
             unassignedPartitionsQueue.add(state);
+        }
+
+        // register metrics for the initial seed partitions
+        if (useMetrics) {
+            registerOffsetMetrics(consumerMetricGroup, subscribedPartitionStates);
         }
 
         // if we have periodic watermarks, kick off the interval scheduler
@@ -609,7 +614,6 @@ public class PulsarFetcher<T> {
         for (PulsarTopicState<T> pts : partitionOffsetStates) {
             MetricGroup topicPartitionGroup = consumerMetricGroup
                     .addGroup(OFFSETS_BY_TOPIC_METRICS_GROUP, pts.getTopicRange().getTopic());
-            //.addGroup(OFFSETS_BY_PARTITION_METRICS_GROUP, Integer.toString(pts.getTopicRange().getTopic()));
 
             topicPartitionGroup.gauge(CURRENT_OFFSETS_METRICS_GAUGE, new OffsetGauge(pts, OffsetGaugeType.CURRENT_OFFSET));
             topicPartitionGroup.gauge(COMMITTED_OFFSETS_METRICS_GAUGE, new OffsetGauge(pts, OffsetGaugeType.COMMITTED_OFFSET));
@@ -625,7 +629,7 @@ public class PulsarFetcher<T> {
     }
 
     /**
-     * Gauge for getting the offset of a KafkaTopicPartitionState.
+     * Gauge for getting the offset of a PulsarTopicState.
      */
     private static class OffsetGauge implements Gauge<MessageId> {
 

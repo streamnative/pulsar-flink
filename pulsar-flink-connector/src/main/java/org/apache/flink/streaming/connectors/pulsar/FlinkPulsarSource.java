@@ -114,7 +114,7 @@ public class FlinkPulsarSource<T>
     private Map<TopicRange, MessageId> ownedTopicStarts;
 
     /**
-     * Optional watermark strategy that will be run per Kafka partition, to exploit per-partition
+     * Optional watermark strategy that will be run per pulsar partition, to exploit per-partition
      * timestamp characteristics. The watermark strategy is kept in serialized form, to deserialize
      * it into multiple copies.
      */
@@ -332,14 +332,14 @@ public class FlinkPulsarSource<T>
      * Sets the given {@link WatermarkStrategy} on this consumer. These will be used to assign
      * timestamps to records and generates watermarks to signal event time progress.
      *
-     * <p>Running timestamp extractors / watermark generators directly inside the Kafka source
-     * (which you can do by using this method), per Kafka partition, allows users to let them
+     * <p>Running timestamp extractors / watermark generators directly inside the Pulsar source
+     * (which you can do by using this method), per Pulsar partition, allows users to let them
      * exploit the per-partition characteristics.
      *
-     * <p>When a subtask of a FlinkKafkaConsumer source reads multiple Kafka partitions,
+     * <p>When a subtask of a FlinkPulsarSource reads multiple pulsar partitions,
      * the streams from the partitions are unioned in a "first come first serve" fashion.
      * Per-partition characteristics are usually lost that way. For example, if the timestamps are
-     * strictly ascending per Kafka partition, they will not be strictly ascending in the resulting
+     * strictly ascending per Pulsar partition, they will not be strictly ascending in the resulting
      * Flink DataStream, if the parallel source subtask reads more than one partition.
      *
      * <p>Common watermark generation patterns can be found as static methods in the

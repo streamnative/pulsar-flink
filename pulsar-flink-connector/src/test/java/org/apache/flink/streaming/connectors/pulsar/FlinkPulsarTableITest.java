@@ -481,7 +481,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
 
         tEnv.executeSql(initialValues).await();
 
-        // ---------- Consume stream from Kafka -------------------
+        // ---------- Consume stream from pulsar -------------------
 
         final List<Row> result = PulsarTableTestUtils.collectRows(tEnv.sqlQuery("SELECT * FROM pulsar"), 3);
 

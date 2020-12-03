@@ -97,6 +97,8 @@ public class PulsarDynamicTableSink implements DynamicTableSink, SupportsWriting
     /** Sink commit semantic. */
     protected final PulsarSinkSemantic semantic;
 
+    private final String formatType;
+
     protected PulsarDynamicTableSink(
             String serviceUrl,
             String adminUrl,
@@ -108,7 +110,8 @@ public class PulsarDynamicTableSink implements DynamicTableSink, SupportsWriting
             int[] keyProjection,
             int[] valueProjection,
             @Nullable String keyPrefix,
-            PulsarSinkSemantic semantic) {
+            PulsarSinkSemantic semantic,
+            String formatType) {
         this.serviceUrl = Preconditions.checkNotNull(serviceUrl, "serviceUrl data type must not be null.");
         this.adminUrl = Preconditions.checkNotNull(adminUrl, "adminUrl data type must not be null.");
         this.topic = Preconditions.checkNotNull(topic, "Topic must not be null.");
@@ -122,6 +125,7 @@ public class PulsarDynamicTableSink implements DynamicTableSink, SupportsWriting
         this.valueProjection = Preconditions.checkNotNull(valueProjection, "Value projection must not be null.");
         this.keyPrefix = keyPrefix;
         this.semantic = Preconditions.checkNotNull(semantic, "Semantic must not be null.");
+        this.formatType = Preconditions.checkNotNull(formatType, "FormatType must not be null.");
     }
 
     @Override
@@ -131,7 +135,6 @@ public class PulsarDynamicTableSink implements DynamicTableSink, SupportsWriting
 
     @Override
     public SinkRuntimeProvider getSinkRuntimeProvider(Context context) {
-
         final SerializationSchema<RowData> keySerialization =
                 createSerialization(context, keyEncodingFormat, keyProjection, keyPrefix);
 
@@ -175,7 +178,7 @@ public class PulsarDynamicTableSink implements DynamicTableSink, SupportsWriting
         // check if metadata is used at all
         final boolean hasMetadata = metadataKeys.size() > 0;
 
-        final DynamicPulsarSerializationSchema pulsarSerializer = new DynamicPulsarSerializationSchema(
+        return new DynamicPulsarSerializationSchema(
                 keySerialization,
                 valueSerialization,
                 keyFieldGetters,
@@ -184,8 +187,7 @@ public class PulsarDynamicTableSink implements DynamicTableSink, SupportsWriting
                 metadataPositions,
                 false,
                 physicalDataType,
-                "");
-        return pulsarSerializer;
+                formatType);
     }
 
     private SinkFunction<RowData> createPulsarSink(String topic, Properties properties,
@@ -238,7 +240,7 @@ public class PulsarDynamicTableSink implements DynamicTableSink, SupportsWriting
                 this.keyProjection,
                 this.valueProjection,
                 this.keyPrefix,
-                this.semantic);
+                this.semantic, formatType);
     }
 
     @Override

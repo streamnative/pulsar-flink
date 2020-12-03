@@ -312,7 +312,8 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
                 TOPIC,
                 PULSAR_SINK_PROPERTIES,
                 PulsarSinkSemantic.AT_LEAST_ONCE,
-                null
+                null,
+                TestFormatFactory.IDENTIFIER
         );
         assertEquals(expectedSink, actualSink);
 
@@ -515,7 +516,8 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
             String topic,
             Properties properties,
             PulsarSinkSemantic semantic,
-            @Nullable Integer parallelism) {
+            @Nullable Integer parallelism,
+            String formatType) {
         return new PulsarDynamicTableSink(
                 SERVICE_URL,
                 ADMIN_URL,
@@ -527,7 +529,8 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
                 keyProjection,
                 valueProjection,
                 keyPrefix,
-                semantic);
+                semantic,
+                formatType);
     }
 
     private static DynamicTableSource createTableSource(TableSchema schema, Map<String, String> options) {

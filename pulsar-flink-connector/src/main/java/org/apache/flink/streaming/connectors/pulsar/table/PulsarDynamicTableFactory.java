@@ -67,6 +67,7 @@ import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.c
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.createValueFormatProjection;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.validateTableSourceOptions;
 import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CONNECTOR;
+import static org.apache.flink.table.factories.FactoryUtil.FORMAT;
 import static org.apache.flink.table.factories.FactoryUtil.SINK_PARALLELISM;
 
 /**
@@ -121,6 +122,8 @@ public class PulsarDynamicTableFactory implements
                                                          EncodingFormat<SerializationSchema<RowData>> valueEncodingFormat,
                                                          Properties properties, DataType physicalDataType,
                                                          int[] keyProjection, int[] valueProjection, String keyPrefix) {
+
+        final String formatType = tableOptions.getOptional(FORMAT).orElseGet(() -> tableOptions.get(VALUE_FORMAT));
         return new PulsarDynamicTableSink(
                 serverUrl,
                 adminUrl,
@@ -132,7 +135,8 @@ public class PulsarDynamicTableFactory implements
                 keyProjection,
                 valueProjection,
                 keyPrefix,
-                PulsarOptions.getSinkSemantic(tableOptions)
+                PulsarOptions.getSinkSemantic(tableOptions),
+                formatType
         );
     }
 

@@ -43,7 +43,7 @@ import java.util.Optional;
 import static org.apache.flink.shaded.guava18.com.google.common.base.Preconditions.checkArgument;
 
 /**
- * A specific {@link MessageSerializer} for {@link PulsarDynamicTableSink}.
+ * A specific Serializer for {@link PulsarDynamicTableSink}.
  */
 class DynamicPulsarSerializationSchema
         implements PulsarSerializationSchema<RowData>, PulsarContextAware<RowData> {

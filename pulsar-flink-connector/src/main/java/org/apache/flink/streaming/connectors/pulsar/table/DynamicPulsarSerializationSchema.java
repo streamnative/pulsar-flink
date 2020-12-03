@@ -182,19 +182,9 @@ class DynamicPulsarSerializationSchema
         }
         switch (StringUtils.lowerCase(valueFormatType)) {
             case "json":
+                return new FlinkSchema<>(getSchemaInfo(SchemaType.JSON), valueSerialization, null);
             case "avro":
-                final RowType rowType = (RowType) valueDataType.getLogicalType();
-
-                org.apache.avro.Schema schema = AvroSchemaConverter.convertToSchema(rowType);
-                if (schema.isNullable()){
-                    schema = schema.getTypes().stream().filter(s -> s.getType() == RECORD).findAny().get();
-                }
-                byte[] schemaBytes = schema.toString().getBytes(StandardCharsets.UTF_8);
-                SchemaInfo si = new SchemaInfo();
-                si.setName("Record");
-                si.setSchema(schemaBytes);
-                si.setType(SchemaType.AVRO);
-                return new FlinkSchema<>(si, valueSerialization, null);
+                return new FlinkSchema<>(getSchemaInfo(SchemaType.AVRO), valueSerialization, null);
             case "atomic":
                 try {
                     Schema pulsarSchema = SimpleSchemaTranslator.sqlType2PulsarSchema(valueDataType.getChildren().get(0));
@@ -202,10 +192,31 @@ class DynamicPulsarSerializationSchema
                 } catch (IncompatibleSchemaException e) {
                     throw new RuntimeException("cant convert" + valueDataType + "to pulsar schema");
                 }
+
             default:
                 throw new UnsupportedOperationException(
                         "Generic schema is not supported on schema type " + valueFormatType + "'");
         }
+    }
+
+    private SchemaInfo getSchemaInfo(SchemaType type) {
+        byte[] schemaBytes = getAvroSchema().toString().getBytes(StandardCharsets.UTF_8);
+        return SchemaInfo.builder()
+                .name("Record")
+                .schema(schemaBytes)
+                .type(type)
+                .build();
+    }
+
+    private org.apache.avro.Schema getAvroSchema() {
+        org.apache.avro.Schema schema = AvroSchemaConverter.convertToSchema(valueDataType.getLogicalType());
+        if (schema.isNullable()) {
+            schema = schema.getTypes().stream()
+                    .filter(s -> s.getType() == RECORD)
+                    .findAny()
+                    .orElseThrow(() -> new IllegalArgumentException("not support DataType: "+ valueDataType.toString()));
+        }
+        return schema;
     }
 
     // --------------------------------------------------------------------------------------------

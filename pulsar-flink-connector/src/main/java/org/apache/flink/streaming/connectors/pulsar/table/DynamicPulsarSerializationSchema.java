@@ -187,7 +187,8 @@ class DynamicPulsarSerializationSchema
                 return new FlinkSchema<>(getSchemaInfo(SchemaType.AVRO), valueSerialization, null);
             case "atomic":
                 try {
-                    Schema pulsarSchema = SimpleSchemaTranslator.sqlType2PulsarSchema(valueDataType.getChildren().get(0));
+                    Schema pulsarSchema =
+                            SimpleSchemaTranslator.sqlType2PulsarSchema(valueDataType.getChildren().get(0));
                     return new FlinkSchema<>(pulsarSchema.getSchemaInfo(), valueSerialization, null);
                 } catch (IncompatibleSchemaException e) {
                     throw new RuntimeException("cant convert" + valueDataType + "to pulsar schema");
@@ -214,7 +215,8 @@ class DynamicPulsarSerializationSchema
             schema = schema.getTypes().stream()
                     .filter(s -> s.getType() == RECORD)
                     .findAny()
-                    .orElseThrow(() -> new IllegalArgumentException("not support DataType: "+ valueDataType.toString()));
+                    .orElseThrow(
+                            () -> new IllegalArgumentException("not support DataType: " + valueDataType.toString()));
         }
         return schema;
     }

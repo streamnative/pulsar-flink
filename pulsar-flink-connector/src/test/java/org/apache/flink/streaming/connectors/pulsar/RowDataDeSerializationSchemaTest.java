@@ -48,7 +48,6 @@ import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.impl.schema.AutoConsumeSchema;
-import org.apache.pulsar.client.impl.schema.AutoProduceBytesSchema;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.jetbrains.annotations.NotNull;
@@ -86,7 +85,6 @@ import static org.apache.flink.table.api.DataTypes.STRING;
 import static org.apache.flink.table.api.DataTypes.TIME;
 import static org.apache.flink.table.api.DataTypes.TIMESTAMP;
 import static org.apache.flink.table.api.DataTypes.TINYINT;
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -98,7 +96,7 @@ public class RowDataDeSerializationSchemaTest extends PulsarTestBase {
     @Test
     public void testAvroSerializeDeserialize() throws Exception {
         String topicName = newTopic();
-        final DataType dataType = getDataType();
+        final DataType dataType = getAvroDataType();
         final RowType rowType = (RowType) dataType.getLogicalType();
         final TypeInformation<RowData> typeInfo = InternalTypeInfo.of(rowType);
 
@@ -114,19 +112,16 @@ public class RowDataDeSerializationSchemaTest extends PulsarTestBase {
         AvroRowDataDeserializationSchema deserializationSchema =
                 new AvroRowDataDeserializationSchema(rowType, typeInfo);
         deserializationSchema.open(null);
-
         RowData rowData = deserializationSchema.deserialize(input);
-        byte[] output = serializationSchema.serialize(rowData);
         final org.apache.pulsar.client.api.Schema<RowData> pulsarSchema =
                 toPulsarSchema(SchemaType.AVRO, avroSchema,
                         serializationSchema, deserializationSchema);
-        sendMessage(topicName, pulsarSchema, output);
+        sendMessage(topicName, pulsarSchema, rowData);
         final CompletableFuture<byte[]> consumer = autoConsumer(topicName
         );
 
         RowData newRowData = deserializationSchema.deserialize(consumer.get(2000, TimeUnit.MILLISECONDS));
         assertEquals(rowData, newRowData);
-        assertArrayEquals(input, output);
     }
 
     @Test
@@ -149,13 +144,10 @@ public class RowDataDeSerializationSchemaTest extends PulsarTestBase {
         JsonRowDataDeserializationSchema deserializationSchema = new JsonRowDataDeserializationSchema(rowType, typeInfo,
                 false, false, TimestampFormat.ISO_8601);
         deserializationSchema.open(null);
-
         RowData rowData = deserializationSchema.deserialize(serializedJson);
-        byte[] output = serializationSchema.serialize(rowData);
-        assertArrayEquals(serializedJson, output);
 
         sendMessage(topicName, toPulsarSchema(SchemaType.JSON, avroSchema, serializationSchema, deserializationSchema),
-                output);
+                rowData);
         final CompletableFuture<byte[]> consumer = autoConsumer(topicName);
 
         RowData newRowData = deserializationSchema.deserialize(consumer.get(2000, TimeUnit.MILLISECONDS));
@@ -240,14 +232,14 @@ public class RowDataDeSerializationSchemaTest extends PulsarTestBase {
         return new FlinkSchema<>(si, serializationSchema, deserializationSchema);
     }
 
-    public void sendMessage(String topic, org.apache.pulsar.client.api.Schema<?> schema, byte[] data) throws Exception {
+    public void sendMessage(String topic, org.apache.pulsar.client.api.Schema<RowData> schema, RowData data) throws Exception {
         try (
                 PulsarClient pulsarClient = PulsarClient.builder()
                         .serviceUrl(serviceUrl)
                         .build();
-                final Producer<byte[]> producer = pulsarClient.newProducer(new AutoProduceBytesSchema<>(schema))
+                final Producer<RowData> producer = pulsarClient.newProducer(schema)
                         .topic(topic)
-                        .create();) {
+                        .create()) {
             pulsarClient
                     .newConsumer(new AutoConsumeSchema())
                     .topic(topic)
@@ -342,7 +334,7 @@ public class RowDataDeSerializationSchemaTest extends PulsarTestBase {
     }
 
     @NotNull
-    private DataType getDataType() {
+    private DataType getAvroDataType() {
         final DataType dataType = ROW(
                 FIELD("bool", BOOLEAN()),
                 FIELD("tinyint", TINYINT()),

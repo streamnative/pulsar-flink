@@ -17,6 +17,8 @@ package org.apache.flink.streaming.connectors.pulsar.table;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.formats.avro.typeutils.AvroSchemaConverter;
+import org.apache.flink.streaming.connectors.pulsar.internal.IncompatibleSchemaException;
+import org.apache.flink.streaming.connectors.pulsar.internal.SimpleSchemaTranslator;
 import org.apache.flink.streaming.util.serialization.FlinkSchema;
 import org.apache.flink.streaming.util.serialization.PulsarContextAware;
 import org.apache.flink.streaming.util.serialization.PulsarSerializationSchema;
@@ -193,6 +195,13 @@ class DynamicPulsarSerializationSchema
                 si.setSchema(schemaBytes);
                 si.setType(SchemaType.AVRO);
                 return new FlinkSchema<>(si, valueSerialization, null);
+            case "atomic":
+                try {
+                    Schema pulsarSchema = SimpleSchemaTranslator.sqlType2PulsarSchema(valueDataType.getChildren().get(0));
+                    return new FlinkSchema<>(pulsarSchema.getSchemaInfo(), valueSerialization, null);
+                } catch (IncompatibleSchemaException e) {
+                    throw new RuntimeException("cant convert" + valueDataType + "to pulsar schema");
+                }
             default:
                 throw new UnsupportedOperationException(
                         "Generic schema is not supported on schema type " + valueFormatType + "'");

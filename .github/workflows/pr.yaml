@@ -51,7 +51,7 @@ jobs:
       - name: Run check and test
         run: |
           ./tools/retry.sh mvn -B -ntp clean install -Pscala-2.12
-  unit-tests-batch:
+  unit-tests-local:
     runs-on: ubuntu-latest
     timeout-minutes: 120
 
@@ -67,6 +67,7 @@ jobs:
       - name: install Pulsar Service
         run: |
           apt update && apt install -y wget
+          cd /tmp
           wget -O 'apache-pulsar-2.6.1-bin.tar.gz' 'https://www.apache.org/dyn/mirrors/mirrors.cgi?action=download&filename=pulsar/pulsar-2.6.1/apache-pulsar-2.6.1-bin.tar.gz'
           tar -xvzf apache-pulsar-2.6.1-bin.tar.gz
           cd apache-pulsar-2.6.1

@@ -41,6 +41,7 @@ import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
+import static org.apache.avro.Schema.Type.RECORD;
 import static org.apache.flink.shaded.guava18.com.google.common.base.Preconditions.checkArgument;
 
 /**
@@ -143,10 +144,6 @@ class DynamicPulsarSerializationSchema
         if (eventTime != null && eventTime >= 0) {
             messageBuilder.eventTime(eventTime);
         }
-        final String key = readMetadata(consumedRow, PulsarDynamicTableSink.WritableMetadata.KEY);
-        if (key != null) {
-            messageBuilder.key(key);
-        }
     }
 
     public Optional<String> getTargetTopic(RowData element) {
@@ -188,7 +185,10 @@ class DynamicPulsarSerializationSchema
             case "avro":
                 final RowType rowType = (RowType) valueDataType.getLogicalType();
 
-                final org.apache.avro.Schema schema = AvroSchemaConverter.convertToSchema(rowType);
+                org.apache.avro.Schema schema = AvroSchemaConverter.convertToSchema(rowType);
+                if (schema.isNullable()){
+                    schema = schema.getTypes().stream().filter(s -> s.getType() == RECORD).findAny().get();
+                }
                 byte[] schemaBytes = schema.toString().getBytes(StandardCharsets.UTF_8);
                 SchemaInfo si = new SchemaInfo();
                 si.setName("Record");

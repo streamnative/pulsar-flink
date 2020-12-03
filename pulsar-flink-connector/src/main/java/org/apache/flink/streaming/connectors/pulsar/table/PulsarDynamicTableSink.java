@@ -325,15 +325,6 @@ public class PulsarDynamicTableSink implements DynamicTableSink, SupportsWriting
                         return null;
                     }
                     return row.getTimestamp(pos, 3).getMillisecond();
-                }),
-        KEY(
-                "key",
-                DataTypes.STRING().nullable(),
-                (row, pos) -> {
-                    if (row.isNullAt(pos)) {
-                        return null;
-                    }
-                    return row.getString(pos).toString();
                 });
         final String key;
 

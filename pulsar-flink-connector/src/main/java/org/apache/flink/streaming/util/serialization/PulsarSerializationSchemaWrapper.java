@@ -31,6 +31,8 @@ import org.apache.pulsar.shade.org.apache.http.util.Asserts;
 
 import java.util.Optional;
 
+import static org.apache.flink.util.Preconditions.checkNotNull;
+
 /**
  * A wrapper that warp flink {@link SerializationSchema} to {@link PulsarSerializationSchema}.
  */
@@ -43,7 +45,7 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
     private final SchemaMode schemaMode;
     private final SerializableFunction<T, String> topicExtractor;
 
-    public PulsarSerializationSchemaWrapper(SerializationSchema<T> serializationSchema,
+    private PulsarSerializationSchemaWrapper(SerializationSchema<T> serializationSchema,
                                             RecordSchemaType recordSchemaType,
                                             Class<?> clazz,
                                             Schema<?> schema,
@@ -55,7 +57,7 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
         this.schema = schema;
         this.clazz = clazz;
         this.dataType = dataType;
-        this.schemaMode = schemaMode;
+        this.schemaMode = checkNotNull(schemaMode);
         this.topicExtractor = topicExtractor;
 
     }

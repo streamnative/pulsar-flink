@@ -18,10 +18,7 @@ import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.core.testutils.CheckedThread;
 import org.apache.flink.core.testutils.OneShotLatch;
 import org.apache.flink.metrics.groups.UnregisteredMetricsGroup;
-import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
-import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
-import org.apache.flink.streaming.api.watermark.Watermark;
 import org.apache.flink.streaming.connectors.pulsar.testutils.TestSourceContext;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
 import org.apache.flink.streaming.runtime.tasks.TestProcessingTimeService;
@@ -31,11 +28,8 @@ import org.apache.flink.util.TestLogger;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.impl.MessageIdImpl;
 import org.apache.pulsar.common.naming.TopicName;
-import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.internal.util.collections.Sets;
-
-import javax.annotation.Nullable;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -43,7 +37,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -158,52 +151,7 @@ public class PulsarFetcherTest extends TestLogger {
         checkedThread.sync();
     }
 
-   /* @Test
-    public void testSkipCorruptedRecordWithPeriodicWatermarks() throws Exception {
-        String testTopic = "tp";
-        Map<TopicRange, MessageId> offset = Collections.singletonMap(new TopicRange(topicName(testTopic, 1)),
-                MessageId.latest);
-
-        TestProcessingTimeService processingTimeProvider = new TestProcessingTimeService();
-
-        TestSourceContext<Long> sourceContext = new TestSourceContext<Long>();
-        TestFetcher<Long> fetcher = new TestFetcher<>(
-                sourceContext,
-                offset,
-                new SerializedValue<>(new PeriodicTestExtractor()), *//* periodic watermark assigner *//*
-                null,
-                processingTimeProvider,
-                10,
-                null,
-                null);
-
-        PulsarTopicState stateHolder = fetcher.getSubscribedTopicStates().get(0);
-
-        fetcher.emitRecordsWithTimestamps(1L, stateHolder, dummyMessageId(1), dummyMessageEventTime());
-        fetcher.emitRecordsWithTimestamps(2L, stateHolder, dummyMessageId(2), dummyMessageEventTime());
-        fetcher.emitRecordsWithTimestamps(3L, stateHolder, dummyMessageId(3), dummyMessageEventTime());
-        Assert.assertEquals(3L, sourceContext.getLatestElement().getValue().longValue());
-        Assert.assertEquals(3L, sourceContext.getLatestElement().getTimestamp());
-        assertEquals(dummyMessageId(3), stateHolder.getOffset());
-
-        // advance timer for watermark emitting
-        processingTimeProvider.setCurrentTime(10L);
-        assertTrue(sourceContext.hasWatermark());
-        Assert.assertEquals(sourceContext.getLatestWatermark().getTimestamp(), 3L);
-
-        // emit null record
-        fetcher.emitRecordsWithTimestamps(null, stateHolder, dummyMessageId(4), dummyMessageEventTime());
-
-        // no elements should have been collected
-        Assert.assertEquals(3L, sourceContext.getLatestElement().getValue().longValue());
-        Assert.assertEquals(3L, sourceContext.getLatestElement().getTimestamp());
-        // the offset in state still should be advanced
-        assertEquals(dummyMessageId(4), stateHolder.getOffset());
-
-        processingTimeProvider.setCurrentTime(20L);
-        assertFalse(sourceContext.hasWatermark());
-    }
-
+   /*
     @Test
     public void testSkipCorruptedRecordWithPunctuatedWatermarks() throws Exception {
         String testTopic = "tp";

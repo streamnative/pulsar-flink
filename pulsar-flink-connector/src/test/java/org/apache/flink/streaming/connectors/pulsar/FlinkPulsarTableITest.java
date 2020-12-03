@@ -25,6 +25,7 @@ import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReade
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.streaming.connectors.pulsar.internal.SimpleSchemaTranslator;
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper;
+import org.apache.flink.streaming.connectors.pulsar.testutils.PulsarTableTestUtils;
 import org.apache.flink.streaming.connectors.pulsar.testutils.SingletonStreamSink;
 import org.apache.flink.streaming.util.serialization.PulsarSerializationSchemaWrapper;
 import org.apache.flink.table.api.Table;
@@ -32,8 +33,6 @@ import org.apache.flink.table.api.TableColumn;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 import org.apache.flink.table.data.RowData;
-import org.apache.flink.table.descriptors.ConnectorDescriptor;
-import org.apache.flink.table.descriptors.Pulsar;
 import org.apache.flink.test.util.SuccessException;
 import org.apache.flink.test.util.TestUtils;
 import org.apache.flink.types.Row;
@@ -50,6 +49,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.text.MessageFormat;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -66,7 +66,9 @@ import static org.apache.flink.streaming.connectors.pulsar.SchemaData.flList;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.fmList;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.fooList;
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.TOPIC_SINGLE_OPTION_KEY;
+import static org.apache.flink.table.utils.TableTestMatchers.deepEqualTo;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 /**
  * Table API related Integration tests.
@@ -388,8 +390,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
                 serviceUrl,
                 adminUrl);
         tEnv.executeSql(createTable);
-        System.out.println("DDL OK");
-        Thread.sleep(1000);
+
         String initialValues = "INSERT INTO pulsar\n" +
                 "SELECT CAST(price AS DECIMAL(10, 2)), currency, " +
                 " CAST(d AS DATE), CAST(t AS TIME(0)), CAST(ts AS TIMESTAMP(3))\n" +
@@ -400,9 +401,9 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
                 "  (5.33,'US Dollar','2019-12-12', '00:00:05', '2019-12-12 00:00:05.006001'), \n" +
                 "  (0,'DUMMY','2019-12-12', '00:00:10', '2019-12-12 00:00:10'))\n" +
                 "  AS orders (price, currency, d, t, ts)";
-        tEnv.executeSql(initialValues);
-        Thread.sleep(1000);
-        // ---------- Consume stream from Kafka -------------------
+        tEnv.executeSql(initialValues).await();
+
+        // ---------- Consume stream from pulsar -------------------
         System.out.println("Insert ok");
         String query = "SELECT\n" +
                 "  CAST(TUMBLE_END(ts, INTERVAL '5' SECOND) AS VARCHAR),\n" +
@@ -437,12 +438,72 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         assertEquals(expected, TestingSinkFunction.rows);
     }
 
-    private ConnectorDescriptor getPulsarDescriptor(String tableName) {
-        return new Pulsar()
-                .urls(getServiceUrl(), getAdminUrl())
-                .topic(tableName)
-                .startFromEarliest()
-                .property(PulsarOptions.PARTITION_DISCOVERY_INTERVAL_MS_OPTION_KEY, "5000");
+    @Test
+    public void testKafkaSourceSinkWithMetadata() throws Exception {
+        StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
+        see.setParallelism(1);
+        StreamTableEnvironment tEnv = StreamTableEnvironment.create(see);
+        String topic = newTopic();
+
+        // ---------- Produce an event time stream into pulsar -------------------
+        final String createTable = String.format(
+                "CREATE TABLE pulsar (\n"
+                        + "  `physical_1` STRING,\n"
+                        + "  `physical_2` INT,\n"
+                        // metadata fields are out of order on purpose
+                        // offset is ignored because it might not be deterministic
+                        + "  `eventTime` TIMESTAMP(3) METADATA,\n"
+                        + "  `properties` MAP<STRING, STRING> METADATA ,\n"
+                        + "  `key` STRING METADATA ,\n"
+                        + "  `topic` STRING METADATA VIRTUAL,\n"
+                        + "  `sequenceId` BIGINT METADATA VIRTUAL,\n"
+                        + "  `physical_3` BOOLEAN\n"
+                        + ") WITH (\n"
+                        + "  'connector' = 'pulsar',\n"
+                        + "  'topic' = '%s',\n"
+                        + "  'service-url' = '%s',\n"
+                        + "  'admin-url' = '%s',\n"
+                        + " 'scan.startup.mode' = 'earliest',\n"
+                        + "  %s\n"
+                        + ")",
+                topic,
+                serviceUrl,
+                adminUrl,
+                " 'format' = 'avro' ");
+
+        tEnv.executeSql(createTable);
+
+        String initialValues = "INSERT INTO pulsar \n"
+                + "VALUES\n"
+                + " ('data 1', 1, TIMESTAMP '2020-03-08 13:12:11.123', MAP['k11', 'v11', 'k12', 'v12'], 'key1', TRUE),\n"
+                + " ('data 2', 2, TIMESTAMP '2020-03-09 13:12:11.123', MAP['k21', 'v21', 'k22', 'v22'], 'key2', FALSE),\n"
+                + " ('data 3', 3, TIMESTAMP '2020-03-10 13:12:11.123', MAP['k31', 'v31', 'k32', 'v32'], 'key3', TRUE)";
+
+        tEnv.executeSql(initialValues).await();
+
+        // ---------- Consume stream from Kafka -------------------
+
+        final List<Row> result = PulsarTableTestUtils.collectRows(tEnv.sqlQuery("SELECT * FROM pulsar"), 3);
+
+        final Map<String, String> headers1 = new HashMap<>();
+        headers1.put("k11", "v11");
+        headers1.put("k12", "v12");
+
+        final Map<String, String> headers2 = new HashMap<>();
+        headers2.put("k21", "v21");
+        headers2.put("k22", "v22");
+
+        final Map<String, String> headers3 = new HashMap<>();
+        headers3.put("k31", "v31");
+        headers3.put("k32", "v32");
+
+        final List<Row> expected = Arrays.asList(
+                Row.of("data 1", 1, LocalDateTime.parse("2020-03-08T13:12:11.123"), headers1, "key1", topic, 0L, true),
+                Row.of("data 2", 2, LocalDateTime.parse("2020-03-09T13:12:11.123"), headers2, "key2", topic, 1L, false),
+                Row.of("data 3", 3, LocalDateTime.parse("2020-03-10T13:12:11.123"), headers3, "key3", topic, 2L, true)
+        );
+
+        assertThat(result, deepEqualTo(expected, true));
     }
 
     private Properties getSinkProperties() {

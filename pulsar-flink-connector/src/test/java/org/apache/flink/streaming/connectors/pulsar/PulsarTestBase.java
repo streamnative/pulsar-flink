@@ -129,7 +129,7 @@ public abstract class PulsarTestBase extends TestLogger {
                 }
             }
             zkUrl = ((PulsarStandaloneContainerService) pulsarService).getZkUrl();
-            Thread.sleep(80 * 1000L);
+            Thread.sleep(80 * 100L);
         }
         clientConfigurationData.setServiceUrl(serviceUrl);
         consumerConfigurationData.setSubscriptionMode(SubscriptionMode.NonDurable);

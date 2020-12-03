@@ -47,6 +47,7 @@ import javax.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -466,8 +467,14 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
         PROPERTIES(
                 "properties",
                 // key and value of the map are nullable to make handling easier in queries
-                DataTypes.MAP(DataTypes.STRING().nullable(), DataTypes.BYTES().nullable()).notNull(),
-                message -> new GenericMapData(message.getProperties())
+                DataTypes.MAP(DataTypes.STRING().nullable(), DataTypes.STRING().nullable()).notNull(),
+                message -> {
+                    final Map<StringData, StringData> map = new HashMap<>();
+                    for (Map.Entry<String, String> e: message.getProperties().entrySet()) {
+                        map.put(StringData.fromString(e.getKey()), StringData.fromString(e.getValue()));
+                    }
+                    return new GenericMapData(map);
+                }
         );
 
         final String key;

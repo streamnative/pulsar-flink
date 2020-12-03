@@ -19,12 +19,8 @@ import org.apache.flink.api.common.eventtime.WatermarkOutputMultiplexer;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.metrics.Gauge;
 import org.apache.flink.metrics.MetricGroup;
-import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
-import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
 import org.apache.flink.streaming.api.functions.source.SourceFunction.SourceContext;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
-import org.apache.flink.streaming.api.watermark.Watermark;
-import org.apache.flink.streaming.connectors.pulsar.internal.metrics.PulsarSourceMetrics;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeCallback;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
 import org.apache.flink.streaming.util.serialization.PulsarDeserializationSchema;
@@ -374,7 +370,7 @@ public class PulsarFetcher<T> {
         // emit the records, using the checkpoint lock to guarantee
         // atomicity of record emission and offset state update
         synchronized (checkpointLock) {
-            if(record != null){
+            if (record != null) {
                 long timestamp = partitionState.extractTimestamp(record, pulsarEventTimestamp);
                 sourceContext.collectWithTimestamp(record, timestamp);
 
@@ -643,7 +639,7 @@ public class PulsarFetcher<T> {
 
         @Override
         public MessageId getValue() {
-            switch(gaugeType) {
+            switch (gaugeType) {
                 case COMMITTED_OFFSET:
                     return pts.getCommittedOffset();
                 case CURRENT_OFFSET:

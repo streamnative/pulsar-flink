@@ -1,3 +1,17 @@
+/**
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import org.apache.flink.api.common.eventtime.WatermarkGenerator;
@@ -10,6 +24,7 @@ import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.api.watermark.Watermark;
 import org.apache.flink.streaming.connectors.pulsar.testutils.TestSourceContext;
 import org.apache.flink.streaming.runtime.operators.util.AssignerWithPeriodicWatermarksAdapter;
+import org.apache.flink.streaming.runtime.operators.util.AssignerWithPunctuatedWatermarksAdapter;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
 import org.apache.flink.streaming.runtime.tasks.TestProcessingTimeService;
 import org.apache.flink.util.SerializedValue;
@@ -266,6 +281,145 @@ public class PulsarFetcherWatermarkTest {
                 PulsarCommitCallback offsetCommitCallback)
                 throws InterruptedException {
             throw new UnsupportedOperationException();
+        }
+    }
+
+    /**
+     * Tests with watermark generators that have a punctuated nature.
+     */
+    public static class PunctuatedWatermarksSuite {
+
+        @Test
+        public void testSkipCorruptedRecordWithPunctuatedWatermarks() throws Exception {
+            final String testTopic = "tp";
+            Map<TopicRange, MessageId> offset = new HashMap<>();
+            offset.put(
+                    new TopicRange(topicName(testTopic, 1)),
+                    MessageId.latest);
+
+            TestSourceContext<Long> sourceContext = new TestSourceContext<>();
+
+            TestProcessingTimeService processingTimeProvider = new TestProcessingTimeService();
+
+            AssignerWithPunctuatedWatermarksAdapter.Strategy<Long> testWmStrategy =
+                    new AssignerWithPunctuatedWatermarksAdapter.Strategy<>(new PunctuatedTestExtractor());
+
+            TestFetcher<Long> fetcher = new TestFetcher<>(
+                    sourceContext,
+                    offset,
+                    new SerializedValue<>(testWmStrategy),
+                    processingTimeProvider,
+                    0);
+
+            final PulsarTopicState<Long> partitionStateHolder =
+                    fetcher.subscribedPartitionStates.get(0);
+
+            // elements generate a watermark if the timestamp is a multiple of three
+            emitRecord(fetcher, 1L, partitionStateHolder, dummyMessageId(1));
+            emitRecord(fetcher, 2L, partitionStateHolder, dummyMessageId(2));
+            emitRecord(fetcher, 3L, partitionStateHolder, dummyMessageId(3));
+            assertEquals(3L, sourceContext.getLatestElement().getValue().longValue());
+            assertEquals(3L, sourceContext.getLatestElement().getTimestamp());
+            assertTrue(sourceContext.hasWatermark());
+            assertEquals(3L, sourceContext.getLatestWatermark().getTimestamp());
+            assertEquals(dummyMessageId(3), partitionStateHolder.getOffset());
+
+            // emit no records
+            fetcher.emitRecordsWithTimestamps(null, partitionStateHolder, dummyMessageId(4), -1L);
+
+            // no elements or watermarks should have been collected
+            assertEquals(3L, sourceContext.getLatestElement().getValue().longValue());
+            assertEquals(3L, sourceContext.getLatestElement().getTimestamp());
+            assertFalse(sourceContext.hasWatermark());
+            // the offset in state still should have advanced
+            assertEquals(dummyMessageId(4), partitionStateHolder.getOffset());
+        }
+
+        @Test
+        public void testPunctuatedWatermarks() throws Exception {
+            final String testTopic = "tp";
+            Map<TopicRange, MessageId> offset = new HashMap<>();
+            offset.put(
+                    new TopicRange(topicName(testTopic, 7)),
+                    MessageId.latest);
+            offset.put(
+                    new TopicRange(topicName(testTopic, 13)),
+                    MessageId.latest);
+            offset.put(
+                    new TopicRange(topicName(testTopic, 21)),
+                    MessageId.latest);
+
+            TestSourceContext<Long> sourceContext = new TestSourceContext<>();
+
+            TestProcessingTimeService processingTimeProvider = new TestProcessingTimeService();
+
+            AssignerWithPunctuatedWatermarksAdapter.Strategy<Long> testWmStrategy =
+                    new AssignerWithPunctuatedWatermarksAdapter.Strategy<>(new PunctuatedTestExtractor());
+
+            TestFetcher<Long> fetcher = new TestFetcher<>(
+                    sourceContext,
+                    offset,
+                    new SerializedValue<>(testWmStrategy),
+                    processingTimeProvider,
+                    0);
+
+            final PulsarTopicState<Long> part1 =
+                    fetcher.subscribedPartitionStates.get(0);
+            final PulsarTopicState<Long> part2 =
+                    fetcher.subscribedPartitionStates.get(1);
+            final PulsarTopicState<Long> part3 =
+                    fetcher.subscribedPartitionStates.get(2);
+
+            // elements generate a watermark if the timestamp is a multiple of three
+
+            // elements for partition 1
+            emitRecord(fetcher, 1L, part1, dummyMessageId(1));
+            emitRecord(fetcher, 2L, part1, dummyMessageId(1));
+            emitRecord(fetcher, 2L, part1, dummyMessageId(2));
+            emitRecord(fetcher, 2L, part1, dummyMessageId(3));
+            emitRecord(fetcher, 3L, part1, dummyMessageId(3));
+            assertEquals(3L, sourceContext.getLatestElement().getValue().longValue());
+            assertEquals(3L, sourceContext.getLatestElement().getTimestamp());
+            assertFalse(sourceContext.hasWatermark());
+
+            // elements for partition 2
+            emitRecord(fetcher, 12L, part2, dummyMessageId(1));
+            assertEquals(12L, sourceContext.getLatestElement().getValue().longValue());
+            assertEquals(12L, sourceContext.getLatestElement().getTimestamp());
+            assertFalse(sourceContext.hasWatermark());
+
+            // elements for partition 3
+            emitRecord(fetcher, 101L, part3, dummyMessageId(1));
+            emitRecord(fetcher, 102L, part3, dummyMessageId(2));
+            assertEquals(102L, sourceContext.getLatestElement().getValue().longValue());
+            assertEquals(102L, sourceContext.getLatestElement().getTimestamp());
+
+            // now, we should have a watermark
+            assertTrue(sourceContext.hasWatermark());
+            assertEquals(3L, sourceContext.getLatestWatermark().getTimestamp());
+
+            // advance partition 3
+            emitRecord(fetcher, 1003L, part3, dummyMessageId(3));
+            emitRecord(fetcher, 1004L, part3, dummyMessageId(4));
+            emitRecord(fetcher, 1005L, part3, dummyMessageId(5));
+            assertEquals(1005L, sourceContext.getLatestElement().getValue().longValue());
+            assertEquals(1005L, sourceContext.getLatestElement().getTimestamp());
+
+            // advance partition 1 beyond partition 2 - this bumps the watermark
+            emitRecord(fetcher, 30L, part1, dummyMessageId(4));
+            assertEquals(30L, sourceContext.getLatestElement().getValue().longValue());
+            assertEquals(30L, sourceContext.getLatestElement().getTimestamp());
+            assertTrue(sourceContext.hasWatermark());
+            assertEquals(12L, sourceContext.getLatestWatermark().getTimestamp());
+
+            // advance partition 2 again - this bumps the watermark
+            emitRecord(fetcher, 13L, part2, dummyMessageId(2));
+            assertFalse(sourceContext.hasWatermark());
+            emitRecord(fetcher, 14L, part2, dummyMessageId(3));
+            assertFalse(sourceContext.hasWatermark());
+            emitRecord(fetcher, 15L, part2, dummyMessageId(3));
+            assertTrue(sourceContext.hasWatermark());
+            assertEquals(15L, sourceContext.getLatestWatermark().getTimestamp());
         }
     }
 

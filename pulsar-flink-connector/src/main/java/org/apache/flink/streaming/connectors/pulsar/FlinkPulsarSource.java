@@ -75,7 +75,6 @@ import static org.apache.flink.streaming.connectors.pulsar.internal.metrics.Puls
 import static org.apache.flink.streaming.connectors.pulsar.internal.metrics.PulsarSourceMetrics.PULSAR_SOURCE_METRICS_GROUP;
 import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
-import static org.apache.flink.util.PropertiesUtil.getBoolean;
 
 /**
  * Pulsar data source.

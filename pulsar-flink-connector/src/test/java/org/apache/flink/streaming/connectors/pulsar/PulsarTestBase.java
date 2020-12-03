@@ -129,7 +129,7 @@ public abstract class PulsarTestBase extends TestLogger {
                 }
             }
             zkUrl = ((PulsarStandaloneContainerService) pulsarService).getZkUrl();
-            Thread.sleep(80 * 1000L);
+            Thread.sleep(80 * 100L);
         }
         clientConfigurationData.setServiceUrl(serviceUrl);
         consumerConfigurationData.setSubscriptionMode(SubscriptionMode.NonDurable);
@@ -324,43 +324,6 @@ public abstract class PulsarTestBase extends TestLogger {
             });
         }
         return splitsByOwners;
-    }
-
-    public static <T> List<MessageId> sendAvroMessages(
-            String topic,
-            SchemaType type,
-            List<T> messages,
-            Optional<Integer> partition,
-            Schema<T> schema) throws PulsarClientException {
-
-        String topicName;
-        if (partition.isPresent()) {
-            topicName = topic + PulsarOptions.PARTITION_SUFFIX + partition.get();
-        } else {
-            topicName = topic;
-        }
-
-        Producer producer = null;
-        List<MessageId> mids = new ArrayList<>();
-
-        try (PulsarClient client = PulsarClient.builder().serviceUrl(getServiceUrl()).build()) {
-            producer = (Producer<T>) client.newProducer(schema).topic(topicName).create();
-
-            for (T message : messages) {
-                MessageId mid = producer.send(message);
-                log.info("Sent {} of mid: {}", message.toString(), mid.toString());
-                mids.add(mid);
-            }
-
-        } catch (Exception e) {
-            log.error("message send failed", e);
-        } finally {
-            if (producer != null) {
-                producer.flush();
-                producer.close();
-            }
-        }
-        return mids;
     }
 
     public static String newTopic() {

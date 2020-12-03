@@ -56,7 +56,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * checkpoints are enabled and setFlushOnCheckpoint(true) is set.
  * Otherwise, the producer doesn't provide any reliability guarantees.
  *
- * @param <T> Type of the messages to write into Kafka.
+ * @param <T> Type of the messages to write into pulsar.
  */
 @Slf4j
 abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements CheckpointedFunction {
@@ -248,13 +248,6 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
         }
     }
 
-    /*    */
-
-    /**
-     * To determine how to generate schema for pulsar producer
-     * @return the schema that our producer use.
-     *//*
-    protected abstract Schema<T> buildSchema();*/
     protected Producer<T> createProducer(
             ClientConfigurationData clientConf,
             Map<String, Object> producerConf,

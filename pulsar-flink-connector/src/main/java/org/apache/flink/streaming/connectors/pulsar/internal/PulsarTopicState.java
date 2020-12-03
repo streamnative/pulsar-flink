@@ -26,7 +26,7 @@ import org.apache.pulsar.client.api.MessageId;
  */
 @Getter
 @Setter
-public class PulsarTopicState {
+public class PulsarTopicState<T> {
 
     private final TopicRange topicRange;
 
@@ -50,6 +50,26 @@ public class PulsarTopicState {
 
     public final boolean isOffsetDefined() {
         return offset != null;
+    }
+
+    public final void setCommittedOffset(MessageId offset) {
+        this.committedOffset = offset;
+    }
+
+    public final MessageId getCommittedOffset() {
+        return committedOffset;
+    }
+
+    public long extractTimestamp(T record, long pulsarEventTimestamp) {
+        return pulsarEventTimestamp;
+    }
+
+    public void onEvent(T event, long timestamp) {
+        // do nothing
+    }
+
+    public void onPeriodicEmit() {
+        // do nothing
     }
 
     @Override

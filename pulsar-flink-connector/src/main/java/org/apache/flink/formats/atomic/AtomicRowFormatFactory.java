@@ -88,11 +88,11 @@ public class AtomicRowFormatFactory implements SerializationFormatFactory, Deser
         String classname;
         if (dataType instanceof AtomicDataType) {
             Optional<Class<Object>> classOptional = DataTypeUtils.extractType(dataType);
-            classname = classOptional.map(Class::getCanonicalName).orElse(null);
+            classname = classOptional.map(Class::getName).orElse(null);
         } else if (dataType instanceof FieldsDataType) {
             final DataType type = dataType.getChildren().get(0);
             Optional<Class<Object>> classOptional = DataTypeUtils.extractType(type);
-            classname = classOptional.map(Class::getCanonicalName).orElse(null);
+            classname = classOptional.map(Class::getName).orElse(null);
         } else {
             throw new IllegalArgumentException();
         }

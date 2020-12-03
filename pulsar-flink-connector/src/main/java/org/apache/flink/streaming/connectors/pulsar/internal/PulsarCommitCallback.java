@@ -29,7 +29,7 @@ public interface PulsarCommitCallback {
     /**
      * A callback method the user can implement to provide asynchronous handling of commit request failure.
      * This method will be called when the commit request failed.
-     * @param cause Kafka commit failure cause returned by kafka client
+     * @param cause pulsar commit failure cause returned by pulsar client
      */
     void onException(Throwable cause);
 }

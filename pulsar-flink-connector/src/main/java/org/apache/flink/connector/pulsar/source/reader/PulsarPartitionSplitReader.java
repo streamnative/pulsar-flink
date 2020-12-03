@@ -168,6 +168,7 @@ public class PulsarPartitionSplitReader<T> implements SplitReader<ParsedMessage<
                 ExceptionUtils.rethrow(e, "Error while fetching from " + reader.getSplit());
             }
         }
+        recordsBySplits.prepareForRead();
         return recordsBySplits;
     }
 

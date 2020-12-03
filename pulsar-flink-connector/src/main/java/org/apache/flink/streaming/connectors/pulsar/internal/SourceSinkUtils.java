@@ -95,6 +95,11 @@ public class SourceSinkUtils {
         return Integer.parseInt(interval);
     }
 
+    public static boolean getUseMetrics(Map<String, String> parameters) {
+        String useMetrics = parameters.getOrDefault(PulsarOptions.KEY_DISABLED_METRICS, "false");
+        return Boolean.parseBoolean(useMetrics);
+    }
+
     public static int getCommitMaxRetries(Map<String, String> parameters) {
         String retries = parameters.getOrDefault(PulsarOptions.COMMIT_MAX_RETRIES, "3");
         return Integer.parseInt(retries);

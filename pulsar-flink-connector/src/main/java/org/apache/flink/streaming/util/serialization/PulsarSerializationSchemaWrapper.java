@@ -27,10 +27,10 @@ import org.apache.flink.table.types.DataType;
 
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
-import org.apache.pulsar.shade.org.apache.http.util.Asserts;
 
 import java.util.Optional;
 
+import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
@@ -111,8 +111,8 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
                         serializationSchema, null);
             } else {
                 // for pojo type, use avro or json
-                Asserts.notNull(clazz, "for non-atomic type, you must set clazz");
-                Asserts.notNull(recordSchemaType, "for non-atomic type, you must set recordSchemaType");
+                checkNotNull(clazz, "for non-atomic type, you must set clazz");
+                checkNotNull(recordSchemaType, "for non-atomic type, you must set recordSchemaType");
                 return new FlinkSchema<>(SchemaUtils.buildRowSchema(dataType, recordSchemaType),
                         serializationSchema, null);
             }
@@ -134,7 +134,6 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
     @PublicEvolving
     public static class Builder<T> {
         private final SerializationSchema<T> serializationSchema;
-        private String topic;
         private RecordSchemaType recordSchemaType;
         private Schema<?> schema;
         private Class<?> clazz;
@@ -147,25 +146,25 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
         }
 
         public PulsarSerializationSchemaWrapper.Builder<T> useSpecialMode(Schema<?> schema) {
-            Asserts.check(mode == null, "you can only set one schemaMode");
+            checkArgument(mode == null, "you can only set one schemaMode");
             this.mode = SchemaMode.SPECIAL;
             this.schema = schema;
             return this;
         }
 
         public PulsarSerializationSchemaWrapper.Builder<T> useAtomicMode(DataType dataType) {
-            Asserts.check(mode == null, "you can only set one schemaMode");
+            checkArgument(mode == null, "you can only set one schemaMode");
             this.mode = SchemaMode.ATOMIC;
-            Asserts.check(dataType instanceof AtomicDataType, "you must set an atomic dataType");
+            checkArgument(dataType instanceof AtomicDataType, "you must set an atomic dataType");
             this.dataType = dataType;
             return this;
         }
 
         public PulsarSerializationSchemaWrapper.Builder<T> usePojoMode(Class<?> clazz,
                                                                        RecordSchemaType recordSchemaType) {
-            Asserts.check(mode == null, "you can only set one schemaMode");
+            checkArgument(mode == null, "you can only set one schemaMode");
             this.mode = SchemaMode.POJO;
-            Asserts.check(recordSchemaType != RecordSchemaType.ATOMIC,
+            checkArgument(recordSchemaType != RecordSchemaType.ATOMIC,
                     "cant ues RecordSchemaType.ATOMIC to build pojo type schema");
             this.clazz = clazz;
             this.recordSchemaType = recordSchemaType;
@@ -174,7 +173,7 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
 
         public PulsarSerializationSchemaWrapper.Builder<T> useRowMode(DataType dataType,
                                                                       RecordSchemaType recordSchemaType) {
-            Asserts.check(mode == null, "you can only set one schemaMode");
+            checkArgument(mode == null, "you can only set one schemaMode");
             this.mode = SchemaMode.ROW;
             this.dataType = dataType;
             this.recordSchemaType = recordSchemaType;
@@ -188,7 +187,7 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
         }
 
         public PulsarSerializationSchemaWrapper<T> build() {
-            return (PulsarSerializationSchemaWrapper<T>) new PulsarSerializationSchemaWrapper<>(
+            return new PulsarSerializationSchemaWrapper<>(
                     serializationSchema,
                     recordSchemaType,
                     clazz,

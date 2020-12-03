@@ -14,11 +14,13 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
-import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
-import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
+import org.apache.flink.api.common.eventtime.WatermarkOutput;
+import org.apache.flink.api.common.eventtime.WatermarkOutputMultiplexer;
+import org.apache.flink.api.common.eventtime.WatermarkStrategy;
+import org.apache.flink.metrics.Gauge;
+import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.streaming.api.functions.source.SourceFunction.SourceContext;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
-import org.apache.flink.streaming.api.watermark.Watermark;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeCallback;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
 import org.apache.flink.streaming.util.serialization.PulsarDeserializationSchema;
@@ -37,6 +39,9 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
+import static org.apache.flink.streaming.connectors.pulsar.internal.metrics.PulsarSourceMetrics.COMMITTED_OFFSETS_METRICS_GAUGE;
+import static org.apache.flink.streaming.connectors.pulsar.internal.metrics.PulsarSourceMetrics.CURRENT_OFFSETS_METRICS_GAUGE;
+import static org.apache.flink.streaming.connectors.pulsar.internal.metrics.PulsarSourceMetrics.OFFSETS_BY_TOPIC_METRICS_GROUP;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
@@ -50,8 +55,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 public class PulsarFetcher<T> {
 
     private static final int NO_TIMESTAMPS_WATERMARKS = 0;
-    private static final int PERIODIC_WATERMARKS = 1;
-    private static final int PUNCTUATED_WATERMARKS = 2;
+    private static final int WITH_WATERMARK_GENERATOR = 1;
 
     // ------------------------------------------------------------------------
 
@@ -65,7 +69,7 @@ public class PulsarFetcher<T> {
     private final Object checkpointLock;
 
     /** All partitions (and their state) that this fetcher is subscribed to. */
-    protected final List<PulsarTopicState> subscribedPartitionStates;
+    protected final List<PulsarTopicState<T>> subscribedPartitionStates;
 
     /**
      * Queue of partitions that are not yet assigned to any reader thread for consuming.
@@ -73,24 +77,17 @@ public class PulsarFetcher<T> {
      * <p>All partitions added to this queue are guaranteed to have been added
      * to {@link #subscribedPartitionStates} already.
      */
-    protected final ClosableBlockingQueue<PulsarTopicState> unassignedPartitionsQueue;
+    protected final ClosableBlockingQueue<PulsarTopicState<T>> unassignedPartitionsQueue;
 
     /** The mode describing whether the fetcher also generates timestamps and watermarks. */
     private final int timestampWatermarkMode;
 
     /**
-     * Optional timestamp extractor / watermark generator that will be run per Pulsar partition,
-     * to exploit per-partition timestamp characteristics.
-     * The assigner is kept in serialized form, to deserialize it into multiple copies.
+     * Optional watermark strategy that will be run per pulsar partition, to exploit per-partition
+     * timestamp characteristics. The watermark strategy is kept in serialized form, to deserialize
+     * it into multiple copies.
      */
-    private final SerializedValue<AssignerWithPeriodicWatermarks<T>> watermarksPeriodic;
-
-    /**
-     * Optional timestamp extractor / watermark generator that will be run per Pulsar partition,
-     * to exploit per-partition timestamp characteristics.
-     * The assigner is kept in serialized form, to deserialize it into multiple copies.
-     */
-    private final SerializedValue<AssignerWithPunctuatedWatermarks<T>> watermarksPunctuated;
+    private final SerializedValue<WatermarkStrategy<T>> watermarkStrategy;
 
     /** User class loader used to deserialize watermark assigners. */
     private final ClassLoader userCodeClassLoader;
@@ -109,8 +106,16 @@ public class PulsarFetcher<T> {
 
     protected final PulsarMetadataReader metadataReader;
 
-    /** Only relevant for punctuated watermarks: The current cross partition watermark. */
-    private volatile long maxWatermarkSoFar = Long.MIN_VALUE;
+    /**
+     * Wrapper around our SourceContext for allowing the {@link org.apache.flink.api.common.eventtime.WatermarkGenerator}
+     * to emit watermarks and mark idleness.
+     */
+    protected final WatermarkOutput watermarkOutput;
+
+    /**
+     * {@link WatermarkOutputMultiplexer} for supporting per-partition watermark generation.
+     */
+    private final WatermarkOutputMultiplexer watermarkOutputMultiplexer;
 
     /** Flag to mark the main work loop as alive. */
     private volatile boolean running = true;
@@ -121,11 +126,26 @@ public class PulsarFetcher<T> {
     /** Failed or not when data loss. **/
     private boolean failOnDataLoss = true;
 
+    // ------------------------------------------------------------------------
+    //  Metrics
+    // ------------------------------------------------------------------------
+
+    /**
+     * Flag indicating whether or not metrics should be exposed.
+     * If {@code true}, offset metrics (e.g. current offset, committed offset) and
+     * pulsar-shipped metrics will be registered.
+     */
+    private final boolean useMetrics;
+
+    /**
+     * The metric group which all metrics for the source should be registered to.
+     */
+    private final MetricGroup consumerMetricGroup;
+
     public PulsarFetcher(
             SourceContext<T> sourceContext,
             Map<TopicRange, MessageId> seedTopicsWithInitialOffsets,
-            SerializedValue<AssignerWithPeriodicWatermarks<T>> watermarksPeriodic,
-            SerializedValue<AssignerWithPunctuatedWatermarks<T>> watermarksPunctuated,
+            SerializedValue<WatermarkStrategy<T>> watermarkStrategy,
             ProcessingTimeService processingTimeProvider,
             long autoWatermarkInterval,
             ClassLoader userCodeClassLoader,
@@ -134,12 +154,13 @@ public class PulsarFetcher<T> {
             Map<String, Object> readerConf,
             int pollTimeoutMs,
             PulsarDeserializationSchema<T> deserializer,
-            PulsarMetadataReader metadataReader) throws Exception {
+            PulsarMetadataReader metadataReader,
+            MetricGroup consumerMetricGroup,
+            boolean useMetrics) throws Exception {
         this(
                 sourceContext,
                 seedTopicsWithInitialOffsets,
-                watermarksPeriodic,
-                watermarksPunctuated,
+                watermarkStrategy,
                 processingTimeProvider,
                 autoWatermarkInterval,
                 userCodeClassLoader,
@@ -149,14 +170,15 @@ public class PulsarFetcher<T> {
                 pollTimeoutMs,
                 3, // commit retries before fail
                 deserializer,
-                metadataReader);
+                metadataReader,
+                consumerMetricGroup,
+                useMetrics);
     }
 
     public PulsarFetcher(
             SourceContext<T> sourceContext,
             Map<TopicRange, MessageId> seedTopicsWithInitialOffsets,
-            SerializedValue<AssignerWithPeriodicWatermarks<T>> watermarksPeriodic,
-            SerializedValue<AssignerWithPunctuatedWatermarks<T>> watermarksPunctuated,
+            SerializedValue<WatermarkStrategy<T>> watermarkStrategy,
             ProcessingTimeService processingTimeProvider,
             long autoWatermarkInterval,
             ClassLoader userCodeClassLoader,
@@ -166,9 +188,15 @@ public class PulsarFetcher<T> {
             int pollTimeoutMs,
             int commitMaxRetries,
             PulsarDeserializationSchema<T> deserializer,
-            PulsarMetadataReader metadataReader) throws Exception {
+            PulsarMetadataReader metadataReader,
+            MetricGroup consumerMetricGroup,
+            boolean useMetrics) throws Exception {
 
         this.sourceContext = sourceContext;
+        this.watermarkOutput = new SourceContextWatermarkOutputAdapter<>(sourceContext);
+        this.watermarkOutputMultiplexer = new WatermarkOutputMultiplexer(watermarkOutput);
+        this.useMetrics = useMetrics;
+        this.consumerMetricGroup = checkNotNull(consumerMetricGroup);
         this.seedTopicsWithInitialOffsets = seedTopicsWithInitialOffsets;
         this.checkpointLock = sourceContext.getCheckpointLock();
         this.userCodeClassLoader = userCodeClassLoader;
@@ -186,22 +214,12 @@ public class PulsarFetcher<T> {
         this.metadataReader = metadataReader;
 
         // figure out what we watermark mode we will be using
-        this.watermarksPeriodic = watermarksPeriodic;
-        this.watermarksPunctuated = watermarksPunctuated;
+        this.watermarkStrategy = watermarkStrategy;
 
-        if (watermarksPeriodic == null) {
-            if (watermarksPunctuated == null) {
-                // simple case, no watermarks involved
-                timestampWatermarkMode = NO_TIMESTAMPS_WATERMARKS;
-            } else {
-                timestampWatermarkMode = PUNCTUATED_WATERMARKS;
-            }
+        if (watermarkStrategy == null) {
+            timestampWatermarkMode = NO_TIMESTAMPS_WATERMARKS;
         } else {
-            if (watermarksPunctuated == null) {
-                timestampWatermarkMode = PERIODIC_WATERMARKS;
-            } else {
-                throw new IllegalArgumentException("Cannot have both periodic and punctuated watermarks");
-            }
+            timestampWatermarkMode = WITH_WATERMARK_GENERATOR;
         }
 
         this.unassignedPartitionsQueue = new ClosableBlockingQueue<>();
@@ -210,28 +228,32 @@ public class PulsarFetcher<T> {
         this.subscribedPartitionStates = createPartitionStateHolders(
                 seedTopicsWithInitialOffsets,
                 timestampWatermarkMode,
-                watermarksPeriodic,
-                watermarksPunctuated,
+                watermarkStrategy,
                 userCodeClassLoader);
 
         // check that all seed partition states have a defined offset
-        for (PulsarTopicState state : subscribedPartitionStates) {
+        for (PulsarTopicState<T> state : subscribedPartitionStates) {
             if (!state.isOffsetDefined()) {
                 throw new IllegalArgumentException("The fetcher was assigned seed partitions with undefined initial offsets.");
             }
         }
 
         // all seed partitions are not assigned yet, so should be added to the unassigned partitions queue
-        for (PulsarTopicState state : subscribedPartitionStates) {
+        for (PulsarTopicState<T> state : subscribedPartitionStates) {
             unassignedPartitionsQueue.add(state);
         }
 
+        // register metrics for the initial seed partitions
+        if (useMetrics) {
+            registerOffsetMetrics(consumerMetricGroup, subscribedPartitionStates);
+        }
+
         // if we have periodic watermarks, kick off the interval scheduler
-        if (timestampWatermarkMode == PERIODIC_WATERMARKS) {
-            @SuppressWarnings("unchecked")
-            PeriodicWatermarkEmitter periodicEmitter = new PeriodicWatermarkEmitter(
+        if (timestampWatermarkMode == WITH_WATERMARK_GENERATOR && autoWatermarkInterval > 0) {
+            PeriodicWatermarkEmitter<T> periodicEmitter = new PeriodicWatermarkEmitter<>(
+                    checkpointLock,
                     subscribedPartitionStates,
-                    sourceContext,
+                    watermarkOutputMultiplexer,
                     processingTimeProvider,
                     autoWatermarkInterval);
 
@@ -252,7 +274,7 @@ public class PulsarFetcher<T> {
                 // wait for max 5 seconds trying to get partitions to assign
                 // if threads shut down, this poll returns earlier, because the threads inject the
                 // special marker into the queue
-                List<PulsarTopicState> topicsToAssign = unassignedPartitionsQueue.getBatchBlocking(5000);
+                List<PulsarTopicState<T>> topicsToAssign = unassignedPartitionsQueue.getBatchBlocking(5000);
                 // if there are more markers, remove them all
                 topicsToAssign.removeIf(s -> s.equals(PoisonState.INSTANCE));
 
@@ -334,84 +356,33 @@ public class PulsarFetcher<T> {
         }
     }
 
-    protected void emitRecord(
+    // ------------------------------------------------------------------------
+    //  emitting records
+    // ------------------------------------------------------------------------
+
+    /**
+     * Emits a record attaching a timestamp to it.
+     * @param record The record to emit
+     * @param partitionState The state of the pulsar partition from which the record was fetched
+     * @param offset The offset of the corresponding pulsar record
+     * @param pulsarEventTimestamp The timestamp of the pulsar record
+     */
+    protected void emitRecordsWithTimestamps(
             T record,
-            PulsarTopicState topicState,
-            MessageId offset) {
-
-        if (record != null) {
-            switch (timestampWatermarkMode) {
-                case NO_TIMESTAMPS_WATERMARKS:
-                    synchronized (checkpointLock) {
-                        sourceContext.collect(record);
-                        topicState.setOffset(offset);
-                    }
-                    return;
-                case PERIODIC_WATERMARKS:
-                    emitRecordWithTimestampAndPeriodicWatermark(record, topicState, offset, Long.MIN_VALUE);
-                    return;
-                case PUNCTUATED_WATERMARKS:
-                    emitRecordWithTimestampAndPunctuatedWatermark(record, topicState, offset, Long.MIN_VALUE);
-                    return;
-            }
-        } else {
-            synchronized (checkpointLock) {
-                topicState.setOffset(offset);
-            }
-        }
-    }
-
-    private void emitRecordWithTimestampAndPeriodicWatermark(
-            T record, PulsarTopicState topicState, MessageId offset, long eventTimestamp) {
-
-        PulsarTopicStateWithPeriodicWatermarks<T> periodicState = (PulsarTopicStateWithPeriodicWatermarks<T>) topicState;
-
-        long timestamp = 0;
-
-        synchronized (periodicState) {
-            timestamp = periodicState.getTimestampForRecord(record, eventTimestamp);
-        }
-
+            PulsarTopicState<T> partitionState,
+            MessageId offset,
+            long pulsarEventTimestamp) {
+        // emit the records, using the checkpoint lock to guarantee
+        // atomicity of record emission and offset state update
         synchronized (checkpointLock) {
-            sourceContext.collectWithTimestamp(record, timestamp);
-            topicState.setOffset(offset);
-        }
-    }
+            if (record != null) {
+                long timestamp = partitionState.extractTimestamp(record, pulsarEventTimestamp);
+                sourceContext.collectWithTimestamp(record, timestamp);
 
-    private void emitRecordWithTimestampAndPunctuatedWatermark(
-            T record, PulsarTopicState topicState, MessageId offset, long eventTimestamp) {
-
-        PulsarTopicStateWithPunctuatedWatermarks<T> punctuatedState = (PulsarTopicStateWithPunctuatedWatermarks<T>) topicState;
-        long timestamp = punctuatedState.getTimestampForRecord(record, eventTimestamp);
-        Watermark newWM = punctuatedState.checkAndGetNewWatermark(record, timestamp);
-
-        synchronized (checkpointLock) {
-            sourceContext.collectWithTimestamp(record, timestamp);
-            topicState.setOffset(offset);
-        }
-
-        if (newWM != null) {
-            updateMinPunctuatedWatermark(newWM);
-        }
-    }
-
-    private void updateMinPunctuatedWatermark(Watermark nextWatermark) {
-        if (nextWatermark.getTimestamp() > maxWatermarkSoFar) {
-            long newMin = Long.MAX_VALUE;
-            for (PulsarTopicState state : subscribedPartitionStates) {
-                PulsarTopicStateWithPunctuatedWatermarks<T> puncState = (PulsarTopicStateWithPunctuatedWatermarks<T>) state;
-                newMin = Math.min(newMin, puncState.getCurrentPartitionWatermark());
+                // this might emit a watermark, so do it after emitting the record
+                partitionState.onEvent(record, timestamp);
             }
-
-            // double-check locking pattern
-            if (newMin > maxWatermarkSoFar) {
-                synchronized (checkpointLock) {
-                    if (newMin > maxWatermarkSoFar) {
-                        maxWatermarkSoFar = newMin;
-                        sourceContext.emitWatermark(new Watermark(newMin));
-                    }
-                }
-            }
+            partitionState.setOffset(offset);
         }
     }
 
@@ -434,7 +405,7 @@ public class PulsarFetcher<T> {
         doCommitOffsetToPulsar(removeEarliestAndLatest(offset), offsetCommitCallback);
     }
 
-    public void doCommitOffsetToPulsar(
+    protected void doCommitOffsetToPulsar(
             Map<TopicRange, MessageId> offset,
             PulsarCommitCallback offsetCommitCallback) throws InterruptedException {
 
@@ -489,11 +460,10 @@ public class PulsarFetcher<T> {
     }
 
     public void addDiscoveredTopics(Set<TopicRange> newTopics) throws IOException, ClassNotFoundException {
-        List<PulsarTopicState> newStates = createPartitionStateHolders(
+        List<PulsarTopicState<T>> newStates = createPartitionStateHolders(
                 newTopics.stream().collect(Collectors.toMap(t -> t, t -> MessageId.earliest)),
                 timestampWatermarkMode,
-                watermarksPeriodic,
-                watermarksPunctuated,
+                watermarkStrategy,
                 userCodeClassLoader);
 
         for (PulsarTopicState state : newStates) {
@@ -528,7 +498,7 @@ public class PulsarFetcher<T> {
     }
 
     public Map<TopicRange, ReaderThread<T>> createAndStartReaderThread(
-            List<PulsarTopicState> states,
+            List<PulsarTopicState<T>> states,
             ExceptionProxy exceptionProxy) {
 
         Map<TopicRange, MessageId> startingOffsets = states.stream().collect(Collectors.toMap(PulsarTopicState::getTopicRange, PulsarTopicState::getOffset));
@@ -546,7 +516,7 @@ public class PulsarFetcher<T> {
         return topic2Threads;
     }
 
-    protected List<PulsarTopicState> getSubscribedTopicStates() {
+    protected List<PulsarTopicState<T>> getSubscribedTopicStates() {
         return subscribedPartitionStates;
     }
 
@@ -566,49 +536,55 @@ public class PulsarFetcher<T> {
      * Utility method that takes the topic partitions and creates the topic partition state
      * holders, depending on the timestamp / watermark mode.
      */
-    private List<PulsarTopicState> createPartitionStateHolders(
+    private List<PulsarTopicState<T>> createPartitionStateHolders(
             Map<TopicRange, MessageId> partitionsToInitialOffsets,
             int timestampWatermarkMode,
-            SerializedValue<AssignerWithPeriodicWatermarks<T>> watermarksPeriodic,
-            SerializedValue<AssignerWithPunctuatedWatermarks<T>> watermarksPunctuated,
+            SerializedValue<WatermarkStrategy<T>> watermarkStrategy,
             ClassLoader userCodeClassLoader) throws IOException, ClassNotFoundException {
 
         // CopyOnWrite as adding discovered partitions could happen in parallel
         // while different threads iterate the partitions list
-        List<PulsarTopicState> partitionStates = new CopyOnWriteArrayList<>();
+        List<PulsarTopicState<T>> partitionStates = new CopyOnWriteArrayList<>();
 
         switch (timestampWatermarkMode) {
             case NO_TIMESTAMPS_WATERMARKS: {
                 for (Map.Entry<TopicRange, MessageId> partitionEntry : partitionsToInitialOffsets.entrySet()) {
-                    PulsarTopicState state = new PulsarTopicState(partitionEntry.getKey());
+                    PulsarTopicState<T> state = new PulsarTopicState(partitionEntry.getKey());
                     state.setOffset(partitionEntry.getValue());
                     partitionStates.add(state);
                 }
-
                 return partitionStates;
             }
 
-            case PERIODIC_WATERMARKS: {
+            case WITH_WATERMARK_GENERATOR: {
                 for (Map.Entry<TopicRange, MessageId> partitionEntry : partitionsToInitialOffsets.entrySet()) {
-                    AssignerWithPeriodicWatermarks<T> assignerInstance = watermarksPeriodic.deserializeValue(userCodeClassLoader);
-                    PulsarTopicStateWithPeriodicWatermarks<T> state = new PulsarTopicStateWithPeriodicWatermarks<T>(
-                            partitionEntry.getKey(),
-                            assignerInstance);
-                    state.setOffset(partitionEntry.getValue());
-                    partitionStates.add(state);
-                }
+                    final TopicRange topicRange = partitionEntry.getKey();
 
-                return partitionStates;
-            }
+                    PulsarTopicState<T> state = new PulsarTopicState(partitionEntry.getKey());
+                    WatermarkStrategy<T> deserializedWatermarkStrategy = watermarkStrategy.deserializeValue(
+                            userCodeClassLoader);
 
-            case PUNCTUATED_WATERMARKS: {
-                for (Map.Entry<TopicRange, MessageId> partitionEntry : partitionsToInitialOffsets.entrySet()) {
-                    AssignerWithPunctuatedWatermarks<T> assignerInstance = watermarksPunctuated.deserializeValue(userCodeClassLoader);
-                    PulsarTopicStateWithPunctuatedWatermarks<T> state = new PulsarTopicStateWithPunctuatedWatermarks<T>(
-                            partitionEntry.getKey(),
-                            assignerInstance);
-                    state.setOffset(partitionEntry.getValue());
-                    partitionStates.add(state);
+                    // the format of the ID does not matter, as long as it is unique
+                    final String partitionId = state.getTopicRange().toString();
+                    watermarkOutputMultiplexer.registerNewOutput(partitionId);
+                    WatermarkOutput immediateOutput =
+                            watermarkOutputMultiplexer.getImmediateOutput(partitionId);
+                    WatermarkOutput deferredOutput =
+                            watermarkOutputMultiplexer.getDeferredOutput(partitionId);
+
+                    PulsarTopicPartitionStateWithWatermarkGenerator<T> partitionState =
+                            new PulsarTopicPartitionStateWithWatermarkGenerator<>(
+                                    topicRange,
+                                    state,
+                                    deserializedWatermarkStrategy.createTimestampAssigner(() -> consumerMetricGroup),
+                                    deserializedWatermarkStrategy.createWatermarkGenerator(() -> consumerMetricGroup),
+                                    immediateOutput,
+                                    deferredOutput);
+
+                    partitionState.setOffset(partitionEntry.getValue());
+
+                    partitionStates.add(partitionState);
+
                 }
 
                 return partitionStates;
@@ -620,34 +596,95 @@ public class PulsarFetcher<T> {
         }
     }
 
+    // ------------------------- Metrics ----------------------------------
+
+    /**
+     * For each partition, register a new metric group to expose current offsets and committed offsets.
+     * Per-partition metric groups can be scoped by user variables.
+     *
+     * <p>Note: this method also registers gauges for deprecated offset metrics, to maintain backwards compatibility.
+     *
+     * @param consumerMetricGroup The consumer metric group
+     * @param partitionOffsetStates The partition offset state holders, whose values will be used to update metrics
+     */
+    private void registerOffsetMetrics(
+            MetricGroup consumerMetricGroup,
+            List<PulsarTopicState<T>> partitionOffsetStates) {
+
+        for (PulsarTopicState<T> pts : partitionOffsetStates) {
+            MetricGroup topicPartitionGroup = consumerMetricGroup
+                    .addGroup(OFFSETS_BY_TOPIC_METRICS_GROUP, pts.getTopicRange().getTopic());
+
+            topicPartitionGroup.gauge(CURRENT_OFFSETS_METRICS_GAUGE, new OffsetGauge(pts, OffsetGaugeType.CURRENT_OFFSET));
+            topicPartitionGroup.gauge(COMMITTED_OFFSETS_METRICS_GAUGE, new OffsetGauge(pts, OffsetGaugeType.COMMITTED_OFFSET));
+        }
+    }
+
+    /**
+     * Gauge types.
+     */
+    private enum OffsetGaugeType {
+        CURRENT_OFFSET,
+        COMMITTED_OFFSET
+    }
+
+    /**
+     * Gauge for getting the offset of a PulsarTopicState.
+     */
+    private static class OffsetGauge implements Gauge<MessageId> {
+
+        private final PulsarTopicState<?> pts;
+        private final OffsetGaugeType gaugeType;
+
+        OffsetGauge(PulsarTopicState<?> pts, OffsetGaugeType gaugeType) {
+            this.pts = pts;
+            this.gaugeType = gaugeType;
+        }
+
+        @Override
+        public MessageId getValue() {
+            switch (gaugeType) {
+                case COMMITTED_OFFSET:
+                    return pts.getCommittedOffset();
+                case CURRENT_OFFSET:
+                    return pts.getOffset();
+                default:
+                    throw new RuntimeException("Unknown gauge type: " + gaugeType);
+            }
+        }
+    }
+    // ------------------------------------------------------------------------
+
     /**
      * The periodic watermark emitter. In its given interval, it checks all partitions for
      * the current event time watermark, and possibly emits the next watermark.
      */
-    private static class PeriodicWatermarkEmitter implements ProcessingTimeCallback {
+    private static class PeriodicWatermarkEmitter<T> implements ProcessingTimeCallback {
 
-        private final List<PulsarTopicState> allPartitions;
+        private final Object checkpointLock;
 
-        private final SourceContext<?> emitter;
+        private final List<PulsarTopicState<T>> allPartitions;
+
+        private final WatermarkOutputMultiplexer watermarkOutputMultiplexer;
 
         private final ProcessingTimeService timerService;
 
         private final long interval;
 
-        private long lastWatermarkTimestamp;
-
         //-------------------------------------------------
 
         PeriodicWatermarkEmitter(
-                List<PulsarTopicState> allPartitions,
-                SourceContext<?> emitter,
+                Object checkpointLock,
+                List<PulsarTopicState<T>> allPartitions,
+                WatermarkOutputMultiplexer watermarkOutputMultiplexer,
                 ProcessingTimeService timerService,
-                long autoWatermarkInterval) {
+                long autoWatermarkInterval
+        ) {
+            this.checkpointLock = checkpointLock;
             this.allPartitions = checkNotNull(allPartitions);
-            this.emitter = checkNotNull(emitter);
+            this.watermarkOutputMultiplexer = watermarkOutputMultiplexer;
             this.timerService = checkNotNull(timerService);
             this.interval = autoWatermarkInterval;
-            this.lastWatermarkTimestamp = Long.MIN_VALUE;
         }
 
         //-------------------------------------------------
@@ -658,27 +695,12 @@ public class PulsarFetcher<T> {
 
         @Override
         public void onProcessingTime(long timestamp) throws Exception {
-
-            long minAcrossAll = Long.MAX_VALUE;
-            boolean isEffectiveMinAggregation = false;
-            for (PulsarTopicState state : allPartitions) {
-
-                // we access the current watermark for the periodic assigners under the state
-                // lock, to prevent concurrent modification to any internal variables
-                final long curr;
-                //noinspection SynchronizationOnLocalVariableOrMethodParameter
-                synchronized (state) {
-                    curr = ((PulsarTopicStateWithPeriodicWatermarks<?>) state).getCurrentWatermarkTimestamp();
+            synchronized (checkpointLock) {
+                for (PulsarTopicState<?> state : allPartitions) {
+                    state.onPeriodicEmit();
                 }
 
-                minAcrossAll = Math.min(minAcrossAll, curr);
-                isEffectiveMinAggregation = true;
-            }
-
-            // emit next watermark, if there is one
-            if (isEffectiveMinAggregation && minAcrossAll > lastWatermarkTimestamp) {
-                lastWatermarkTimestamp = minAcrossAll;
-                emitter.emitWatermark(new Watermark(minAcrossAll));
+                watermarkOutputMultiplexer.onPeriodicEmit();
             }
 
             // schedule the next watermark

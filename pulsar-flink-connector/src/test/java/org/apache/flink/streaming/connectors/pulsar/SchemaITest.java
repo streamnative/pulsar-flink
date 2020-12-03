@@ -15,14 +15,11 @@
 package org.apache.flink.streaming.connectors.pulsar;
 
 import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.formats.avro.AvroRowDataSerializationSchema;
-import org.apache.flink.formats.avro.typeutils.AvroSchemaConverter;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper;
 import org.apache.flink.streaming.connectors.pulsar.testutils.SingletonStreamSink;
 import org.apache.flink.streaming.connectors.pulsar.util.RowDataUtil;
-import org.apache.flink.streaming.util.serialization.FlinkSchema;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.TableSchema;
@@ -31,21 +28,17 @@ import org.apache.flink.table.data.GenericRowData;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.runtime.typeutils.InternalTypeInfo;
 import org.apache.flink.table.types.DataType;
-import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.test.util.TestUtils;
 import org.apache.flink.types.RowKind;
 import org.apache.flink.util.StringUtils;
 
-import org.apache.avro.Schema;
 import org.apache.pulsar.common.naming.TopicName;
-import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -79,7 +72,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
     @Test(timeout = 100 * 1000L)
     public void testBooleanRead() throws Exception {
-        checkRead(SchemaType.BOOLEAN, DataTypes.BOOLEAN(), BOOLEAN_LIST, null, Boolean.class);
+        checkRead(SchemaType.BOOLEAN, DataTypes.BOOLEAN(), BOOLEAN_LIST, null, null);
     }
 
     @Test(timeout = 100 * 1000L)
@@ -202,17 +195,10 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
         TableSchema tSchema = TableSchema.builder().field("value", dt).build();
 
-        final Schema schema = AvroSchemaConverter.convertToSchema(tSchema.toRowDataType().getLogicalType());
-
-        final AvroRowDataSerializationSchema serializationSchema =
-                new AvroRowDataSerializationSchema((RowType) tSchema.toRowDataType().getLogicalType());
-        serializationSchema.open(null);
-        final FlinkSchema<RowData> flinkSchema = new FlinkSchema<>(avroSchema2SchemaInfo(schema),
-                serializationSchema, null);
         List<RowData> rowData = wrapperRowData(datas);
-        sendAvroMessages(table, type, rowData, Optional.empty(), flinkSchema);
+        sendTypedMessages(table, type, datas, Optional.empty());
 
-        tEnv.executeSql(createTableSql(tableName, table, tSchema, "avro")).print();
+        tEnv.executeSql(createTableSql(tableName, table, tSchema, "atomic")).print();
 
         Table t = tEnv.sqlQuery("select `value` from " + tableName);
 
@@ -236,15 +222,6 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
         }).collect(Collectors.toList());
     }
 
-    private SchemaInfo avroSchema2SchemaInfo(Schema schema) {
-        byte[] schemaBytes = schema.toString().getBytes(StandardCharsets.UTF_8);
-        SchemaInfo si = new SchemaInfo();
-        si.setName("Avro");
-        si.setSchema(schemaBytes);
-        si.setType(SchemaType.AVRO);
-        return si;
-    }
-
     private <T> void checkWrite(SchemaType type, DataType dt, List<T> datas, Function<T, String> toStr, Class<T> tClass)
             throws Exception {
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
@@ -259,7 +236,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
         TypeInformation<RowData> ti = InternalTypeInfo.of(tSchema.toRowDataType().getLogicalType());
 
         DataStream<RowData> stream = see.fromCollection(wrapperRowData(datas), ti);
-        tEnv.executeSql(createTableSql(tableName, topic, tSchema, "avro")).print();
+        tEnv.executeSql(createTableSql(tableName, topic, tSchema, "atomic")).print();
         tEnv.fromDataStream(stream).executeInsert(tableName).print();
 
         Thread.sleep(3000);
@@ -267,7 +244,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
         se2.setParallelism(1);
         StreamTableEnvironment tEnv2 = StreamTableEnvironment.create(se2);
 
-        tEnv2.executeSql(createTableSql(tableName, topic, tSchema, "avro")).print();
+        tEnv2.executeSql(createTableSql(tableName, topic, tSchema, "atomic")).print();
         Table t = tEnv2.sqlQuery("select `value` from " + tableName);
         tEnv2.toAppendStream(t, t.getSchema().toRowType())
                 .map(new FailingIdentityMapper<>(datas.size()))

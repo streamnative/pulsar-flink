@@ -14,6 +14,7 @@
 
 package org.apache.flink.streaming.connectors.pulsar;
 
+import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.state.BroadcastState;
 import org.apache.flink.api.common.state.KeyedStateStore;
 import org.apache.flink.api.common.state.ListState;
@@ -25,6 +26,7 @@ import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.testutils.CheckedThread;
 import org.apache.flink.core.testutils.OneShotLatch;
+import org.apache.flink.metrics.groups.UnregisteredMetricsGroup;
 import org.apache.flink.runtime.checkpoint.OperatorSubtaskState;
 import org.apache.flink.runtime.state.FunctionInitializationContext;
 import org.apache.flink.runtime.state.StateSnapshotContextSynchronousImpl;
@@ -605,14 +607,14 @@ public class FlinkPulsarSourceTest extends TestLogger {
         protected PulsarFetcher<T> createFetcher(
                 SourceContext<T> sourceContext,
                 Map<TopicRange, MessageId> seedTopicsWithInitialOffsets,
-                SerializedValue<AssignerWithPeriodicWatermarks<T>> watermarksPeriodic,
-                SerializedValue<AssignerWithPunctuatedWatermarks<T>> watermarksPunctuated,
+                SerializedValue<WatermarkStrategy<T>> watermarkStrategy,
                 ProcessingTimeService processingTimeProvider,
                 long autoWatermarkInterval,
                 ClassLoader userCodeClassLoader,
-                StreamingRuntimeContext streamingRuntime) throws Exception {
-            return new TestingFetcher<>(sourceContext, seedTopicsWithInitialOffsets, watermarksPeriodic,
-                    watermarksPunctuated, processingTimeProvider, autoWatermarkInterval);
+                StreamingRuntimeContext streamingRuntime,
+                boolean useMetrics) throws Exception {
+            return new TestingFetcher<>(sourceContext, seedTopicsWithInitialOffsets, watermarkStrategy,
+                    processingTimeProvider, autoWatermarkInterval);
         }
 
         @Override
@@ -655,12 +657,12 @@ public class FlinkPulsarSourceTest extends TestLogger {
         protected PulsarFetcher<T> createFetcher(
                 SourceContext<T> sourceContext,
                 Map<TopicRange, MessageId> seedTopicsWithInitialOffsets,
-                SerializedValue<AssignerWithPeriodicWatermarks<T>> watermarksPeriodic,
-                SerializedValue<AssignerWithPunctuatedWatermarks<T>> watermarksPunctuated,
+                SerializedValue<WatermarkStrategy<T>> watermarkStrategy,
                 ProcessingTimeService processingTimeProvider,
                 long autoWatermarkInterval,
                 ClassLoader userCodeClassLoader,
-                StreamingRuntimeContext streamingRuntime) throws Exception {
+                StreamingRuntimeContext streamingRuntime,
+                boolean useMetrics) throws Exception {
             return testFetcherSupplier.get();
         }
 
@@ -677,15 +679,13 @@ public class FlinkPulsarSourceTest extends TestLogger {
         public TestingFetcher(
                 SourceFunction.SourceContext<T> sourceContext,
                 Map<TopicRange, MessageId> seedTopicsWithInitialOffsets,
-                SerializedValue<AssignerWithPeriodicWatermarks<T>> watermarksPeriodic,
-                SerializedValue<AssignerWithPunctuatedWatermarks<T>> watermarksPunctuated,
+                SerializedValue<WatermarkStrategy<T>> watermarkStrategy,
                 ProcessingTimeService processingTimeProvider,
                 long autoWatermarkInterval) throws Exception {
             super(
                     sourceContext,
                     seedTopicsWithInitialOffsets,
-                    watermarksPeriodic,
-                    watermarksPunctuated,
+                    watermarkStrategy,
                     processingTimeProvider,
                     autoWatermarkInterval,
                     TestingFetcher.class.getClassLoader(),
@@ -694,7 +694,9 @@ public class FlinkPulsarSourceTest extends TestLogger {
                     null,
                     0,
                     null,
-                    null);
+                    null,
+                    new UnregisteredMetricsGroup(),
+                    false);
         }
 
         @Override
@@ -776,7 +778,6 @@ public class FlinkPulsarSourceTest extends TestLogger {
                     new TestSourceContext<>(),
                     new HashMap<>(),
                     null,
-                    null,
                     new TestProcessingTimeService(),
                     0,
                     MockFetcher.class.getClassLoader(),
@@ -785,7 +786,9 @@ public class FlinkPulsarSourceTest extends TestLogger {
                     null,
                     0,
                     null,
-                    null);
+                    null,
+                    new UnregisteredMetricsGroup(),
+                    false);
 
             this.stateSnapshotsToReturn.addAll(Arrays.asList(stateSnapshotsToReturn));
         }

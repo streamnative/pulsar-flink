@@ -39,7 +39,7 @@ import java.util.concurrent.TimeUnit;
 public class ReaderThread<T> extends Thread {
 
     protected final PulsarFetcher<T> owner;
-    protected final PulsarTopicState state;
+    protected final PulsarTopicState<T> state;
     protected final ClientConfigurationData clientConf;
     protected final Map<String, Object> readerConf;
     protected final int pollTimeoutMs;
@@ -203,7 +203,7 @@ public class ReaderThread<T> extends Thread {
             running = false;
             return;
         }
-        owner.emitRecord(record, state, messageId);
+        owner.emitRecordsWithTimestamps(record, state, messageId, message.getEventTime());
     }
 
     public void cancel() throws IOException {

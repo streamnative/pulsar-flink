@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -15,7 +15,7 @@
 package org.apache.flink.connector.pulsar.source.offset;
 
 import org.apache.flink.annotation.Internal;
-import org.apache.flink.connector.pulsar.source.Partition;
+import org.apache.flink.connector.pulsar.source.AbstractPartition;
 import org.apache.flink.connector.pulsar.source.StartOffsetInitializer;
 
 import org.apache.pulsar.client.api.Message;
@@ -36,25 +36,25 @@ import java.util.function.Supplier;
 @Internal
 public class SpecifiedStartOffsetInitializer implements StartOffsetInitializer {
     private static final long serialVersionUID = 1649702397250402877L;
-    private final Map<Partition, MessageId> initialOffsets;
+    private final Map<AbstractPartition, MessageId> initialOffsets;
     private final MessageId defaultOffset;
     private final boolean inclusive;
 
-    public SpecifiedStartOffsetInitializer(Map<Partition, MessageId> initialOffsets, MessageId defaultOffset, boolean inclusive) {
+    public SpecifiedStartOffsetInitializer(Map<AbstractPartition, MessageId> initialOffsets, MessageId defaultOffset, boolean inclusive) {
         this.initialOffsets = Collections.unmodifiableMap(initialOffsets);
         this.defaultOffset = defaultOffset;
         this.inclusive = inclusive;
     }
 
     @Override
-    public void initializeBeforeCreation(Partition partition, CreationConfiguration configuration) {
+    public void initializeBeforeCreation(AbstractPartition partition, CreationConfiguration configuration) {
         configuration.getConsumerConfigurationData().setResetIncludeHead(inclusive);
         configuration.setInitialMessageId(initialOffsets.getOrDefault(partition, defaultOffset));
     }
 
     @Override
     public Optional<String> verifyOffset(
-            Partition partition,
+            AbstractPartition partition,
             Supplier<Optional<MessageId>> lastMessageIdFetcher,
             Supplier<Optional<Message<byte[]>>> firstMessageFetcher) {
         MessageId initialId = initialOffsets.getOrDefault(partition, defaultOffset);

@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -55,6 +55,7 @@ public class PulsarSourceBuilder<OUT> {
     // Boundedness
     private Boundedness boundedness = Boundedness.CONTINUOUS_UNBOUNDED;
     private MessageDeserializer<OUT> messageDeserializer;
+    private SplitSchedulingStrategy splitSchedulingStrategy;
     // The configurations.
     private Configuration configuration = new Configuration();
 
@@ -67,18 +68,18 @@ public class PulsarSourceBuilder<OUT> {
         consumerConfigurationData.setSubscriptionName("flink-" + UUID.randomUUID());
     }
 
-    public PulsarSourceBuilder<OUT> setTopics(StickyKeyAssigner stickyKeyAssigner, String... topics) {
+    public PulsarSourceBuilder<OUT> setTopics(SplitDivisionStrategy splitDivisionStrategy, String... topics) {
         TreeSet<String> topicNames = Sets.newTreeSet();
         List<String> collect = Arrays.stream(topics).collect(Collectors.toList());
         for (String topic : collect) {
             topicNames.add(topic);
         }
         consumerConfigurationData.setTopicNames(topicNames);
-        return setSubscriber(PulsarSubscriber.getTopicListSubscriber(stickyKeyAssigner, topics));
+        return setSubscriber(PulsarSubscriber.getTopicListSubscriber(splitDivisionStrategy, topics));
     }
 
-    public PulsarSourceBuilder<OUT> setTopicPattern(String namespace, StickyKeyAssigner stickyKeyAssigner, String... topicPatterns) {
-        return setSubscriber(PulsarSubscriber.getTopicPatternSubscriber(namespace, stickyKeyAssigner, topicPatterns));
+    public PulsarSourceBuilder<OUT> setTopicPattern(String namespace, SplitDivisionStrategy splitDivisionStrategy, String... topicPatterns) {
+        return setSubscriber(PulsarSubscriber.getTopicPatternSubscriber(namespace, splitDivisionStrategy, topicPatterns));
     }
 
     public PulsarSourceBuilder<OUT> setSubscriber(PulsarSubscriber subscriber) {
@@ -88,11 +89,16 @@ public class PulsarSourceBuilder<OUT> {
     }
 
     public PulsarSourceBuilder<OUT> setTopics(String... topics) {
-        return setTopics(StickyKeyAssigner.AUTO, topics);
+        return setTopics(NoSplitDivisionStrategy.NO_SPLIT, topics);
     }
 
     public PulsarSourceBuilder<OUT> setTopicPattern(String namespace, String... topicPatterns) {
-        return setTopicPattern(namespace, StickyKeyAssigner.AUTO, topicPatterns);
+        return setTopicPattern(namespace, NoSplitDivisionStrategy.NO_SPLIT, topicPatterns);
+    }
+
+    public PulsarSourceBuilder<OUT> setSplitSchedulingStrategy(SplitSchedulingStrategy splitSchedulingStrategy) {
+        this.splitSchedulingStrategy = splitSchedulingStrategy;
+        return this;
     }
 
     public PulsarSourceBuilder<OUT> startAt(StartOffsetInitializer startOffsetInitializer) {
@@ -128,6 +134,9 @@ public class PulsarSourceBuilder<OUT> {
 
     public PulsarSource<OUT> build() {
         sanityCheck();
+        if (splitSchedulingStrategy == null) {
+            splitSchedulingStrategy = new HashSplitSchedulingStrategy();
+        }
         return new PulsarSource<>(
                 subscriber,
                 startOffsetInitializer,
@@ -136,7 +145,8 @@ public class PulsarSourceBuilder<OUT> {
                 messageDeserializer,
                 configuration,
                 clientConfigurationData,
-                consumerConfigurationData);
+                consumerConfigurationData,
+                splitSchedulingStrategy);
     }
 
     private <T> boolean maybeOverride(ConfigOption<T> option, T value, boolean override) {

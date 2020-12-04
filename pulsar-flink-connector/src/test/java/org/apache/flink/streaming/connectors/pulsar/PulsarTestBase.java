@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -17,13 +17,14 @@ package org.apache.flink.streaming.connectors.pulsar;
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.TaskManagerOptions;
-import org.apache.flink.connector.pulsar.source.Partition;
+import org.apache.flink.connector.pulsar.source.BrokerPartition;
 import org.apache.flink.connector.pulsar.source.StartOffsetInitializer;
 import org.apache.flink.connector.pulsar.source.StopCondition;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 import org.apache.flink.connector.pulsar.source.util.PulsarAdminUtils;
 import org.apache.flink.metrics.jmx.JMXReporter;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
+import org.apache.flink.streaming.connectors.pulsar.internal.TopicRange;
 import org.apache.flink.streaming.util.TestStreamEnvironment;
 import org.apache.flink.util.TestLogger;
 
@@ -344,13 +345,12 @@ public abstract class PulsarTestBase extends TestLogger {
         } else {
             pulsarAdmin.topics().createPartitionedTopic(topic, numberOfPartitions);
         }
-
     }
 
-    public static List<Partition> getPartitionsForTopic(String topic) throws Exception {
+    public static List<BrokerPartition> getPartitionsForTopic(String topic) throws Exception {
         return pulsarClient.getPartitionsForTopic(topic).get()
                 .stream()
-                .map(pi -> new Partition(pi, Partition.AUTO_KEY_RANGE))
+                .map(pi -> new BrokerPartition(new TopicRange(pi, BrokerPartition.FULL_RANGE)))
                 .collect(Collectors.toList());
     }
 

@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -14,7 +14,7 @@
 
 package org.apache.flink.connector.pulsar.source.offset;
 
-import org.apache.flink.connector.pulsar.source.Partition;
+import org.apache.flink.connector.pulsar.source.AbstractPartition;
 import org.apache.flink.connector.pulsar.source.StartOffsetInitializer;
 
 import org.apache.pulsar.client.api.Consumer;
@@ -40,13 +40,13 @@ public class TimestampStartOffsetInitializer implements StartOffsetInitializer {
     }
 
     @Override
-    public void initializeAfterCreation(Partition partition, Consumer<?> consumer) throws PulsarClientException {
+    public void initializeAfterCreation(AbstractPartition partition, Consumer<?> consumer) throws PulsarClientException {
         consumer.seek(startingTimestamp);
     }
 
     @Override
     public Optional<String> verifyOffset(
-            Partition partition,
+            AbstractPartition partition,
             Supplier<Optional<MessageId>> lastMessageIdFetcher,
             Supplier<Optional<Message<byte[]>>> firstMessageFetcher) {
         return firstMessageFetcher.get().isPresent() ?

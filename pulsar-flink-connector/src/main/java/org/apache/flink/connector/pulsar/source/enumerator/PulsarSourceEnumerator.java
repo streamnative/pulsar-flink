@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -19,9 +19,10 @@ import org.apache.flink.api.connector.source.SplitEnumerator;
 import org.apache.flink.api.connector.source.SplitEnumeratorContext;
 import org.apache.flink.api.connector.source.SplitsAssignment;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.connector.pulsar.source.Partition;
+import org.apache.flink.connector.pulsar.source.AbstractPartition;
 import org.apache.flink.connector.pulsar.source.PulsarSourceOptions;
 import org.apache.flink.connector.pulsar.source.PulsarSubscriber;
+import org.apache.flink.connector.pulsar.source.SplitSchedulingStrategy;
 import org.apache.flink.connector.pulsar.source.StartOffsetInitializer;
 import org.apache.flink.connector.pulsar.source.StopCondition;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
@@ -67,7 +68,7 @@ public class PulsarSourceEnumerator implements SplitEnumerator<PulsarPartitionSp
     /**
      * This set is only accessed by the partition discovery callable in the callAsync() method, i.e worker thread.
      */
-    private final Set<Partition> discoveredPartitions;
+    private final Set<AbstractPartition> discoveredPartitions;
     /**
      * The current assignment by reader id. Only accessed by the coordinator thread.
      */
@@ -80,6 +81,8 @@ public class PulsarSourceEnumerator implements SplitEnumerator<PulsarPartitionSp
     // Lazily instantiated or mutable fields.
     private boolean noMoreNewPartitionSplits = false;
 
+    private SplitSchedulingStrategy splitSchedulingStrategy;
+
     public PulsarSourceEnumerator(
             PulsarSubscriber subscriber,
             StartOffsetInitializer startOffsetInitializer,
@@ -87,19 +90,22 @@ public class PulsarSourceEnumerator implements SplitEnumerator<PulsarPartitionSp
             PulsarAdmin pulsarAdmin,
             Configuration configuration,
             SplitEnumeratorContext<PulsarPartitionSplit> context,
-            Map<Integer, List<PulsarPartitionSplit>> currentSplitsAssignments) {
+            Map<Integer, List<PulsarPartitionSplit>> currentSplitsAssignments,
+            SplitSchedulingStrategy splitSchedulingStrategy) {
         this.subscriber = subscriber;
+        this.subscriber.setContext(context);
         this.startOffsetInitializer = startOffsetInitializer;
         this.stopCondition = stopCondition;
         this.pulsarAdmin = pulsarAdmin;
         this.configuration = configuration;
         this.context = context;
-
+        this.splitSchedulingStrategy = splitSchedulingStrategy;
         discoveredPartitions = new HashSet<>();
         readerIdToSplitAssignments = new HashMap<>(currentSplitsAssignments);
         readerIdToSplitAssignments.forEach((reader, splits) ->
                 splits.forEach(s -> discoveredPartitions.add(s.getPartition())));
         pendingPartitionSplitAssignment = new HashMap<>();
+        //readerIdTowaitSplits = new HashMap<>();
         partitionDiscoveryIntervalMs = configuration.get(PulsarSourceOptions.PARTITION_DISCOVERY_INTERVAL_MS);
     }
 
@@ -125,10 +131,11 @@ public class PulsarSourceEnumerator implements SplitEnumerator<PulsarPartitionSp
 
     @Override
     public void addSplitsBack(List<PulsarPartitionSplit> splits, int subtaskId) {
-        addPartitionSplitChangeToPendingAssignments(splits);
+        splitSchedulingStrategy.addSplitsBack(pendingPartitionSplitAssignment, splits, subtaskId, context.currentParallelism());
         assignPendingPartitionSplits();
     }
 
+    //id -> 5
     @Override
     public void addReader(int subtaskId) {
         LOG.debug("Adding reader {}.", subtaskId);
@@ -185,12 +192,14 @@ public class PulsarSourceEnumerator implements SplitEnumerator<PulsarPartitionSp
     }
 
     // This method should only be invoked in the coordinator executor thread.
+    // map(range, subid)
     private void addPartitionSplitChangeToPendingAssignments(Collection<PulsarPartitionSplit> newPartitionSplits) {
         int numReaders = context.currentParallelism();
         for (PulsarPartitionSplit split : newPartitionSplits) {
             // TODO: Implement a more sophisticated algorithm to reduce partition movement when parallelism changes.
-            int ownerReader = split.getTopic().hashCode() % numReaders;
-            pendingPartitionSplitAssignment.computeIfAbsent(ownerReader, r -> new ArrayList<>()).add(split);
+            pendingPartitionSplitAssignment.computeIfAbsent(
+                    splitSchedulingStrategy.getIndexOfReader(numReaders, split), r -> new ArrayList<>()
+            ).add(split);
         }
         LOG.debug("Assigned {} to {} readers.", newPartitionSplits, numReaders);
     }
@@ -221,13 +230,16 @@ public class PulsarSourceEnumerator implements SplitEnumerator<PulsarPartitionSp
         });
     }
 
-    private static class PartitionSplitChange {
+    /**
+     * class that represents partitionSplit's change.
+     */
+    public static class PartitionSplitChange {
         private final List<PulsarPartitionSplit> newPartitionSplits;
-        private final Set<Partition> removedPartitions;
+        private final Set<AbstractPartition> removedPartitions;
 
         private PartitionSplitChange(
                 List<PulsarPartitionSplit> newPartitionSplits,
-                Set<Partition> removedPartitions) {
+                Set<AbstractPartition> removedPartitions) {
             this.newPartitionSplits = newPartitionSplits;
             this.removedPartitions = removedPartitions;
         }

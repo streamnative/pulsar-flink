@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -14,27 +14,20 @@
 
 package org.apache.flink.connector.pulsar.source;
 
+import org.apache.flink.api.connector.source.SplitEnumeratorContext;
+import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
+
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.Range;
 
 import java.io.Serializable;
 import java.util.Collection;
-import java.util.Collections;
 
 /**
- * An Assigner for stickyKey.
+ * Split strategy for Topic range.
  */
-public interface StickyKeyAssigner extends Serializable {
-    StickyKeyAssigner AUTO = (topic, pulsarAdmin) -> Collections.singletonList(Partition.AUTO_KEY_RANGE);
-
-    Collection<Collection<Range>> getRanges(String topic, PulsarAdmin pulsarAdmin) throws PulsarAdminException;
+public interface SplitDivisionStrategy extends Serializable {
+    Collection<Range> getRanges(String topic, PulsarAdmin pulsarAdmin, SplitEnumeratorContext<PulsarPartitionSplit> context) throws PulsarAdminException;
 }
 
-class HashKeyAssigner implements StickyKeyAssigner{
-
-    @Override
-    public Collection<Collection<Range>> getRanges(String topic, PulsarAdmin pulsarAdmin) throws PulsarAdminException {
-        return null;
-    }
-}

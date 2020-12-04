@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -15,6 +15,8 @@
 package org.apache.flink.connector.pulsar.source;
 
 import org.apache.flink.annotation.PublicEvolving;
+import org.apache.flink.api.connector.source.SplitEnumeratorContext;
+import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 import org.apache.flink.connector.pulsar.source.subscription.TopicListSubscriber;
 import org.apache.flink.connector.pulsar.source.subscription.TopicPatternSubscriber;
 
@@ -36,7 +38,12 @@ import java.util.Set;
  * support all these three types of subscribing mode.
  */
 @PublicEvolving
-public interface PulsarSubscriber extends Serializable {
+public abstract class PulsarSubscriber implements Serializable {
+    protected SplitEnumeratorContext<PulsarPartitionSplit> context;
+
+    public void setContext(SplitEnumeratorContext<PulsarPartitionSplit> context) {
+        this.context = context;
+    }
 
     /**
      * Get the partitions changes compared to the current partition assignment.
@@ -48,38 +55,38 @@ public interface PulsarSubscriber extends Serializable {
      * @param currentAssignment the partitions that are currently assigned to the source readers.
      * @return The partition changes compared with the currently assigned partitions.
      */
-    PartitionChange getPartitionChanges(
+    public abstract PartitionChange getPartitionChanges(
             PulsarAdmin pulsarAdmin,
-            Set<Partition> currentAssignment) throws PulsarAdminException, InterruptedException, IOException;
+            Set<AbstractPartition> currentAssignment) throws PulsarAdminException, InterruptedException, IOException;
 
     /**
      * A container class to hold the newly added partitions and removed partitions.
      */
-    class PartitionChange {
-        private final Set<Partition> newPartitions;
-        private final Set<Partition> removedPartitions;
+    public class PartitionChange {
+        private final Set<AbstractPartition> newPartitions;
+        private final Set<AbstractPartition> removedPartitions;
 
-        public PartitionChange(Set<Partition> newPartitions, Set<Partition> removedPartitions) {
+        public PartitionChange(Set<AbstractPartition> newPartitions, Set<AbstractPartition> removedPartitions) {
             this.newPartitions = newPartitions;
             this.removedPartitions = removedPartitions;
         }
 
-        public Set<Partition> getNewPartitions() {
+        public Set<AbstractPartition> getNewPartitions() {
             return newPartitions;
         }
 
-        public Set<Partition> getRemovedPartitions() {
+        public Set<AbstractPartition> getRemovedPartitions() {
             return removedPartitions;
         }
     }
 
     // ----------------- factory methods --------------
 
-    static PulsarSubscriber getTopicListSubscriber(StickyKeyAssigner stickyKeyAssigner, String... topics) {
-        return new TopicListSubscriber(stickyKeyAssigner, topics);
+    public static PulsarSubscriber getTopicListSubscriber(SplitDivisionStrategy splitDivisionStrategy, String... topics) {
+        return new TopicListSubscriber(splitDivisionStrategy, topics);
     }
 
-    static PulsarSubscriber getTopicPatternSubscriber(String namespace, StickyKeyAssigner stickyKeyAssigner, String... topicPatterns) {
-        return new TopicPatternSubscriber(namespace, stickyKeyAssigner, topicPatterns);
+    public static PulsarSubscriber getTopicPatternSubscriber(String namespace, SplitDivisionStrategy splitDivisionStrategy, String... topicPatterns) {
+        return new TopicPatternSubscriber(namespace, splitDivisionStrategy, topicPatterns);
     }
 }

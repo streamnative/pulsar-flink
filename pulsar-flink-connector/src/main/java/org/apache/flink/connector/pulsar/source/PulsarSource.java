@@ -79,6 +79,7 @@ public class PulsarSource<OUT>
     private final Configuration configuration;
     private final ClientConfigurationData pulsarConfiguration;
     private final ConsumerConfigurationData<byte[]> consumerConfigurationData;
+    private final SplitSchedulingStrategy splitSchedulingStrategy;
 
     private final String adminUrl;
     private PulsarAdmin pulsarAdmin;
@@ -92,7 +93,8 @@ public class PulsarSource<OUT>
             MessageDeserializer<OUT> messageDeserializer,
             Configuration configuration,
             ClientConfigurationData pulsarConfiguration,
-            ConsumerConfigurationData<byte[]> consumerConfigurationData) {
+            ConsumerConfigurationData<byte[]> consumerConfigurationData,
+            SplitSchedulingStrategy splitSchedulingStrategy) {
         this.subscriber = checkNotNull(subscriber);
         this.startOffsetInitializer = checkNotNull(startOffsetInitializer);
         this.stopCondition = checkNotNull(stopCondition);
@@ -102,6 +104,7 @@ public class PulsarSource<OUT>
         this.pulsarConfiguration = checkNotNull(pulsarConfiguration);
         adminUrl = configuration.get(PulsarSourceOptions.ADMIN_URL);
         this.consumerConfigurationData = consumerConfigurationData;
+        this.splitSchedulingStrategy = splitSchedulingStrategy;
     }
 
     /**
@@ -190,7 +193,8 @@ public class PulsarSource<OUT>
                 getPulsarAdmin(),
                 configuration,
                 enumContext,
-                Collections.emptyMap());
+                Collections.emptyMap(),
+                splitSchedulingStrategy);
     }
 
     @Override
@@ -204,7 +208,8 @@ public class PulsarSource<OUT>
                 getPulsarAdmin(),
                 configuration,
                 enumContext,
-                checkpoint.getCurrentAssignment());
+                checkpoint.getCurrentAssignment(),
+                splitSchedulingStrategy);
     }
 
     @Override

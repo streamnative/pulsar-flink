@@ -14,7 +14,7 @@
 
 package org.apache.flink.connector.pulsar.source.subscription;
 
-import org.apache.flink.connector.pulsar.source.Partition;
+import org.apache.flink.connector.pulsar.source.AbstractPartition;
 import org.apache.flink.connector.pulsar.source.PulsarSubscriber;
 
 import org.apache.pulsar.client.admin.PulsarAdmin;
@@ -30,16 +30,16 @@ import java.util.Set;
 /**
  * The base implementations of {@link PulsarSubscriber}.
  */
-public abstract class AbstractPulsarSubscriber implements PulsarSubscriber {
+public abstract class AbstractPulsarSubscriber extends PulsarSubscriber {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Override
     public PartitionChange getPartitionChanges(
             PulsarAdmin pulsarAdmin,
-            Set<Partition> currentAssignment) throws PulsarAdminException, InterruptedException, IOException {
-        Set<Partition> newPartitions = new HashSet<>();
-        Set<Partition> removedPartitions = new HashSet<>(currentAssignment);
-        for (Partition partition : getCurrentPartitions(pulsarAdmin)) {
+            Set<AbstractPartition> currentAssignment) throws PulsarAdminException, InterruptedException, IOException {
+        Set<AbstractPartition> newPartitions = new HashSet<>();
+        Set<AbstractPartition> removedPartitions = new HashSet<>(currentAssignment);
+        for (AbstractPartition partition : getCurrentPartitions(pulsarAdmin)) {
             if (!removedPartitions.remove(partition)) {
                 newPartitions.add(partition);
             }
@@ -53,5 +53,5 @@ public abstract class AbstractPulsarSubscriber implements PulsarSubscriber {
         return new PartitionChange(newPartitions, removedPartitions);
     }
 
-    protected abstract Collection<Partition> getCurrentPartitions(PulsarAdmin pulsarAdmin) throws PulsarAdminException, InterruptedException, IOException;
+    protected abstract Collection<AbstractPartition> getCurrentPartitions(PulsarAdmin pulsarAdmin) throws PulsarAdminException, InterruptedException, IOException;
 }

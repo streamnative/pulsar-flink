@@ -32,7 +32,6 @@ import org.apache.flink.table.data.GenericMapData;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.data.StringData;
 import org.apache.flink.table.data.TimestampData;
-import org.apache.flink.table.data.binary.BinaryArrayData;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.utils.DataTypeUtils;
 import org.apache.flink.util.Preconditions;
@@ -442,7 +441,7 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
         MESSAGE_ID(
                 "messageId",
                 DataTypes.BYTES().notNull(),
-                message -> BinaryArrayData.fromPrimitiveArray(message.getMessageId().toByteArray())),
+                message -> message.getMessageId().toByteArray()),
 
         SEQUENCE_ID(
                 "sequenceId",

@@ -39,6 +39,7 @@ import javax.annotation.Nullable;
 
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.Optional;
 
 import static org.apache.avro.Schema.Type.RECORD;
@@ -206,6 +207,7 @@ class DynamicPulsarSerializationSchema
                 .name("Record")
                 .schema(schemaBytes)
                 .type(type)
+                .properties(Collections.emptyMap())
                 .build();
     }
 

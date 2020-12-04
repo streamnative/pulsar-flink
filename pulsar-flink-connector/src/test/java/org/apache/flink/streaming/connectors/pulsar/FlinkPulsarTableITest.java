@@ -456,24 +456,23 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
                         // offset is ignored because it might not be deterministic
                         + "  `eventTime` TIMESTAMP(3) METADATA,\n"
                         + "  `properties` MAP<STRING, STRING> METADATA ,\n"
-                        + "  `key` STRING,\n"
                         + "  `topic` STRING METADATA VIRTUAL,\n"
                         + "  `sequenceId` BIGINT METADATA VIRTUAL,\n"
+                        + "  `key` STRING ,\n"
                         + "  `physical_3` BOOLEAN\n"
                         + ") WITH (\n"
                         + "  'connector' = 'pulsar',\n"
                         + "  'topic' = '%s',\n"
+                        + "  'key.format' = 'raw',\n"
+                        + "  'key.fields' = 'key',\n"
+                        + "  'value.format' = 'avro',\n"
                         + "  'service-url' = '%s',\n"
                         + "  'admin-url' = '%s',\n"
-                        + " 'scan.startup.mode' = 'earliest',\n"
-                        + " 'key.format' = 'raw',\n"
-                        + " 'key.fields' = 'key',\n"
-                        + "  %s\n"
+                        + "  'scan.startup.mode' = 'earliest' \n"
                         + ")",
                 topic,
                 serviceUrl,
-                adminUrl,
-                " 'format' = 'avro' ");
+                adminUrl);
 
         tEnv.executeSql(createTable);
 
@@ -502,9 +501,9 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         headers3.put("k32", "v32");
 
         final List<Row> expected = Arrays.asList(
-                Row.of("data 1", 1, LocalDateTime.parse("2020-03-08T13:12:11.123"), headers1, "key1", topic, 0L, true),
-                Row.of("data 2", 2, LocalDateTime.parse("2020-03-09T13:12:11.123"), headers2, "key2", topic, 1L, false),
-                Row.of("data 3", 3, LocalDateTime.parse("2020-03-10T13:12:11.123"), headers3, "key3", topic, 2L, true)
+                Row.of("data 1", 1, LocalDateTime.parse("2020-03-08T13:12:11.123"), headers1, topic, 0L, "key1", true),
+                Row.of("data 2", 2, LocalDateTime.parse("2020-03-09T13:12:11.123"), headers2, topic, 1L, "key2", false),
+                Row.of("data 3", 3, LocalDateTime.parse("2020-03-10T13:12:11.123"), headers3, topic, 2L, "key3", true)
         );
 
         assertThat(result, deepEqualTo(expected, true));
@@ -552,20 +551,22 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
                         + "  `eventTime` TIMESTAMP(3) METADATA,\n"
                         + "  `properties` MAP<STRING, STRING> METADATA ,\n"
                         + "  `topic` STRING METADATA VIRTUAL,\n"
-                        + "  `key` STRING METADATA ,\n"
+                        + "  `key` STRING ,\n"
                         + "  `sequenceId` BIGINT METADATA VIRTUAL\n"
                         + ") WITH (\n"
                         + "  'connector' = 'pulsar',\n"
                         + "  'topic' = '%s',\n"
                         + "  'service-url' = '%s',\n"
                         + "  'admin-url' = '%s',\n"
-                        + " 'scan.startup.mode' = 'earliest',\n"
-                        + "  %s\n"
+                        + "  'value.fields-include' = 'EXCEPT_KEY', \n"
+                        + "  'key.format' = 'raw',\n"
+                        + "  'key.fields' = 'key',\n"
+                        + "  'value.format' = 'atomic',\n"
+                        + " 'scan.startup.mode' = 'earliest' \n"
                         + ")",
                 topic,
                 serviceUrl,
-                adminUrl,
-                " 'format' = 'atomic' ");
+                adminUrl);
         tEnv.executeSql(createTable);
 
         final List<Row> result = PulsarTableTestUtils.collectRows(tEnv.sqlQuery("SELECT * FROM pulsar"), 5);

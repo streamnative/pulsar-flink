@@ -78,7 +78,7 @@
     <jackson.version>2.10.1</jackson.version>
     <!-- plugin dependencies -->
     <maven.version>3.5.4</maven.version>
-    <license-maven-plugin.version>3.0.rc1</license-maven-plugin.version>
+    <license-maven-plugin.version>4.0.rc1</license-maven-plugin.version>
     <maven-compiler-plugin.version>3.7.0</maven-compiler-plugin.version>
     <maven-dependency-plugin.version>3.1.1</maven-dependency-plugin.version>
     <maven-shade-plugin.version>3.1.0</maven-shade-plugin.version>

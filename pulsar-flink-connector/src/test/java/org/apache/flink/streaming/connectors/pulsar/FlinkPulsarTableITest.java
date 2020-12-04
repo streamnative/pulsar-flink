@@ -454,7 +454,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
                         // offset is ignored because it might not be deterministic
                         + "  `eventTime` TIMESTAMP(3) METADATA,\n"
                         + "  `properties` MAP<STRING, STRING> METADATA ,\n"
-                        + "  `key` STRING METADATA ,\n"
+                        + "  `key` STRING,\n"
                         + "  `topic` STRING METADATA VIRTUAL,\n"
                         + "  `sequenceId` BIGINT METADATA VIRTUAL,\n"
                         + "  `physical_3` BOOLEAN\n"
@@ -464,6 +464,8 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
                         + "  'service-url' = '%s',\n"
                         + "  'admin-url' = '%s',\n"
                         + " 'scan.startup.mode' = 'earliest',\n"
+                        + " 'key.format' = 'raw',\n"
+                        + " 'key.fields' = 'key',\n"
                         + "  %s\n"
                         + ")",
                 topic,

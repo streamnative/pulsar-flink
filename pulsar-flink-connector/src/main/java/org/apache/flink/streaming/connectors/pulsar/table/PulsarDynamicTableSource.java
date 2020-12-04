@@ -448,11 +448,6 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
                 "sequenceId",
                 DataTypes.BIGINT().notNull(),
                 Message::getSequenceId),
-        KEY(
-                "key",
-                DataTypes.STRING().nullable(),
-                message -> StringData.fromString(message.getKey())
-        ),
 
         PUBLISH_TIME(
                 "publishTime",

@@ -39,6 +39,7 @@ import org.apache.flink.types.Row;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdminException;
+import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.client.impl.schema.JSONSchema;
@@ -48,6 +49,7 @@ import org.apache.pulsar.common.schema.SchemaType;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -504,6 +506,69 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         );
 
         assertThat(result, deepEqualTo(expected, true));
+    }
+
+    @Test
+    public void testSendAndReadMetaData() throws Exception {
+        StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
+        see.setParallelism(1);
+        StreamTableEnvironment tEnv = StreamTableEnvironment.create(see);
+        String topic = newTopic();
+
+        List<Long> eventTimes = new ArrayList<>();
+        List<Long> sequenceIds = new ArrayList<>();
+        List<Map<String, String>> properties = new ArrayList<>();
+        List<String> keys = new ArrayList<>();
+        for (int i = 0; i < SchemaData.INTEGER_LIST.size(); i++) {
+            eventTimes.add(System.currentTimeMillis());
+            sequenceIds.add((long) i);
+            Map<String, String> map = new HashMap<>();
+            map.put("k" + i, "v" + i);
+            properties.add(map);
+            keys.add("key" + i);
+        }
+
+        List<MessageId> messageIdList =
+                sendTypedMessagesWithMetadata(topic, SchemaType.INT32,
+                        SchemaData.INTEGER_LIST, Optional.empty(),
+                        null, eventTimes, sequenceIds, properties, keys);
+        List<Row> expected = new ArrayList<>();
+        for (int i = 0; i < SchemaData.INTEGER_LIST.size(); i++) {
+            Timestamp timestamp = new Timestamp(eventTimes.get(i));
+            LocalDateTime localDateTime = timestamp.toLocalDateTime();
+            expected.add(Row.of(SchemaData.INTEGER_LIST.get(i), messageIdList.get(i).toByteArray(), localDateTime,
+                    properties.get(i), topic, keys.get(i), sequenceIds.get(i)));
+        }
+
+        // ---------- Produce an event time stream into pulsar -------------------
+        final String createTable = String.format(
+                "CREATE TABLE pulsar (\n"
+                        + "  `physical_1` INT,\n"
+                        // metadata fields are out of order on purpose
+                        // offset is ignored because it might not be deterministic
+                        + "  `messageId` BYTES METADATA,\n"
+                        + "  `eventTime` TIMESTAMP(3) METADATA,\n"
+                        + "  `properties` MAP<STRING, STRING> METADATA ,\n"
+                        + "  `topic` STRING METADATA VIRTUAL,\n"
+                        + "  `key` STRING METADATA ,\n"
+                        + "  `sequenceId` BIGINT METADATA VIRTUAL\n"
+                        + ") WITH (\n"
+                        + "  'connector' = 'pulsar',\n"
+                        + "  'topic' = '%s',\n"
+                        + "  'service-url' = '%s',\n"
+                        + "  'admin-url' = '%s',\n"
+                        + " 'scan.startup.mode' = 'earliest',\n"
+                        + "  %s\n"
+                        + ")",
+                topic,
+                serviceUrl,
+                adminUrl,
+                " 'format' = 'atomic' ");
+        tEnv.executeSql(createTable);
+
+        final List<Row> result = PulsarTableTestUtils.collectRows(tEnv.sqlQuery("SELECT * FROM pulsar"), 5);
+        assertThat(result, deepEqualTo(expected, true));
+
     }
 
     private Properties getSinkProperties() {

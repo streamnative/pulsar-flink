@@ -14,9 +14,12 @@
 
 package org.apache.flink.connector.pulsar.source.subscription;
 
-import org.apache.flink.connector.pulsar.source.Partition;
-import org.apache.flink.connector.pulsar.source.StickyKeyAssigner;
+import org.apache.flink.connector.pulsar.source.AbstractPartition;
+import org.apache.flink.connector.pulsar.source.BrokerPartition;
+import org.apache.flink.connector.pulsar.source.NoSplitDivisionStrategy;
+import org.apache.flink.connector.pulsar.source.SplitDivisionStrategy;
 import org.apache.flink.connector.pulsar.source.util.AsyncUtils;
+import org.apache.flink.streaming.connectors.pulsar.internal.TopicRange;
 
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
@@ -42,12 +45,12 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 public class TopicPatternSubscriber extends AbstractPulsarSubscriber {
     private static final long serialVersionUID = -7471048577725467797L;
     private final String namespace;
-    private final StickyKeyAssigner stickyKeyAssigner;
+    private final SplitDivisionStrategy splitDivisionStrategy;
     private final Pattern topicPattern;
 
-    public TopicPatternSubscriber(String namespace, StickyKeyAssigner stickyKeyAssigner, String... topicPatterns) {
+    public TopicPatternSubscriber(String namespace, SplitDivisionStrategy splitDivisionStrategy, String... topicPatterns) {
         this.namespace = checkNotNull(namespace);
-        this.stickyKeyAssigner = checkNotNull(stickyKeyAssigner);
+        this.splitDivisionStrategy = checkNotNull(splitDivisionStrategy);
         checkArgument(topicPatterns.length > 0, "At least one pattern needs to be specified");
         // shorten patterns and compile into one big pattern
         topicPattern = Pattern.compile(Arrays.stream(topicPatterns)
@@ -55,13 +58,12 @@ public class TopicPatternSubscriber extends AbstractPulsarSubscriber {
     }
 
     @Override
-    protected Collection<Partition> getCurrentPartitions(PulsarAdmin pulsarAdmin) throws PulsarAdminException, InterruptedException, IOException {
-        List<Partition> partitions = new ArrayList<>();
+    protected Collection<AbstractPartition> getCurrentPartitions(PulsarAdmin pulsarAdmin) throws PulsarAdminException, InterruptedException, IOException {
+        List<AbstractPartition> partitions = new ArrayList<>();
         Topics topics = pulsarAdmin.topics();
-        //addStickyPartitions(topics.getList(namespace), partitions, pulsarAdmin);
 
         List<String> partitionedTopicList = topics.getPartitionedTopicList(namespace);
-        if (stickyKeyAssigner == StickyKeyAssigner.AUTO) {
+        if (splitDivisionStrategy == NoSplitDivisionStrategy.NO_SPLIT) {
             try {
                 AsyncUtils.parallelAsync(
                         partitionedTopicList,
@@ -70,7 +72,9 @@ public class TopicPatternSubscriber extends AbstractPulsarSubscriber {
                             if (topicPattern.matcher(topic).matches()) {
                                 for (int partitionIndex = 0; partitionIndex < topicMetadata.partitions; partitionIndex++) {
                                     String fullName = topic + TopicName.PARTITIONED_TOPIC_SUFFIX + partitionIndex;
-                                    partitions.add(new Partition(fullName, Partition.AUTO_KEY_RANGE));
+                                    partitions.add(new BrokerPartition(
+                                            new TopicRange(fullName, BrokerPartition.FULL_RANGE))
+                                    );
                                 }
                             }
                         },
@@ -79,16 +83,18 @@ public class TopicPatternSubscriber extends AbstractPulsarSubscriber {
                 throw new IOException("Cannot retrieve partition information: " + e.getMessage());
             }
         } else {
-            addStickyPartitions(partitionedTopicList, partitions, pulsarAdmin);
+            //this method should consider partition's not only topics
+            addKeySharedPartitions(partitionedTopicList, partitions, pulsarAdmin);
         }
         return partitions;
     }
 
-    private void addStickyPartitions(List<String> topics, List<Partition> partitions, PulsarAdmin pulsarAdmin) throws PulsarAdminException {
+    private void addKeySharedPartitions(List<String> topics, List<AbstractPartition> partitions, PulsarAdmin pulsarAdmin) throws PulsarAdminException {
         for (String topic : topics) {
             if (topicPattern.matcher(topic).matches()) {
-                for (Collection<Range> range : stickyKeyAssigner.getRanges(topic, pulsarAdmin)) {
-                    partitions.add(new Partition(topic, range));
+                Collection<Range> ranges = splitDivisionStrategy.getRanges(topic, pulsarAdmin, context);
+                for (Range range : ranges) {
+                    partitions.add(new BrokerPartition(new TopicRange(topic, range)));
                 }
             }
         }

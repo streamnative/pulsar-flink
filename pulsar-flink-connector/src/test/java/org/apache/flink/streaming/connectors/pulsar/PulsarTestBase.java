@@ -43,6 +43,7 @@ import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.SubscriptionMode;
 import org.apache.pulsar.client.api.SubscriptionType;
+import org.apache.pulsar.client.api.TypedMessageBuilder;
 import org.apache.pulsar.client.api.schema.SchemaDefinition;
 import org.apache.pulsar.client.impl.ClientBuilderImpl;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
@@ -179,13 +180,10 @@ public abstract class PulsarTestBase extends TestLogger {
         return sendTypedMessages(topic, type, messages, partition, null);
     }
 
-    public static <T> List<MessageId> sendTypedMessages(
-            String topic,
-            SchemaType type,
-            List<T> messages,
-            Optional<Integer> partition,
-            Class<T> tClass) throws PulsarClientException {
-
+    public static <T> Producer<T> getProducer(String topic,
+                                              SchemaType type,
+                                              Optional<Integer> partition,
+                                              Class<T> tClass) throws PulsarClientException {
         String topicName;
         if (partition.isPresent()) {
             topicName = topic + PulsarOptions.PARTITION_SUFFIX + partition.get();
@@ -194,78 +192,125 @@ public abstract class PulsarTestBase extends TestLogger {
         }
 
         Producer producer = null;
+
+        PulsarClient client = PulsarClient.builder().serviceUrl(getServiceUrl()).build();
+        switch (type) {
+            case BOOLEAN:
+                producer = (Producer<T>) client.newProducer(Schema.BOOL).topic(topicName).create();
+                break;
+            case BYTES:
+                producer = (Producer<T>) client.newProducer(Schema.BYTES).topic(topicName).create();
+                break;
+            case LOCAL_DATE:
+                producer = (Producer<T>) client.newProducer(Schema.LOCAL_DATE).topic(topicName).create();
+                break;
+            case DATE:
+                producer = (Producer<T>) client.newProducer(Schema.DATE).topic(topicName).create();
+                break;
+            case STRING:
+                producer = (Producer<T>) client.newProducer(Schema.STRING).topic(topicName).create();
+                break;
+            case TIMESTAMP:
+                producer = (Producer<T>) client.newProducer(Schema.TIMESTAMP).topic(topicName).create();
+                break;
+            case LOCAL_DATE_TIME:
+                producer = (Producer<T>) client.newProducer(Schema.LOCAL_DATE_TIME).topic(topicName).create();
+                break;
+            case INT8:
+                producer = (Producer<T>) client.newProducer(Schema.INT8).topic(topicName).create();
+                break;
+            case DOUBLE:
+                producer = (Producer<T>) client.newProducer(Schema.DOUBLE).topic(topicName).create();
+                break;
+            case FLOAT:
+                producer = (Producer<T>) client.newProducer(Schema.FLOAT).topic(topicName).create();
+                break;
+            case INT32:
+                producer = (Producer<T>) client.newProducer(Schema.INT32).topic(topicName).create();
+                break;
+            case INT16:
+                producer = (Producer<T>) client.newProducer(Schema.INT16).topic(topicName).create();
+                break;
+            case INT64:
+                producer = (Producer<T>) client.newProducer(Schema.INT64).topic(topicName).create();
+                break;
+            case AVRO:
+                SchemaDefinition<Object> schemaDefinition =
+                        SchemaDefinition.builder().withPojo(tClass).withJSR310ConversionEnabled(true).build();
+                producer =
+                        (Producer<T>) client.newProducer(Schema.AVRO(schemaDefinition)).topic(topicName).create();
+                break;
+            case JSON:
+                producer = (Producer<T>) client.newProducer(Schema.JSON(tClass)).topic(topicName).create();
+                break;
+
+            default:
+                throw new NotImplementedException("Unsupported type " + type);
+        }
+        return producer;
+    }
+
+    public static <T> List<MessageId> sendTypedMessages(
+            String topic,
+            SchemaType type,
+            List<T> messages,
+            Optional<Integer> partition,
+            Class<T> tClass) throws PulsarClientException {
+
+        Producer<T> producer = getProducer(topic, type, partition, tClass);
         List<MessageId> mids = new ArrayList<>();
 
-        try (PulsarClient client = PulsarClient.builder().serviceUrl(getServiceUrl()).build()) {
-            switch (type) {
-                case BOOLEAN:
-                    producer = (Producer<T>) client.newProducer(Schema.BOOL).topic(topicName).create();
-                    break;
-                case BYTES:
-                    producer = (Producer<T>) client.newProducer(Schema.BYTES).topic(topicName).create();
-                    break;
-                case LOCAL_DATE:
-                    producer = (Producer<T>) client.newProducer(Schema.LOCAL_DATE).topic(topicName).create();
-                    break;
-                case DATE:
-                    producer = (Producer<T>) client.newProducer(Schema.DATE).topic(topicName).create();
-                    break;
-                case STRING:
-                    producer = (Producer<T>) client.newProducer(Schema.STRING).topic(topicName).create();
-                    break;
-                case TIMESTAMP:
-                    producer = (Producer<T>) client.newProducer(Schema.TIMESTAMP).topic(topicName).create();
-                    break;
-                case LOCAL_DATE_TIME:
-                    producer = (Producer<T>) client.newProducer(Schema.LOCAL_DATE_TIME).topic(topicName).create();
-                    break;
-                case INT8:
-                    producer = (Producer<T>) client.newProducer(Schema.INT8).topic(topicName).create();
-                    break;
-                case DOUBLE:
-                    producer = (Producer<T>) client.newProducer(Schema.DOUBLE).topic(topicName).create();
-                    break;
-                case FLOAT:
-                    producer = (Producer<T>) client.newProducer(Schema.FLOAT).topic(topicName).create();
-                    break;
-                case INT32:
-                    producer = (Producer<T>) client.newProducer(Schema.INT32).topic(topicName).create();
-                    break;
-                case INT16:
-                    producer = (Producer<T>) client.newProducer(Schema.INT16).topic(topicName).create();
-                    break;
-                case INT64:
-                    producer = (Producer<T>) client.newProducer(Schema.INT64).topic(topicName).create();
-                    break;
-                case AVRO:
-                    SchemaDefinition<Object> schemaDefinition =
-                            SchemaDefinition.builder().withPojo(tClass).withJSR310ConversionEnabled(true).build();
-                    producer =
-                            (Producer<T>) client.newProducer(Schema.AVRO(schemaDefinition)).topic(topicName).create();
-                    break;
-                case JSON:
-                    producer = (Producer<T>) client.newProducer(Schema.JSON(tClass)).topic(topicName).create();
-                    break;
+        for (T message : messages) {
+            MessageId mid = sendMessageInternal(producer, message, null, null, null, null);
+            log.info("Sent {} of mid: {}", message.toString(), mid.toString());
+            mids.add(mid);
+        }
 
-                default:
-                    throw new NotImplementedException("Unsupported type " + type);
-            }
+        return mids;
+    }
 
-            for (T message : messages) {
-                MessageId mid = producer.send(message);
-                log.info("Sent {} of mid: {}", message.toString(), mid.toString());
-                mids.add(mid);
-            }
-
-        } catch (Exception e) {
-            log.error("message send failed", e);
-        } finally {
-            if (producer != null) {
-                producer.flush();
-                producer.close();
-            }
+    public static <T> List<MessageId> sendTypedMessagesWithMetadata(String topic,
+                                                                    SchemaType type,
+                                                                    List<T> messages,
+                                                                    Optional<Integer> partition,
+                                                                    Class<T> tClass,
+                                                                    List<Long> eventTimes,
+                                                                    List<Long> sequenceIds,
+                                                                    List<Map<String, String>> properties,
+                                                                    List<String> keys
+    ) throws PulsarClientException {
+        Producer<T> producer = getProducer(topic, type, partition, tClass);
+        List<MessageId> mids = new ArrayList<>();
+        for (int i = 0; i < messages.size(); i++) {
+            MessageId mid = sendMessageInternal(producer, messages.get(i),
+                    eventTimes.get(i), sequenceIds.get(i), properties.get(i), keys.get(i));
+            log.info("Sent {} of mid: {}", messages.get(i).toString(), mid.toString());
+            mids.add(mid);
         }
         return mids;
+    }
+
+    private static <T> MessageId sendMessageInternal(Producer<T> producer,
+                                                     T message,
+                                                     Long eventTime,
+                                                     Long sequenceId,
+                                                     Map<String, String> properties,
+                                                     String key
+    ) throws PulsarClientException {
+        TypedMessageBuilder<T> mb = producer.newMessage().value(message);
+        if (eventTime != null) {
+            mb = mb.eventTime(eventTime);
+        }
+        if (sequenceId != null) {
+            mb = mb.sequenceId(sequenceId);
+        }
+        if (properties != null) {
+            mb = mb.properties(properties);
+        }
+        if (key != null) {
+            mb = mb.key(key);
+        }
+        return mb.send();
     }
 
     // --------------------- public client related helpers ------------------

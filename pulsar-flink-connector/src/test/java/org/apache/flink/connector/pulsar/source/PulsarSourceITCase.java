@@ -176,7 +176,6 @@ public class PulsarSourceITCase extends PulsarTestBaseWithFlink {
         }
 
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
-        see.getConfig().disableSysoutLogging();
         see.setParallelism(3);
 
         PulsarSource<String> source = PulsarSource.builder()

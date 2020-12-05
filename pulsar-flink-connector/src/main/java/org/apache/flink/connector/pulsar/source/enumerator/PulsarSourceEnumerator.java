@@ -105,7 +105,6 @@ public class PulsarSourceEnumerator implements SplitEnumerator<PulsarPartitionSp
         readerIdToSplitAssignments.forEach((reader, splits) ->
                 splits.forEach(s -> discoveredPartitions.add(s.getPartition())));
         pendingPartitionSplitAssignment = new HashMap<>();
-        //readerIdTowaitSplits = new HashMap<>();
         partitionDiscoveryIntervalMs = configuration.get(PulsarSourceOptions.PARTITION_DISCOVERY_INTERVAL_MS);
     }
 
@@ -192,7 +191,6 @@ public class PulsarSourceEnumerator implements SplitEnumerator<PulsarPartitionSp
     }
 
     // This method should only be invoked in the coordinator executor thread.
-    // map(range, subid)
     private void addPartitionSplitChangeToPendingAssignments(Collection<PulsarPartitionSplit> newPartitionSplits) {
         int numReaders = context.currentParallelism();
         for (PulsarPartitionSplit split : newPartitionSplits) {

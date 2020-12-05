@@ -324,9 +324,6 @@ public abstract class PulsarTestBase extends TestLogger {
     // --------------------- public client related helpers ------------------
 
     public static PulsarAdmin getPulsarAdmin() {
-        if (pulsarAdmin != null) {
-            return pulsarAdmin;
-        }
         try {
             return PulsarAdminUtils.newAdminFromConf(adminUrl, clientConfigurationData);
         } catch (PulsarClientException e) {
@@ -335,9 +332,6 @@ public abstract class PulsarTestBase extends TestLogger {
     }
 
     public static PulsarClient getPulsarClient() {
-        if (pulsarClient != null) {
-            return pulsarClient;
-        }
         try {
             return new ClientBuilderImpl(clientConfigurationData).build();
         } catch (PulsarClientException e) {
@@ -348,6 +342,9 @@ public abstract class PulsarTestBase extends TestLogger {
     // ------------------- topic information helpers -------------------
 
     public static void createTestTopic(String topic, int numberOfPartitions) throws Exception {
+        if (pulsarAdmin == null) {
+            pulsarAdmin = getPulsarAdmin();
+        }
         if (numberOfPartitions == 0) {
             pulsarAdmin.topics().createNonPartitionedTopic(topic);
         } else {

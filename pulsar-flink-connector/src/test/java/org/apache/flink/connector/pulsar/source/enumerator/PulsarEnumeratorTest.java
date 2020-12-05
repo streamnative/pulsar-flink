@@ -176,9 +176,10 @@ public class PulsarEnumeratorTest extends PulsarTestBase {
         Set<String> topics = new HashSet<>(PRE_EXISTING_TOPICS);
         topics.add(DYNAMIC_TOPIC_NAME);
         PulsarSubscriber subscribe = createSubscribe(NoSplitDivisionStrategy.INSTANCE, topics);
-        try (PulsarSourceEnumerator enumerator =
-                     createEnumerator(context, ENABLE_PERIODIC_PARTITION_DISCOVERY,
-                             HashSplitSchedulingStrategy.INSTANCE, subscribe)) {
+        PulsarSourceEnumerator enumerator =
+                createEnumerator(context, ENABLE_PERIODIC_PARTITION_DISCOVERY,
+                        HashSplitSchedulingStrategy.INSTANCE, subscribe);
+        try {
             startEnumeratorAndRegisterReaders(context, enumerator, subscribe);
 
             // invoke partition discovery callable again and there should be no new assignments.
@@ -204,7 +205,9 @@ public class PulsarEnumeratorTest extends PulsarTestBase {
                     Collections.singleton(DYNAMIC_TOPIC_NAME),
                     3, subscribe);
         } finally {
+            //we must guarantee topic delete before enumerator close.
             pulsarAdmin.topics().deletePartitionedTopic(DYNAMIC_TOPIC_NAME);
+            enumerator.close();
         }
     }
 

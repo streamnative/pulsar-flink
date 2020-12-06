@@ -47,7 +47,6 @@ public class Atomic extends FormatDescriptor {
     protected Map<String, String> toFormatProperties() {
         final DescriptorProperties properties = new DescriptorProperties();
         properties.putString(AtomicValidator.FORMAT_CLASS_NAME, className);
-        //properties.putBoolean(ConnectorDescriptorValidator.CONNECTOR + "." + PulsarOptions.USE_EXTEND_FIELD, useExtendFields);
         return properties.asMap();
     }
 }

@@ -25,6 +25,7 @@ import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.streaming.connectors.pulsar.internal.TopicRange;
 
 import org.apache.pulsar.common.naming.TopicName;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -58,6 +59,13 @@ public class PulsarSubscriberTest extends PulsarTestBase {
         pulsarClient = getPulsarClient();
         createTestTopic(TOPIC1, NUM_PARTITIONS_PER_TOPIC);
         createTestTopic(TOPIC2, NUM_PARTITIONS_PER_TOPIC);
+    }
+
+    @AfterClass
+    public static void clear() throws Exception {
+        pulsarAdmin = getPulsarAdmin();
+        pulsarAdmin.topics().deletePartitionedTopic(TOPIC1, true);
+        pulsarAdmin.topics().deletePartitionedTopic(TOPIC2, true);
     }
 
     @Test

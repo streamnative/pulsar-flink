@@ -205,7 +205,7 @@
         <version>${license-maven-plugin.version}</version>
         <executions>
           <execution>
-            <id>spotbugs</id>
+            <id>license</id>
             <phase>verify</phase>
             <goals>
               <goal>check</goal>
@@ -316,7 +316,7 @@
         <version>2.17</version>
         <executions>
           <execution>
-            <id>spotbugs</id>
+            <id>checkstyle</id>
             <phase>verify</phase>
             <goals>
               <goal>check</goal>
@@ -400,7 +400,7 @@
     <repository>
       <id>apache-snapshots</id>
       <url>
-        https://repository.apache.org/content/repositories/snapshots/"
+        https://repository.apache.org/content/repositories/snapshots/
       </url>
       <snapshots>
         <enabled>true</enabled>

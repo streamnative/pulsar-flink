@@ -149,6 +149,14 @@ public abstract class PulsarTestBase extends TestLogger {
         log.info("    Shut down PulsarTestBase ");
         log.info("-------------------------------------------------------------------------");
 
+        try {
+            final PulsarAdmin pulsarAdmin = getPulsarAdmin();
+            for (String topic : topics) {
+                pulsarAdmin.topics().deletePartitionedTopic(topic, true);
+            }
+        } catch (Exception e) {
+            log.warn("", e);
+        }
         TestStreamEnvironment.unsetAsContext();
         if (pulsarService != null) {
             pulsarService.stop();

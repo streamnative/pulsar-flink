@@ -68,9 +68,9 @@ public class PulsarAuthTest {
         log.info("-------------------------------------------------------------------------");
         log.info("    Starting PulsarTestBase ");
         log.info("-------------------------------------------------------------------------");
-
-        System.setProperty("pulsar.systemtest.image", "streamnative/pulsar:2.6.0-sn-18-3");
-
+        if (System.getProperty("pulsar.systemtest.image") == null) {
+            System.setProperty("pulsar.systemtest.image", "apachepulsar/pulsar:2.7.0");
+        }
         PulsarServiceSpec spec = PulsarServiceSpec.builder()
                 .clusterName("standalone-" + UUID.randomUUID())
                 .enableContainerLogging(false)

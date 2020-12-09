@@ -179,11 +179,11 @@ public class PulsarSourceITCase extends PulsarTestBaseWithFlink {
         see.setParallelism(3);
 
         PulsarSource<String> source = PulsarSource.builder()
-                .setTopics(new UniformSplitDivisionStrategy(), topic)
+                .setTopics(UniformSplitDivisionStrategy.INSTANCE, topic)
                 .setDeserializer(MessageDeserializer.valueOnly(new SimpleStringSchema()))
                 .startAt(StartOffsetInitializer.earliest())
                 .stopAt(StopCondition.stopAfterLast())
-                .setSplitSchedulingStrategy(new KeySharedSplitSchedulingStrategy())
+                .setSplitSchedulingStrategy(KeySharedSplitSchedulingStrategy.INSTANCE)
                 .configure(conf -> {
                     conf.set(PulsarSourceOptions.ADMIN_URL, adminUrl);
 

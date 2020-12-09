@@ -37,9 +37,14 @@ import org.apache.flink.shaded.guava18.com.google.common.collect.Sets;
 
 import org.apache.commons.cli.Options;
 import org.apache.pulsar.client.admin.PulsarAdmin;
+import org.apache.pulsar.client.admin.PulsarAdminException;
+import org.apache.pulsar.client.api.MessageId;
+import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.common.naming.TopicName;
+import org.apache.pulsar.common.policies.data.BacklogQuota;
 import org.apache.pulsar.common.policies.data.TenantInfo;
 import org.apache.pulsar.common.schema.SchemaType;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -64,7 +69,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * Catalog Integration tests.
  */
-@Ignore("need to be adapted to the new table api")
+//@Ignore("need to be adapted to the new table api")
 public class CatalogITest extends PulsarTestBaseWithFlink {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CatalogITest.class);
@@ -144,16 +149,23 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
                             Sets.newHashSet(Iterables.concat(topics, partitionedTopics)))
                             .isEmpty());
 
-            for (String tp : topicsFullName) {
-                admin.topics().delete(tp);
-            }
 
-            for (String tp : partitionedTopicsFullName) {
-                admin.topics().deletePartitionedTopic(tp);
-            }
+        } finally {
+            try {
+                for (String tp : topicsFullName) {
+                    getPulsarAdmin().topics().delete(tp, true);
+                }
 
-            for (String ns : namespaces) {
-                admin.namespaces().deleteNamespace(ns);
+                for (String tp : partitionedTopicsFullName) {
+                    getPulsarAdmin().topics().deletePartitionedTopic(tp, true);
+                }
+
+                for (String ns : namespaces) {
+                    getPulsarAdmin().namespaces().deleteNamespace(ns, true);
+                }
+                getPulsarAdmin().tenants().deleteTenant("tn1");
+            } catch (PulsarAdminException e) {
+                e.printStackTrace();
             }
         }
     }
@@ -251,10 +263,14 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
     public void testTableSink() throws Exception {
         String tp = newTopic();
         String tableName = TopicName.get(tp).getLocalName();
+
+        String tableSink = newTopic("tableSink");
+        String tableSinkName = TopicName.get(tableSink).getLocalName();
         String pulsarCatalog1 = "pulsarcatalog1";
 
         sendTypedMessages(tp, SchemaType.INT32, INTEGER_LIST, Optional.empty());
-
+//        getPulsarAdmin().schemas().createSchema(tp, Schema.INT32.getSchemaInfo());
+//        getPulsarAdmin().topics().createSubscription(tp, "test", MessageId.earliest);
         Map<String, String> conf = getStreamingConfs();
         conf.put("$VAR_STARTING", "earliest");
 
@@ -263,13 +279,13 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
         tableEnv.useCatalog(pulsarCatalog1);
 
-        String sinkDDL = "create table tableSink(v int)";
-        String insertQ = "INSERT INTO tableSink SELECT * FROM `" + tableName + "`";
+        String sinkDDL = "create table " + tableSinkName + "(v int)";
+        String insertQ = "INSERT INTO " + tableSinkName + " SELECT * FROM `" + tableName + "`";
 
         tableEnv.executeSql(sinkDDL).print();
         tableEnv.executeSql(insertQ).print();
 
-        Thread.sleep(2000);
+//        Thread.sleep(2000);
         Map<String, String> conf1 = getStreamingConfs();
         conf1.put("$VAR_STARTING", "earliest");
 
@@ -278,13 +294,13 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
         tableEnv1.useCatalog("pulsarcatalog1");
 
-        Table t = tableEnv1.sqlQuery("select `value` from tableSink");
+        Table t = tableEnv1.sqlQuery("select `value` from " + tableSinkName);
 
         StreamExecutionEnvironment executionEnvironment =
                 StreamExecutionEnvironment.getExecutionEnvironment();
         StreamTableEnvironment streamTableEnvironment = StreamTableEnvironment.create(executionEnvironment);
         DataStream stream = streamTableEnvironment.toAppendStream(t, t.getSchema().toRowType());
-        stream.map(new FailingIdentityMapper<Row>(INTEGER_LIST.size())).setParallelism(1)
+        stream.map(new FailingIdentityMapper<>(INTEGER_LIST.size())).setParallelism(1)
                 .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
 
         Thread reader = new Thread("read") {
@@ -310,9 +326,11 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
         String tp = newTopic();
         String tableName = TopicName.get(tp).getLocalName();
+        String tableSink = newTopic("tableSink");
+        String tableSinkName = TopicName.get(tableSink).getLocalName();
 
         sendTypedMessages(tp, SchemaType.INT32, INTEGER_LIST, Optional.empty());
-        sendTypedMessages("tableSink1", SchemaType.INT32, Arrays.asList(-1), Optional.empty());
+        sendTypedMessages(tableSink, SchemaType.INT32, Arrays.asList(-1), Optional.empty());
 
         Map<String, String> conf = getStreamingConfs();
         conf.put("$VAR_STARTING", "earliest");
@@ -322,7 +340,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
         tableEnv.useCatalog("pulsarcatalog1");
 
-        String insertQ = "INSERT INTO tableSink1 SELECT * FROM `" + tableName + "`";
+        String insertQ = "INSERT INTO " + tableSinkName + " SELECT * FROM `" + tableName + "`";
         tableEnv.executeSql(insertQ).print();
 
         Map<String, String> conf1 = getStreamingConfs();
@@ -335,7 +353,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
         tableEnv1.useCatalog("pulsarcatalog1");
 
-        Table t = tableEnv1.sqlQuery("select `value` from tableSink1");
+        Table t = tableEnv1.sqlQuery("select `value` from " + tableSinkName);
         DataStream stream =
                 ((StreamTableEnvironment) streamTableEnvironment).toAppendStream(t, t.getSchema().toRowType());
         stream.map(new FailingIdentityMapper<Row>(INTEGER_LIST.size())).setParallelism(1)

@@ -110,8 +110,4 @@ public abstract class PulsarTestBaseWithFlink extends PulsarTestBase {
                 ")";
         return sql;
     }
-
-    public static String newTopic() {
-        return TopicName.get("topic" + RandomStringUtils.randomNumeric(8)).toString();
-    }
 }

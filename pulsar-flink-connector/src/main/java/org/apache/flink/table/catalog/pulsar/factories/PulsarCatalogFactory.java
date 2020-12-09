@@ -66,6 +66,8 @@ public class PulsarCatalogFactory implements CatalogFactory {
         props.add(CATALOG_ADMIN_URL);
         props.add(CATALOG_STARTUP_MODE);
         props.add(CATALOG_DEFAULT_PARTITIONS);
+        props.add(org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.SCAN_STARTUP_MODE.key());
+        props.add(FormatDescriptorValidator.FORMAT);
         props.add(FormatDescriptorValidator.FORMAT + ".*");
         return props;
     }

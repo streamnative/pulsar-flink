@@ -85,7 +85,7 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
     public Optional<Factory> getFactory() {
         Properties props = new Properties();
         props.putAll(properties);
-        return Optional.of(new PulsarDynamicTableFactory());
+        return Optional.of(new PulsarDynamicTableFactory(true));
     }
 
     @Override
@@ -131,7 +131,7 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
         } catch (PulsarAdminException e) {
             return false;
         } catch (Exception e) {
-            log.warn(databaseName + " database does not exist.", e);
+            log.warn("{} database does not exist. {}",databaseName, e.getMessage());
             return false;
         }
     }

@@ -35,15 +35,13 @@ catalogs:
     type: pulsar
     service-url: "$VAR_SERVICEURL"
     admin-url: "$VAR_ADMINURL"
-    format.type: "atomic"
-    format.className: "java.lang.Integer"
+    format: "atomic"
   - name: pulsarcatalog2
     type: pulsar
     default-database: tn/ns
     service-url: "$VAR_SERVICEURL"
     admin-url: "$VAR_ADMINURL"
-    format.type: "atomic"
-    format.className: "java.lang.Integer"
+    format: "atomic"
   - name: inmemorycatalog
     type: generic_in_memory
     default-database: mydatabase

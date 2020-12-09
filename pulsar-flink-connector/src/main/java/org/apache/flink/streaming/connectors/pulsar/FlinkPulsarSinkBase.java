@@ -33,10 +33,15 @@ import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdmin;
+import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageId;
+import org.apache.pulsar.client.api.MessageRouter;
+import org.apache.pulsar.client.api.MessageRoutingMode;
 import org.apache.pulsar.client.api.Producer;
+import org.apache.pulsar.client.api.ProducerBuilder;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
+import org.apache.pulsar.client.api.TopicMetadata;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 
 import java.util.HashMap;
@@ -87,6 +92,8 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
 
     protected final PulsarSerializationSchema<T> serializationSchema;
 
+    protected final MessageRouter messageRouter;
+
     protected transient volatile Throwable failedWrite;
 
     protected transient PulsarAdmin admin;
@@ -102,7 +109,8 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
             Optional<String> defaultTopicName,
             ClientConfigurationData clientConf,
             Properties properties,
-            PulsarSerializationSchema<T> serializationSchema) {
+            PulsarSerializationSchema<T> serializationSchema,
+            MessageRouter messageRouter) {
 
         this.adminUrl = checkNotNull(adminUrl);
 
@@ -115,6 +123,8 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
         }
 
         this.serializationSchema = serializationSchema;
+
+        this.messageRouter = messageRouter;
 
         this.clientConfigurationData = clientConf;
 
@@ -144,12 +154,14 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
             String adminUrl,
             Optional<String> defaultTopicName,
             Properties properties,
-            PulsarSerializationSchema serializationSchema) {
+            PulsarSerializationSchema serializationSchema,
+            MessageRouter messageRouter) {
         this(adminUrl,
                 defaultTopicName,
                 PulsarClientUtils.newClientConf(checkNotNull(serviceUrl), properties),
                 properties,
-                serializationSchema);
+                serializationSchema,
+                messageRouter);
     }
 
     @Override
@@ -255,15 +267,21 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
             Schema<T> schema) {
 
         try {
-            return CachedPulsarClient
+            ProducerBuilder<T> builder = CachedPulsarClient
                     .getOrCreate(clientConf)
                     .newProducer(schema)
                     .topic(topic)
                     .batchingMaxPublishDelay(100, TimeUnit.MILLISECONDS)
                     // maximizing the throughput
                     .batchingMaxMessages(5 * 1024 * 1024)
-                    .loadConf(producerConf)
-                    .create();
+                    .loadConf(producerConf);
+            if(messageRouter == null){
+                return builder.create();
+            }else{
+                return builder.messageRoutingMode(MessageRoutingMode.CustomPartition)
+                        .messageRouter(messageRouter)
+                        .create();
+            }
         } catch (PulsarClientException e) {
             log.error("Failed to create producer for topic {}", topic);
             throw new RuntimeException(e);

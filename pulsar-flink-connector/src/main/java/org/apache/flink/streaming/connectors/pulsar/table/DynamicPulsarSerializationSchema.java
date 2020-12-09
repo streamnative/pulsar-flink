@@ -40,6 +40,7 @@ import javax.annotation.Nullable;
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.apache.avro.Schema.Type.RECORD;
@@ -109,6 +110,9 @@ class DynamicPulsarSerializationSchema
 
     @Override
     public void open(SerializationSchema.InitializationContext context) throws Exception {
+        if (keySerialization != null) {
+            keySerialization.open(context);
+        }
         valueSerialization.open(context);
     }
 
@@ -140,7 +144,10 @@ class DynamicPulsarSerializationSchema
             messageBuilder.value(valueRow);
         }
 
-        messageBuilder.properties(readMetadata(consumedRow, PulsarDynamicTableSink.WritableMetadata.PROPERTIES));
+        Map<String, String> properties = readMetadata(consumedRow, PulsarDynamicTableSink.WritableMetadata.PROPERTIES);
+        if(properties != null){
+            messageBuilder.properties(properties);
+        }
         final Long eventTime = readMetadata(consumedRow, PulsarDynamicTableSink.WritableMetadata.EVENT_TIME);
         if (eventTime != null && eventTime >= 0) {
             messageBuilder.eventTime(eventTime);
@@ -174,6 +181,16 @@ class DynamicPulsarSerializationSchema
     public TypeInformation<RowData> getProducedType() {
         final RowType rowType = (RowType) valueDataType.getLogicalType();
         return InternalTypeInfo.of(rowType);
+    }
+
+    @Override
+    public void setParallelInstanceId(int parallelInstanceId) {
+        this.parallelInstanceId = parallelInstanceId;
+    }
+
+    @Override
+    public void setNumParallelInstances(int numParallelInstances) {
+        this.numParallelInstances = numParallelInstances;
     }
 
     @Override

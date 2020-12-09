@@ -16,12 +16,15 @@ package org.apache.flink.streaming.connectors.pulsar.testutils;
 
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.TableResult;
+import org.apache.flink.table.planner.factories.TestValuesTableFactory;
 import org.apache.flink.table.utils.TableTestMatchers;
 import org.apache.flink.types.Row;
 import org.apache.flink.types.RowKind;
 import org.apache.flink.util.CloseableIterator;
 
+import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -70,5 +73,25 @@ public class PulsarTableTestUtils {
 				actualData.get(key),
 				TableTestMatchers.deepEqualTo(expectedData.get(key), false));
 		}
+	}
+
+	public static void waitingExpectedResults(
+			String sinkName, List<String> expected, Duration timeout) throws InterruptedException {
+		long now = System.currentTimeMillis();
+		long stop = now + timeout.toMillis();
+		Collections.sort(expected);
+		while (System.currentTimeMillis() < stop) {
+			List<String> actual = TestValuesTableFactory.getResults(sinkName);
+			Collections.sort(actual);
+			if (expected.equals(actual)) {
+				return;
+			}
+			Thread.sleep(100);
+		}
+
+		// timeout, assert again
+		List<String> actual = TestValuesTableFactory.getResults(sinkName);
+		Collections.sort(actual);
+		assertEquals(expected, actual);
 	}
 }

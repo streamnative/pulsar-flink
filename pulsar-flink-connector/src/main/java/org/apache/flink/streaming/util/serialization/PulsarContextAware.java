@@ -40,5 +40,19 @@ public interface PulsarContextAware<T> extends ResultTypeQueryable<T> {
         return Optional.empty();
     }
 
+    /**
+     * Sets the number of the parallel subtask that the Pulsar Sink is running on. The numbering
+     * starts from 0 and goes up to parallelism-1 (parallelism as returned by {@link
+     * #setNumParallelInstances(int)}).
+     */
+    default void setParallelInstanceId(int parallelInstanceId) {
+    }
+
+    /**
+     * Sets the parallelism with which the parallel task of the Pulsar Sink runs.
+     */
+    default void setNumParallelInstances(int numParallelInstances) {
+    }
+
     Schema<T> getSchema();
 }

@@ -124,6 +124,7 @@ public class PulsarDynamicTableFactory implements
                                                          int[] keyProjection, int[] valueProjection, String keyPrefix) {
 
         final String formatType = tableOptions.getOptional(FORMAT).orElseGet(() -> tableOptions.get(VALUE_FORMAT));
+        final Integer parallelism = tableOptions.getOptional(SINK_PARALLELISM).orElse(null);
         return new PulsarDynamicTableSink(
                 serverUrl,
                 adminUrl,
@@ -136,8 +137,10 @@ public class PulsarDynamicTableFactory implements
                 valueProjection,
                 keyPrefix,
                 PulsarOptions.getSinkSemantic(tableOptions),
-                formatType
-        );
+                formatType,
+                false,
+                parallelism,
+                null);
     }
 
     @Override

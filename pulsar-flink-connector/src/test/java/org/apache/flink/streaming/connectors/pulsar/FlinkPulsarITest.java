@@ -1451,7 +1451,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
                                 new PulsarSerializationSchemaWrapper.Builder<>(
                                         new SimpleStringSchema())
                                         .useSpecialMode(Schema.STRING)
-                                        .build()) {
+                                        .build(), null) {
                         });
 
                 OneInputStreamOperatorTestHarness<String, Object> testHarness =

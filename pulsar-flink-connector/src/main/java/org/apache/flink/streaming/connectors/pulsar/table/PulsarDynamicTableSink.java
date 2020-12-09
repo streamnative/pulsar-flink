@@ -32,6 +32,7 @@ import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.table.types.utils.DataTypeUtils;
 import org.apache.flink.util.Preconditions;
 
+import org.apache.pulsar.client.api.MessageRouter;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 
 import javax.annotation.Nullable;
@@ -94,10 +95,18 @@ public class PulsarDynamicTableSink implements DynamicTableSink, SupportsWriting
     protected final @Nullable
     String keyPrefix;
 
+    /** Flag to determine sink mode. In upsert mode sink transforms the delete/update-before message to tombstone message. */
+    protected final boolean upsertMode;
+
+    /** Parallelism of the physical Pulsar producer. **/
+    protected final @Nullable Integer parallelism;
+
     /** Sink commit semantic. */
     protected final PulsarSinkSemantic semantic;
 
     private final String formatType;
+
+    private final MessageRouter messageRouter;
 
     protected PulsarDynamicTableSink(
             String serviceUrl,
@@ -111,7 +120,10 @@ public class PulsarDynamicTableSink implements DynamicTableSink, SupportsWriting
             int[] valueProjection,
             @Nullable String keyPrefix,
             PulsarSinkSemantic semantic,
-            String formatType) {
+            String formatType,
+            boolean upsertMode,
+            @Nullable  Integer parallelism,
+            @Nullable MessageRouter messageRouter) {
         this.serviceUrl = Preconditions.checkNotNull(serviceUrl, "serviceUrl data type must not be null.");
         this.adminUrl = Preconditions.checkNotNull(adminUrl, "adminUrl data type must not be null.");
         this.topic = Preconditions.checkNotNull(topic, "Topic must not be null.");
@@ -126,6 +138,9 @@ public class PulsarDynamicTableSink implements DynamicTableSink, SupportsWriting
         this.keyPrefix = keyPrefix;
         this.semantic = Preconditions.checkNotNull(semantic, "Semantic must not be null.");
         this.formatType = Preconditions.checkNotNull(formatType, "FormatType must not be null.");
+        this.upsertMode = upsertMode;
+        this.parallelism = parallelism;
+        this.messageRouter = messageRouter;
     }
 
     @Override
@@ -149,7 +164,7 @@ public class PulsarDynamicTableSink implements DynamicTableSink, SupportsWriting
                 this.properties,
                 pulsarSerializer);
 
-        return SinkFunctionProvider.of(pulsarSink);
+        return SinkFunctionProvider.of(pulsarSink, parallelism);
     }
 
     private PulsarSerializationSchema<RowData> createPulsarSerializer(SerializationSchema<RowData> keySerialization,
@@ -185,7 +200,7 @@ public class PulsarDynamicTableSink implements DynamicTableSink, SupportsWriting
                 valueFieldGetters,
                 hasMetadata,
                 metadataPositions,
-                false,
+                upsertMode,
                 physicalDataType,
                 formatType);
     }
@@ -202,7 +217,8 @@ public class PulsarDynamicTableSink implements DynamicTableSink, SupportsWriting
                         Optional.ofNullable(topic),
                         configurationData,
                         properties,
-                        pulsarSerializer
+                        pulsarSerializer,
+                        messageRouter
                 );
             case EXACTLY_ONCE:
             default:
@@ -229,7 +245,7 @@ public class PulsarDynamicTableSink implements DynamicTableSink, SupportsWriting
 
     @Override
     public DynamicTableSink copy() {
-        return new PulsarDynamicTableSink(
+        final PulsarDynamicTableSink copy = new PulsarDynamicTableSink(
                 this.serviceUrl,
                 this.adminUrl,
                 this.topic,
@@ -240,12 +256,13 @@ public class PulsarDynamicTableSink implements DynamicTableSink, SupportsWriting
                 this.keyProjection,
                 this.valueProjection,
                 this.keyPrefix,
-                this.semantic, formatType);
-    }
-
-    @Override
-    public String asSummaryString() {
-        return "Pulsar universal table sink";
+                this.semantic,
+                this.formatType,
+                this.upsertMode,
+                this.parallelism,
+                this.messageRouter);
+        copy.metadataKeys = metadataKeys;
+        return copy;
     }
 
     @Override
@@ -253,11 +270,12 @@ public class PulsarDynamicTableSink implements DynamicTableSink, SupportsWriting
         if (this == o) {
             return true;
         }
-        if (!(o instanceof PulsarDynamicTableSink)) {
+        if (o == null || getClass() != o.getClass()) {
             return false;
         }
         PulsarDynamicTableSink that = (PulsarDynamicTableSink) o;
-        return Objects.equals(metadataKeys, that.metadataKeys) &&
+        return upsertMode == that.upsertMode &&
+                Objects.equals(metadataKeys, that.metadataKeys) &&
                 Objects.equals(physicalDataType, that.physicalDataType) &&
                 Objects.equals(topic, that.topic) &&
                 Objects.equals(serviceUrl, that.serviceUrl) &&
@@ -267,16 +285,25 @@ public class PulsarDynamicTableSink implements DynamicTableSink, SupportsWriting
                 Arrays.equals(keyProjection, that.keyProjection) &&
                 Arrays.equals(valueProjection, that.valueProjection) &&
                 Objects.equals(keyPrefix, that.keyPrefix) &&
-                semantic == that.semantic;
+                Objects.equals(parallelism, that.parallelism) &&
+                semantic == that.semantic &&
+                Objects.equals(messageRouter, that.messageRouter) &&
+                Objects.equals(formatType, that.formatType);
     }
 
     @Override
     public int hashCode() {
-        int result = Objects.hash(metadataKeys, physicalDataType, topic, serviceUrl, adminUrl, keyEncodingFormat,
-                valueEncodingFormat, keyPrefix, semantic);
+        int result = Objects.hash(metadataKeys, physicalDataType, topic, serviceUrl, adminUrl,
+                keyEncodingFormat, valueEncodingFormat, keyPrefix, upsertMode,
+                parallelism, messageRouter, semantic, formatType);
         result = 31 * result + Arrays.hashCode(keyProjection);
         result = 31 * result + Arrays.hashCode(valueProjection);
         return result;
+    }
+
+    @Override
+    public String asSummaryString() {
+        return "Pulsar dynamic table sink";
     }
 
     @Override

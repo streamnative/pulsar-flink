@@ -165,7 +165,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
             final Optional<Throwable> optionalThrowable =
                     ExceptionUtils.findThrowableWithMessage(e, "authority component is missing");
             assertTrue(optionalThrowable.isPresent());
-            assertTrue(optionalThrowable.get() instanceof PulsarClientException);
+            assertTrue(optionalThrowable.get() instanceof IllegalArgumentException);
         }
     }
 

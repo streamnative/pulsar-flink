@@ -33,7 +33,6 @@ import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdmin;
-import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.MessageRouter;
 import org.apache.pulsar.client.api.MessageRoutingMode;
@@ -41,7 +40,6 @@ import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.ProducerBuilder;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
-import org.apache.pulsar.client.api.TopicMetadata;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 
 import java.util.HashMap;
@@ -80,10 +78,14 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
 
     protected boolean failOnWrite;
 
-    /** Lock for accessing the pending records. */
+    /**
+     * Lock for accessing the pending records.
+     */
     protected final SerializableObject pendingRecordsLock = new SerializableObject();
 
-    /** Number of unacknowledged records. */
+    /**
+     * Number of unacknowledged records.
+     */
     protected long pendingRecords = 0L;
 
     protected final boolean forcedTopic;
@@ -275,9 +277,9 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
                     // maximizing the throughput
                     .batchingMaxMessages(5 * 1024 * 1024)
                     .loadConf(producerConf);
-            if(messageRouter == null){
+            if (messageRouter == null) {
                 return builder.create();
-            }else{
+            } else {
                 return builder.messageRoutingMode(MessageRoutingMode.CustomPartition)
                         .messageRouter(messageRouter)
                         .create();

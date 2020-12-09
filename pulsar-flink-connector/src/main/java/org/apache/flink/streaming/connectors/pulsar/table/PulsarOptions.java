@@ -389,11 +389,12 @@ public class PulsarOptions {
         return pulsarProperties;
     }
 
-    /** Decides if the table options contains Pulsar client properties that start with prefix 'properties'. */
+    /**
+     * Decides if the table options contains Pulsar client properties that start with prefix 'properties'.
+     */
     private static boolean hasPulsarClientProperties(Map<String, String> tableOptions) {
         return tableOptions.keySet().stream().anyMatch(k -> k.startsWith(PROPERTIES_PREFIX));
     }
-
 
     public static StartupOptions getStartupOptions(
             ReadableConfig tableOptions,
@@ -627,7 +628,9 @@ public class PulsarOptions {
     // Inner classes
     // --------------------------------------------------------------------------------------------
 
-    /** pulsar startup options. **/
+    /**
+     * pulsar startup options.
+     **/
     @EqualsAndHashCode
     public static class StartupOptions {
         public StartupMode startupMode;

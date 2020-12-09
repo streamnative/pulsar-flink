@@ -145,7 +145,7 @@ class DynamicPulsarSerializationSchema
         }
 
         Map<String, String> properties = readMetadata(consumedRow, PulsarDynamicTableSink.WritableMetadata.PROPERTIES);
-        if(properties != null){
+        if (properties != null) {
             messageBuilder.properties(properties);
         }
         final Long eventTime = readMetadata(consumedRow, PulsarDynamicTableSink.WritableMetadata.EVENT_TIME);

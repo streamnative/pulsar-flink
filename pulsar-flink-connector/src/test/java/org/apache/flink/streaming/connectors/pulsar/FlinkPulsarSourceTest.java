@@ -509,7 +509,8 @@ public class FlinkPulsarSourceTest extends TestLogger {
         private final RuntimeException failureCause;
 
         public FailingPartitionDiscoverer(RuntimeException failureCause) throws PulsarClientException {
-            super("", new ClientConfigurationData(), "", Collections.singletonMap("topic", "foo"), 0, 1);
+            super("http://localhost:8080", new ClientConfigurationData(), "", Collections.singletonMap("topic", "foo"),
+                    0, 1);
             this.failureCause = failureCause;
         }
 
@@ -539,7 +540,8 @@ public class FlinkPulsarSourceTest extends TestLogger {
         private static Set<TopicRange> allPartitions = Sets.newHashSet(new TopicRange("foo"));
 
         public DummyPartitionDiscoverer() throws PulsarClientException {
-            super("", new ClientConfigurationData(), "", Collections.singletonMap("topic", "foo"), 0, 1);
+            super("http://localhost:8080", new ClientConfigurationData(), "", Collections.singletonMap("topic", "foo"),
+                    0, 1);
         }
 
         @Override

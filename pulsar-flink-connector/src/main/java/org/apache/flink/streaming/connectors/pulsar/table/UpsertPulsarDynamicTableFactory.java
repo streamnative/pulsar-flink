@@ -182,7 +182,7 @@ public class UpsertPulsarDynamicTableFactory implements DynamicTableSourceFactor
                 formatType,
                 true,
                 parallelism,
-                new KeyHashMessageRouterImpl());
+                KeyHashMessageRouterImpl.INSTANCE);
     }
 
     private Tuple2<int[], int[]> createKeyValueProjections(CatalogTable catalogTable) {

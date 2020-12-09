@@ -22,6 +22,7 @@ import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.connectors.pulsar.FlinkPulsarSink;
 import org.apache.flink.streaming.connectors.pulsar.FlinkPulsarSource;
 import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
+import org.apache.flink.streaming.connectors.pulsar.util.KeyHashMessageRouterImpl;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.api.ValidationException;
@@ -46,6 +47,7 @@ import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.logical.VarCharType;
 import org.apache.flink.util.TestLogger;
 
+import org.apache.pulsar.client.api.MessageRouter;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -165,7 +167,8 @@ public class UpsertPulsarDynamicTableFactoryTest extends TestLogger {
                 SINK_TOPIC,
                 UPSERT_PULSAR_SINK_PROPERTIES,
                 null,
-                TestFormatFactory.IDENTIFIER);
+                TestFormatFactory.IDENTIFIER,
+                KeyHashMessageRouterImpl.INSTANCE);
 
         // Test sink format.
         final PulsarDynamicTableSink actualUpsertPulsarSink = (PulsarDynamicTableSink) actualSink;
@@ -202,7 +205,8 @@ public class UpsertPulsarDynamicTableFactoryTest extends TestLogger {
                 SINK_TOPIC,
                 UPSERT_PULSAR_SINK_PROPERTIES,
                 100,
-                TestFormatFactory.IDENTIFIER);
+                TestFormatFactory.IDENTIFIER,
+                KeyHashMessageRouterImpl.INSTANCE);
         assertEquals(expectedSink, actualSink);
 
         final DynamicTableSink.SinkRuntimeProvider provider =
@@ -419,7 +423,8 @@ public class UpsertPulsarDynamicTableFactoryTest extends TestLogger {
             String topic,
             Properties properties,
             Integer parallelism,
-            String formatType) {
+            String formatType,
+            MessageRouter messageRouter) {
         return new PulsarDynamicTableSink(
                 SERVICE_URL,
                 ADMIN_URL,
@@ -435,6 +440,6 @@ public class UpsertPulsarDynamicTableFactoryTest extends TestLogger {
                 formatType,
                 true,
                 parallelism,
-                null);
+                messageRouter);
     }
 }

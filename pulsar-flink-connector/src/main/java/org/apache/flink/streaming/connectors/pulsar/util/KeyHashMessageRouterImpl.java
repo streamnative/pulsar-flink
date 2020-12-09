@@ -24,7 +24,10 @@ import org.apache.pulsar.client.api.TopicMetadata;
  */
 @Slf4j
 public class KeyHashMessageRouterImpl implements MessageRouter {
-    public KeyHashMessageRouterImpl() {
+
+    public static final KeyHashMessageRouterImpl INSTANCE = new KeyHashMessageRouterImpl();
+
+    private KeyHashMessageRouterImpl() {
 
     }
 

@@ -335,8 +335,7 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
             return false;
         }
         PulsarDynamicTableSource that = (PulsarDynamicTableSource) o;
-        return upsertMode == that.upsertMode &&
-                Objects.equals(producedDataType, that.producedDataType) &&
+        return upsertMode == that.upsertMode && Objects.equals(producedDataType, that.producedDataType) &&
                 Objects.equals(metadataKeys, that.metadataKeys) &&
                 Objects.equals(watermarkStrategy, that.watermarkStrategy) &&
                 Objects.equals(physicalDataType, that.physicalDataType) &&
@@ -344,11 +343,11 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
                 Objects.equals(valueDecodingFormat, that.valueDecodingFormat) &&
                 Arrays.equals(keyProjection, that.keyProjection) &&
                 Arrays.equals(valueProjection, that.valueProjection) &&
-                Objects.equals(keyPrefix, that.keyPrefix) &&
-                Objects.equals(topics, that.topics) &&
+                Objects.equals(keyPrefix, that.keyPrefix) && Objects.equals(topics, that.topics) &&
                 Objects.equals(topicPattern, that.topicPattern) &&
                 Objects.equals(serviceUrl, that.serviceUrl) &&
                 Objects.equals(adminUrl, that.adminUrl) &&
+                Objects.equals(new HashMap<>(properties), new HashMap<>(that.properties)) &&
                 Objects.equals(startupOptions, that.startupOptions);
     }
 
@@ -356,7 +355,8 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
     public int hashCode() {
         int result =
                 Objects.hash(producedDataType, metadataKeys, watermarkStrategy, physicalDataType, keyDecodingFormat,
-                        valueDecodingFormat, keyPrefix, topics, topicPattern, serviceUrl, adminUrl, startupOptions,
+                        valueDecodingFormat, keyPrefix, topics, topicPattern, serviceUrl, adminUrl, properties,
+                        startupOptions,
                         upsertMode);
         result = 31 * result + Arrays.hashCode(keyProjection);
         result = 31 * result + Arrays.hashCode(valueProjection);

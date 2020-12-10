@@ -46,7 +46,7 @@ public class PulsarOptions {
     public static final String ADMIN_URL_OPTION_KEY = "admin-url";
     public static final String STARTUP_MODE_OPTION_KEY = "startup-mode";
 
-    public static final String PARTITION_DISCOVERY_INTERVAL_MS_OPTION_KEY = "partition-discovery-interval-ms";
+    public static final String PARTITION_DISCOVERY_INTERVAL_MS_OPTION_KEY = "partition.discovery.interval-millis";
     public static final String CLIENT_CACHE_SIZE_OPTION_KEY = "client-cache-size";
     public static final String FLUSH_ON_CHECKPOINT_OPTION_KEY = "flush-on-checkpoint";
     public static final String FAIL_ON_WRITE_OPTION_KEY = "fail-on-write";

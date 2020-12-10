@@ -40,7 +40,6 @@ import javax.annotation.Nullable;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
@@ -50,6 +49,7 @@ import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.K
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.KEY_FIELDS_PREFIX;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.KEY_FORMAT;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.PARTITION_DISCOVERY_INTERVAL_MILLIS;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.PROPERTIES;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.PROPERTIES_PREFIX;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.PULSAR_READER_READER_NAME;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.PULSAR_READER_RECEIVER_QUEUE_SIZE;
@@ -65,8 +65,8 @@ import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.V
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.VALUE_FORMAT;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.createKeyFormatProjection;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.createValueFormatProjection;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.getPulsarProperties;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.validateTableSourceOptions;
-import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CONNECTOR;
 import static org.apache.flink.table.factories.FactoryUtil.FORMAT;
 import static org.apache.flink.table.factories.FactoryUtil.SINK_PARALLELISM;
 
@@ -100,8 +100,7 @@ public class PulsarDynamicTableFactory implements
         // Validate the option values.
         PulsarOptions.validateTableSinkOptions(tableOptions);
 
-        Properties properties = removeConnectorPrefix(context.getCatalogTable().toProperties());
-
+        Properties properties = getPulsarProperties(context.getCatalogTable().toProperties());
         validatePKConstraints(context.getObjectIdentifier(), context.getCatalogTable(), valueEncodingFormat);
 
         final DataType physicalDataType = context.getCatalogTable().getSchema().toPhysicalRowDataType();
@@ -167,7 +166,7 @@ public class PulsarDynamicTableFactory implements
 
         validatePKConstraints(context.getObjectIdentifier(), context.getCatalogTable(), valueDecodingFormat);
 
-        Properties properties = removeConnectorPrefix(context.getCatalogTable().toProperties());
+        Properties properties = getPulsarProperties(context.getCatalogTable().toProperties());
 
         final PulsarOptions.StartupOptions startupOptions = PulsarOptions.getStartupOptions(tableOptions, topics);
 
@@ -228,22 +227,8 @@ public class PulsarDynamicTableFactory implements
         options.add(PARTITION_DISCOVERY_INTERVAL_MILLIS);
         options.add(SINK_SEMANTIC);
         options.add(SINK_PARALLELISM);
+        options.add(PROPERTIES);
         return options;
-    }
-
-    private static Properties removeConnectorPrefix(Map<String, String> in) {
-        String connectorPrefix = CONNECTOR + ".";
-        Properties out = new Properties();
-        for (Map.Entry<String, String> kv : in.entrySet()) {
-            String k = kv.getKey();
-            String v = kv.getValue();
-            if (k.startsWith(connectorPrefix)) {
-                out.put(k.substring(connectorPrefix.length()), v);
-            } else {
-                out.put(k, v);
-            }
-        }
-        return out;
     }
 
     // --------------------------------------------------------------------------------------------
@@ -299,7 +284,8 @@ public class PulsarDynamicTableFactory implements
     }
 
     private static void validatePKConstraints(ObjectIdentifier tableName, CatalogTable catalogTable, Format format) {
-        if (catalogTable.getSchema().getPrimaryKey().isPresent() && format.getChangelogMode().containsOnly(RowKind.INSERT)) {
+        if (catalogTable.getSchema().getPrimaryKey().isPresent() &&
+                format.getChangelogMode().containsOnly(RowKind.INSERT)) {
             Configuration options = Configuration.fromMap(catalogTable.getOptions());
             String formatName = options.getOptional(FactoryUtil.FORMAT).orElse(options.get(VALUE_FORMAT));
             throw new ValidationException(String.format(

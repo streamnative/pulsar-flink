@@ -18,7 +18,6 @@ import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.streaming.connectors.pulsar.SerializableFunction;
 import org.apache.flink.streaming.connectors.pulsar.config.RecordSchemaType;
-import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.types.AtomicDataType;
 import org.apache.flink.table.types.DataType;
 
@@ -159,9 +158,9 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
 
     @Override
     public String getTargetTopic(T element) {
-        if(topicExtractor == null){
+        if (topicExtractor == null) {
             return topic;
-        } else{
+        } else {
             return topicExtractor.apply(element);
         }
     }

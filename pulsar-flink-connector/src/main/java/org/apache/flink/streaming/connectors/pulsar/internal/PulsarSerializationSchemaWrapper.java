@@ -37,28 +37,10 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
     private final DataType dataType;
     private final SchemaMode schemaMode;
     private final SerializableFunction<T, String> topicExtractor;
+    private final SerializableFunction<T, byte[]> keyExtractor;
 
     private int parallelInstanceId;
     private int numParallelInstances;
-
-    /*public PulsarSerializationSchemaWrapper(String topic,
-                                            SerializationSchema<T> serializationSchema,
-                                            DataType dataType) {
-        this(topic, serializationSchema, null, null, null, dataType);
-    }
-
-    public PulsarSerializationSchemaWrapper(String topic,
-                                            SerializationSchema<T> serializationSchema,
-                                            RecordSchemaType recordSchemaType,
-                                            Class<?> clazz) {
-        this(topic, serializationSchema, recordSchemaType, clazz, null, null);
-    }
-
-    public PulsarSerializationSchemaWrapper(String topic,
-                                            SerializationSchema<T> serializationSchema,
-                                            Schema<?> schema) {
-        this(topic, serializationSchema, null, null, schema, null);
-    }*/
 
     private PulsarSerializationSchemaWrapper(String topic,
                                              SerializationSchema<T> serializationSchema,
@@ -67,7 +49,8 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
                                              Schema<?> schema,
                                              DataType dataType,
                                              SchemaMode schemaMode,
-                                             SerializableFunction<T, String> topicExtractor) {
+                                             SerializableFunction<T, String> topicExtractor,
+                                             SerializableFunction<T, byte[]> keyExtractor) {
         this.topic = topic;
         this.serializationSchema = serializationSchema;
         this.recordSchemaType = recordSchemaType;
@@ -76,7 +59,7 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
         this.dataType = dataType;
         this.schemaMode = schemaMode;
         this.topicExtractor = topicExtractor;
-
+        this.keyExtractor = keyExtractor;
     }
 
     /**
@@ -92,6 +75,7 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
         private DataType dataType;
         private SchemaMode mode;
         private SerializableFunction<T, String> topicExtractor;
+        private SerializableFunction<T, byte[]> keyExtractor;
 
         public Builder(SerializationSchema<T> serializationSchema) {
             this.serializationSchema = serializationSchema;
@@ -112,16 +96,19 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
             return this;
         }
 
-        public PulsarSerializationSchemaWrapper.Builder<T> usePojoMode(Class<?> clazz, RecordSchemaType recordSchemaType) {
+        public PulsarSerializationSchemaWrapper.Builder<T> usePojoMode(Class<?> clazz,
+                                                                       RecordSchemaType recordSchemaType) {
             Asserts.check(mode == null, "you can only set one schemaMode");
             this.mode = SchemaMode.POJO;
-            Asserts.check(recordSchemaType != RecordSchemaType.ATOMIC, "cant ues RecordSchemaType.ATOMIC to build pojo type schema");
+            Asserts.check(recordSchemaType != RecordSchemaType.ATOMIC,
+                    "cant ues RecordSchemaType.ATOMIC to build pojo type schema");
             this.clazz = clazz;
             this.recordSchemaType = recordSchemaType;
             return this;
         }
 
-        public PulsarSerializationSchemaWrapper.Builder<T> useRowMode(DataType dataType, RecordSchemaType recordSchemaType) {
+        public PulsarSerializationSchemaWrapper.Builder<T> useRowMode(DataType dataType,
+                                                                      RecordSchemaType recordSchemaType) {
             Asserts.check(mode == null, "you can only set one schemaMode");
             this.mode = SchemaMode.ROW;
             this.dataType = dataType;
@@ -129,8 +116,15 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
             return this;
         }
 
-        public PulsarSerializationSchemaWrapper.Builder<T> setTopicExtractor(SerializableFunction<T, String> topicExtractor) {
+        public PulsarSerializationSchemaWrapper.Builder<T> setTopicExtractor(
+                SerializableFunction<T, String> topicExtractor) {
             this.topicExtractor = topicExtractor;
+            return this;
+        }
+
+        public PulsarSerializationSchemaWrapper.Builder<T> setKeyExtractor(
+                SerializableFunction<T, byte[]> keyExtractor) {
+            this.keyExtractor = keyExtractor;
             return this;
         }
 
@@ -148,7 +142,8 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
                     schema,
                     dataType,
                     mode,
-                    topicExtractor);
+                    topicExtractor,
+                    keyExtractor);
         }
     }
 
@@ -169,6 +164,9 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
 
     @Override
     public String getTargetTopic(T element) {
+        if (topicExtractor != null) {
+            return topicExtractor.apply(element);
+        }
         return topic;
     }
 
@@ -222,6 +220,9 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
 
     @Override
     public byte[] getKey(T element) {
+        if (keyExtractor != null) {
+            return keyExtractor.apply(element);
+        }
         return null;
     }
 

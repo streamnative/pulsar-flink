@@ -112,7 +112,7 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
             return this;
         }
 
-        public PulsarSerializationSchemaWrapper.Builder<T> setKeyExtractor(SerializableFunction<T, String> topicExtractor) {
+        public PulsarSerializationSchemaWrapper.Builder<T> setKeyExtractor(SerializableFunction<T, byte[]> keyExtractor) {
             this.keyExtractor = keyExtractor;
             return this;
         }

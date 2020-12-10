@@ -18,6 +18,7 @@ import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.streaming.connectors.pulsar.SerializableFunction;
 import org.apache.flink.streaming.connectors.pulsar.config.RecordSchemaType;
+import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.types.AtomicDataType;
 import org.apache.flink.table.types.DataType;
 
@@ -37,28 +38,9 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
     private final DataType dataType;
     private final SchemaMode schemaMode;
     private final SerializableFunction<T, String> topicExtractor;
-
+    private final SerializableFunction<T, byte[]> keyExtractor;
     private int parallelInstanceId;
     private int numParallelInstances;
-
-    /*public PulsarSerializationSchemaWrapper(String topic,
-                                            SerializationSchema<T> serializationSchema,
-                                            DataType dataType) {
-        this(topic, serializationSchema, null, null, null, dataType);
-    }
-
-    public PulsarSerializationSchemaWrapper(String topic,
-                                            SerializationSchema<T> serializationSchema,
-                                            RecordSchemaType recordSchemaType,
-                                            Class<?> clazz) {
-        this(topic, serializationSchema, recordSchemaType, clazz, null, null);
-    }
-
-    public PulsarSerializationSchemaWrapper(String topic,
-                                            SerializationSchema<T> serializationSchema,
-                                            Schema<?> schema) {
-        this(topic, serializationSchema, null, null, schema, null);
-    }*/
 
     private PulsarSerializationSchemaWrapper(String topic,
                                              SerializationSchema<T> serializationSchema,
@@ -67,7 +49,8 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
                                              Schema<?> schema,
                                              DataType dataType,
                                              SchemaMode schemaMode,
-                                             SerializableFunction<T, String> topicExtractor) {
+                                             SerializableFunction<T, String> topicExtractor,
+                                             SerializableFunction<T, byte[]> keyExtractor) {
         this.topic = topic;
         this.serializationSchema = serializationSchema;
         this.recordSchemaType = recordSchemaType;
@@ -76,7 +59,7 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
         this.dataType = dataType;
         this.schemaMode = schemaMode;
         this.topicExtractor = topicExtractor;
-
+        this.keyExtractor = keyExtractor;
     }
 
     /**
@@ -92,6 +75,7 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
         private DataType dataType;
         private SchemaMode mode;
         private SerializableFunction<T, String> topicExtractor;
+        private SerializableFunction<T, byte[]> keyExtractor;
 
         public Builder(SerializationSchema<T> serializationSchema) {
             this.serializationSchema = serializationSchema;
@@ -129,6 +113,11 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
             return this;
         }
 
+        public PulsarSerializationSchemaWrapper.Builder<T> setKeyExtractor(SerializableFunction<T, String> topicExtractor) {
+            this.keyExtractor = keyExtractor;
+            return this;
+        }
+
         public PulsarSerializationSchemaWrapper.Builder<T> setTopicExtractor(SerializableFunction<T, String> topicExtractor) {
             this.topicExtractor = topicExtractor;
             return this;
@@ -148,7 +137,8 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
                     schema,
                     dataType,
                     mode,
-                    topicExtractor);
+                    topicExtractor,
+                    keyExtractor);
         }
     }
 
@@ -169,7 +159,11 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
 
     @Override
     public String getTargetTopic(T element) {
-        return topic;
+        if(topicExtractor == null){
+            return topic;
+        } else{
+            return topicExtractor.apply(element);
+        }
     }
 
     @Override
@@ -222,7 +216,7 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
 
     @Override
     public byte[] getKey(T element) {
-        return null;
+        return keyExtractor == null ? null : keyExtractor.apply(element);
     }
 
     enum SchemaMode {

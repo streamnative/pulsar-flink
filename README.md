@@ -26,7 +26,7 @@ For projects using SBT, Maven, and Gradle, you can use the following parameters 
 
 ```
     groupId = io.streamnative.connectors
-    artifactId = pulsar-flink-{{SCALA_BINARY_VERSION}}-{{FLINK_VERSION}}
+    artifactId = pulsar-flink-connector-{{SCALA_BINARY_VERSION}}-{{FLINK_VERSION}}
     version = {{PULSAR_FLINK_VERSION}}
 ```
 The Jar package is located in [Bintray Maven repository of StreamNative](https://dl.bintray.com/streamnative/maven).
@@ -175,12 +175,12 @@ catalogs:
 
 ### Source
 
-Flink's Pulsar consumer is called `FlinkPulsarSource<T>` or `FlinkPulsarRowSource` which only has the function of automatically inferring data patterns. It provides access to one or more Pulsar topics.
+Flink's Pulsar consumer is called `FlinkPulsarSource<T>` It provides access to one or more Pulsar topics.
 
 The construction method has the following parameters:
 
 1. Connect the service address `serviceUrl` used by the Pulsar instance and the management address `adminUrl`.
-2. When using `FlinkPulsarSource`, you need to set `DeserializationSchema<T>` or `PulsarDeserializationSchema<T>`.
+2. When using `FlinkPulsarSource`, you need to set `PulsarDeserializationSchema<T>`.
 3. The Properties parameter is used to configure the behavior of the Pulsar Consumer.
    The required parameters for Properties are as follows:
 
@@ -197,7 +197,7 @@ Properties props = new Properties();
 props.setProperty("topic", "test-source-topic");
 props.setProperty("partitiondiscoveryintervalmillis", "5000");
 
-FlinkPulsarSource<String> source = new FlinkPulsarSource<>(serviceUrl, adminUrl, new SimpleStringSchema(), props);
+FlinkPulsarSource<String> source = new FlinkPulsarSource<>(serviceUrl, adminUrl, new PulsarDeserializationSchemaWrapper(new SimpleStringSchema()), props);
 
 // or setStartFromLatest, setStartFromSpecificOffsets, setStartFromSubscription
 source.setStartFromEarliest();
@@ -228,7 +228,7 @@ Example:
 ```java
         PulsarSerializationSchema<Person> pulsarSerialization = new PulsarSerializationSchemaWrapper.Builder<>(
                 (SerializationSchema<Person>) element -> { 
-                    JSONSchema<SchemaData.Foo> jsonSchema = JSONSchema.of(SchemaData.Foo.class);
+                    JSONSchema<Person> jsonSchema = JSONSchema.of(Person.class);
                     return jsonSchema.encode(element); 
                 })
                 .usePojoMode(Person.class, RecordSchemaType.JSON)
@@ -242,13 +242,26 @@ Example:
 stream.addSink(sink);
 ```
 
-If the topic information is included in the record, it can be implemented by customizing TopicKeyExtractor to distribute the messages to different queues.
+`PulsarSerializationSchema` is a wrapper for Flink `SerializationSchema`, providing more functionality. Most of the time, you don't need to implement `PulsarSerializationSchema` by yourself, we provide `PulsarSerializationSchemaWrapper` to wrap a Flink `SerializationSchema` to become a `PulsarSerializationSchema`.
 
+`PulsarSerializationSchema` uses the builder pattern, you can call `setKeyExtractor` or `setTopicExtractor` to satisfy the need for extracting keys from each message and customizing the target topic.
+
+In particular, since Pulsar maintains its own Schema information internally, our messages must be able to derive a SchemaInfo when written to Pulsar. 
+The `useSpecialMode`, `useAtomicMode`, `usePojoMode`, and `useRowMode` method can help you quickly build the Schema information you need for Pulsar. You must choose just one of these four modes.
+
+SpecialMode: Directly specifies the `Schema<?> schema` in Pulsar.
+
+AtomicMode: For some data of atomic type, pass the type of AtomicDataType, such as `DataTypes.INT()`, which will correspond to the `Schema<Integer>` in Pulsar.
+
+PojoMode: You need to pass a custom Class object and one of Json or Arvo to specify the way to build the composite type Schema. For example, the
+`usePojoMode(Person.class, RecordSchemaType.JSON)`
+
+RowMode: In general, you will not use this mode, it is used for our internal implementation of the Table&SQL API.
 
 
 #### Fault tolerance
 
-After enabling Flink checkpoints, `FlinkPulsarSink` and `FlinkPulsarRowSink` can provide an at-least-once delivery guarantee.
+After enabling Flink checkpoints, `FlinkPulsarSink` can provide an at-least-once delivery guarantee.
 
 In addition to enabling Flink checkpointing, you should also configure `setLogFailuresOnly(boolean)` and `setFlushOnCheckpoint(boolean)`.
 

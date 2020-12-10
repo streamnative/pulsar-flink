@@ -40,6 +40,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.Set;
 import java.util.stream.IntStream;
 
@@ -373,6 +374,28 @@ public class PulsarOptions {
         }
     }
 
+    public static Properties getPulsarProperties(Map<String, String> tableOptions) {
+        final Properties pulsarProperties = new Properties();
+
+        if (hasPulsarClientProperties(tableOptions)) {
+            tableOptions.keySet().stream()
+                    .filter(key -> key.startsWith(PROPERTIES_PREFIX))
+                    .forEach(key -> {
+                        final String value = tableOptions.get(key);
+                        final String subKey = key.substring((PROPERTIES_PREFIX).length());
+                        pulsarProperties.put(subKey, value);
+                    });
+        }
+        return pulsarProperties;
+    }
+
+    /**
+     * Decides if the table options contains Pulsar client properties that start with prefix 'properties'.
+     */
+    private static boolean hasPulsarClientProperties(Map<String, String> tableOptions) {
+        return tableOptions.keySet().stream().anyMatch(k -> k.startsWith(PROPERTIES_PREFIX));
+    }
+
     public static StartupOptions getStartupOptions(
             ReadableConfig tableOptions,
             List<String> topics) {
@@ -605,7 +628,9 @@ public class PulsarOptions {
     // Inner classes
     // --------------------------------------------------------------------------------------------
 
-    /** pulsar startup options. **/
+    /**
+     * pulsar startup options.
+     **/
     @EqualsAndHashCode
     public static class StartupOptions {
         public StartupMode startupMode;

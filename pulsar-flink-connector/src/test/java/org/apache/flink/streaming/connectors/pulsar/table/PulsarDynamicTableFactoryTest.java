@@ -530,7 +530,10 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
                 valueProjection,
                 keyPrefix,
                 semantic,
-                formatType);
+                formatType,
+                false,
+                parallelism,
+                null);
     }
 
     private static DynamicTableSource createTableSource(TableSchema schema, Map<String, String> options) {

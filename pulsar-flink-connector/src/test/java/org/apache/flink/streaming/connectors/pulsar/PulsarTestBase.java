@@ -353,6 +353,17 @@ public abstract class PulsarTestBase extends TestLogger {
         }
     }
 
+    public static void deleteTestTopic(String topic, boolean isPartitioned) throws Exception {
+        if (pulsarAdmin == null) {
+            pulsarAdmin = getPulsarAdmin();
+        }
+        if (isPartitioned) {
+            pulsarAdmin.topics().deletePartitionedTopic(topic);
+        } else {
+            pulsarAdmin.topics().delete(topic);
+        }
+    }
+
     public static List<BrokerPartition> getPartitionsForTopic(String topic) throws Exception {
         return pulsarClient.getPartitionsForTopic(topic).get()
                 .stream()

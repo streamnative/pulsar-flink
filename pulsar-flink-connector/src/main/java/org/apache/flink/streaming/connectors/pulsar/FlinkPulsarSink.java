@@ -17,6 +17,7 @@ package org.apache.flink.streaming.connectors.pulsar;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarClientUtils;
 import org.apache.flink.streaming.util.serialization.PulsarSerializationSchema;
 
+import org.apache.pulsar.client.api.MessageRouter;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 
@@ -39,10 +40,20 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
             Optional<String> defaultTopicName,
             ClientConfigurationData clientConf,
             Properties properties,
-            PulsarSerializationSchema serializationSchema) {
+            PulsarSerializationSchema serializationSchema,
+            MessageRouter messageRouter) {
 
-        super(adminUrl, defaultTopicName, clientConf, properties, serializationSchema);
+        super(adminUrl, defaultTopicName, clientConf, properties, serializationSchema, messageRouter);
         this.serializationSchema = serializationSchema;
+    }
+
+    public FlinkPulsarSink(
+            String adminUrl,
+            Optional<String> defaultTopicName,
+            ClientConfigurationData clientConf,
+            Properties properties,
+            PulsarSerializationSchema serializationSchema) {
+        this(adminUrl, defaultTopicName, clientConf, properties, serializationSchema, null);
     }
 
     public FlinkPulsarSink(
@@ -56,7 +67,8 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
                 defaultTopicName,
                 PulsarClientUtils.newClientConf(checkNotNull(serviceUrl), properties),
                 properties,
-                serializationSchema
+                serializationSchema,
+                null
         );
     }
 

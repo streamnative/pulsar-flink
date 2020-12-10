@@ -120,6 +120,16 @@ public class SourceSinkUtils {
         return Boolean.parseBoolean(b);
     }
 
+    public static long getTransactionTimeout(Map<String, String> parameters) {
+        String value = parameters.getOrDefault(PulsarOptions.TRANSACTION_TIMEOUT, "3600000");
+        return Long.parseLong(value);
+    }
+
+    public static long getMaxBlockTimeMs(Map<String, String> parameters) {
+        String value = parameters.getOrDefault(PulsarOptions.MAX_BLOCK_TIME_MS, "100000");
+        return Long.parseLong(value);
+    }
+
     public static Map<String, Object> getReaderParams(Map<String, String> parameters) {
         return parameters.keySet().stream()
                 .filter(k -> k.startsWith(PulsarOptions.PULSAR_READER_OPTION_KEY_PREFIX))

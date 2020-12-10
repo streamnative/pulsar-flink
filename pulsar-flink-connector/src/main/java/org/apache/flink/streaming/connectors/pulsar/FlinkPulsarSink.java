@@ -15,14 +15,23 @@
 package org.apache.flink.streaming.connectors.pulsar;
 
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarClientUtils;
+import org.apache.flink.streaming.connectors.pulsar.table.PulsarSinkSemantic;
 import org.apache.flink.streaming.util.serialization.PulsarSerializationSchema;
 
 import org.apache.pulsar.client.api.MessageRouter;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
+import org.apache.pulsar.client.api.transaction.Transaction;
+import org.apache.pulsar.client.api.transaction.TxnID;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
+import org.apache.pulsar.client.impl.transaction.TransactionImpl;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
@@ -31,6 +40,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  *
  * @param <T> Type of the Pojo or RowData class.
  */
+@Slf4j
 public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
 
     private final PulsarSerializationSchema<T> serializationSchema;
@@ -41,7 +51,8 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
             ClientConfigurationData clientConf,
             Properties properties,
             PulsarSerializationSchema serializationSchema,
-            MessageRouter messageRouter) {
+            MessageRouter messageRouter,
+            PulsarSinkSemantic semantic) {
 
         super(adminUrl, defaultTopicName, clientConf, properties, serializationSchema, messageRouter);
         this.serializationSchema = serializationSchema;
@@ -52,8 +63,22 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
             Optional<String> defaultTopicName,
             ClientConfigurationData clientConf,
             Properties properties,
+            PulsarSerializationSchema serializationSchema,
+            PulsarSinkSemantic semantic) {
+
+        super(adminUrl, defaultTopicName, clientConf, properties, serializationSchema, semantic);
+        this.serializationSchema = serializationSchema;
+    }
+
+    public FlinkPulsarSink(
+            String adminUrl,
+            Optional<String> defaultTopicName,
+            ClientConfigurationData clientConf,
+            Properties properties,
             PulsarSerializationSchema serializationSchema) {
         this(adminUrl, defaultTopicName, clientConf, properties, serializationSchema, null);
+
+        this(adminUrl, defaultTopicName, clientConf, properties, serializationSchema, PulsarSinkSemantic.AT_LEAST_ONCE);
     }
 
     public FlinkPulsarSink(
@@ -73,12 +98,15 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
     }
 
     @Override
-    public void invoke(T value, Context context) throws Exception {
+    public void invoke(PulsarTransactionState<T> transactionState, T value, Context context) throws Exception {
         checkErroneous();
         initializeSendCallback();
+
         final Optional<String> targetTopic = serializationSchema.getTargetTopic(value);
         String topic = targetTopic.orElse(defaultTopic);
-        TypedMessageBuilder<T> mb = getProducer(topic).newMessage();
+
+        TypedMessageBuilder<T> mb = transactionState.isTransactional() ?
+                getProducer(topic).newMessage(transactionState.getTransaction()) : getProducer(topic).newMessage();
         serializationSchema.serialize(value, mb);
 
         if (flushOnCheckpoint) {
@@ -86,6 +114,20 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
                 pendingRecords++;
             }
         }
-        mb.sendAsync().whenComplete(sendCallback);
+
+        CompletableFuture<MessageId> messageIdFuture = mb.sendAsync();
+        if (transactionState.isTransactional()) {
+            TxnID transactionalId = transactionState.transactionalId;
+            List<CompletableFuture<MessageId>> futureList;
+            if (tid2FuturesMap.get(transactionalId) == null) {
+                futureList = new ArrayList<>();
+                tid2FuturesMap.put(transactionalId, futureList);
+            } else {
+                futureList = tid2FuturesMap.get(transactionalId);
+            }
+            futureList.add(messageIdFuture);
+            log.info("message {} is invoke in txn {}", value, transactionState.transactionalId);
+        }
+        messageIdFuture.whenComplete(sendCallback);
     }
 }

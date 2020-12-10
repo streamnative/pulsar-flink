@@ -361,7 +361,7 @@ public class FlinkPulsarSinkTest extends TestLogger {
         }
 
         @Override
-        public void producerFlush() throws Exception {
+        public void producerFlush(PulsarTransactionState<T> transaction) throws Exception {
             flushLatch.trigger();
 
             // simply wait until the producer's pending records become zero.

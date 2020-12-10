@@ -1447,7 +1447,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
                 props.setProperty(FAIL_ON_WRITE_OPTION_KEY, "true");
 
                 StreamSink<String> sink = new StreamSink<>(
-                        new FlinkPulsarSinkBase<String>(serviceUrl, adminUrl, Optional.of(tp), props,
+                        new FlinkPulsarSink<String>(serviceUrl, adminUrl, Optional.of(tp), props,
                                 new PulsarSerializationSchemaWrapper.Builder<>(
                                         new SimpleStringSchema())
                                         .useSpecialMode(Schema.STRING)

@@ -114,8 +114,9 @@ public abstract class PulsarTestBase extends TestLogger {
             pulsarService = mock(PulsarStandaloneContainerService.class);
             log.info("    Use extend Pulsar Service ");
         } else {
-
-            System.setProperty("pulsar.systemtest.image", "streamnative/pulsar:2.7.0-rc-pm-2");
+            if (System.getProperty("pulsar.systemtest.image") == null) {
+                System.setProperty("pulsar.systemtest.image", "apachepulsar/pulsar:2.7.0");
+            }
             PulsarServiceSpec spec = PulsarServiceSpec.builder()
                     .clusterName("standalone-" + UUID.randomUUID())
                     .enableContainerLogging(false)
@@ -324,9 +325,6 @@ public abstract class PulsarTestBase extends TestLogger {
     // --------------------- public client related helpers ------------------
 
     public static PulsarAdmin getPulsarAdmin() {
-        if (pulsarAdmin != null) {
-            return pulsarAdmin;
-        }
         try {
             return PulsarAdminUtils.newAdminFromConf(adminUrl, clientConfigurationData);
         } catch (PulsarClientException e) {
@@ -335,9 +333,6 @@ public abstract class PulsarTestBase extends TestLogger {
     }
 
     public static PulsarClient getPulsarClient() {
-        if (pulsarClient != null) {
-            return pulsarClient;
-        }
         try {
             return new ClientBuilderImpl(clientConfigurationData).build();
         } catch (PulsarClientException e) {
@@ -348,6 +343,9 @@ public abstract class PulsarTestBase extends TestLogger {
     // ------------------- topic information helpers -------------------
 
     public static void createTestTopic(String topic, int numberOfPartitions) throws Exception {
+        if (pulsarAdmin == null) {
+            pulsarAdmin = getPulsarAdmin();
+        }
         if (numberOfPartitions == 0) {
             pulsarAdmin.topics().createNonPartitionedTopic(topic);
         } else {

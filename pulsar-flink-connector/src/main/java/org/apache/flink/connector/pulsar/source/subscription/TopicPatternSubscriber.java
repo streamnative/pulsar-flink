@@ -16,7 +16,6 @@ package org.apache.flink.connector.pulsar.source.subscription;
 
 import org.apache.flink.connector.pulsar.source.AbstractPartition;
 import org.apache.flink.connector.pulsar.source.BrokerPartition;
-import org.apache.flink.connector.pulsar.source.NoSplitDivisionStrategy;
 import org.apache.flink.connector.pulsar.source.SplitDivisionStrategy;
 import org.apache.flink.connector.pulsar.source.util.AsyncUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.TopicRange;
@@ -29,9 +28,9 @@ import org.apache.pulsar.common.naming.TopicName;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -48,56 +47,48 @@ public class TopicPatternSubscriber extends AbstractPulsarSubscriber {
     private final SplitDivisionStrategy splitDivisionStrategy;
     private final Pattern topicPattern;
 
-    public TopicPatternSubscriber(String namespace, SplitDivisionStrategy splitDivisionStrategy, String... topicPatterns) {
+    public TopicPatternSubscriber(String namespace, SplitDivisionStrategy splitDivisionStrategy, Set<String> topicPatterns) {
         this.namespace = checkNotNull(namespace);
         this.splitDivisionStrategy = checkNotNull(splitDivisionStrategy);
-        checkArgument(topicPatterns.length > 0, "At least one pattern needs to be specified");
+        checkArgument(topicPatterns.size() > 0, "At least one pattern needs to be specified");
         // shorten patterns and compile into one big pattern
-        topicPattern = Pattern.compile(Arrays.stream(topicPatterns)
+        topicPattern = Pattern.compile(topicPatterns.stream().map(topic -> "persistent://" + namespace + "/" + topic)
                 .collect(Collectors.joining("|")));
     }
 
     @Override
-    protected Collection<AbstractPartition> getCurrentPartitions(PulsarAdmin pulsarAdmin) throws PulsarAdminException, InterruptedException, IOException {
+    public Collection<AbstractPartition> getCurrentPartitions(PulsarAdmin pulsarAdmin) throws PulsarAdminException, InterruptedException, IOException {
         List<AbstractPartition> partitions = new ArrayList<>();
         Topics topics = pulsarAdmin.topics();
 
         List<String> partitionedTopicList = topics.getPartitionedTopicList(namespace);
-        if (splitDivisionStrategy == NoSplitDivisionStrategy.NO_SPLIT) {
-            try {
-                AsyncUtils.parallelAsync(
-                        partitionedTopicList,
-                        pulsarAdmin.topics()::getPartitionedTopicMetadataAsync,
-                        (topic, topicMetadata) -> {
-                            if (topicPattern.matcher(topic).matches()) {
-                                for (int partitionIndex = 0; partitionIndex < topicMetadata.partitions; partitionIndex++) {
-                                    String fullName = topic + TopicName.PARTITIONED_TOPIC_SUFFIX + partitionIndex;
+        try {
+            AsyncUtils.parallelAsync(
+                    partitionedTopicList,
+                    pulsarAdmin.topics()::getPartitionedTopicMetadataAsync,
+                    (topic, topicMetadata) -> {
+                        if (topicPattern.matcher(topic).matches()) {
+                            int numPartitions = topicMetadata.partitions;
+                            Collection<Range> ranges = splitDivisionStrategy.getRanges(topic, pulsarAdmin, context);
+                            for (Range range : ranges) {
+                                if (numPartitions == 0) {
                                     partitions.add(new BrokerPartition(
-                                            new TopicRange(fullName, BrokerPartition.FULL_RANGE))
-                                    );
+                                            new TopicRange(topic, range)));
+                                } else {
+                                    for (int partitionIndex = 0; partitionIndex < topicMetadata.partitions; partitionIndex++) {
+                                        String fullName = topic + TopicName.PARTITIONED_TOPIC_SUFFIX + partitionIndex;
+                                        partitions.add(new BrokerPartition(
+                                                new TopicRange(fullName, range))
+                                        );
+                                    }
                                 }
                             }
-                        },
-                        PulsarAdminException.class);
-            } catch (TimeoutException e) {
-                throw new IOException("Cannot retrieve partition information: " + e.getMessage());
-            }
-        } else {
-            //this method should consider partition's not only topics
-            addKeySharedPartitions(partitionedTopicList, partitions, pulsarAdmin);
+                        }
+                    },
+                    PulsarAdminException.class);
+        } catch (TimeoutException e) {
+            throw new IOException("Cannot retrieve partition information: " + e.getMessage());
         }
         return partitions;
     }
-
-    private void addKeySharedPartitions(List<String> topics, List<AbstractPartition> partitions, PulsarAdmin pulsarAdmin) throws PulsarAdminException {
-        for (String topic : topics) {
-            if (topicPattern.matcher(topic).matches()) {
-                Collection<Range> ranges = splitDivisionStrategy.getRanges(topic, pulsarAdmin, context);
-                for (Range range : ranges) {
-                    partitions.add(new BrokerPartition(new TopicRange(topic, range)));
-                }
-            }
-        }
-    }
-
 }

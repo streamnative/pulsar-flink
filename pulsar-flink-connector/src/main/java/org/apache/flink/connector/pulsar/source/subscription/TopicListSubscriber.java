@@ -16,7 +16,6 @@ package org.apache.flink.connector.pulsar.source.subscription;
 
 import org.apache.flink.connector.pulsar.source.AbstractPartition;
 import org.apache.flink.connector.pulsar.source.BrokerPartition;
-import org.apache.flink.connector.pulsar.source.NoSplitDivisionStrategy;
 import org.apache.flink.connector.pulsar.source.SplitDivisionStrategy;
 import org.apache.flink.connector.pulsar.source.util.AsyncUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.TopicRange;
@@ -52,7 +51,7 @@ public class TopicListSubscriber extends AbstractPulsarSubscriber {
     }
 
     @Override
-    protected Collection<AbstractPartition> getCurrentPartitions(PulsarAdmin pulsarAdmin) throws PulsarAdminException, InterruptedException, IOException {
+    public Collection<AbstractPartition> getCurrentPartitions(PulsarAdmin pulsarAdmin) throws PulsarAdminException, InterruptedException, IOException {
         Collection<AbstractPartition> partitions = new ArrayList<>();
         try {
             AsyncUtils.parallelAsync(
@@ -62,30 +61,19 @@ public class TopicListSubscriber extends AbstractPulsarSubscriber {
                     (topic, topicMetadata) -> {
                         log.info("in getCurrentPartitions");
                         int numPartitions = topicMetadata.partitions;
-                        if (splitDivisionStrategy != NoSplitDivisionStrategy.NO_SPLIT) {
-                            // for key-shared mode, one split take over one range for all partitions of one topic.
-                            Collection<Range> ranges = splitDivisionStrategy.getRanges(topic, pulsarAdmin, context);
-                            if (numPartitions == 0) {
-                                for (Range range : ranges) {
-                                    partitions.add(new BrokerPartition(new TopicRange(topic, range)));
-                                }
-                            } else {
-                                for (int i = 0; i < numPartitions; i++) {
-                                    String fullName = topic + TopicName.PARTITIONED_TOPIC_SUFFIX + i;
-                                    for (Range range : ranges) {
-                                        partitions.add(new BrokerPartition(new TopicRange(fullName, range)));
-                                    }
-                                }
+                        // For key-shared mode, one split take over some range for all partitions of one topic,
+                        // if not in key-shared mode, per partition per split for one topic.
+                        Collection<Range> ranges = splitDivisionStrategy.getRanges(topic, pulsarAdmin, context);
+                        if (numPartitions == 0) {
+                            for (Range range : ranges) {
+                                partitions.add(new BrokerPartition(new TopicRange(topic, range)));
                             }
-                        } else if (numPartitions == 0) {
-                            // non-partitioned and not in key-shared mode, just one split for one topic.
-                            partitions.add(new BrokerPartition(new TopicRange(topic, BrokerPartition.FULL_RANGE)));
                         } else {
-                            // partitioned and not in key-shared mode, per partition per split for one topic.
-                            for (int partitionIndex = 0; partitionIndex < numPartitions; partitionIndex++) {
-                                String fullName = topic + TopicName.PARTITIONED_TOPIC_SUFFIX + partitionIndex;
-                                partitions.add(new BrokerPartition(new TopicRange(fullName, BrokerPartition.FULL_RANGE)));
-                                //partitions.add(new Partition(fullName, Partition.AUTO_KEY_RANGE));
+                            for (int i = 0; i < numPartitions; i++) {
+                                String fullName = topic + TopicName.PARTITIONED_TOPIC_SUFFIX + i;
+                                for (Range range : ranges) {
+                                    partitions.add(new BrokerPartition(new TopicRange(fullName, range)));
+                                }
                             }
                         }
                     },

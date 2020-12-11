@@ -90,6 +90,11 @@ public class SourceSinkUtils {
         return Long.parseLong(interval);
     }
 
+    public static int getSendTimeoutMs(Map<String, String> parameters) {
+        String interval = parameters.getOrDefault(PulsarOptions.SEND_TIMEOUT_MS, "30000");
+        return Integer.parseInt(interval);
+    }
+
     public static int getPollTimeoutMs(Map<String, String> parameters) {
         String interval = parameters.getOrDefault(PulsarOptions.POLL_TIMEOUT_MS_OPTION_KEY, "120000");
         return Integer.parseInt(interval);

@@ -104,6 +104,8 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
 
     protected long maxBlockTimeMs;
 
+    protected int sendTimeOutMs;
+
     /**
      * Lock for accessing the pending records.
      */
@@ -148,8 +150,7 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
             Properties properties,
             PulsarSerializationSchema<T> serializationSchema,
             MessageRouter messageRouter) {
-            PulsarSerializationSchema<T> serializationSchema) {
-        this(adminUrl, defaultTopicName, clientConf, properties, serializationSchema, PulsarSinkSemantic.AT_LEAST_ONCE);
+        this(adminUrl, defaultTopicName, clientConf, properties, serializationSchema, messageRouter, PulsarSinkSemantic.AT_LEAST_ONCE);
     }
 
     public FlinkPulsarSinkBase(
@@ -158,6 +159,7 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
             ClientConfigurationData clientConf,
             Properties properties,
             PulsarSerializationSchema<T> serializationSchema,
+            MessageRouter messageRouter,
             PulsarSinkSemantic semantic) {
         super(new TransactionStateSerializer(), VoidSerializer.INSTANCE);
 
@@ -198,8 +200,13 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
         this.maxBlockTimeMs =
                 SourceSinkUtils.getMaxBlockTimeMs(caseInsensitiveParams);
 
+        this.sendTimeOutMs =
+                SourceSinkUtils.getSendTimeoutMs(caseInsensitiveParams);
+
         CachedPulsarClient.setCacheSize(SourceSinkUtils.getClientCacheSize(caseInsensitiveParams));
         if (semantic == PulsarSinkSemantic.EXACTLY_ONCE) {
+            // in transactional mode, must set producer sendTimeout to 0;
+            this.sendTimeOutMs = 0;
             this.tid2MessagesMap = new ConcurrentHashMap<>();
             this.tid2FuturesMap = new ConcurrentHashMap<>();
             clientConfigurationData.setEnableTransaction(true);
@@ -326,7 +333,7 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
                     .getOrCreate(clientConf)
                     .newProducer(schema)
                     .topic(topic)
-                    .sendTimeout(0, TimeUnit.MILLISECONDS)
+                    .sendTimeout(sendTimeOutMs, TimeUnit.MILLISECONDS)
                     .batchingMaxPublishDelay(100, TimeUnit.MILLISECONDS)
                     // maximizing the throughput
                     .batchingMaxMessages(5 * 1024 * 1024)
@@ -471,11 +478,11 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
     @Override
     protected void commit(PulsarTransactionState<T> transactionState) {
         if (transactionState.isTransactional()) {
-            log.info("transaction {} is commiting", transactionState.transactionalId.toString());
+            log.debug("transaction {} is committing", transactionState.transactionalId.toString());
             CompletableFuture<Void> future = transactionState.transaction.commit();
             try {
                 future.get(maxBlockTimeMs, TimeUnit.MILLISECONDS);
-                log.info("transaction {} is commited with messageID size {}", transactionState.transactionalId.toString(), tid2MessagesMap.get(transactionState.transactionalId).size());
+                log.debug("transaction {} is committed with messageID size {}", transactionState.transactionalId.toString(), tid2MessagesMap.get(transactionState.transactionalId).size());
                 tid2MessagesMap.remove(transactionState.transactionalId);
             } catch (Exception e) {
                 throw new RuntimeException(e);
@@ -487,10 +494,10 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
     protected void abort(PulsarTransactionState<T> transactionState) {
         if (transactionState.isTransactional()) {
             CompletableFuture<Void> future = transactionState.transaction.abort();
-            log.info("transaction {} is aborting", transactionState.transactionalId.toString());
+            log.debug("transaction {} is aborting", transactionState.transactionalId.toString());
             try {
                 future.get(maxBlockTimeMs, TimeUnit.MILLISECONDS);
-                log.info("transaction {} is aborted", transactionState.transactionalId.toString());
+                log.debug("transaction {} is aborted", transactionState.transactionalId.toString());
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -501,7 +508,7 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
     protected void recoverAndCommit(PulsarTransactionState<T> transaction) {
         if (transaction.isTransactional()) {
             try {
-                log.info("transaction {} is recoverAndCommit...", transaction.transactionalId);
+                log.debug("transaction {} is recoverAndCommit...", transaction.transactionalId);
                 TransactionCoordinatorClientImpl tcClient = CachedPulsarClient.getOrCreate(clientConfigurationData).getTcClient();
                 TxnID transactionalId = transaction.transactionalId;
                 tcClient.commit(transactionalId, transaction.pendingMessages);
@@ -509,7 +516,11 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
                 log.error("Failed to getOrCreate a PulsarClient");
                 throw new RuntimeException(executionException);
             } catch (TransactionCoordinatorClientException.InvalidTxnStatusException statusException) {
-                log.info("transaction {} is already commited...", transaction.transactionalId);
+                // In some cases, the transaction has been committed or aborted before the recovery,
+                // but Flink has not yet sensed it. When flink recover this job, it will commit or
+                // abort the transaction again, then Pulsar will throw a duplicate operation error,
+                // we catch the error without doing anything to deal with it
+                log.debug("transaction {} is already committed...", transaction.transactionalId);
             } catch (TransactionCoordinatorClientException e) {
                 throw new RuntimeException(e);
             }
@@ -520,7 +531,7 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
     protected void recoverAndAbort(PulsarTransactionState<T> transaction) {
         if (transaction.isTransactional()) {
             try {
-                log.info("transaction {} is recoverAndAbort...", transaction.transactionalId);
+                log.debug("transaction {} is recoverAndAbort...", transaction.transactionalId);
                 TransactionCoordinatorClientImpl tcClient = CachedPulsarClient.getOrCreate(clientConfigurationData).getTcClient();
                 TxnID transactionalId = transaction.transactionalId;
                 tcClient.abort(transactionalId, transaction.pendingMessages);
@@ -528,7 +539,11 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
                 log.error("Failed to getOrCreate a PulsarClient");
                 throw new RuntimeException(executionException);
             } catch (TransactionCoordinatorClientException.InvalidTxnStatusException statusException) {
-                log.info("transaction {} is already aborted...", transaction.transactionalId);
+                // In some cases, the transaction has been committed or aborted before the recovery,
+                // but Flink has not yet sensed it. When flink recover this job, it will commit or
+                // abort the transaction again, then Pulsar will throw a duplicate operation error,
+                // we catch the error without doing anything to deal with it
+                log.debug("transaction {} is already aborted...", transaction.transactionalId);
             } catch (TransactionCoordinatorClientException e) {
                 throw new RuntimeException(e);
             }
@@ -580,8 +595,6 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
     public static class PulsarTransactionState<T> {
 
         private final transient Transaction transaction;
-
-        //private final transient Producer<T> producer;
 
         private final List<MessageId> pendingMessages;
 

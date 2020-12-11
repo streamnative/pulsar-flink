@@ -53,6 +53,7 @@ public class PulsarOptions {
     public static final String TRANSACTION_TIMEOUT = "transaction-timeout";
     public static final String MAX_BLOCK_TIME_MS = "max-block-time-ms";
     public static final String POLL_TIMEOUT_MS_OPTION_KEY = "poll-timeout-ms";
+    public static final String SEND_TIMEOUT_MS = "send-timeout-ms";
     public static final String SUBSCRIPTION_ROLE_OPTION_KEY = "subscription-role-prefix";
     public static final String COMMIT_MAX_RETRIES = "commit-max-retries";
     public static final String FAIL_ON_DATA_LOSS_OPTION_KEY = "fail-on-data-loss";

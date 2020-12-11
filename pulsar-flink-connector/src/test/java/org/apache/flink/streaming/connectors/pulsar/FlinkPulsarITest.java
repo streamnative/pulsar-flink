@@ -670,7 +670,6 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
                 faList.subList(0, faList.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
     }
 
-
     //TODO test pojo
     @Test(timeout = 40 * 1000L)
     public void testSourceAndSink() throws Exception {
@@ -1451,7 +1450,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
                                 new PulsarSerializationSchemaWrapper.Builder<>(
                                         new SimpleStringSchema())
                                         .useSpecialMode(Schema.STRING)
-                                        .build(), null) {
+                                        .build()) {
                         });
 
                 OneInputStreamOperatorTestHarness<String, Object> testHarness =

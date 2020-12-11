@@ -207,24 +207,17 @@ public class PulsarDynamicTableSink implements DynamicTableSink, SupportsWriting
 
     private SinkFunction<RowData> createPulsarSink(String topic, Properties properties,
                                                    PulsarSerializationSchema<RowData> pulsarSerializer) {
-        switch (semantic) {
-            case AT_LEAST_ONCE:
-            case NONE:
-                final ClientConfigurationData configurationData = new ClientConfigurationData();
-                configurationData.setServiceUrl(serviceUrl);
-                return new FlinkPulsarSink<RowData>(
-                        adminUrl,
-                        Optional.ofNullable(topic),
-                        configurationData,
-                        properties,
-                        pulsarSerializer,
-                        messageRouter
-                );
-            case EXACTLY_ONCE:
-            default:
-                throw new IllegalArgumentException("not support sink semantic: " + semantic);
-        }
-
+        final ClientConfigurationData configurationData = new ClientConfigurationData();
+        configurationData.setServiceUrl(serviceUrl);
+        return new FlinkPulsarSink<RowData>(
+                adminUrl,
+                Optional.ofNullable(topic),
+                configurationData,
+                properties,
+                pulsarSerializer,
+                messageRouter,
+                PulsarSinkSemantic.valueOf(semantic.toString())
+        );
     }
 
     private @Nullable

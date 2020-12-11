@@ -27,7 +27,6 @@ import org.apache.flink.core.memory.DataOutputView;
 import org.apache.flink.runtime.state.FunctionInitializationContext;
 import org.apache.flink.runtime.state.FunctionSnapshotContext;
 import org.apache.flink.streaming.api.checkpoint.CheckpointedFunction;
-import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.streaming.api.functions.sink.TwoPhaseCommitSinkFunction;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
 import org.apache.flink.streaming.connectors.pulsar.internal.CachedPulsarClient;
@@ -229,17 +228,6 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
     public void snapshotState(FunctionSnapshotContext context) throws Exception {
         checkErroneous();
         super.snapshotState(context);
-      /*  checkErroneous();
-
-        if (flushOnCheckpoint) {
-            producerFlush();
-            synchronized (pendingRecordsLock) {
-                if (pendingRecords != 0) {
-                    throw new IllegalStateException("Pending record count must be zero at this point " + pendingRecords);
-                }
-                checkErroneous();
-            }
-        }*/
     }
 
     @Override
@@ -488,7 +476,6 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
             try {
                 future.get(maxBlockTimeMs, TimeUnit.MILLISECONDS);
                 log.info("transaction {} is commited with messageID size {}", transactionState.transactionalId.toString(), tid2MessagesMap.get(transactionState.transactionalId).size());
-                // TODO test clear the map is needed
                 tid2MessagesMap.remove(transactionState.transactionalId);
             } catch (Exception e) {
                 throw new RuntimeException(e);

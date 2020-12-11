@@ -116,6 +116,7 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
         }
 
         CompletableFuture<MessageId> messageIdFuture = mb.sendAsync();
+        Thread.sleep(10);
         if (transactionState.isTransactional()) {
             TxnID transactionalId = transactionState.transactionalId;
             List<CompletableFuture<MessageId>> futureList;

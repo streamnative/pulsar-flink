@@ -28,9 +28,12 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.connectors.pulsar.config.RecordSchemaType;
+import org.apache.flink.streaming.connectors.pulsar.internal.CachedPulsarClient;
 import org.apache.flink.streaming.connectors.pulsar.table.PulsarSinkSemantic;
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper;
 import org.apache.flink.streaming.connectors.pulsar.testutils.IntegerSource;
+import org.apache.flink.streaming.connectors.pulsar.testutils.PulsarContainer;
+import org.apache.flink.streaming.util.TestStreamEnvironment;
 import org.apache.flink.streaming.util.serialization.PulsarSerializationSchemaWrapper;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.test.util.SuccessException;
@@ -38,19 +41,28 @@ import org.apache.flink.test.util.TestUtils;
 
 import com.fasterxml.jackson.databind.ser.std.StdJdkSerializers;
 import com.google.common.collect.Sets;
+import io.streamnative.tests.pulsar.service.PulsarServiceSpec;
+import io.streamnative.tests.pulsar.service.testcontainers.containers.PulsarStandaloneContainer;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.Message;
+import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.SubscriptionInitialPosition;
+import org.apache.pulsar.client.api.transaction.Transaction;
 import org.apache.pulsar.client.impl.PulsarClientImpl;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.common.naming.NamespaceName;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.policies.data.TenantInfo;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.testcontainers.containers.BindMode;
+import org.testcontainers.containers.Network;
+import org.testcontainers.containers.output.Slf4jLogConsumer;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -64,19 +76,72 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 @Slf4j
-public class PulsarTransactionalSinkTest extends PulsarTestBaseWithFlink{
+public class PulsarTransactionalSinkTest{
     private PulsarAdmin admin;
     private final static String CLUSTER_NAME = "standalone";
     private final static String TENANT = "tnx";
-    //private final static String NAMESPACE1 = TENANT + "/ns1";
 
-/*    private final static String NAMESPACE1 = TENANT + "/ns1";
+  /*  private final static String NAMESPACE1 = TENANT + "/ns1";
     private final static String TOPIC_OUTPUT = NAMESPACE1 + "/output";
     private final static String TOPIC_MESSAGE_ACK_TEST = NAMESPACE1 + "/message-ack-test";
     private final static String adminUrlStand = "http://localhost:8080";
     private final static String serviceUrlStand = "pulsar://localhost:6650";*/
+
+    private static PulsarStandaloneContainer container;
+    private static String serviceUrl;
+    private static String adminUrl;
+
+    @BeforeClass
+    public static void prepare() throws Exception {
+
+        log.info("-------------------------------------------------------------------------");
+        log.info("    Starting PulsarTestBase ");
+        log.info("-------------------------------------------------------------------------");
+        if (System.getProperty("pulsar.systemtest.image") == null) {
+            System.setProperty("pulsar.systemtest.image", "apachepulsar/pulsar:2.7.0");
+        }
+        PulsarServiceSpec spec = PulsarServiceSpec.builder()
+                .clusterName("standalone-" + UUID.randomUUID())
+                .enableContainerLogging(false)
+                .build();
+        container = new PulsarContainer(spec.clusterName())
+                .withClasspathResourceMapping("txnStandalone.conf", "/pulsar/conf/standalone.conf", BindMode.READ_ONLY)
+                .withNetwork(Network.newNetwork())
+                .withNetworkAliases(PulsarStandaloneContainer.NAME + "-" + spec.clusterName());
+        if (spec.enableContainerLogging()) {
+            container.withLogConsumer(new Slf4jLogConsumer(log));
+        }
+        container.start();
+        serviceUrl = container.getExposedPlainTextServiceUrl();
+        adminUrl = container.getExposedHttpServiceUrl();
+
+        Thread.sleep(80 * 100L);
+        log.info("-------------------------------------------------------------------------");
+        log.info("Successfully started pulsar service at cluster " + spec.clusterName());
+        log.info("-------------------------------------------------------------------------");
+
+    }
+
+    @AfterClass
+    public static void shutDownServices() throws Exception {
+        log.info("-------------------------------------------------------------------------");
+        log.info("    Shut down PulsarTestBase ");
+        log.info("-------------------------------------------------------------------------");
+
+        TestStreamEnvironment.unsetAsContext();
+
+        if (container != null) {
+            container.stop();
+        }
+
+        log.info("-------------------------------------------------------------------------");
+        log.info("    PulsarTestBase finished");
+        log.info("-------------------------------------------------------------------------");
+    }
+
+
     /**
-     * Tests the exactly-once semantic for the simple writes into Kafka.
+     * Tests the exactly-once semantic for the simple writes into Pulsar.
      */
     @Test
     public void testExactlyOnceRegularSink() throws Exception {
@@ -92,19 +157,25 @@ public class PulsarTransactionalSinkTest extends PulsarTestBaseWithFlink{
     @Test
     public void testTxn() throws Exception {
         admin = PulsarAdmin.builder().serviceHttpUrl(adminUrl).build();
-        admin.tenants().createTenant(NamespaceName.SYSTEM_NAMESPACE.getTenant(),
-                new TenantInfo(Sets.newHashSet("app1"), Sets.newHashSet(CLUSTER_NAME)));
-        admin.namespaces().createNamespace(NamespaceName.SYSTEM_NAMESPACE.toString());
-        admin.topics().createPartitionedTopic(TopicName.TRANSACTION_COORDINATOR_ASSIGN.toString(), 16);
+
         PulsarClient client = PulsarClient.builder().
                 serviceUrl(serviceUrl).
                 enableTransaction(true).build();
         Thread.sleep(100);
-        ((PulsarClientImpl) client)
+        Transaction transaction = ((PulsarClientImpl) client)
                 .newTransaction()
                 .withTransactionTimeout(1, TimeUnit.HOURS)
                 .build()
                 .get();
+        Producer<Integer> integerProducer = client
+                .newProducer(Schema.INT32)
+                .topic("testTxn" + UUID.randomUUID())
+                .sendTimeout(0, TimeUnit.MILLISECONDS)
+                .batchingMaxPublishDelay(100, TimeUnit.MILLISECONDS)
+                // maximizing the throughput
+                .batchingMaxMessages(5 * 1024 * 1024)
+                .create();
+        integerProducer.newMessage(transaction).value(1).sendAsync();
 
     }
 
@@ -177,7 +248,7 @@ public class PulsarTransactionalSinkTest extends PulsarTestBaseWithFlink{
         // until we timeout...
             PulsarClient client = PulsarClient.builder().enableTransaction(true).serviceUrl(serviceUrl).build();
             Consumer<Integer> test = client
-                    .newConsumer(Schema.JSON(Integer.class))
+                    .newConsumer(Schema.INT32)
                     .topic(topic)
                     .subscriptionName("test-exactly" + UUID.randomUUID())
                     .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest)
@@ -188,6 +259,10 @@ public class PulsarTransactionalSinkTest extends PulsarTestBaseWithFlink{
             log.info("consume the message {} with the value {}", message.getMessageId(), message.getValue());
             actualElements.add(message.getValue());
             // succeed if we got all expectedElements
+            if(actualElements.size() == expectedElements.size()){
+                assertEquals(expectedElements, actualElements);
+                return;
+            }
             if (actualElements.equals(expectedElements)) {
                 return;
             }

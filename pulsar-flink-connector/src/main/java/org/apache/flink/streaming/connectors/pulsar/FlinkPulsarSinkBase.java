@@ -201,6 +201,8 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
 
         CachedPulsarClient.setCacheSize(SourceSinkUtils.getClientCacheSize(caseInsensitiveParams));
         if (semantic == PulsarSinkSemantic.EXACTLY_ONCE) {
+            this.tid2MessagesMap = new ConcurrentHashMap<>();
+            this.tid2FuturesMap = new ConcurrentHashMap<>();
             clientConfigurationData.setEnableTransaction(true);
         }
         if (this.clientConfigurationData.getServiceUrl() == null) {
@@ -225,6 +227,7 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
 
     @Override
     public void snapshotState(FunctionSnapshotContext context) throws Exception {
+        checkErroneous();
         super.snapshotState(context);
       /*  checkErroneous();
 
@@ -335,6 +338,7 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
                     .getOrCreate(clientConf)
                     .newProducer(schema)
                     .topic(topic)
+                    .sendTimeout(0, TimeUnit.MILLISECONDS)
                     .batchingMaxPublishDelay(100, TimeUnit.MILLISECONDS)
                     // maximizing the throughput
                     .batchingMaxMessages(5 * 1024 * 1024)

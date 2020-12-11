@@ -35,6 +35,7 @@ import org.apache.pulsar.client.impl.MessageIdImpl;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -185,9 +186,9 @@ public class PulsarOptions {
             .noDefaultValue()
             .withDescription("Optional pulsar reader receiverQueueSize of \"receiver-queue-size\"");
 
-    public static final ConfigOption<String> PARTITION_DISCOVERY_INTERVAL_MILLIS = ConfigOptions
+    public static final ConfigOption<Long> PARTITION_DISCOVERY_INTERVAL_MILLIS = ConfigOptions
             .key("partition.discovery.interval-millis")
-            .stringType()
+            .longType()
             .noDefaultValue()
             .withDescription("Optional discovery topic interval of \"interval-millis\" millis");
 
@@ -210,6 +211,12 @@ public class PulsarOptions {
             .defaultValue("at-least-once")
             .withDescription(
                     "Optional semantic when commit. Valid enumerationns are [\"at-least-once\", \"exactly-once\", \"none\"]");
+
+    public static final ConfigOption<Map<String, String>> PROPERTIES = ConfigOptions.key("properties")
+            .mapType()
+            .defaultValue(Collections.emptyMap())
+            .withDescription(
+                    "Optional pulsar config.");
 
     // --------------------------------------------------------------------------------------------
     // Option enumerations
@@ -386,6 +393,7 @@ public class PulsarOptions {
                         pulsarProperties.put(subKey, value);
                     });
         }
+        pulsarProperties.computeIfAbsent(PARTITION_DISCOVERY_INTERVAL_MILLIS.key(), tableOptions::get);
         return pulsarProperties;
     }
 

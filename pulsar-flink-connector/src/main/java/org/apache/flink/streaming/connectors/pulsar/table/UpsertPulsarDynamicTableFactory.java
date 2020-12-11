@@ -51,6 +51,7 @@ import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.A
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.KEY_FIELDS;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.KEY_FIELDS_PREFIX;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.KEY_FORMAT;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.PROPERTIES;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.SERVICE_URL;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.TOPIC;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.TOPIC_PATTERN;
@@ -90,6 +91,7 @@ public class UpsertPulsarDynamicTableFactory implements DynamicTableSourceFactor
         options.add(KEY_FIELDS_PREFIX);
         options.add(VALUE_FIELDS_INCLUDE);
         options.add(FactoryUtil.SINK_PARALLELISM);
+        options.add(PROPERTIES);
         return options;
     }
 
@@ -117,7 +119,8 @@ public class UpsertPulsarDynamicTableFactory implements DynamicTableSourceFactor
 
         Tuple2<int[], int[]> keyValueProjections = createKeyValueProjections(context.getCatalogTable());
         String keyPrefix = tableOptions.getOptional(KEY_FIELDS_PREFIX).orElse(null);
-        Properties properties = getPulsarProperties(context.getCatalogTable().getOptions());
+        Properties properties = getPulsarProperties(context.getCatalogTable().toProperties());
+
         // always use earliest to keep data integrity
         PulsarOptions.StartupOptions startupOptions = new PulsarOptions.StartupOptions();
         startupOptions.startupMode = StartupMode.EARLIEST;
@@ -159,8 +162,7 @@ public class UpsertPulsarDynamicTableFactory implements DynamicTableSourceFactor
 
         Tuple2<int[], int[]> keyValueProjections = createKeyValueProjections(context.getCatalogTable());
         final String keyPrefix = tableOptions.getOptional(KEY_FIELDS_PREFIX).orElse(null);
-        final Properties properties = getPulsarProperties(context.getCatalogTable().getOptions());
-
+        Properties properties = getPulsarProperties(context.getCatalogTable().toProperties());
         Integer parallelism = tableOptions.get(FactoryUtil.SINK_PARALLELISM);
 
         String adminUrl = tableOptions.get(ADMIN_URL);

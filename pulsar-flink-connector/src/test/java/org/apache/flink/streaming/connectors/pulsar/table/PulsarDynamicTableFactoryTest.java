@@ -93,19 +93,18 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
     private static final String COMPUTED_COLUMN_NAME = "computed-column";
     private static final String COMPUTED_COLUMN_EXPRESSION = COUNT + " + 1.0";
     private static final DataType COMPUTED_COLUMN_DATATYPE = DataTypes.DECIMAL(10, 3);
-    private static final String DISCOVERY_INTERVAL = "1000 ms";
+    private static final String DISCOVERY_INTERVAL = "1000";
 
     private static final Properties PULSAR_SOURCE_PROPERTIES = new Properties();
     private static final Properties PULSAR_SINK_PROPERTIES = new Properties();
 
     static {
 
-        PULSAR_SOURCE_PROPERTIES.setProperty("admin-url", ADMIN_URL);
-        PULSAR_SOURCE_PROPERTIES.setProperty("service-url", SERVICE_URL);
         PULSAR_SOURCE_PROPERTIES.setProperty("partition.discovery.interval-millis", "1000");
+        PULSAR_SOURCE_PROPERTIES.setProperty("pulsar.reader.readername", "testReaderName");
 
-        PULSAR_SINK_PROPERTIES.setProperty("admin-url", ADMIN_URL);
-        PULSAR_SINK_PROPERTIES.setProperty("service-url", SERVICE_URL);
+        PULSAR_SINK_PROPERTIES.setProperty("pulsar.reader.readername", "testReaderName");
+
     }
 
     private static final String PROPS_SCAN_OFFSETS =
@@ -586,6 +585,7 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
         tableOptions.put("service-url", SERVICE_URL);
         tableOptions.put("admin-url", ADMIN_URL);
         tableOptions.put("scan.startup.mode", "specific-offsets");
+        tableOptions.put("properties.pulsar.reader.readername", "testReaderName");
         tableOptions.put("scan.startup.specific-offsets", PROPS_SCAN_OFFSETS);
         tableOptions.put("partition.discovery.interval-millis", DISCOVERY_INTERVAL);
         // Format options.
@@ -607,6 +607,8 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
         tableOptions.put("service-url", SERVICE_URL);
         tableOptions.put("admin-url", ADMIN_URL);
         tableOptions.put("sink.semantic", PulsarOptions.SINK_SEMANTIC_VALUE_AT_LEAST_ONCE);
+        tableOptions.put("properties.pulsar.reader.readername", "testReaderName");
+
         // Format options.
         tableOptions.put("format", TestFormatFactory.IDENTIFIER);
         final String formatDelimiterKey = String.format("%s.%s",
@@ -623,6 +625,7 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
         tableOptions.put("service-url", SERVICE_URL);
         tableOptions.put("admin-url", ADMIN_URL);
         tableOptions.put("partition.discovery.interval-millis", DISCOVERY_INTERVAL);
+        tableOptions.put("properties.pulsar.reader.readername", "testReaderName");
         tableOptions.put("sink.semantic", PulsarOptions.SINK_SEMANTIC_VALUE_EXACTLY_ONCE);
         // Format options.
         tableOptions.put("key.format", TestFormatFactory.IDENTIFIER);

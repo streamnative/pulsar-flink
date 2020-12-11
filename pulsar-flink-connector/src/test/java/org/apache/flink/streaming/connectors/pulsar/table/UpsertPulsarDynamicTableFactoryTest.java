@@ -102,11 +102,11 @@ public class UpsertPulsarDynamicTableFactoryTest extends TestLogger {
     private static final Properties UPSERT_PULSAR_SINK_PROPERTIES = new Properties();
 
     static {
-        UPSERT_PULSAR_SOURCE_PROPERTIES.setProperty("admin-url", ADMIN_URL);
-        UPSERT_PULSAR_SOURCE_PROPERTIES.setProperty("service-url", SERVICE_URL);
-
-        UPSERT_PULSAR_SINK_PROPERTIES.setProperty("admin-url", ADMIN_URL);
-        UPSERT_PULSAR_SINK_PROPERTIES.setProperty("service-url", SERVICE_URL);
+//        UPSERT_PULSAR_SOURCE_PROPERTIES.setProperty("admin-url", ADMIN_URL);
+//        UPSERT_PULSAR_SOURCE_PROPERTIES.setProperty("service-url", SERVICE_URL);
+//
+//        UPSERT_PULSAR_SINK_PROPERTIES.setProperty("admin-url", ADMIN_URL);
+//        UPSERT_PULSAR_SINK_PROPERTIES.setProperty("service-url", SERVICE_URL);
     }
 
     @Rule

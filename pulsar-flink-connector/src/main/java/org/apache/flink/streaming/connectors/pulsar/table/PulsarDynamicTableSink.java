@@ -270,32 +270,30 @@ public class PulsarDynamicTableSink implements DynamicTableSink, SupportsWriting
         if (this == o) {
             return true;
         }
-        if (o == null || getClass() != o.getClass()) {
+        if (!(o instanceof PulsarDynamicTableSink)) {
             return false;
         }
         PulsarDynamicTableSink that = (PulsarDynamicTableSink) o;
-        return upsertMode == that.upsertMode &&
-                Objects.equals(metadataKeys, that.metadataKeys) &&
+        return upsertMode == that.upsertMode && Objects.equals(metadataKeys, that.metadataKeys) &&
                 Objects.equals(physicalDataType, that.physicalDataType) &&
-                Objects.equals(topic, that.topic) &&
-                Objects.equals(serviceUrl, that.serviceUrl) &&
+                Objects.equals(topic, that.topic) && Objects.equals(serviceUrl, that.serviceUrl) &&
                 Objects.equals(adminUrl, that.adminUrl) &&
+                Objects.equals(properties, that.properties) &&
                 Objects.equals(keyEncodingFormat, that.keyEncodingFormat) &&
                 Objects.equals(valueEncodingFormat, that.valueEncodingFormat) &&
                 Arrays.equals(keyProjection, that.keyProjection) &&
                 Arrays.equals(valueProjection, that.valueProjection) &&
                 Objects.equals(keyPrefix, that.keyPrefix) &&
-                Objects.equals(parallelism, that.parallelism) &&
-                semantic == that.semantic &&
-                Objects.equals(messageRouter, that.messageRouter) &&
-                Objects.equals(formatType, that.formatType);
+                Objects.equals(parallelism, that.parallelism) && semantic == that.semantic &&
+                Objects.equals(formatType, that.formatType) &&
+                Objects.equals(messageRouter, that.messageRouter);
     }
 
     @Override
     public int hashCode() {
-        int result = Objects.hash(metadataKeys, physicalDataType, topic, serviceUrl, adminUrl,
-                keyEncodingFormat, valueEncodingFormat, keyPrefix, upsertMode,
-                parallelism, messageRouter, semantic, formatType);
+        int result =
+                Objects.hash(metadataKeys, physicalDataType, topic, serviceUrl, adminUrl, properties, keyEncodingFormat,
+                        valueEncodingFormat, keyPrefix, upsertMode, parallelism, semantic, formatType, messageRouter);
         result = 31 * result + Arrays.hashCode(keyProjection);
         result = 31 * result + Arrays.hashCode(valueProjection);
         return result;

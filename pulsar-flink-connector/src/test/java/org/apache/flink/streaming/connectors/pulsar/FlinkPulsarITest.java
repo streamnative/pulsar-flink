@@ -80,6 +80,7 @@ import org.apache.flink.util.ExceptionUtils;
 import org.apache.flink.shaded.guava18.com.google.common.collect.Iterables;
 import org.apache.flink.shaded.guava18.com.google.common.collect.Sets;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.pulsar.client.admin.PulsarAdmin;
@@ -133,6 +134,7 @@ import static org.junit.Assert.fail;
 /**
  * Pulsar source sink integration tests.
  */
+@Slf4j
 public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
 
     @Rule

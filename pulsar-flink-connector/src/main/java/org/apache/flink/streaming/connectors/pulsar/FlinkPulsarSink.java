@@ -72,7 +72,7 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
             ClientConfigurationData clientConf,
             Properties properties,
             PulsarSerializationSchema serializationSchema) {
-        this(adminUrl, defaultTopicName, clientConf, properties, serializationSchema, null);
+        this(adminUrl, defaultTopicName, clientConf, properties, serializationSchema, PulsarSinkSemantic.AT_LEAST_ONCE);
     }
 
     public FlinkPulsarSink(
@@ -87,7 +87,7 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
                 PulsarClientUtils.newClientConf(checkNotNull(serviceUrl), properties),
                 properties,
                 serializationSchema,
-                null
+                PulsarSinkSemantic.AT_LEAST_ONCE
         );
     }
 
@@ -108,7 +108,7 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
                 pendingRecords++;
             }
         }
-
+        log.info("sink get record" + value);
         CompletableFuture<MessageId> messageIdFuture = mb.sendAsync();
         if (transactionState.isTransactional()) {
             // in transactional mode, we must sleep some time because pulsar have some bug can result data disorder.

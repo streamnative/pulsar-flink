@@ -270,6 +270,7 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
         } else {
             topic2Producer = new HashMap<>();
         }
+        super.open(parameters);
     }
 
     protected void initializeSendCallback() {

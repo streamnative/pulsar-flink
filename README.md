@@ -18,15 +18,15 @@ Chinese document: [README_CN](doc/README_CN.md)
 #### Client Lib
 For projects using SBT, Maven, and Gradle, you can use the following parameters to set to your project.
 
-- `FLINK_VERSION` parameter now has `1.9.0` and `1.11.1` options.
-  - Version 1.9.0 supports flink 1.9-1.10
-  - 1.11.1 version supports 1.11+
+- `FLINK_VERSION` parameter now has `1.9` and `1.11` options. This branch use flink-1.11 version.
+  - Version 1.9 supports flink 1.9-1.10
+  - 1.11 version supports 1.11+
 - The `SCALA_BINARY_VERSION` parameter is related to the Scala version used by flink. There are `2.11` and `2.12` options available.
 - `PULSAR_FLINK_VERSION` is the version of this connector.
 
 ```
     groupId = io.streamnative.connectors
-    artifactId = pulsar-flink-{{SCALA_BINARY_VERSION}}-{{FLINK_VERSION}}
+    artifactId = pulsar-flink-connector-{{SCALA_BINARY_VERSION}}-{{FLINK_VERSION}}
     version = {{PULSAR_FLINK_VERSION}}
 ```
 The Jar package is located in [Bintray Maven repository of StreamNative](https://dl.bintray.com/streamnative/maven).
@@ -167,6 +167,7 @@ catalogs:
     default-database: tn/ns
     service-url: "pulsar://localhost:6650"
     admin-url: "http://localhost:8080"
+    format.type: "json"
 ```
 
 
@@ -175,12 +176,12 @@ catalogs:
 
 ### Source
 
-Flink's Pulsar consumer is called `FlinkPulsarSource<T>` or `FlinkPulsarRowSource` which only has the function of automatically inferring data patterns. It provides access to one or more Pulsar topics.
+Flink's Pulsar consumer is called `FlinkPulsarSource<T>` It provides access to one or more Pulsar topics.
 
 The construction method has the following parameters:
 
 1. Connect the service address `serviceUrl` used by the Pulsar instance and the management address `adminUrl`.
-2. When using `FlinkPulsarSource`, you need to set `DeserializationSchema<T>` or `PulsarDeserializationSchema<T>`.
+2. When using `FlinkPulsarSource`, you need to set `PulsarDeserializationSchema<T>`.
 3. The Properties parameter is used to configure the behavior of the Pulsar Consumer.
    The required parameters for Properties are as follows:
 
@@ -197,7 +198,7 @@ Properties props = new Properties();
 props.setProperty("topic", "test-source-topic");
 props.setProperty("partitiondiscoveryintervalmillis", "5000");
 
-FlinkPulsarSource<String> source = new FlinkPulsarSource<>(serviceUrl, adminUrl, new SimpleStringSchema(), props);
+FlinkPulsarSource<String> source = new FlinkPulsarSource<>(serviceUrl, adminUrl, new PulsarDeserializationSchemaWrapper(new SimpleStringSchema()), props);
 
 // or setStartFromLatest, setStartFromSpecificOffsets, setStartFromSubscription
 source.setStartFromEarliest();
@@ -228,7 +229,7 @@ Example:
 ```java
         PulsarSerializationSchema<Person> pulsarSerialization = new PulsarSerializationSchemaWrapper.Builder<>(
                 (SerializationSchema<Person>) element -> { 
-                    JSONSchema<SchemaData.Foo> jsonSchema = JSONSchema.of(SchemaData.Foo.class);
+                    JSONSchema<Person> jsonSchema = JSONSchema.of(Person.class);
                     return jsonSchema.encode(element); 
                 })
                 .usePojoMode(Person.class, RecordSchemaType.JSON)
@@ -242,13 +243,26 @@ Example:
 stream.addSink(sink);
 ```
 
-If the topic information is included in the record, it can be implemented by customizing TopicKeyExtractor to distribute the messages to different queues.
+`PulsarSerializationSchema` is a wrapper for Flink `SerializationSchema`, providing more functionality. Most of the time, you don't need to implement `PulsarSerializationSchema` by yourself, we provide `PulsarSerializationSchemaWrapper` to wrap a Flink `SerializationSchema` to become a `PulsarSerializationSchema`.
 
+`PulsarSerializationSchema` uses the builder pattern, you can call `setKeyExtractor` or `setTopicExtractor` to satisfy the need for extracting keys from each message and customizing the target topic.
+
+In particular, since Pulsar maintains its own Schema information internally, our messages must be able to derive a SchemaInfo when written to Pulsar. 
+The `useSpecialMode`, `useAtomicMode`, `usePojoMode`, and `useRowMode` method can help you quickly build the Schema information you need for Pulsar. You must choose just one of these four modes.
+
+SpecialMode: Directly specifies the `Schema<?> schema` in Pulsar.
+
+AtomicMode: For some data of atomic type, pass the type of AtomicDataType, such as `DataTypes.INT()`, which will correspond to the `Schema<Integer>` in Pulsar.
+
+PojoMode: You need to pass a custom Class object and one of Json or Arvo to specify the way to build the composite type Schema. For example, the
+`usePojoMode(Person.class, RecordSchemaType.JSON)`
+
+RowMode: In general, you will not use this mode, it is used for our internal implementation of the Table&SQL API.
 
 
 #### Fault tolerance
 
-After enabling Flink checkpoints, `FlinkPulsarSink` and `FlinkPulsarRowSink` can provide an at-least-once delivery guarantee.
+After enabling Flink checkpoints, `FlinkPulsarSink` can provide an at-least-once delivery guarantee.
 
 In addition to enabling Flink checkpointing, you should also configure `setLogFailuresOnly(boolean)` and `setFlushOnCheckpoint(boolean)`.
 
@@ -342,18 +356,8 @@ create table test_flink_sql(
     'connector.topic' ='persistent://public/default/test_flink_sql',
     'connector.service-url' ='pulsar://xxx',
     'connector.admin-url' ='http://xxx',
-    'connector.startup-mode' ='external-subscription',
-    'connector.sub-name' ='test_flink_sql_v1',
-    'connector.properties.0.key' ='pulsar.reader.readerName',
-    'connector.properties.0.value' ='test_flink_sql_v1',
-    'connector.properties.1.key' ='pulsar.reader.subscriptionRolePrefix',
-    'connector.properties.1.value' ='test_flink_sql_v1',
-    'connector.properties.2.key' ='pulsar.reader.receiverQueueSize',
-    'connector.properties.2.value' = '1000',
-    'connector.properties.3.key' ='partitiondiscoveryintervalmillis',
-    'connector.properties.3.value' = '5000',
+    'connector.startup-mode' ='earliest',
     'format.type' ='json',
-    'format.derive-schema' ='true',
     'update-mode' ='append'
 );
 
@@ -387,31 +391,6 @@ The pulsar-flink connector provides two `DeserializationSchema` decoders:
 
 
 
-### Row type automatic decoding PulsarDeserializer
-
-After Flink 1.9 is upgraded to 1.11, there have been major changes, and many APIs are incompatible. In the two versions, the processing of the schema is different.
-
-In flink 1.9, when creating a table, configuring the schema parameter is optional. But when upgrading to flink1.11, the schema must be specified and must be consistent with the TableSource return type.
-
-**This affects `PulsarDeserializer`'s decoding of flink row types**, and has two differences:
-
-1. Expand the difference of field types:
-
-   | Column | Type in flink 1.9 | Type in flink 1.11 |
-   | --------------- | --------------- | ---------------- |
-   | `__key` | Bytes | Bytes |
-   | `__topic` | String | String |
-   | `__messageId` | Bytes | Bytes |
-   | `__publishTime` | Timestamp | LocalDateTime |
-   | `__eventTime` | Timestamp | LocalDateTime |
-
-2. Extension field configuration:
-
-   -flink 1.9 extended fields will be added by default
-   -Flink 1.11 does not use extended fields by default. It is enabled when `use-extend-field=true` is configured, and the extended fields need to be declared on the schema. It is turned on by default in catalog mode.
-
-
-
 ## Advanced configuration
 
 ### Configuration parameters
@@ -432,7 +411,6 @@ In flink 1.9, when creating a table, configuring the schema parameter is optiona
 | polltimeoutms | 120000 | The timeout period for waiting to get the next message, milliseconds | source |
 | failondataloss | true | Does it fail when data is lost | source |
 | commitmaxretries | 3 | Maximum number of retries when offset to pulsar message | source |
-| use-extend-field | false | Use PulsarDeserializer to decode messages, whether to add extended fields<br/>Only effective in flink 1.11, flink1.9 directly adds extended fields. | source |
 | startup-mode | null | earliest, latest, the position where subscribers consume news, required | catalog |
 | table-default-partitions | 5 | Specify the number of partitions to create a topic | catalog |
 | pulsar.reader.* | | For detailed configuration of pulsar consumer, please refer to [pulsar reader](https://pulsar.apache.org/docs/en/client-libraries-java/#reader) | source |
@@ -463,19 +441,20 @@ create table test_flink_sql(
 ) with (
    'connector.type' = 'pulsar',
    'connector.version' = '1',
-   'connector.topic' = 'persistent://test/test-gray/test_flink_sql',
-  'connector.service-url' = 'pulsar://xxx',
-  'connector.admin-url' = 'http://xxx',
-   'connector.startup-mode' = 'earliest',  //订阅模式
-   'connector.properties.0.key' = 'pulsar.reader.readerName', //参数名
-   'connector.properties.0.value' = 'test_flink_sql_v1',      // 参数值
+   'connector.topic' = 'persistent://public/default/test_flink_sql',
+   'connector.service-url' = 'pulsar://xxx',
+   'connector.admin-url' = 'http://xxx',
+   'connector.startup-mode' = 'earliest',
+   'connector.properties.0.key' = 'pulsar.reader.readerName', //param name
+   'connector.properties.0.value' = 'test_flink_sql_v1',      // param value
    'connector.properties.1.key' = 'pulsar.reader.subscriptionRolePrefix',
    'connector.properties.1.value' = 'test_flink_sql_v1',
    'connector.properties.2.key' = 'pulsar.reader.receiverQueueSize',
    'connector.properties.2.value' = '1000',
-   'connector.properties.3.key' = 'partitiondiscoveryintervalmillis', //参数名
-   'connector.properties.3.value' = '5000',                           //参数值
-  'update-mode' = 'append'
+   'connector.properties.3.key' = 'partitiondiscoveryintervalmillis', 
+   'connector.properties.3.value' = '5000',                           
+   'format.type' = 'json',
+   'update-mode' = 'append'
 );
 ```
 
@@ -484,7 +463,7 @@ create table test_flink_sql(
 
 For Pulsar instance configured with Authentication, Pulsar Flink Connector could be set similarly with the regular Pulsar Client.
 
-For FlinkPulsarSource, FlinkPulsarRowSource, FlinkPulsarSink, and FlinkPulsarRowSink, they all come with a constructor that enables you to
+For FlinkPulsarSource and FlinkPulsarSink, they all come with a constructor that enables you to
 pass in `ClientConfigurationData` as one of the parameters. You should construct a `ClientConfigurationData` first and pass it to the correspond constructor.
 
 For example:
@@ -499,7 +478,7 @@ conf.setAuthParams(params);
 Properties props = new Properties();
 props.setProperty("topic", "test-source-topic");
 
-FlinkPulsarSource<String> source = new FlinkPulsarSource<>(adminUrl, conf, new SimpleStringSchema(), props);
+FlinkPulsarSource<String> source = new FlinkPulsarSource<>(adminUrl, conf, new PulsarDeserializationSchemaWrapper(new SimpleStringSchema()), props);
 
 ```
 

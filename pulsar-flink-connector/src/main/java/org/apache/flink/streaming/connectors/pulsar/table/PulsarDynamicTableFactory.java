@@ -98,10 +98,10 @@ public class PulsarDynamicTableFactory implements
         FactoryUtil.TableFactoryHelper helper = FactoryUtil.createTableFactoryHelper(this, context);
 
         ReadableConfig tableOptions = helper.getOptions();
-        if (inCatalog){
+        if (inCatalog) {
             final ObjectIdentifier table = context.getObjectIdentifier();
             final String topic = TopicName.get(table.getDatabaseName() + "/" + table.getObjectName()).toString();
-            ((Configuration)tableOptions).set(TOPIC, Collections.singletonList(topic));
+            ((Configuration) tableOptions).set(TOPIC, Collections.singletonList(topic));
         }
         List<String> topics = tableOptions.get(TOPIC);
         String adminUrl = tableOptions.get(ADMIN_URL);
@@ -164,10 +164,10 @@ public class PulsarDynamicTableFactory implements
 
         ReadableConfig tableOptions = helper.getOptions();
 
-        if (inCatalog){
+        if (inCatalog) {
             final ObjectIdentifier table = context.getObjectIdentifier();
             final String topic = TopicName.get(table.getDatabaseName() + "/" + table.getObjectName()).toString();
-            ((Configuration)tableOptions).set(TOPIC, Collections.singletonList(topic));
+            ((Configuration) tableOptions).set(TOPIC, Collections.singletonList(topic));
         }
         List<String> topics = tableOptions.get(TOPIC);
         String topicPattern = tableOptions.get(TOPIC_PATTERN);
@@ -318,7 +318,8 @@ public class PulsarDynamicTableFactory implements
     }
 
     private static void validatePKConstraints(ObjectIdentifier tableName, CatalogTable catalogTable, Format format) {
-        if (catalogTable.getSchema().getPrimaryKey().isPresent() && format.getChangelogMode().containsOnly(RowKind.INSERT)) {
+        if (catalogTable.getSchema().getPrimaryKey().isPresent() &&
+                format.getChangelogMode().containsOnly(RowKind.INSERT)) {
             Configuration options = Configuration.fromMap(catalogTable.getOptions());
             String formatName = options.getOptional(FactoryUtil.FORMAT).orElse(options.get(VALUE_FORMAT));
             throw new ValidationException(String.format(

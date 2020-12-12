@@ -875,7 +875,6 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         generator.start();
 
         // launch a consumer asynchronously
-
         AtomicReference<Throwable> jobError = new AtomicReference<>();
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();

@@ -116,17 +116,10 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
             Thread.sleep(10);
             TxnID transactionalId = transactionState.transactionalId;
             List<CompletableFuture<MessageId>> futureList;
-            if (tid2FuturesMap.get(transactionalId) == null) {
-                futureList = new ArrayList<>();
-                tid2FuturesMap.put(transactionalId, futureList);
-            } else {
-                futureList = tid2FuturesMap.get(transactionalId);
-            }
-            futureList.add(messageIdFuture);
-            log.info("message {} is invoke in txn {}", value, transactionState.transactionalId);
+            tid2FuturesMap.computeIfAbsent(transactionalId, key -> new ArrayList<>())
+                    .add(messageIdFuture);
+            log.debug("message {} is invoke in txn {}", value, transactionState.transactionalId);
         }
-        sends++;
-        log.info("sends, this is {} data", sends);
         messageIdFuture.whenComplete(sendCallback);
     }
 }

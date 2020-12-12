@@ -143,9 +143,6 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
 
     protected transient Map<String, Producer<T>> topic2Producer;
 
-    protected transient int sends;
-    protected transient int success;
-
     public FlinkPulsarSinkBase(
             String adminUrl,
             Optional<String> defaultTopicName,
@@ -282,8 +279,6 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
         }
         if (failOnWrite) {
             this.sendCallback = (t, u) -> {
-                success++;
-                log.info("callback, this is {} data, remain {} is not success", success, sends - success);
                 if (failedWrite == null && u == null) {
                     acknowledgeMessage();
                 } else if (failedWrite == null && u != null) {
@@ -295,8 +290,6 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
             };
         } else {
             this.sendCallback = (t, u) -> {
-                success++;
-                log.info("callback, this is {} data", success);
                 if (failedWrite == null && u != null) {
                     log.error("Error while sending message to Pulsar: {}", ExceptionUtils.stringifyException(u));
                 }
@@ -381,15 +374,8 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
                 try {
                     MessageId messageId = future.get();
                     TxnID transactionalId = transaction.transactionalId;
-                    List<MessageId> messageIdList;
-                    if (tid2MessagesMap.get(transactionalId) == null) {
-                        messageIdList = new ArrayList<>();
-                        tid2MessagesMap.put(transactionalId, messageIdList);
-                    } else {
-                        messageIdList = tid2MessagesMap.get(transactionalId);
-                    }
-                    messageIdList.add(messageId);
-                    log.info("transaction {} add the message {} to messageIdLIst", transactionalId, messageId);
+                    tid2MessagesMap.computeIfAbsent(transactionalId, key -> new ArrayList<>()).add(messageId);
+                    log.debug("transaction {} add the message {} to messageIdLIst", transactionalId, messageId);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 } catch (ExecutionException e) {
@@ -433,17 +419,13 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
     protected PulsarTransactionState<T> beginTransaction() throws Exception {
         switch (semantic) {
             case EXACTLY_ONCE:
-                log.info("transaction is begining in EXACTLY_ONCE mode");
+                log.debug("transaction is begining in EXACTLY_ONCE mode");
                 Transaction transaction = createTransaction();
                 long txnIdLeastBits = ((TransactionImpl) transaction).getTxnIdLeastBits();
                 long txnIdMostBits = ((TransactionImpl) transaction).getTxnIdMostBits();
                 TxnID txnID = new TxnID(txnIdMostBits, txnIdLeastBits);
-                if (tid2MessagesMap.get(txnID) == null) {
-                    tid2MessagesMap.put(txnID, new ArrayList<>());
-                }
-                if (tid2FuturesMap.get(txnID) == null) {
-                    tid2FuturesMap.put(txnID, new ArrayList<>());
-                }
+                tid2MessagesMap.computeIfAbsent(txnID, key -> new ArrayList<>());
+                tid2FuturesMap.computeIfAbsent(txnID, key -> new ArrayList<>());
                 return new PulsarTransactionState<T>(
                         new TxnID(txnIdMostBits, txnIdLeastBits),
                         transaction,
@@ -477,9 +459,9 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
                 throw new UnsupportedOperationException("Not implemented semantic");
         }
         if (transaction.isTransactional()) {
-            log.info("{} preCommit with pending message size {}", transaction.transactionalId, tid2MessagesMap.get(currentTransaction().transactionalId).size());
+            log.debug("{} preCommit with pending message size {}", transaction.transactionalId, tid2MessagesMap.get(currentTransaction().transactionalId).size());
         } else {
-            log.info("in AT_LEAST_ONCE mode, producer was flushed by preCommit");
+            log.debug("in AT_LEAST_ONCE mode, producer was flushed by preCommit");
         }
         checkErroneous();
     }

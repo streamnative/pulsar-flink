@@ -1446,13 +1446,18 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
                 Properties props = new Properties();
                 props.setProperty(FLUSH_ON_CHECKPOINT_OPTION_KEY, "true");
                 props.setProperty(FAIL_ON_WRITE_OPTION_KEY, "true");
-
+                ClientConfigurationData clientConfigurationData = new ClientConfigurationData();
+                clientConfigurationData.setServiceUrl(serviceUrl);
                 StreamSink<String> sink = new StreamSink<>(
-                        new FlinkPulsarSink<String>(serviceUrl, adminUrl, Optional.of(tp), props,
+                        new FlinkPulsarSinkBase<String>(adminUrl, Optional.of(tp), clientConfigurationData, props,
                                 new PulsarSerializationSchemaWrapper.Builder<>(
                                         new SimpleStringSchema())
                                         .useSpecialMode(Schema.STRING)
-                                        .build()) {
+                                        .build(), null) {
+                            @Override
+                            protected void invoke(PulsarTransactionState<String> stringPulsarTransactionState, String s, Context context) throws Exception {
+                                return;
+                            }
                         });
 
                 OneInputStreamOperatorTestHarness<String, Object> testHarness =

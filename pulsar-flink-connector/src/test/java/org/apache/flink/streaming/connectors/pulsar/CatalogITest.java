@@ -17,7 +17,6 @@ package org.apache.flink.streaming.connectors.pulsar;
 import org.apache.flink.client.cli.DefaultCLI;
 import org.apache.flink.client.deployment.DefaultClusterClientServiceLoader;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.pulsar.testutils.EnvironmentFileUtil;
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper;
@@ -30,23 +29,24 @@ import org.apache.flink.table.catalog.pulsar.PulsarCatalog;
 import org.apache.flink.table.client.config.Environment;
 import org.apache.flink.table.client.gateway.SessionContext;
 import org.apache.flink.table.client.gateway.local.ExecutionContext;
-import org.apache.flink.types.Row;
 
 import org.apache.flink.shaded.guava18.com.google.common.collect.Iterables;
 import org.apache.flink.shaded.guava18.com.google.common.collect.Sets;
 
 import org.apache.commons.cli.Options;
+import org.apache.commons.io.IOUtils;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
-import org.apache.pulsar.client.api.MessageId;
+import org.apache.pulsar.client.api.Consumer;
+import org.apache.pulsar.client.api.Message;
+import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.Schema;
+import org.apache.pulsar.client.api.SubscriptionInitialPosition;
 import org.apache.pulsar.common.naming.TopicName;
-import org.apache.pulsar.common.policies.data.BacklogQuota;
 import org.apache.pulsar.common.policies.data.TenantInfo;
 import org.apache.pulsar.common.schema.SchemaType;
-import org.junit.After;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,6 +59,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.INTEGER_LIST;
@@ -69,7 +73,6 @@ import static org.junit.Assert.assertTrue;
 /**
  * Catalog Integration tests.
  */
-//@Ignore("need to be adapted to the new table api")
 public class CatalogITest extends PulsarTestBaseWithFlink {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CatalogITest.class);
@@ -148,7 +151,6 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
                             Sets.newHashSet(tableEnv.listTables()),
                             Sets.newHashSet(Iterables.concat(topics, partitionedTopics)))
                             .isEmpty());
-
 
         } finally {
             try {
@@ -264,8 +266,8 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         String tp = newTopic();
         String tableName = TopicName.get(tp).getLocalName();
 
-        String tableSink = newTopic("tableSink");
-        String tableSinkName = TopicName.get(tableSink).getLocalName();
+        String tableSinkTopic = newTopic("tableSink");
+        String tableSinkName = TopicName.get(tableSinkTopic).getLocalName();
         String pulsarCatalog1 = "pulsarcatalog1";
 
         sendTypedMessages(tp, SchemaType.INT32, INTEGER_LIST, Optional.empty());
@@ -283,42 +285,40 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         String insertQ = "INSERT INTO " + tableSinkName + " SELECT * FROM `" + tableName + "`";
 
         tableEnv.executeSql(sinkDDL).print();
-        tableEnv.executeSql(insertQ).print();
+        tableEnv.executeSql(insertQ);
 
-//        Thread.sleep(2000);
-        Map<String, String> conf1 = getStreamingConfs();
-        conf1.put("$VAR_STARTING", "earliest");
+        List<Integer> result = consumeMessage(tableSinkName, Schema.INT32, INTEGER_LIST.size(), 10);
 
-        ExecutionContext context1 = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf1);
-        TableEnvironment tableEnv1 = context1.getTableEnvironment();
+        assertEquals(INTEGER_LIST, result);
+    }
 
-        tableEnv1.useCatalog("pulsarcatalog1");
-
-        Table t = tableEnv1.sqlQuery("select `value` from " + tableSinkName);
-
-        StreamExecutionEnvironment executionEnvironment =
-                StreamExecutionEnvironment.getExecutionEnvironment();
-        StreamTableEnvironment streamTableEnvironment = StreamTableEnvironment.create(executionEnvironment);
-        DataStream stream = streamTableEnvironment.toAppendStream(t, t.getSchema().toRowType());
-        stream.map(new FailingIdentityMapper<>(INTEGER_LIST.size())).setParallelism(1)
-                .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
-
-        Thread reader = new Thread("read") {
-            @Override
-            public void run() {
-                try {
-                    executionEnvironment.execute("read from earliest");
-                } catch (Throwable e) {
-                    // do nothing
+    @NotNull
+    private <T> List<T> consumeMessage(String topic, Schema<T> schema, int count, int timeout)
+            throws InterruptedException, ExecutionException, TimeoutException {
+        final PulsarClient pulsarClient = getPulsarClient();
+        return CompletableFuture.supplyAsync(() -> {
+            Consumer<T> consumer = null;
+            try {
+                consumer = pulsarClient.newConsumer(schema)
+                        .topic(topic)
+                        .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest)
+                        .subscriptionName("test")
+                        .subscribe();
+                List<T> result = new ArrayList<>(count);
+                for (int i = 0; i < count; i++) {
+                    final Message<T> message = consumer.receive();
+                    result.add(message.getValue());
+                    consumer.acknowledge(message);
                 }
+                consumer.close();
+                return result;
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            } finally {
+                IOUtils.closeQuietly(consumer, i -> {
+                });
             }
-        };
-
-        reader.start();
-        reader.join();
-        SingletonStreamSink.compareWithList(
-                INTEGER_LIST.subList(0, INTEGER_LIST.size() - 1).stream().map(Objects::toString)
-                        .collect(Collectors.toList()));
+        }).get(timeout, TimeUnit.SECONDS);
     }
 
     @Test(timeout = 40 * 1000L)
@@ -341,45 +341,13 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         tableEnv.useCatalog("pulsarcatalog1");
 
         String insertQ = "INSERT INTO " + tableSinkName + " SELECT * FROM `" + tableName + "`";
-        tableEnv.executeSql(insertQ).print();
+        tableEnv.executeSql(insertQ);
 
-        Map<String, String> conf1 = getStreamingConfs();
-        conf1.put("$VAR_STARTING", "earliest");
-        StreamExecutionEnvironment executionEnvironment =
-                StreamExecutionEnvironment.getExecutionEnvironment();
-        StreamTableEnvironment streamTableEnvironment = StreamTableEnvironment.create(executionEnvironment);
-        ExecutionContext context1 = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf1);
-        TableEnvironment tableEnv1 = context1.getTableEnvironment();
-
-        tableEnv1.useCatalog("pulsarcatalog1");
-
-        Table t = tableEnv1.sqlQuery("select `value` from " + tableSinkName);
-        DataStream stream =
-                ((StreamTableEnvironment) streamTableEnvironment).toAppendStream(t, t.getSchema().toRowType());
-        stream.map(new FailingIdentityMapper<Row>(INTEGER_LIST.size())).setParallelism(1)
-                .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
-
-        Thread reader = new Thread("read") {
-            @Override
-            public void run() {
-                try {
-
-                    executionEnvironment.execute("read from earliest");
-                } catch (Throwable e) {
-                    // do nothing
-                    e.printStackTrace();
-                }
-            }
-        };
-
-        reader.start();
-        reader.join();
-        Thread.sleep(3000);
-        List<String> expectedOutput = new ArrayList<>();
-        expectedOutput.add("-1");
-        expectedOutput.addAll(INTEGER_LIST.subList(0, INTEGER_LIST.size() - 2).stream().map(Objects::toString)
-                .collect(Collectors.toList()));
-        SingletonStreamSink.compareWithList(expectedOutput);
+        List<Integer> expectedOutput = new ArrayList<>();
+        expectedOutput.add(-1);
+        expectedOutput.addAll(INTEGER_LIST.subList(0, INTEGER_LIST.size() - 2));
+        List<Integer> result = consumeMessage(tableSinkName, Schema.INT32, expectedOutput.size(), 10);
+        assertEquals(expectedOutput, result);
     }
 
     private ExecutionContext createExecutionContext(String file, Map<String, String> replaceVars) throws Exception {

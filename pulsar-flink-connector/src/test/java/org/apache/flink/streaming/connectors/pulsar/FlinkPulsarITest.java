@@ -887,7 +887,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         env.addSource(new FlinkPulsarSource<String>(
                 serviceUrl,
                 adminUrl,
-                new PulsarPrimitiveSchema<>(String.class),
+                new PulsarDeserializationSchemaWrapper<>(new SimpleStringSchema(), DataTypes.STRING()),
                 prop).setStartFromEarliest())
                 .addSink(new DiscardingSink<>());
 

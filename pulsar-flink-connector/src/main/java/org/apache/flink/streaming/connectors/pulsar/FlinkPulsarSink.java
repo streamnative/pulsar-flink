@@ -125,6 +125,8 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
             futureList.add(messageIdFuture);
             log.info("message {} is invoke in txn {}", value, transactionState.transactionalId);
         }
+        sends++;
+        log.info("sends, this is {} data", sends);
         messageIdFuture.whenComplete(sendCallback);
     }
 }

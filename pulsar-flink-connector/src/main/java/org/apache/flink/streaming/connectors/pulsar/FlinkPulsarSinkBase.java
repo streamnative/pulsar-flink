@@ -143,6 +143,9 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
 
     protected transient Map<String, Producer<T>> topic2Producer;
 
+    protected transient int sends;
+    protected transient int success;
+
     public FlinkPulsarSinkBase(
             String adminUrl,
             Optional<String> defaultTopicName,
@@ -270,7 +273,7 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
         } else {
             topic2Producer = new HashMap<>();
         }
-        super.open(parameters);
+       //super.open(parameters);
     }
 
     protected void initializeSendCallback() {
@@ -279,16 +282,21 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
         }
         if (failOnWrite) {
             this.sendCallback = (t, u) -> {
+                success++;
+                log.info("callback, this is {} data, remain {} is not success", success, sends - success);
                 if (failedWrite == null && u == null) {
                     acknowledgeMessage();
                 } else if (failedWrite == null && u != null) {
                     failedWrite = u;
                 } else { // failedWrite != null
+                    log.warn("callback error {}", u);
                     // do nothing and wait next checkForError to throw exception
                 }
             };
         } else {
             this.sendCallback = (t, u) -> {
+                success++;
+                log.info("callback, this is {} data", success);
                 if (failedWrite == null && u != null) {
                     log.error("Error while sending message to Pulsar: {}", ExceptionUtils.stringifyException(u));
                 }
@@ -334,7 +342,7 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
                     .getOrCreate(clientConf)
                     .newProducer(schema)
                     .topic(topic)
-                    .sendTimeout(sendTimeOutMs, TimeUnit.MILLISECONDS)
+                    //.sendTimeout(sendTimeOutMs, TimeUnit.MILLISECONDS)
                     .batchingMaxPublishDelay(100, TimeUnit.MILLISECONDS)
                     // maximizing the throughput
                     .batchingMaxMessages(5 * 1024 * 1024)

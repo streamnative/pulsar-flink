@@ -108,7 +108,7 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
                 pendingRecords++;
             }
         }
-        log.info("sink get record" + value);
+
         CompletableFuture<MessageId> messageIdFuture = mb.sendAsync();
         if (transactionState.isTransactional()) {
             // in transactional mode, we must sleep some time because pulsar have some bug can result data disorder.

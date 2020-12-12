@@ -90,6 +90,11 @@ public class SourceSinkUtils {
         return Long.parseLong(interval);
     }
 
+    public static int getSendTimeoutMs(Map<String, String> parameters) {
+        String interval = parameters.getOrDefault(PulsarOptions.SEND_TIMEOUT_MS, "30000");
+        return Integer.parseInt(interval);
+    }
+
     public static int getPollTimeoutMs(Map<String, String> parameters) {
         String interval = parameters.getOrDefault(PulsarOptions.POLL_TIMEOUT_MS_OPTION_KEY, "120000");
         return Integer.parseInt(interval);
@@ -118,6 +123,16 @@ public class SourceSinkUtils {
     public static boolean failOnWrite(Map<String, String> parameters) {
         String b = parameters.getOrDefault(PulsarOptions.FAIL_ON_WRITE_OPTION_KEY, "false");
         return Boolean.parseBoolean(b);
+    }
+
+    public static long getTransactionTimeout(Map<String, String> parameters) {
+        String value = parameters.getOrDefault(PulsarOptions.TRANSACTION_TIMEOUT, "3600000");
+        return Long.parseLong(value);
+    }
+
+    public static long getMaxBlockTimeMs(Map<String, String> parameters) {
+        String value = parameters.getOrDefault(PulsarOptions.MAX_BLOCK_TIME_MS, "100000");
+        return Long.parseLong(value);
     }
 
     public static Map<String, Object> getReaderParams(Map<String, String> parameters) {

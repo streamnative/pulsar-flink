@@ -80,6 +80,7 @@ import org.apache.flink.util.ExceptionUtils;
 import org.apache.flink.shaded.guava18.com.google.common.collect.Iterables;
 import org.apache.flink.shaded.guava18.com.google.common.collect.Sets;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.pulsar.client.admin.PulsarAdmin;
@@ -133,6 +134,7 @@ import static org.junit.Assert.fail;
 /**
  * Pulsar source sink integration tests.
  */
+@Slf4j
 public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
 
     @Rule
@@ -670,7 +672,6 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
                 faList.subList(0, faList.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
     }
 
-
     //TODO test pojo
     @Test(timeout = 40 * 1000L)
     public void testSourceAndSink() throws Exception {
@@ -874,7 +875,6 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         generator.start();
 
         // launch a consumer asynchronously
-
         AtomicReference<Throwable> jobError = new AtomicReference<>();
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
@@ -886,7 +886,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         env.addSource(new FlinkPulsarSource<String>(
                 serviceUrl,
                 adminUrl,
-                new PulsarPrimitiveSchema<>(String.class),
+                new PulsarDeserializationSchemaWrapper<>(new SimpleStringSchema(), DataTypes.STRING()),
                 prop).setStartFromEarliest())
                 .addSink(new DiscardingSink<>());
 
@@ -1445,13 +1445,18 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
                 Properties props = new Properties();
                 props.setProperty(FLUSH_ON_CHECKPOINT_OPTION_KEY, "true");
                 props.setProperty(FAIL_ON_WRITE_OPTION_KEY, "true");
-
+                ClientConfigurationData clientConfigurationData = new ClientConfigurationData();
+                clientConfigurationData.setServiceUrl(serviceUrl);
                 StreamSink<String> sink = new StreamSink<>(
-                        new FlinkPulsarSinkBase<String>(serviceUrl, adminUrl, Optional.of(tp), props,
+                        new FlinkPulsarSinkBase<String>(adminUrl, Optional.of(tp), clientConfigurationData, props,
                                 new PulsarSerializationSchemaWrapper.Builder<>(
                                         new SimpleStringSchema())
                                         .useSpecialMode(Schema.STRING)
                                         .build(), null) {
+                            @Override
+                            protected void invoke(PulsarTransactionState<String> stringPulsarTransactionState, String s, Context context) throws Exception {
+                                return;
+                            }
                         });
 
                 OneInputStreamOperatorTestHarness<String, Object> testHarness =

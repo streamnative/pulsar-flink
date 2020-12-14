@@ -220,6 +220,10 @@ public class PulsarDynamicTableSink implements DynamicTableSink, SupportsWriting
         );
     }
 
+    public MessageRouter getMessageRouter() {
+        return messageRouter;
+    }
+
     private @Nullable
     SerializationSchema<RowData> createSerialization(
             DynamicTableSink.Context context,

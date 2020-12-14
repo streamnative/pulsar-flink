@@ -22,6 +22,7 @@ import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.connectors.pulsar.FlinkPulsarSink;
 import org.apache.flink.streaming.connectors.pulsar.FlinkPulsarSource;
 import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
+import org.apache.flink.streaming.connectors.pulsar.util.KeyHashMessageRouterImpl;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.api.TableColumn;
 import org.apache.flink.table.api.TableSchema;
@@ -47,7 +48,10 @@ import org.apache.flink.table.runtime.connector.source.ScanRuntimeProviderContex
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.util.TestLogger;
 
+import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageId;
+import org.apache.pulsar.client.api.MessageRouter;
+import org.apache.pulsar.client.api.TopicMetadata;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -67,6 +71,7 @@ import static org.apache.flink.core.testutils.FlinkMatchers.containsCause;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
@@ -374,14 +379,37 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
     }
 
     @Test
-    public void testInvalidSinkPartitioner() {
+    public void testInvalidSinkMessageRouter() {
         thrown.expect(ValidationException.class);
-
+        thrown.expect(containsCause(new ValidationException("Could not find and instantiate messageRouter "
+                + "class 'fakeRouter'")));
         final Map<String, String> modifiedOptions = getModifiedOptions(
-                getBasicSourceOptions(),
-                options -> options.put("sink.partitioner", "abc"));
+                getBasicSinkOptions(),
+                options -> options.put("sink.message-router", "fakeRouter"));
 
         createTableSink(SCHEMA, modifiedOptions);
+    }
+
+    @Test
+    public void testValidSinkMessageRouter() {
+        final Map<String, String> mockMessageRouterOptions = getModifiedOptions(
+                getBasicSinkOptions(),
+                options -> options.put("sink.message-router", MockMessageRouter.class.getName()));
+        final Map<String, String> keyHashRouterOptions = getModifiedOptions(
+                getBasicSinkOptions(),
+                options -> options.put("sink.message-router", "key-hash"));
+        final Map<String, String> roundRobinRouterOptions = getModifiedOptions(
+                getBasicSinkOptions(),
+                options -> options.put("sink.message-router", "round-robin"));
+        PulsarDynamicTableSink mockMessageRouterSink =
+                (PulsarDynamicTableSink)createTableSink(SCHEMA, mockMessageRouterOptions);
+        assertTrue(mockMessageRouterSink.getMessageRouter() instanceof MockMessageRouter);
+        PulsarDynamicTableSink keyHashMessageRouterSink =
+                (PulsarDynamicTableSink)createTableSink(SCHEMA, keyHashRouterOptions);
+        assertTrue(keyHashMessageRouterSink.getMessageRouter() instanceof KeyHashMessageRouterImpl);
+        PulsarDynamicTableSink roundRobinMessageRouterSink =
+                (PulsarDynamicTableSink)createTableSink(SCHEMA, roundRobinRouterOptions);
+        assertTrue(roundRobinMessageRouterSink.getMessageRouter() == null);
     }
 
     @Test
@@ -607,6 +635,7 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
         tableOptions.put("service-url", SERVICE_URL);
         tableOptions.put("admin-url", ADMIN_URL);
         tableOptions.put("sink.semantic", PulsarOptions.SINK_SEMANTIC_VALUE_AT_LEAST_ONCE);
+        tableOptions.put("sink.message-router", PulsarOptions.SINK_MESSAGE_ROUTER_VALUE_KEY_HASH);
         tableOptions.put("properties.pulsar.reader.readername", "testReaderName");
 
         // Format options.
@@ -639,5 +668,15 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
                 "|");
         tableOptions.put("value.fields-include", PulsarOptions.ValueFieldsStrategy.EXCEPT_KEY.toString());
         return tableOptions;
+    }
+
+    /**
+     * MockMessageRouter that always return partition 0 for test.
+     */
+    public static class MockMessageRouter implements MessageRouter {
+        @Override
+        public int choosePartition(Message<?> msg, TopicMetadata metadata) {
+            return 0;
+        }
     }
 }

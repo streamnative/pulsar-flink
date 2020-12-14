@@ -14,6 +14,7 @@
 
 package org.apache.flink.table.catalog.pulsar.factories;
 
+import org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions;
 import org.apache.flink.table.catalog.Catalog;
 import org.apache.flink.table.catalog.pulsar.PulsarCatalog;
 import org.apache.flink.table.catalog.pulsar.PulsarCatalogValidator;
@@ -59,14 +60,19 @@ public class PulsarCatalogFactory implements CatalogFactory {
 
     @Override
     public List<String> supportedProperties() {
-        List props = new ArrayList<String>();
+        List<String> props = new ArrayList<String>();
         props.add(CATALOG_DEFAULT_DATABASE);
         props.add(CATALOG_PULSAR_VERSION);
         props.add(CATALOG_SERVICE_URL);
         props.add(CATALOG_ADMIN_URL);
         props.add(CATALOG_STARTUP_MODE);
         props.add(CATALOG_DEFAULT_PARTITIONS);
-        props.add(org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.SCAN_STARTUP_MODE.key());
+        props.add(PulsarOptions.KEY_FORMAT.key());
+        props.add(PulsarOptions.KEY_FIELDS.key());
+        props.add(PulsarOptions.KEY_FIELDS_PREFIX.key());
+        props.add(PulsarOptions.VALUE_FORMAT.key());
+        props.add(PulsarOptions.VALUE_FIELDS_INCLUDE.key());
+        props.add(PulsarOptions.SINK_SEMANTIC.key());
         props.add(FormatDescriptorValidator.FORMAT);
         props.add(FormatDescriptorValidator.FORMAT + ".*");
         return props;

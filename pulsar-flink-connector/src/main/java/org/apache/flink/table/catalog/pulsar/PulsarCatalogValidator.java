@@ -27,9 +27,12 @@ public class PulsarCatalogValidator extends CatalogDescriptorValidator {
 
     public static final String CATALOG_TYPE_VALUE_PULSAR = "pulsar";
     public static final String CATALOG_PULSAR_VERSION = "pulsar-version";
-    public static final String CATALOG_SERVICE_URL = PulsarOptions.SERVICE_URL_OPTION_KEY;
-    public static final String CATALOG_ADMIN_URL = PulsarOptions.ADMIN_URL_OPTION_KEY;
-    public static final String CATALOG_STARTUP_MODE = PulsarOptions.STARTUP_MODE_OPTION_KEY;
+    public static final String CATALOG_SERVICE_URL =
+            org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.SERVICE_URL.key();
+    public static final String CATALOG_ADMIN_URL =
+            org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.ADMIN_URL.key();
+    public static final String CATALOG_STARTUP_MODE =
+            org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.SCAN_STARTUP_MODE.key();
     public static final String CATALOG_DEFAULT_PARTITIONS = PulsarOptions.DEFAULT_PARTITIONS;
 
     @Override

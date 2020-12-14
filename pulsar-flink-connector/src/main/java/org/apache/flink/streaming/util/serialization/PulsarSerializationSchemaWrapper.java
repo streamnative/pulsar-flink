@@ -87,6 +87,7 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
         try {
             switch (schemaMode) {
                 case SPECIAL:
+                    checkNotNull(schema, "The schema cannot be null in SPECIAL mode");
                     return new FlinkSchema<>(schema.getSchemaInfo(), serializationSchema, null);
                 case ATOMIC:
                     return new FlinkSchema<>(SchemaTranslator.atomicType2PulsarSchema(dataType).getSchemaInfo(),

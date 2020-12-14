@@ -16,7 +16,7 @@ name: Unit Tests Check
 on:
   pull_request:
     branches:
-      - flink-1.12
+      - master
 jobs:
 
   unit-tests-scala-2_11:

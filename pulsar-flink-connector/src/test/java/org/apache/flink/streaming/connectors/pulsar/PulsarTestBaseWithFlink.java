@@ -22,9 +22,7 @@ import org.apache.flink.table.api.TableColumn;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.test.util.MiniClusterWithClientResource;
 
-import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.pulsar.common.naming.TopicName;
 import org.junit.Before;
 import org.junit.ClassRule;
 
@@ -109,9 +107,5 @@ public abstract class PulsarTestBaseWithFlink extends PulsarTestBase {
                 "   'format' = '" + formatType + "'\n" +
                 ")";
         return sql;
-    }
-
-    public static String newTopic() {
-        return TopicName.get("topic" + RandomStringUtils.randomNumeric(8)).toString();
     }
 }

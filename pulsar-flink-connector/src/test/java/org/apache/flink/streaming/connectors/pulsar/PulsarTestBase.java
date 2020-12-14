@@ -393,4 +393,10 @@ public abstract class PulsarTestBase extends TestLogger {
         topics.add(topic);
         return topic;
     }
+
+    public static String newTopic(String prefix) {
+        final String topic = TopicName.get(prefix + RandomStringUtils.randomNumeric(8)).toString();
+        topics.add(topic);
+        return topic;
+    }
 }

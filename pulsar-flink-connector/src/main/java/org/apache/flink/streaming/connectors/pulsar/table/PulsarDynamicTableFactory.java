@@ -36,8 +36,11 @@ import org.apache.flink.table.factories.SerializationFormatFactory;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.types.RowKind;
 
+import org.apache.pulsar.common.naming.TopicName;
+
 import javax.annotation.Nullable;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -80,12 +83,26 @@ public class PulsarDynamicTableFactory implements
 
     public static final String IDENTIFIER = "pulsar";
 
+    private boolean inCatalog;
+
+    public PulsarDynamicTableFactory() {
+        this.inCatalog = false;
+    }
+
+    public PulsarDynamicTableFactory(boolean inCatalog) {
+        this.inCatalog = inCatalog;
+    }
+
     @Override
     public DynamicTableSink createDynamicTableSink(Context context) {
         FactoryUtil.TableFactoryHelper helper = FactoryUtil.createTableFactoryHelper(this, context);
 
         ReadableConfig tableOptions = helper.getOptions();
-
+        if (inCatalog) {
+            final ObjectIdentifier table = context.getObjectIdentifier();
+            final String topic = TopicName.get(table.getDatabaseName() + "/" + table.getObjectName()).toString();
+            ((Configuration) tableOptions).set(TOPIC, Collections.singletonList(topic));
+        }
         List<String> topics = tableOptions.get(TOPIC);
         String adminUrl = tableOptions.get(ADMIN_URL);
         String serverUrl = tableOptions.get(SERVICE_URL);
@@ -96,7 +113,7 @@ public class PulsarDynamicTableFactory implements
                 getValueEncodingFormat(helper);
 
         // Validate the option data type.
-        helper.validateExcept(PROPERTIES_PREFIX);
+        helper.validateExcept(PROPERTIES_PREFIX, "type", "table-default-partitions");
         // Validate the option values.
         PulsarOptions.validateTableSinkOptions(tableOptions);
 
@@ -149,6 +166,11 @@ public class PulsarDynamicTableFactory implements
 
         ReadableConfig tableOptions = helper.getOptions();
 
+        if (inCatalog) {
+            final ObjectIdentifier table = context.getObjectIdentifier();
+            final String topic = TopicName.get(table.getDatabaseName() + "/" + table.getObjectName()).toString();
+            ((Configuration) tableOptions).set(TOPIC, Collections.singletonList(topic));
+        }
         List<String> topics = tableOptions.get(TOPIC);
         String topicPattern = tableOptions.get(TOPIC_PATTERN);
         String adminUrl = tableOptions.get(ADMIN_URL);
@@ -160,7 +182,7 @@ public class PulsarDynamicTableFactory implements
         final DecodingFormat<DeserializationSchema<RowData>> valueDecodingFormat =
                 getValueDecodingFormat(helper);
         // Validate the option data type.
-        helper.validateExcept(PROPERTIES_PREFIX);
+        helper.validateExcept(PROPERTIES_PREFIX, "type", "table-default-partitions");
         // Validate the option values.
         validateTableSourceOptions(tableOptions);
 

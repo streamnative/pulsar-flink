@@ -61,6 +61,7 @@ import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.S
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.SCAN_STARTUP_SPECIFIC_OFFSETS;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.SCAN_STARTUP_SUB_NAME;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.SERVICE_URL;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.SINK_MESSAGE_ROUTER;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.SINK_SEMANTIC;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.TOPIC;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.TOPIC_PATTERN;
@@ -68,7 +69,9 @@ import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.V
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.VALUE_FORMAT;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.createKeyFormatProjection;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.createValueFormatProjection;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.getMessageRouter;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.getPulsarProperties;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.validateSinkMessageRouter;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.validateTableSourceOptions;
 import static org.apache.flink.table.factories.FactoryUtil.FORMAT;
 import static org.apache.flink.table.factories.FactoryUtil.SINK_PARALLELISM;
@@ -129,7 +132,7 @@ public class PulsarDynamicTableFactory implements
         final String keyPrefix = tableOptions.getOptional(KEY_FIELDS_PREFIX).orElse(null);
 
         return createPulsarTableSink(tableOptions, topics, adminUrl, serverUrl, keyEncodingFormat, valueEncodingFormat,
-                properties, physicalDataType, keyProjection, valueProjection, keyPrefix);
+                properties, physicalDataType, keyProjection, valueProjection, keyPrefix, context);
     }
 
     private PulsarDynamicTableSink createPulsarTableSink(ReadableConfig tableOptions, List<String> topics,
@@ -137,7 +140,8 @@ public class PulsarDynamicTableFactory implements
                                                          Optional<EncodingFormat<SerializationSchema<RowData>>> keyEncodingFormat,
                                                          EncodingFormat<SerializationSchema<RowData>> valueEncodingFormat,
                                                          Properties properties, DataType physicalDataType,
-                                                         int[] keyProjection, int[] valueProjection, String keyPrefix) {
+                                                         int[] keyProjection, int[] valueProjection,
+                                                         String keyPrefix, Context context) {
 
         final String formatType = tableOptions.getOptional(FORMAT).orElseGet(() -> tableOptions.get(VALUE_FORMAT));
         final Integer parallelism = tableOptions.getOptional(SINK_PARALLELISM).orElse(null);
@@ -156,7 +160,7 @@ public class PulsarDynamicTableFactory implements
                 formatType,
                 false,
                 parallelism,
-                null);
+                getMessageRouter(tableOptions, context.getClassLoader()).orElse(null));
     }
 
     @Override
@@ -185,7 +189,7 @@ public class PulsarDynamicTableFactory implements
         helper.validateExcept(PROPERTIES_PREFIX, "type", "table-default-partitions");
         // Validate the option values.
         validateTableSourceOptions(tableOptions);
-
+        validateSinkMessageRouter(tableOptions);
         validatePKConstraints(context.getObjectIdentifier(), context.getCatalogTable(), valueDecodingFormat);
 
         Properties properties = getPulsarProperties(context.getCatalogTable().toProperties());
@@ -248,6 +252,7 @@ public class PulsarDynamicTableFactory implements
         options.add(PULSAR_READER_RECEIVER_QUEUE_SIZE);
         options.add(PARTITION_DISCOVERY_INTERVAL_MILLIS);
         options.add(SINK_SEMANTIC);
+        options.add(SINK_MESSAGE_ROUTER);
         options.add(SINK_PARALLELISM);
         options.add(PROPERTIES);
         return options;
@@ -348,31 +353,4 @@ public class PulsarDynamicTableFactory implements
                 startupOptions,
                 false);
     }
-
-//    protected PulsarDynamicSink createPulsarTableSink(
-//            DataType physicalDataType,
-//            @Nullable EncodingFormat<SerializationSchema<RowData>> keyEncodingFormat,
-//            EncodingFormat<SerializationSchema<RowData>> valueEncodingFormat,
-//            int[] keyProjection,
-//            int[] valueProjection,
-//            @Nullable String keyPrefix,
-//            String topic,
-//            Properties properties,
-//            FlinkPulsarPartitioner<RowData> partitioner,
-//            PulsarSinkSemantic semantic,
-//            Integer parallelism) {
-//        return new PulsarDynamicSink(
-//                physicalDataType,
-//                keyEncodingFormat,
-//                valueEncodingFormat,
-//                keyProjection,
-//                valueProjection,
-//                keyPrefix,
-//                topic,
-//                properties,
-//                partitioner,
-//                semantic,
-//                false,
-//                parallelism);
-//    }
 }

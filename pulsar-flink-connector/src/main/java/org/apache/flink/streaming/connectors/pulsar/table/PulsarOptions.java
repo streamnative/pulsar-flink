@@ -18,6 +18,7 @@ import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
+import org.apache.flink.streaming.connectors.pulsar.util.KeyHashMessageRouterImpl;
 import org.apache.flink.table.api.TableException;
 import org.apache.flink.table.api.ValidationException;
 import org.apache.flink.table.descriptors.PulsarValidator;
@@ -26,11 +27,14 @@ import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.table.types.logical.LogicalTypeRoot;
 import org.apache.flink.table.types.logical.utils.LogicalTypeChecks;
 import org.apache.flink.util.ExceptionUtils;
+import org.apache.flink.util.FlinkException;
+import org.apache.flink.util.InstantiationUtil;
 import org.apache.flink.util.Preconditions;
 
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.MessageId;
+import org.apache.pulsar.client.api.MessageRouter;
 import org.apache.pulsar.client.impl.MessageIdImpl;
 
 import java.util.ArrayList;
@@ -196,15 +200,15 @@ public class PulsarOptions {
     // Sink specific options
     // --------------------------------------------------------------------------------------------
 
-    public static final ConfigOption<String> SINK_PARTITIONER = ConfigOptions
-            .key("sink.partitioner")
+    public static final ConfigOption<String> SINK_MESSAGE_ROUTER = ConfigOptions
+            .key("sink.message-router")
             .stringType()
             .noDefaultValue()
-            .withDescription("Optional output partitioning from Flink's partitions\n"
+            .withDescription("Optional output MessageRouter \n"
                     + "into pulsar's partitions valid enumerations are\n"
-                    + "\"fixed\": (each Flink partition ends up in at most one pulsar partition),\n"
-                    + "\"round-robin\": (a Flink partition is distributed to pulsar partitions round-robin)\n"
-                    + "\"custom class name\": (use a custom FlinkPulsarPartitioner subclass)");
+                    + "\"key-hash\": (each Flink partition ends up in at most one pulsar partition by key'hash, must set key for message),\n"
+                    + "\"round-robin\": (a Flink partition is distributed to pulsar partitions round-robin, it's default messageRouter in pulsar)\n"
+                    + "\"custom class name\": (use a custom MessageRouter subclass)");
 
     public static final ConfigOption<String> SINK_SEMANTIC = ConfigOptions.key("sink.semantic")
             .stringType()
@@ -235,12 +239,12 @@ public class PulsarOptions {
             SCAN_STARTUP_MODE_VALUE_SPECIFIC_OFFSETS));
 
     // Sink partitioner.
-    public static final String SINK_PARTITIONER_VALUE_FIXED = "fixed";
-    public static final String SINK_PARTITIONER_VALUE_ROUND_ROBIN = "round-robin";
+    public static final String SINK_MESSAGE_ROUTER_VALUE_KEY_HASH = "key-hash";
+    public static final String SINK_MESSAGE_ROUTER_VALUE_ROUND_ROBIN = "round-robin";
 
-    private static final Set<String> SINK_PARTITIONER_ENUMS = new HashSet<>(Arrays.asList(
-            SINK_PARTITIONER_VALUE_FIXED,
-            SINK_PARTITIONER_VALUE_ROUND_ROBIN));
+    private static final Set<String> SINK_MESSAGE_ROUTER_ENUMS = new HashSet<>(Arrays.asList(
+            SINK_MESSAGE_ROUTER_VALUE_KEY_HASH,
+            SINK_MESSAGE_ROUTER_VALUE_ROUND_ROBIN));
 
     // Sink semantic
     public static final String SINK_SEMANTIC_VALUE_EXACTLY_ONCE = "exactly-once";
@@ -320,14 +324,14 @@ public class PulsarOptions {
         validateSinkSemantic(tableOptions);
     }
 
-    public static void validateSinkPartitioner(ReadableConfig tableOptions) {
-        tableOptions.getOptional(SINK_PARTITIONER)
-                .ifPresent(partitioner -> {
-                    if (!SINK_PARTITIONER_ENUMS.contains(partitioner.toLowerCase())) {
-                        if (partitioner.isEmpty()) {
+    public static void validateSinkMessageRouter(ReadableConfig tableOptions) {
+        tableOptions.getOptional(SINK_MESSAGE_ROUTER)
+                .ifPresent(router -> {
+                    if (!SINK_MESSAGE_ROUTER_ENUMS.contains(router.toLowerCase())) {
+                        if (router.isEmpty()) {
                             throw new ValidationException(
                                     String.format("Option '%s' should be a non-empty string.",
-                                            SINK_PARTITIONER.key()));
+                                            SINK_MESSAGE_ROUTER.key()));
                         }
                     }
                 });
@@ -395,6 +399,47 @@ public class PulsarOptions {
         }
         pulsarProperties.computeIfAbsent(PARTITION_DISCOVERY_INTERVAL_MILLIS.key(), tableOptions::get);
         return pulsarProperties;
+    }
+
+    /**
+     * The messageRouter can be either "key-hash", "round-robin" or a customized messageRouter subClass full class name.
+     */
+    public static Optional<MessageRouter> getMessageRouter(
+            ReadableConfig tableOptions,
+            ClassLoader classLoader) {
+        return tableOptions.getOptional(SINK_MESSAGE_ROUTER)
+                .flatMap((String partitioner) -> {
+                    switch (partitioner) {
+                        case SINK_MESSAGE_ROUTER_VALUE_KEY_HASH:
+                            return Optional.of(KeyHashMessageRouterImpl.INSTANCE);
+                        case SINK_MESSAGE_ROUTER_VALUE_ROUND_ROBIN:
+                            return Optional.empty();
+                        // Default fallback to full class name of the messageRouter.
+                        default:
+                            return Optional.of(initializeMessageRouter(partitioner, classLoader));
+                    }
+                });
+    }
+
+    /**
+     * Returns a class value with the given class name.
+     */
+    private static MessageRouter initializeMessageRouter(String name, ClassLoader classLoader) {
+        try {
+            Class<?> clazz = Class.forName(name, true, classLoader);
+            if (!MessageRouter.class.isAssignableFrom(clazz)) {
+                throw new ValidationException(
+                        String.format("Sink messageRouter class '%s' should extend from the required class %s",
+                                name,
+                                MessageRouter.class.getName()));
+            }
+            @SuppressWarnings("unchecked") final MessageRouter messageRouter = InstantiationUtil.instantiate(name, MessageRouter.class, classLoader);
+
+            return messageRouter;
+        } catch (ClassNotFoundException | FlinkException e) {
+            throw new ValidationException(
+                    String.format("Could not find and instantiate messageRouter class '%s'", name), e);
+        }
     }
 
     /**

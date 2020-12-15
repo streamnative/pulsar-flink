@@ -402,13 +402,13 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
                 getBasicSinkOptions(),
                 options -> options.put("sink.message-router", "round-robin"));
         PulsarDynamicTableSink mockMessageRouterSink =
-                (PulsarDynamicTableSink)createTableSink(SCHEMA, mockMessageRouterOptions);
+                (PulsarDynamicTableSink) createTableSink(SCHEMA, mockMessageRouterOptions);
         assertTrue(mockMessageRouterSink.getMessageRouter() instanceof MockMessageRouter);
         PulsarDynamicTableSink keyHashMessageRouterSink =
-                (PulsarDynamicTableSink)createTableSink(SCHEMA, keyHashRouterOptions);
+                (PulsarDynamicTableSink) createTableSink(SCHEMA, keyHashRouterOptions);
         assertTrue(keyHashMessageRouterSink.getMessageRouter() instanceof KeyHashMessageRouterImpl);
         PulsarDynamicTableSink roundRobinMessageRouterSink =
-                (PulsarDynamicTableSink)createTableSink(SCHEMA, roundRobinRouterOptions);
+                (PulsarDynamicTableSink) createTableSink(SCHEMA, roundRobinRouterOptions);
         assertTrue(roundRobinMessageRouterSink.getMessageRouter() == null);
     }
 

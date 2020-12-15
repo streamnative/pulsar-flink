@@ -560,7 +560,7 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
                 formatType,
                 false,
                 parallelism,
-                null);
+                KeyHashMessageRouterImpl.INSTANCE);
     }
 
     private static DynamicTableSource createTableSource(TableSchema schema, Map<String, String> options) {

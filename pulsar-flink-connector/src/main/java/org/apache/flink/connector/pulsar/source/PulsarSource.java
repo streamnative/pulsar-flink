@@ -27,7 +27,6 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.base.source.reader.RecordsWithSplitIds;
 import org.apache.flink.connector.base.source.reader.splitreader.SplitReader;
 import org.apache.flink.connector.base.source.reader.synchronization.FutureCompletingBlockingQueue;
-import org.apache.flink.connector.base.source.reader.synchronization.FutureNotifier;
 import org.apache.flink.connector.pulsar.source.enumerator.PulsarSourceEnumerator;
 import org.apache.flink.connector.pulsar.source.enumerator.PulsarSourceEnumeratorState;
 import org.apache.flink.connector.pulsar.source.enumerator.PulsarSourceEnumeratorStateSerializer;
@@ -65,7 +64,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  */
 @Internal
 public class PulsarSource<OUT>
-        implements Source<OUT, PulsarPartitionSplit, PulsarSourceEnumeratorState>, ResultTypeQueryable {
+        implements Source<OUT, PulsarPartitionSplit, PulsarSourceEnumeratorState>, ResultTypeQueryable<OUT> {
     private static final long serialVersionUID = -8755372893283732098L;
     // Users can choose only one of the following ways to specify the topics to consume from.
     private final PulsarSubscriber subscriber;
@@ -122,15 +121,14 @@ public class PulsarSource<OUT>
     }
 
     @Override
-    public TypeInformation getProducedType() {
+    public TypeInformation<OUT> getProducedType() {
         return messageDeserializer.getProducedType();
     }
 
     @Override
     public SourceReader<OUT, PulsarPartitionSplit> createReader(SourceReaderContext readerContext) {
-        FutureNotifier futureNotifier = new FutureNotifier();
         FutureCompletingBlockingQueue<RecordsWithSplitIds<ParsedMessage<OUT>>> elementsQueue =
-                new FutureCompletingBlockingQueue<>(futureNotifier);
+                new FutureCompletingBlockingQueue<>();
         ExecutorService listenerExecutor = Executors.newScheduledThreadPool(
                 1,
                 r -> new Thread(r, "Pulsar listener executor"));
@@ -150,13 +148,12 @@ public class PulsarSource<OUT>
         PulsarRecordEmitter<OUT> recordEmitter = new PulsarRecordEmitter<>();
 
         return new PulsarSourceReader<>(
-                futureNotifier,
                 elementsQueue,
                 splitReaderSupplier,
                 recordEmitter,
                 configuration,
                 readerContext,
-                () -> splitCloser.close());
+                splitCloser::close);
     }
 
     @Nonnull

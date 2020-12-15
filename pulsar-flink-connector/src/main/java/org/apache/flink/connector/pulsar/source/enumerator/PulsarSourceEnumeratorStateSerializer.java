@@ -26,7 +26,7 @@ import java.util.Map;
 
 /**
  * The {@link SimpleVersionedSerializer Serializer} for the enumerator state of
- * Kafka source.
+ * Pulsar source.
  */
 public class PulsarSourceEnumeratorStateSerializer implements SimpleVersionedSerializer<PulsarSourceEnumeratorState> {
 

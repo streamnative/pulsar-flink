@@ -14,11 +14,11 @@
 
 package org.apache.flink.table.catalog.pulsar;
 
-import org.apache.flink.streaming.connectors.pulsar.PulsarTableSourceSinkFactory;
 import org.apache.flink.streaming.connectors.pulsar.internal.IncompatibleSchemaException;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarCatalogSupport;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.streaming.connectors.pulsar.internal.SimpleSchemaTranslator;
+import org.apache.flink.streaming.connectors.pulsar.table.PulsarDynamicTableFactory;
 import org.apache.flink.table.catalog.CatalogBaseTable;
 import org.apache.flink.table.catalog.CatalogDatabase;
 import org.apache.flink.table.catalog.CatalogDatabaseImpl;
@@ -39,9 +39,8 @@ import org.apache.flink.table.catalog.exceptions.TableNotExistException;
 import org.apache.flink.table.catalog.exceptions.TableNotPartitionedException;
 import org.apache.flink.table.catalog.stats.CatalogColumnStatistics;
 import org.apache.flink.table.catalog.stats.CatalogTableStatistics;
-import org.apache.flink.table.descriptors.FormatDescriptorValidator;
 import org.apache.flink.table.expressions.Expression;
-import org.apache.flink.table.factories.TableFactory;
+import org.apache.flink.table.factories.Factory;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdminException;
@@ -71,23 +70,15 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
     public PulsarCatalog(String adminUrl, String catalogName, Map<String, String> props, String defaultDatabase) {
         super(catalogName, defaultDatabase);
         this.adminUrl = adminUrl;
-        this.properties = new HashMap<>();
-        for (Map.Entry<String, String> kv : props.entrySet()) {
-            if (!kv.getKey().startsWith(FormatDescriptorValidator.FORMAT)) {
-                properties.put(CONNECTOR + "." + kv.getKey(), kv.getValue());
-            } else {
-                properties.put(kv.getKey(), kv.getValue());
-            }
-        }
+        this.properties = new HashMap<>(props);
         log.info("Created Pulsar Catalog {}", catalogName);
     }
 
     @Override
-    public Optional<TableFactory> getTableFactory() {
+    public Optional<Factory> getFactory() {
         Properties props = new Properties();
         props.putAll(properties);
-        //props.put(FormatDescriptorValidator.FORMAT_TYPE, formatType);
-        return Optional.of(new PulsarTableSourceSinkFactory(props));
+        return Optional.of(new PulsarDynamicTableFactory(true));
     }
 
     @Override
@@ -133,13 +124,14 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
         } catch (PulsarAdminException e) {
             return false;
         } catch (Exception e) {
-            log.warn(databaseName + " database does not exist.", e);
+            log.warn("{} database does not exist. {}", databaseName, e.getMessage());
             return false;
         }
     }
 
     @Override
-    public void createDatabase(String name, CatalogDatabase database, boolean ignoreIfExists) throws DatabaseAlreadyExistException, CatalogException {
+    public void createDatabase(String name, CatalogDatabase database, boolean ignoreIfExists)
+            throws DatabaseAlreadyExistException, CatalogException {
         try {
             catalogSupport.createNamespace(name);
         } catch (PulsarAdminException.ConflictException e) {
@@ -221,12 +213,14 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
     // ------------------------------------------------------------------------
 
     @Override
-    public void dropDatabase(String name, boolean ignoreIfNotExists, boolean cascade) throws DatabaseNotExistException, DatabaseNotEmptyException, CatalogException {
+    public void dropDatabase(String name, boolean ignoreIfNotExists, boolean cascade)
+            throws DatabaseNotExistException, DatabaseNotEmptyException, CatalogException {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void alterDatabase(String name, CatalogDatabase newDatabase, boolean ignoreIfNotExists) throws DatabaseNotExistException, CatalogException {
+    public void alterDatabase(String name, CatalogDatabase newDatabase, boolean ignoreIfNotExists)
+            throws DatabaseNotExistException, CatalogException {
         throw new UnsupportedOperationException();
     }
 
@@ -236,37 +230,44 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
     }
 
     @Override
-    public void alterTable(ObjectPath tablePath, CatalogBaseTable newTable, boolean ignoreIfNotExists) throws TableNotExistException, CatalogException {
+    public void alterTable(ObjectPath tablePath, CatalogBaseTable newTable, boolean ignoreIfNotExists)
+            throws TableNotExistException, CatalogException {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void renameTable(ObjectPath tablePath, String newTableName, boolean ignoreIfNotExists) throws TableNotExistException, TableAlreadyExistException, CatalogException {
+    public void renameTable(ObjectPath tablePath, String newTableName, boolean ignoreIfNotExists)
+            throws TableNotExistException, TableAlreadyExistException, CatalogException {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void dropTable(ObjectPath tablePath, boolean ignoreIfNotExists) throws TableNotExistException, CatalogException {
+    public void dropTable(ObjectPath tablePath, boolean ignoreIfNotExists)
+            throws TableNotExistException, CatalogException {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public List<CatalogPartitionSpec> listPartitions(ObjectPath tablePath) throws TableNotExistException, TableNotPartitionedException, CatalogException {
+    public List<CatalogPartitionSpec> listPartitions(ObjectPath tablePath)
+            throws TableNotExistException, TableNotPartitionedException, CatalogException {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public List<CatalogPartitionSpec> listPartitions(ObjectPath tablePath, CatalogPartitionSpec partitionSpec) throws TableNotExistException, TableNotPartitionedException, CatalogException {
+    public List<CatalogPartitionSpec> listPartitions(ObjectPath tablePath, CatalogPartitionSpec partitionSpec)
+            throws TableNotExistException, TableNotPartitionedException, CatalogException {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public List<CatalogPartitionSpec> listPartitionsByFilter(ObjectPath tablePath, List<Expression> expressions) throws TableNotExistException, TableNotPartitionedException, CatalogException {
+    public List<CatalogPartitionSpec> listPartitionsByFilter(ObjectPath tablePath, List<Expression> expressions)
+            throws TableNotExistException, TableNotPartitionedException, CatalogException {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public CatalogPartition getPartition(ObjectPath tablePath, CatalogPartitionSpec partitionSpec) throws PartitionNotExistException, CatalogException {
+    public CatalogPartition getPartition(ObjectPath tablePath, CatalogPartitionSpec partitionSpec)
+            throws PartitionNotExistException, CatalogException {
         throw new UnsupportedOperationException();
     }
 
@@ -276,57 +277,73 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
     }
 
     @Override
-    public void createPartition(ObjectPath tablePath, CatalogPartitionSpec partitionSpec, CatalogPartition partition, boolean ignoreIfExists) throws TableNotExistException, TableNotPartitionedException, PartitionSpecInvalidException, PartitionAlreadyExistsException, CatalogException {
+    public void createPartition(ObjectPath tablePath, CatalogPartitionSpec partitionSpec, CatalogPartition partition,
+                                boolean ignoreIfExists)
+            throws TableNotExistException, TableNotPartitionedException, PartitionSpecInvalidException,
+            PartitionAlreadyExistsException, CatalogException {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void dropPartition(ObjectPath tablePath, CatalogPartitionSpec partitionSpec, boolean ignoreIfNotExists) throws PartitionNotExistException, CatalogException {
+    public void dropPartition(ObjectPath tablePath, CatalogPartitionSpec partitionSpec, boolean ignoreIfNotExists)
+            throws PartitionNotExistException, CatalogException {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void alterPartition(ObjectPath tablePath, CatalogPartitionSpec partitionSpec, CatalogPartition newPartition, boolean ignoreIfNotExists) throws PartitionNotExistException, CatalogException {
+    public void alterPartition(ObjectPath tablePath, CatalogPartitionSpec partitionSpec, CatalogPartition newPartition,
+                               boolean ignoreIfNotExists) throws PartitionNotExistException, CatalogException {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public CatalogTableStatistics getTableStatistics(ObjectPath tablePath) throws TableNotExistException, CatalogException {
+    public CatalogTableStatistics getTableStatistics(ObjectPath tablePath)
+            throws TableNotExistException, CatalogException {
         return CatalogTableStatistics.UNKNOWN;
     }
 
     @Override
-    public CatalogColumnStatistics getTableColumnStatistics(ObjectPath tablePath) throws TableNotExistException, CatalogException {
+    public CatalogColumnStatistics getTableColumnStatistics(ObjectPath tablePath)
+            throws TableNotExistException, CatalogException {
         return CatalogColumnStatistics.UNKNOWN;
     }
 
     @Override
-    public CatalogTableStatistics getPartitionStatistics(ObjectPath tablePath, CatalogPartitionSpec partitionSpec) throws PartitionNotExistException, CatalogException {
+    public CatalogTableStatistics getPartitionStatistics(ObjectPath tablePath, CatalogPartitionSpec partitionSpec)
+            throws PartitionNotExistException, CatalogException {
         return CatalogTableStatistics.UNKNOWN;
     }
 
     @Override
-    public CatalogColumnStatistics getPartitionColumnStatistics(ObjectPath tablePath, CatalogPartitionSpec partitionSpec) throws PartitionNotExistException, CatalogException {
+    public CatalogColumnStatistics getPartitionColumnStatistics(ObjectPath tablePath,
+                                                                CatalogPartitionSpec partitionSpec)
+            throws PartitionNotExistException, CatalogException {
         return CatalogColumnStatistics.UNKNOWN;
     }
 
     @Override
-    public void alterTableStatistics(ObjectPath tablePath, CatalogTableStatistics tableStatistics, boolean ignoreIfNotExists) throws TableNotExistException, CatalogException {
+    public void alterTableStatistics(ObjectPath tablePath, CatalogTableStatistics tableStatistics,
+                                     boolean ignoreIfNotExists) throws TableNotExistException, CatalogException {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void alterTableColumnStatistics(ObjectPath tablePath, CatalogColumnStatistics columnStatistics, boolean ignoreIfNotExists) throws TableNotExistException, CatalogException {
+    public void alterTableColumnStatistics(ObjectPath tablePath, CatalogColumnStatistics columnStatistics,
+                                           boolean ignoreIfNotExists) throws TableNotExistException, CatalogException {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void alterPartitionStatistics(ObjectPath tablePath, CatalogPartitionSpec partitionSpec, CatalogTableStatistics partitionStatistics, boolean ignoreIfNotExists) throws PartitionNotExistException, CatalogException {
+    public void alterPartitionStatistics(ObjectPath tablePath, CatalogPartitionSpec partitionSpec,
+                                         CatalogTableStatistics partitionStatistics, boolean ignoreIfNotExists)
+            throws PartitionNotExistException, CatalogException {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void alterPartitionColumnStatistics(ObjectPath tablePath, CatalogPartitionSpec partitionSpec, CatalogColumnStatistics columnStatistics, boolean ignoreIfNotExists) throws PartitionNotExistException, CatalogException {
+    public void alterPartitionColumnStatistics(ObjectPath tablePath, CatalogPartitionSpec partitionSpec,
+                                               CatalogColumnStatistics columnStatistics, boolean ignoreIfNotExists)
+            throws PartitionNotExistException, CatalogException {
         throw new UnsupportedOperationException();
     }
 }

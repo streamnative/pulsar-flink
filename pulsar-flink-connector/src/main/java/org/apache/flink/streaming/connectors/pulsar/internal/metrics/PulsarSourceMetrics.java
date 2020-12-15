@@ -21,11 +21,22 @@ package org.apache.flink.streaming.connectors.pulsar.internal.metrics;
  */
 public class PulsarSourceMetrics {
 
-    public static final String PULSAR_CONSUMER_METRICS_GROUP = "PulsarConsumer";
+    public static final String PULSAR_SOURCE_METRICS_GROUP = "PulsarConsumer";
+
+    // ------------------------------------------------------------------------
+    //  Per-subtask metrics
+    // ------------------------------------------------------------------------
 
     public static final String COMMITS_SUCCEEDED_METRICS_COUNTER = "commitsSucceeded";
     public static final String COMMITS_FAILED_METRICS_COUNTER = "commitsFailed";
 
+    // ------------------------------------------------------------------------
+    //  Per-partition metrics
+    // ------------------------------------------------------------------------
+
     public static final String OFFSETS_BY_TOPIC_METRICS_GROUP = "topic";
-    public static final String OFFSETS_BY_PARTITION_METRICS_GROUP = "partition";
+    //public static final String OFFSETS_BY_PARTITION_METRICS_GROUP = "partition";
+
+    public static final String CURRENT_OFFSETS_METRICS_GAUGE = "currentOffsets";
+    public static final String COMMITTED_OFFSETS_METRICS_GAUGE = "committedOffsets";
 }

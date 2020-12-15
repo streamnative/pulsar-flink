@@ -21,11 +21,10 @@ import org.apache.flink.connector.base.source.reader.RecordsWithSplitIds;
 import org.apache.flink.connector.base.source.reader.SingleThreadMultiplexSourceReaderBase;
 import org.apache.flink.connector.base.source.reader.splitreader.SplitReader;
 import org.apache.flink.connector.base.source.reader.synchronization.FutureCompletingBlockingQueue;
-import org.apache.flink.connector.base.source.reader.synchronization.FutureNotifier;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 import org.apache.flink.util.function.RunnableWithException;
 
-import java.util.Collection;
+import java.util.Map;
 import java.util.function.Supplier;
 
 /**
@@ -37,25 +36,25 @@ public class PulsarSourceReader<T>
     private final RunnableWithException closeCallback;
 
     public PulsarSourceReader(
-            FutureNotifier futureNotifier,
             FutureCompletingBlockingQueue<RecordsWithSplitIds<ParsedMessage<T>>> elementsQueue,
             Supplier<SplitReader<ParsedMessage<T>, PulsarPartitionSplit>> splitReaderSupplier,
             RecordEmitter<ParsedMessage<T>, T, PulsarPartitionSplit> recordEmitter,
             Configuration config,
             SourceReaderContext context,
             RunnableWithException closeCallback) {
-        super(futureNotifier, elementsQueue, splitReaderSupplier, recordEmitter, config, context);
+        super(elementsQueue, splitReaderSupplier, recordEmitter, config, context);
         this.closeCallback = closeCallback;
-    }
-
-    @Override
-    protected void onSplitFinished(Collection<String> finishedSplitIds) {
     }
 
     @Override
     public void close() throws Exception {
         super.close();
         closeCallback.run();
+    }
+
+    @Override
+    protected void onSplitFinished(Map<String, PulsarPartitionSplit> finishedSplitIds) {
+
     }
 
     @Override

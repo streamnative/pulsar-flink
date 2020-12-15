@@ -12,4 +12,6 @@
 # limitations under the License.
 #
 
-org.apache.flink.connector.pulsar.table.PulsarDynamicTableFactory
+org.apache.flink.streaming.connectors.pulsar.table.PulsarDynamicTableFactory
+org.apache.flink.streaming.connectors.pulsar.table.UpsertPulsarDynamicTableFactory
+org.apache.flink.formats.atomic.AtomicRowFormatFactory

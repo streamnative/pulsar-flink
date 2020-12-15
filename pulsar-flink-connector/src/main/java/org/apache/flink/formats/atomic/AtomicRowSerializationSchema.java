@@ -19,16 +19,17 @@ import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.streaming.connectors.pulsar.internal.IncompatibleSchemaException;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarDeserializer;
 import org.apache.flink.streaming.connectors.pulsar.internal.SimpleSchemaTranslator;
+import org.apache.flink.streaming.connectors.pulsar.util.RowDataUtil;
+import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.utils.TypeConversions;
-import org.apache.flink.types.Row;
 
 import org.apache.pulsar.client.api.Schema;
 
 /**
  * rowSerializationSchema for atomic type.
  */
-public class AtomicRowSerializationSchema implements SerializationSchema<Row> {
+public class AtomicRowSerializationSchema implements SerializationSchema<RowData> {
     private static final long serialVersionUID = -2885556750743978636L;
     private final DataType atomicType;
     private final String className;
@@ -73,9 +74,9 @@ public class AtomicRowSerializationSchema implements SerializationSchema<Row> {
     }
 
     @Override
-    public byte[] serialize(Row row) {
+    public byte[] serialize(RowData row) {
         try {
-            Object value = row.getField(0);
+            Object value = RowDataUtil.getField(row, 0, clazz);
             byte[] valueData = this.converter.apply(value);
             return valueData;
         } catch (Throwable t) {

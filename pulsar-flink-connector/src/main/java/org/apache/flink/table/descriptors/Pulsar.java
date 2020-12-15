@@ -102,7 +102,7 @@ public class Pulsar extends ConnectorDescriptor {
             this.pulsarProperties = new HashMap<>();
         }
         this.pulsarProperties.clear();
-        properties.forEach((k, v) -> this.pulsarProperties.put((String) k, (String) v));
+        properties.forEach((k, v) -> this.pulsarProperties.put(String.valueOf(k), String.valueOf(v)));
         return this;
     }
 

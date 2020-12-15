@@ -18,15 +18,18 @@ import org.apache.flink.api.common.JobID;
 import org.apache.flink.client.program.ClusterClient;
 import org.apache.flink.runtime.client.JobStatusMessage;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
+import org.apache.flink.table.api.TableColumn;
+import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.test.util.MiniClusterWithClientResource;
 
-import org.apache.pulsar.common.naming.TopicName;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.ClassRule;
 
+import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
@@ -82,12 +85,27 @@ public abstract class PulsarTestBaseWithFlink extends PulsarTestBase {
         }
     }
 
-    public static final AtomicInteger TOPIC_ID = new AtomicInteger(0);
+    protected String createTableSql(String tableName, String topic, TableSchema tableSchema, String formatType) {
 
-    public static String newTopic() {
-        synchronized (TOPIC_ID) {
-            int i = TOPIC_ID.getAndIncrement();
-            return TopicName.get("topic" + i).toString();
+        List<String> columns = new ArrayList<>();
+        for (TableColumn tableColumn : tableSchema.getTableColumns()) {
+            final String column = MessageFormat.format(" `{0}` {1}",
+                    tableColumn.getName(),
+                    tableColumn.getType().getLogicalType().asSerializableString());
+            columns.add(column);
         }
+
+        String sql = "create table " + tableName + "(\n" +
+                " " + StringUtils.join(columns, ",\n") +
+                ") with (\n" +
+                "   'connector' = 'pulsar',\n" +
+                "   'topic' = '" + topic + "',\n" +
+                "   'service-url' = '" + getServiceUrl() + "',\n" +
+                "   'admin-url' = '" + getAdminUrl() + "',\n" +
+                "   'scan.startup.mode' = 'earliest',  //订阅模式\n" +
+                "   'partition.discovery.interval-millis' = '5000'," +
+                "   'format' = '" + formatType + "'\n" +
+                ")";
+        return sql;
     }
 }

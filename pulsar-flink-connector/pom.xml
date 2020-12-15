@@ -25,8 +25,8 @@
   <packaging>jar</packaging>
 
   <properties>
-    <flink.version>1.11.1</flink.version>
-    <flink.binary.version>1.11</flink.binary.version>
+    <flink.version>1.12.0</flink.version>
+    <flink.binary.version>1.12</flink.binary.version>
   </properties>
 
   <dependencies>
@@ -169,6 +169,12 @@
       <scope>test</scope>
     </dependency>
 
+    <dependency>
+      <groupId>commons-codec</groupId>
+      <artifactId>commons-codec</artifactId>
+      <version>1.15</version>
+    </dependency>
+
     <!-- Pulsar table descriptor testing -->
     <dependency>
       <groupId>org.apache.flink</groupId>
@@ -183,6 +189,14 @@
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-sql-client_${scala.binary.version}</artifactId>
       <version>${flink.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-table-planner-blink_${scala.binary.version}</artifactId>
+      <version>${flink.version}</version>
+      <type>test-jar</type>
       <scope>test</scope>
     </dependency>
 

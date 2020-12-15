@@ -16,76 +16,43 @@ package org.apache.flink.formats.atomic;
 
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.serialization.SerializationSchema;
-import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.formats.json.JsonRowSchemaConverter;
-import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
+import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.ConfigOptions;
+import org.apache.flink.configuration.ReadableConfig;
+import org.apache.flink.streaming.connectors.pulsar.util.DataTypeUtils;
+import org.apache.flink.table.connector.ChangelogMode;
+import org.apache.flink.table.connector.format.DecodingFormat;
+import org.apache.flink.table.connector.format.EncodingFormat;
+import org.apache.flink.table.connector.sink.DynamicTableSink;
+import org.apache.flink.table.connector.source.DynamicTableSource;
+import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.descriptors.AtomicValidator;
 import org.apache.flink.table.descriptors.DescriptorProperties;
-import org.apache.flink.table.descriptors.JsonValidator;
-import org.apache.flink.table.factories.DeserializationSchemaFactory;
-import org.apache.flink.table.factories.SerializationSchemaFactory;
-import org.apache.flink.table.factories.TableFormatFactoryBase;
-import org.apache.flink.types.Row;
+import org.apache.flink.table.factories.DeserializationFormatFactory;
+import org.apache.flink.table.factories.DynamicTableFactory;
+import org.apache.flink.table.factories.SerializationFormatFactory;
+import org.apache.flink.table.types.AtomicDataType;
+import org.apache.flink.table.types.DataType;
+import org.apache.flink.table.types.FieldsDataType;
 
-import java.util.ArrayList;
-import java.util.List;
+import javax.annotation.Nullable;
+
+import java.util.Collections;
 import java.util.Map;
-
-import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CONNECTOR;
+import java.util.Optional;
+import java.util.Set;
 
 /**
  * rowFormatFactory for atomic type.
  */
-public class AtomicRowFormatFactory extends TableFormatFactoryBase<Row>
-        implements SerializationSchemaFactory<Row>, DeserializationSchemaFactory<Row> {
-    public AtomicRowFormatFactory() {
-        super(AtomicValidator.FORMAT_TYPE_VALUE, 1, true);
-    }
+public class AtomicRowFormatFactory implements SerializationFormatFactory, DeserializationFormatFactory {
 
-    @Override
-    protected List<String> supportedFormatProperties() {
-        final List<String> properties = new ArrayList<>();
-        properties.add(AtomicValidator.FORMAT_ATOMIC_SCHEMA);
-        properties.add(AtomicValidator.FORMAT_CLASS_NAME);
-/*        properties.add(AtomicValidator.FORMAT_SCHEMA);
-        properties.add(AtomicValidator.FORMAT_FAIL_ON_MISSING_FIELD);*/
-        return properties;
-    }
+    private static final String IDENTIFIER = "atomic";
 
-    @Override
-    public DeserializationSchema<Row> createDeserializationSchema(Map<String, String> properties) {
-        final DescriptorProperties descriptorProperties = getValidatedProperties(properties);
-        String className = descriptorProperties.getString(AtomicValidator.FORMAT_CLASS_NAME);
-        boolean useExtendFields = descriptorProperties.getOptionalBoolean(CONNECTOR + "." + PulsarOptions.USE_EXTEND_FIELD).orElse(false);
-        // create and configure
-        final AtomicRowDeserializationSchema.Builder builder =
-                new AtomicRowDeserializationSchema.Builder(className);
-        builder.useExtendFields(useExtendFields);
-        return builder.build();
-    }
-
-    @Override
-    public SerializationSchema<Row> createSerializationSchema(Map<String, String> properties) {
-        final DescriptorProperties descriptorProperties = getValidatedProperties(properties);
-        String className = descriptorProperties.getString(AtomicValidator.FORMAT_CLASS_NAME);
-        boolean useExtendFields = descriptorProperties.getOptionalBoolean(CONNECTOR + "." + PulsarOptions.USE_EXTEND_FIELD).orElse(false);
-        // create and configure
-        final AtomicRowSerializationSchema.Builder builder =
-                new AtomicRowSerializationSchema.Builder(className);
-        builder.useExtendFields(useExtendFields);
-        return builder.build();
-    }
-
-    private TypeInformation<Row> createTypeInformation(DescriptorProperties descriptorProperties) {
-        if (descriptorProperties.containsKey(JsonValidator.FORMAT_SCHEMA)) {
-            return (RowTypeInfo) descriptorProperties.getType(JsonValidator.FORMAT_SCHEMA);
-        } else if (descriptorProperties.containsKey(JsonValidator.FORMAT_JSON_SCHEMA)) {
-            return JsonRowSchemaConverter.convert(descriptorProperties.getString(JsonValidator.FORMAT_JSON_SCHEMA));
-        } else {
-            return deriveSchema(descriptorProperties.asMap()).toRowType();
-        }
-    }
+    private static final ConfigOption<String> FORMAT_CLASS_NAME = ConfigOptions.key("format.classname")
+            .stringType()
+            .noDefaultValue()
+            .withDescription("");
 
     private static DescriptorProperties getValidatedProperties(Map<String, String> propertiesMap) {
         final DescriptorProperties descriptorProperties = new DescriptorProperties();
@@ -95,5 +62,74 @@ public class AtomicRowFormatFactory extends TableFormatFactoryBase<Row>
         new AtomicValidator().validate(descriptorProperties);
 
         return descriptorProperties;
+    }
+
+    @Override
+    public DecodingFormat<DeserializationSchema<RowData>> createDecodingFormat(DynamicTableFactory.Context context,
+                                                                               ReadableConfig readableConfig) {
+
+        return new DecodingFormat<DeserializationSchema<RowData>>() {
+            @Override
+            public ChangelogMode getChangelogMode() {
+                return ChangelogMode.insertOnly();
+            }
+
+            @Override
+            public DeserializationSchema<RowData> createRuntimeDecoder(DynamicTableSource.Context context,
+                                                                       DataType dataType) {
+                return new AtomicRowDeserializationSchema.Builder(getClassName(dataType))
+                        .useExtendFields(false)
+                        .build();
+            }
+        };
+    }
+
+    private String getClassName(@Nullable DataType dataType) {
+        String classname;
+        if (dataType instanceof AtomicDataType) {
+            Optional<Class<Object>> classOptional = DataTypeUtils.extractType(dataType);
+            classname = classOptional.map(Class::getName).orElse(null);
+        } else if (dataType instanceof FieldsDataType) {
+            final DataType type = dataType.getChildren().get(0);
+            Optional<Class<Object>> classOptional = DataTypeUtils.extractType(type);
+            classname = classOptional.map(Class::getName).orElse(null);
+        } else {
+            throw new IllegalArgumentException();
+        }
+        return classname;
+    }
+
+    @Override
+    public EncodingFormat<SerializationSchema<RowData>> createEncodingFormat(DynamicTableFactory.Context context,
+                                                                             ReadableConfig readableConfig) {
+        return new EncodingFormat<SerializationSchema<RowData>>() {
+            @Override
+            public ChangelogMode getChangelogMode() {
+                return ChangelogMode.insertOnly();
+            }
+
+            @Override
+            public SerializationSchema<RowData> createRuntimeEncoder(DynamicTableSink.Context context,
+                                                                     DataType dataType) {
+                return new AtomicRowSerializationSchema.Builder(getClassName(dataType))
+                        .useExtendFields(false)
+                        .build();
+            }
+        };
+    }
+
+    @Override
+    public String factoryIdentifier() {
+        return IDENTIFIER;
+    }
+
+    @Override
+    public Set<ConfigOption<?>> requiredOptions() {
+        return Collections.emptySet();
+    }
+
+    @Override
+    public Set<ConfigOption<?>> optionalOptions() {
+        return Collections.emptySet();
     }
 }

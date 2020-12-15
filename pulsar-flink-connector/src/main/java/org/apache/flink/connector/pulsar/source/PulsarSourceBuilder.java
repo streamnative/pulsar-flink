@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -78,7 +79,7 @@ public class PulsarSourceBuilder<OUT> {
         return setSubscriber(PulsarSubscriber.getTopicListSubscriber(splitDivisionStrategy, topics));
     }
 
-    public PulsarSourceBuilder<OUT> setTopicPattern(String namespace, SplitDivisionStrategy splitDivisionStrategy, String... topicPatterns) {
+    public PulsarSourceBuilder<OUT> setTopicPattern(String namespace, SplitDivisionStrategy splitDivisionStrategy, Set<String> topicPatterns) {
         return setSubscriber(PulsarSubscriber.getTopicPatternSubscriber(namespace, splitDivisionStrategy, topicPatterns));
     }
 
@@ -89,11 +90,11 @@ public class PulsarSourceBuilder<OUT> {
     }
 
     public PulsarSourceBuilder<OUT> setTopics(String... topics) {
-        return setTopics(NoSplitDivisionStrategy.NO_SPLIT, topics);
+        return setTopics(NoSplitDivisionStrategy.INSTANCE, topics);
     }
 
-    public PulsarSourceBuilder<OUT> setTopicPattern(String namespace, String... topicPatterns) {
-        return setTopicPattern(namespace, NoSplitDivisionStrategy.NO_SPLIT, topicPatterns);
+    public PulsarSourceBuilder<OUT> setTopicPattern(String namespace, Set<String> topicPatterns) {
+        return setTopicPattern(namespace, NoSplitDivisionStrategy.INSTANCE, topicPatterns);
     }
 
     public PulsarSourceBuilder<OUT> setSplitSchedulingStrategy(SplitSchedulingStrategy splitSchedulingStrategy) {
@@ -135,7 +136,7 @@ public class PulsarSourceBuilder<OUT> {
     public PulsarSource<OUT> build() {
         sanityCheck();
         if (splitSchedulingStrategy == null) {
-            splitSchedulingStrategy = new HashSplitSchedulingStrategy();
+            splitSchedulingStrategy = HashSplitSchedulingStrategy.INSTANCE;
         }
         return new PulsarSource<>(
                 subscriber,

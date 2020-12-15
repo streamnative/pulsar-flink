@@ -35,9 +35,10 @@ catalogs:
     type: pulsar
     service-url: "$VAR_SERVICEURL"
     admin-url: "$VAR_ADMINURL"
-    startup-mode: "$VAR_STARTING"
-    format.type: "atomic"
-    format.className: "java.lang.Integer"
+    scan:
+      startup:
+        mode: "$VAR_STARTING"
+    format: "atomic"
 
     table-default-partitions: 5
   - name: pulsarcatalog2
@@ -45,9 +46,10 @@ catalogs:
     default-database: tn/ns
     service-url: "$VAR_SERVICEURL"
     admin-url: "$VAR_ADMINURL"
-    startup-mode: "$VAR_STARTING"
-    format.type: "atomic"
-    format.className: "java.lang.Integer"
+    scan:
+      startup:
+        mode: "$VAR_STARTING"
+    format: "atomic"
   - name: inmemorycatalog
     type: generic_in_memory
     default-database: mydatabase

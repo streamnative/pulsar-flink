@@ -76,6 +76,14 @@ public class TopicRange implements Externalizable, Comparable<TopicRange> {
                 range.getPulsarRange().getEnd() == fullRangeEnd;
     }
 
+    public void setTopic(String topic) {
+        this.topic = topic;
+    }
+
+    public void setRange(SerializableRange range) {
+        this.range = range;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {

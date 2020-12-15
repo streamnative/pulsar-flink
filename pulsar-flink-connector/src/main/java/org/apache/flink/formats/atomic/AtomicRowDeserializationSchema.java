@@ -18,12 +18,16 @@ import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.connectors.pulsar.internal.IncompatibleSchemaException;
 import org.apache.flink.streaming.connectors.pulsar.internal.SimpleSchemaTranslator;
+import org.apache.flink.streaming.connectors.pulsar.util.RowDataUtil;
 import org.apache.flink.table.api.DataTypes;
+import org.apache.flink.table.data.GenericRowData;
+import org.apache.flink.table.data.RowData;
+import org.apache.flink.table.runtime.typeutils.InternalTypeInfo;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.FieldsDataType;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.table.types.utils.TypeConversions;
-import org.apache.flink.types.Row;
+import org.apache.flink.types.RowKind;
 
 import org.apache.pulsar.client.api.Schema;
 
@@ -35,7 +39,7 @@ import java.util.List;
 /**
  * rowDeserializationSchema for atomic type.
  */
-public class AtomicRowDeserializationSchema implements DeserializationSchema<Row> {
+public class AtomicRowDeserializationSchema implements DeserializationSchema<RowData> {
     private static final long serialVersionUID = -228294330688809195L;
 
     private final String className;
@@ -57,27 +61,27 @@ public class AtomicRowDeserializationSchema implements DeserializationSchema<Row
     }
 
     @Override
-    public Row deserialize(byte[] message) throws IOException {
+    public RowData deserialize(byte[] message) throws IOException {
         DataType dataType = TypeConversions.fromClassToDataType(clazz).
                 orElseThrow(() -> new IllegalStateException(clazz.getCanonicalName() + "cant cast to flink dataType"));
         try {
             Schema schema = SimpleSchemaTranslator.sqlType2PulsarSchema(dataType);
             Object data = schema.decode(message);
-            Row row = new Row(1);
-            row.setField(0, data);
-            return row;
+            final GenericRowData rowData = new GenericRowData(RowKind.INSERT, 1);
+            RowDataUtil.setField(rowData, 0, data);
+            return rowData;
         } catch (IncompatibleSchemaException e) {
             throw new RuntimeException(e);
         }
     }
 
     @Override
-    public boolean isEndOfStream(Row nextElement) {
+    public boolean isEndOfStream(RowData nextElement) {
         return false;
     }
 
     @Override
-    public TypeInformation<Row> getProducedType() {
+    public TypeInformation<RowData> getProducedType() {
   /*      DataType dataType = TypeConversions.fromClassToDataType(clazz).
                 orElseThrow(() -> new IllegalStateException(clazz.getCanonicalName() + "cant cast to flink dataType"));
         RowType.RowField rowField = new RowType.RowField("value", dataType.getLogicalType());
@@ -107,13 +111,13 @@ public class AtomicRowDeserializationSchema implements DeserializationSchema<Row
             mainSchema.addAll(SimpleSchemaTranslator.METADATA_FIELDS);
         }
         FieldsDataType fieldsDataType = (FieldsDataType) DataTypes.ROW(mainSchema.toArray(new DataTypes.Field[0]));
-        return (TypeInformation<Row>) TypeConversions.fromDataTypeToLegacyInfo(fieldsDataType);
+        return InternalTypeInfo.of(fieldsDataType.getLogicalType());
     }
 
     /**
      * Builder for {@link AtomicRowDeserializationSchema}.
      */
-    public static class Builder<T> {
+    public static class Builder {
         private final String className;
         private boolean useExtendFields;
 

@@ -46,15 +46,19 @@ public class PulsarOptions {
     public static final String ADMIN_URL_OPTION_KEY = "admin-url";
     public static final String STARTUP_MODE_OPTION_KEY = "startup-mode";
 
-    public static final String PARTITION_DISCOVERY_INTERVAL_MS_OPTION_KEY = "partitiondiscoveryintervalmillis";
-    public static final String CLIENT_CACHE_SIZE_OPTION_KEY = "clientcachesize";
-    public static final String FLUSH_ON_CHECKPOINT_OPTION_KEY = "flushoncheckpoint";
-    public static final String FAIL_ON_WRITE_OPTION_KEY = "failonwrite";
-    public static final String POLL_TIMEOUT_MS_OPTION_KEY = "polltimeoutms";
-    public static final String SUBSCRIPTION_ROLE_OPTION_KEY = "subscriptionRolePrefix";
-    public static final String COMMIT_MAX_RETRIES = "commitmaxretries";
-    public static final String FAIL_ON_DATA_LOSS_OPTION_KEY = "failondataloss";
+    public static final String PARTITION_DISCOVERY_INTERVAL_MS_OPTION_KEY = "partition.discovery.interval-millis";
+    public static final String CLIENT_CACHE_SIZE_OPTION_KEY = "client-cache-size";
+    public static final String FLUSH_ON_CHECKPOINT_OPTION_KEY = "flush-on-checkpoint";
+    public static final String FAIL_ON_WRITE_OPTION_KEY = "fail-on-write";
+    public static final String TRANSACTION_TIMEOUT = "transaction-timeout";
+    public static final String MAX_BLOCK_TIME_MS = "max-block-time-ms";
+    public static final String POLL_TIMEOUT_MS_OPTION_KEY = "poll-timeout-ms";
+    public static final String SEND_TIMEOUT_MS = "send-timeout-ms";
+    public static final String SUBSCRIPTION_ROLE_OPTION_KEY = "subscription-role-prefix";
+    public static final String COMMIT_MAX_RETRIES = "commit-max-retries";
+    public static final String FAIL_ON_DATA_LOSS_OPTION_KEY = "fail-on-data-loss";
     public static final String ENABLE_KEY_HASH_RANGE_KEY = "enable-key-hash-range";
+    public static final String KEY_DISABLED_METRICS = "key-disable-metrics";
 
     public static final String INSTRUCTION_FOR_FAIL_ON_DATA_LOSS_FALSE =
             "Some data may have been lost because they are not available in Pulsar any more; either the\n" +

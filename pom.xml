@@ -71,7 +71,7 @@
     <scala.binary.version>2.11</scala.binary.version>
 
     <!-- use Pulsar stable version -->
-    <pulsar.version>2.6.0-sn-18-2</pulsar.version>
+    <pulsar.version>2.7.0</pulsar.version>
     <streamnative-tests.version>2.5.1</streamnative-tests.version>
     <testcontainers.version>1.14.3</testcontainers.version>
     <hamcrest.version>1.3</hamcrest.version>
@@ -81,9 +81,12 @@
     <license-maven-plugin.version>4.0.rc1</license-maven-plugin.version>
     <maven-compiler-plugin.version>3.7.0</maven-compiler-plugin.version>
     <maven-dependency-plugin.version>3.1.1</maven-dependency-plugin.version>
-    <maven-shade-plugin.version>3.1.0</maven-shade-plugin.version>
+    <maven-shade-plugin.version>3.2.4</maven-shade-plugin.version>
     <maven-source-plugin.version>2.2.1</maven-source-plugin.version>
     <maven-surefire-plugin.version>2.21.0</maven-surefire-plugin.version>
+    <spotbugs-maven-plugin.version>4.1.3</spotbugs-maven-plugin.version>
+    <spotbugs.version>4.2.0</spotbugs.version>
+    <pulsar.systemtest.image>apachepulsar/pulsar:2.7.0</pulsar.systemtest.image>
   </properties>
 
   <!-- dependencies for all modules -->
@@ -182,6 +185,7 @@
 
   </dependencies>
 
+
   <build>
     <plugins>
       <plugin>
@@ -200,6 +204,15 @@
         <groupId>com.mycila</groupId>
         <artifactId>license-maven-plugin</artifactId>
         <version>${license-maven-plugin.version}</version>
+        <executions>
+          <execution>
+            <id>license</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
         <configuration>
           <header>tools/maven/license.template</header>
 
@@ -302,6 +315,15 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
         <version>2.17</version>
+        <executions>
+          <execution>
+            <id>checkstyle</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
         <dependencies>
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
@@ -323,7 +345,22 @@
         <groupId>com.github.spotbugs</groupId>
         <artifactId>spotbugs-maven-plugin</artifactId>
         <version>3.1.12</version>
-
+        <executions>
+          <execution>
+            <id>spotbugs</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+        <dependencies>
+          <dependency>
+            <groupId>com.github.spotbugs</groupId>
+            <artifactId>spotbugs</artifactId>
+            <version>${spotbugs.version}</version>
+          </dependency>
+        </dependencies>
         <configuration>
           <xmlOutput>true</xmlOutput>
           <threshold>Low</threshold>
@@ -341,6 +378,7 @@
         <configuration>
           <systemPropertyVariables>
             <log4j.configuration>file:${project.build.testOutputDirectory}/log4j-tests.properties</log4j.configuration>
+            <pulsar.systemtest.image>${pulsar.systemtest.image}</pulsar.systemtest.image>
           </systemPropertyVariables>
           <excludes>
             <exclude>**/PulsarInputFormatITest.java</exclude>
@@ -360,6 +398,15 @@
       <id>bintray-streamnative-maven</id>
       <name>bintray</name>
       <url>https://dl.bintray.com/streamnative/maven</url>
+    </repository>
+    <repository>
+      <id>apache-snapshots</id>
+      <url>
+        https://repository.apache.org/content/repositories/snapshots/
+      </url>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
     </repository>
   </repositories>
   <distributionManagement>

@@ -14,6 +14,7 @@
 
 package org.apache.flink.streaming.connectors.pulsar;
 
+import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.state.BroadcastState;
 import org.apache.flink.api.common.state.KeyedStateStore;
 import org.apache.flink.api.common.state.ListState;
@@ -25,6 +26,7 @@ import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.testutils.CheckedThread;
 import org.apache.flink.core.testutils.OneShotLatch;
+import org.apache.flink.metrics.groups.UnregisteredMetricsGroup;
 import org.apache.flink.runtime.checkpoint.OperatorSubtaskState;
 import org.apache.flink.runtime.state.FunctionInitializationContext;
 import org.apache.flink.runtime.state.StateSnapshotContextSynchronousImpl;
@@ -35,7 +37,6 @@ import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.api.operators.StreamSource;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarCommitCallback;
-import org.apache.flink.streaming.connectors.pulsar.internal.PulsarDeserializationSchema;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarFetcher;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
 import org.apache.flink.streaming.connectors.pulsar.internal.TopicRange;
@@ -45,6 +46,7 @@ import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
 import org.apache.flink.streaming.runtime.tasks.TestProcessingTimeService;
 import org.apache.flink.streaming.util.AbstractStreamOperatorTestHarness;
 import org.apache.flink.streaming.util.MockStreamingRuntimeContext;
+import org.apache.flink.streaming.util.serialization.PulsarDeserializationSchema;
 import org.apache.flink.util.ExceptionUtils;
 import org.apache.flink.util.FlinkException;
 import org.apache.flink.util.Preconditions;
@@ -509,7 +511,8 @@ public class FlinkPulsarSourceTest extends TestLogger {
         private final RuntimeException failureCause;
 
         public FailingPartitionDiscoverer(RuntimeException failureCause) throws PulsarClientException {
-            super("", new ClientConfigurationData(), "", Collections.singletonMap("topic", "foo"), 0, 1);
+            super("http://localhost:8080", new ClientConfigurationData(), "", Collections.singletonMap("topic", "foo"),
+                    0, 1);
             this.failureCause = failureCause;
         }
 
@@ -539,7 +542,8 @@ public class FlinkPulsarSourceTest extends TestLogger {
         private static Set<TopicRange> allPartitions = Sets.newHashSet(new TopicRange("foo"));
 
         public DummyPartitionDiscoverer() throws PulsarClientException {
-            super("", new ClientConfigurationData(), "", Collections.singletonMap("topic", "foo"), 0, 1);
+            super("http://localhost:8080", new ClientConfigurationData(), "", Collections.singletonMap("topic", "foo"),
+                    0, 1);
         }
 
         @Override
@@ -603,16 +607,16 @@ public class FlinkPulsarSourceTest extends TestLogger {
 
         @Override
         protected PulsarFetcher<T> createFetcher(
-                SourceContext sourceContext,
+                SourceContext<T> sourceContext,
                 Map<TopicRange, MessageId> seedTopicsWithInitialOffsets,
-                SerializedValue<AssignerWithPeriodicWatermarks<T>> watermarksPeriodic,
-                SerializedValue<AssignerWithPunctuatedWatermarks<T>> watermarksPunctuated,
+                SerializedValue<WatermarkStrategy<T>> watermarkStrategy,
                 ProcessingTimeService processingTimeProvider,
                 long autoWatermarkInterval,
                 ClassLoader userCodeClassLoader,
-                StreamingRuntimeContext streamingRuntime) throws Exception {
-            return new TestingFetcher<>(sourceContext, seedTopicsWithInitialOffsets, watermarksPeriodic,
-                    watermarksPunctuated, processingTimeProvider, autoWatermarkInterval);
+                StreamingRuntimeContext streamingRuntime,
+                boolean useMetrics) throws Exception {
+            return new TestingFetcher<>(sourceContext, seedTopicsWithInitialOffsets, watermarkStrategy,
+                    processingTimeProvider, autoWatermarkInterval);
         }
 
         @Override
@@ -653,14 +657,14 @@ public class FlinkPulsarSourceTest extends TestLogger {
 
         @Override
         protected PulsarFetcher<T> createFetcher(
-                SourceContext sourceContext,
+                SourceContext<T> sourceContext,
                 Map<TopicRange, MessageId> seedTopicsWithInitialOffsets,
-                SerializedValue<AssignerWithPeriodicWatermarks<T>> watermarksPeriodic,
-                SerializedValue<AssignerWithPunctuatedWatermarks<T>> watermarksPunctuated,
+                SerializedValue<WatermarkStrategy<T>> watermarkStrategy,
                 ProcessingTimeService processingTimeProvider,
                 long autoWatermarkInterval,
                 ClassLoader userCodeClassLoader,
-                StreamingRuntimeContext streamingRuntime) throws Exception {
+                StreamingRuntimeContext streamingRuntime,
+                boolean useMetrics) throws Exception {
             return testFetcherSupplier.get();
         }
 
@@ -677,15 +681,13 @@ public class FlinkPulsarSourceTest extends TestLogger {
         public TestingFetcher(
                 SourceFunction.SourceContext<T> sourceContext,
                 Map<TopicRange, MessageId> seedTopicsWithInitialOffsets,
-                SerializedValue<AssignerWithPeriodicWatermarks<T>> watermarksPeriodic,
-                SerializedValue<AssignerWithPunctuatedWatermarks<T>> watermarksPunctuated,
+                SerializedValue<WatermarkStrategy<T>> watermarkStrategy,
                 ProcessingTimeService processingTimeProvider,
                 long autoWatermarkInterval) throws Exception {
             super(
                     sourceContext,
                     seedTopicsWithInitialOffsets,
-                    watermarksPeriodic,
-                    watermarksPunctuated,
+                    watermarkStrategy,
                     processingTimeProvider,
                     autoWatermarkInterval,
                     TestingFetcher.class.getClassLoader(),
@@ -694,7 +696,9 @@ public class FlinkPulsarSourceTest extends TestLogger {
                     null,
                     0,
                     null,
-                    null);
+                    null,
+                    new UnregisteredMetricsGroup(),
+                    false);
         }
 
         @Override
@@ -776,7 +780,6 @@ public class FlinkPulsarSourceTest extends TestLogger {
                     new TestSourceContext<>(),
                     new HashMap<>(),
                     null,
-                    null,
                     new TestProcessingTimeService(),
                     0,
                     MockFetcher.class.getClassLoader(),
@@ -785,7 +788,9 @@ public class FlinkPulsarSourceTest extends TestLogger {
                     null,
                     0,
                     null,
-                    null);
+                    null,
+                    new UnregisteredMetricsGroup(),
+                    false);
 
             this.stateSnapshotsToReturn.addAll(Arrays.asList(stateSnapshotsToReturn));
         }

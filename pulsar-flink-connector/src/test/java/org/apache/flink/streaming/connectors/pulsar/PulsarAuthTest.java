@@ -19,10 +19,11 @@ import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.connectors.pulsar.internal.PulsarDeserializationSchema;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.streaming.connectors.pulsar.testutils.PulsarContainer;
 import org.apache.flink.streaming.util.TestStreamEnvironment;
+import org.apache.flink.streaming.util.serialization.FlinkSchema;
+import org.apache.flink.streaming.util.serialization.PulsarDeserializationSchema;
 import org.apache.flink.test.util.SuccessException;
 
 import io.streamnative.tests.pulsar.service.PulsarServiceSpec;
@@ -67,9 +68,9 @@ public class PulsarAuthTest {
         log.info("-------------------------------------------------------------------------");
         log.info("    Starting PulsarTestBase ");
         log.info("-------------------------------------------------------------------------");
-
-        System.setProperty("pulsar.systemtest.image", "streamnative/pulsar:2.6.0-sn-18-3");
-
+        if (System.getProperty("pulsar.systemtest.image") == null) {
+            System.setProperty("pulsar.systemtest.image", "apachepulsar/pulsar:2.7.0");
+        }
         PulsarServiceSpec spec = PulsarServiceSpec.builder()
                 .clusterName("standalone-" + UUID.randomUUID())
                 .enableContainerLogging(false)
@@ -205,8 +206,8 @@ public class PulsarAuthTest {
         }
 
         @Override
-        public String deserialize(Message message) throws IOException {
-            return simpleStringSchema.deserialize(message.getData());
+        public String deserialize(Message<String> message) throws IOException {
+            return message.getValue();
         }
 
         @Override
@@ -216,6 +217,11 @@ public class PulsarAuthTest {
         @Override
         public TypeInformation<String> getProducedType() {
             return simpleStringSchema.getProducedType();
+        }
+
+        @Override
+        public Schema<String> getSchema() {
+            return new FlinkSchema<>(Schema.STRING.getSchemaInfo(), null, simpleStringSchema);
         }
     }
 }

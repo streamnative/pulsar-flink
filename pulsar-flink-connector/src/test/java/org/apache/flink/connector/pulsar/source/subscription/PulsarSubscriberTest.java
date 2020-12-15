@@ -25,6 +25,7 @@ import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.streaming.connectors.pulsar.internal.TopicRange;
 
 import org.apache.pulsar.common.naming.TopicName;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -60,10 +61,17 @@ public class PulsarSubscriberTest extends PulsarTestBase {
         createTestTopic(TOPIC2, NUM_PARTITIONS_PER_TOPIC);
     }
 
+    @AfterClass
+    public static void clear() throws Exception {
+        pulsarAdmin = getPulsarAdmin();
+        pulsarAdmin.topics().deletePartitionedTopic(TOPIC1, true);
+        pulsarAdmin.topics().deletePartitionedTopic(TOPIC2, true);
+    }
+
     @Test
     public void testKeySharedTopicListSubscriber() throws Exception {
         PulsarSubscriber subscriber =
-                PulsarSubscriber.getTopicListSubscriber(new UniformSplitDivisionStrategy(), TOPIC1);
+                PulsarSubscriber.getTopicListSubscriber(UniformSplitDivisionStrategy.INSTANCE, TOPIC1);
         // 10 subtask 5 partition -> 10 split
         SplitEnumeratorContext context = mock(SplitEnumeratorContext.class);
         when(context.currentParallelism()).thenReturn(10);
@@ -76,7 +84,7 @@ public class PulsarSubscriberTest extends PulsarTestBase {
     @Test
     public void testTopicListSubscriber() throws Exception {
         PulsarSubscriber subscriber =
-                PulsarSubscriber.getTopicListSubscriber(NoSplitDivisionStrategy.NO_SPLIT, TOPIC1, TOPIC2);
+                PulsarSubscriber.getTopicListSubscriber(NoSplitDivisionStrategy.INSTANCE, TOPIC1, TOPIC2);
         PulsarSubscriber.PartitionChange change =
                 subscriber.getPartitionChanges(pulsarAdmin, currentAssignment);
         Set<BrokerPartition> expectedNewPartitions = new HashSet<>(getPartitionsForTopic(TOPIC1));
@@ -89,7 +97,11 @@ public class PulsarSubscriberTest extends PulsarTestBase {
 
     @Test
     public void testTopicPatternSubscriber() throws Exception {
-        PulsarSubscriber subscriber = PulsarSubscriber.getTopicPatternSubscriber("public/default", NoSplitDivisionStrategy.NO_SPLIT, "persistent://public/default/pattern.*");
+        PulsarSubscriber subscriber = PulsarSubscriber.getTopicPatternSubscriber(
+                "public/default",
+                NoSplitDivisionStrategy.INSTANCE,
+                Collections.singleton("pattern.*")
+        );
         PulsarSubscriber.PartitionChange change =
                 subscriber.getPartitionChanges(pulsarAdmin, currentAssignment);
 

@@ -29,7 +29,7 @@ import org.apache.pulsar.client.api.Schema;
 /**
  * rowSerializationSchema for atomic type.
  */
-public class AtomicRowSerializationSchema implements SerializationSchema<RowData> {
+public class AtomicRowDataSerializationSchema implements SerializationSchema<RowData> {
     private static final long serialVersionUID = -2885556750743978636L;
     private final DataType atomicType;
     private final String className;
@@ -37,7 +37,7 @@ public class AtomicRowSerializationSchema implements SerializationSchema<RowData
     private final Class<?> clazz;
     private final PulsarDeserializer.Function<Object, byte[]> converter;
 
-    private AtomicRowSerializationSchema(String className, boolean useExtendFields) {
+    private AtomicRowDataSerializationSchema(String className, boolean useExtendFields) {
         this.className = className;
         this.useExtendFields = useExtendFields;
         try {
@@ -47,11 +47,11 @@ public class AtomicRowSerializationSchema implements SerializationSchema<RowData
             throw new RuntimeException(e);
         }
         this.atomicType = TypeConversions.fromClassToDataType(clazz).
-                orElseThrow(() -> new IllegalStateException(clazz.getCanonicalName() + "cant cast to flink dataType"));
+                orElseThrow(() -> new IllegalStateException(clazz.getCanonicalName() + " cant cast to flink dataType"));
     }
 
     /**
-     * Builder for {@link AtomicRowSerializationSchema}.
+     * Builder for {@link AtomicRowDataSerializationSchema}.
      */
     @PublicEvolving
     public static class Builder {
@@ -63,13 +63,13 @@ public class AtomicRowSerializationSchema implements SerializationSchema<RowData
             this.className = className;
         }
 
-        public AtomicRowSerializationSchema.Builder useExtendFields(boolean useExtendFields) {
+        public AtomicRowDataSerializationSchema.Builder useExtendFields(boolean useExtendFields) {
             this.useExtendFields = useExtendFields;
             return this;
         }
 
-        public AtomicRowSerializationSchema build() {
-            return new AtomicRowSerializationSchema(className, useExtendFields);
+        public AtomicRowDataSerializationSchema build() {
+            return new AtomicRowDataSerializationSchema(className, useExtendFields);
         }
     }
 
@@ -109,7 +109,7 @@ public class AtomicRowSerializationSchema implements SerializationSchema<RowData
             return false;
         }
 
-        AtomicRowSerializationSchema that = (AtomicRowSerializationSchema) o;
+        AtomicRowDataSerializationSchema that = (AtomicRowDataSerializationSchema) o;
 
         if (useExtendFields != that.useExtendFields) {
             return false;

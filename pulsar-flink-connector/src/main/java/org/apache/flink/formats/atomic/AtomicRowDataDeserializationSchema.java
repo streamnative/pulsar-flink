@@ -35,18 +35,17 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-
 /**
  * rowDeserializationSchema for atomic type.
  */
-public class AtomicRowDeserializationSchema implements DeserializationSchema<RowData> {
+public class AtomicRowDataDeserializationSchema implements DeserializationSchema<RowData> {
     private static final long serialVersionUID = -228294330688809195L;
 
     private final String className;
     private final boolean useExtendFields;
     private final Class<?> clazz;
 
-    public AtomicRowDeserializationSchema(String className, boolean useExtendFields) {
+    public AtomicRowDataDeserializationSchema(String className, boolean useExtendFields) {
         this.className = className;
         this.useExtendFields = useExtendFields;
         try {
@@ -99,7 +98,8 @@ public class AtomicRowDeserializationSchema implements DeserializationSchema<Row
             List<String> fieldNames = rowType.getFieldNames();
             for (int i = 0; i < fieldNames.size(); i++) {
                 org.apache.flink.table.types.logical.LogicalType logicalType = rowType.getTypeAt(i);
-                DataTypes.Field field = DataTypes.FIELD(fieldNames.get(i), TypeConversions.fromLogicalToDataType(logicalType));
+                DataTypes.Field field =
+                        DataTypes.FIELD(fieldNames.get(i), TypeConversions.fromLogicalToDataType(logicalType));
                 mainSchema.add(field);
             }
 
@@ -115,7 +115,7 @@ public class AtomicRowDeserializationSchema implements DeserializationSchema<Row
     }
 
     /**
-     * Builder for {@link AtomicRowDeserializationSchema}.
+     * Builder for {@link AtomicRowDataDeserializationSchema}.
      */
     public static class Builder {
         private final String className;
@@ -125,13 +125,13 @@ public class AtomicRowDeserializationSchema implements DeserializationSchema<Row
             this.className = className;
         }
 
-        public AtomicRowDeserializationSchema.Builder useExtendFields(boolean useExtendFields) {
+        public AtomicRowDataDeserializationSchema.Builder useExtendFields(boolean useExtendFields) {
             this.useExtendFields = useExtendFields;
             return this;
         }
 
-        public AtomicRowDeserializationSchema build() {
-            return new AtomicRowDeserializationSchema(className, useExtendFields);
+        public AtomicRowDataDeserializationSchema build() {
+            return new AtomicRowDataDeserializationSchema(className, useExtendFields);
         }
     }
 
@@ -144,7 +144,7 @@ public class AtomicRowDeserializationSchema implements DeserializationSchema<Row
             return false;
         }
 
-        AtomicRowDeserializationSchema that = (AtomicRowDeserializationSchema) o;
+        AtomicRowDataDeserializationSchema that = (AtomicRowDataDeserializationSchema) o;
 
         if (useExtendFields != that.useExtendFields) {
             return false;

@@ -28,6 +28,7 @@ import org.apache.pulsar.client.impl.schema.FloatSchema;
 import org.apache.pulsar.client.impl.schema.IntSchema;
 import org.apache.pulsar.client.impl.schema.LocalDateSchema;
 import org.apache.pulsar.client.impl.schema.LocalDateTimeSchema;
+import org.apache.pulsar.client.impl.schema.LocalTimeSchema;
 import org.apache.pulsar.client.impl.schema.LongSchema;
 import org.apache.pulsar.client.impl.schema.ShortSchema;
 import org.apache.pulsar.common.schema.SchemaInfo;
@@ -43,7 +44,8 @@ public abstract class SchemaTranslator implements Serializable {
 
     public abstract TableSchema pulsarSchemaToTableSchema(SchemaInfo pulsarSchema) throws IncompatibleSchemaException;
 
-    public abstract FieldsDataType pulsarSchemaToFieldsDataType(SchemaInfo pulsarSchema) throws IncompatibleSchemaException;
+    public abstract FieldsDataType pulsarSchemaToFieldsDataType(SchemaInfo pulsarSchema)
+            throws IncompatibleSchemaException;
 
     public abstract DataType schemaInfo2SqlType(SchemaInfo si) throws IncompatibleSchemaException;
 
@@ -56,10 +58,14 @@ public abstract class SchemaTranslator implements Serializable {
                 return BytesSchema.of();
             case DATE:
                 return LocalDateSchema.of();
+            case TIME_WITHOUT_TIME_ZONE:
+                return LocalTimeSchema.of();
             case VARCHAR:
                 return Schema.STRING;
             case TIMESTAMP_WITHOUT_TIME_ZONE:
                 return LocalDateTimeSchema.of();
+            case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+                return Schema.INSTANT;
             case TINYINT:
                 return ByteSchema.of();
             case DOUBLE:
@@ -73,7 +79,8 @@ public abstract class SchemaTranslator implements Serializable {
             case SMALLINT:
                 return ShortSchema.of();
             default:
-                throw new IncompatibleSchemaException(String.format("%s is not supported by Pulsar yet", flinkType.toString()), null);
+                throw new IncompatibleSchemaException(
+                        String.format("%s is not supported by Pulsar yet", flinkType.toString()), null);
         }
     }
 }

@@ -91,7 +91,7 @@ import static org.junit.Assert.assertEquals;
  * Test for the Avro、json serialization and deserialization schema.
  */
 @Slf4j
-public class RowDataDeSerializationSchemaTest extends PulsarTestBase {
+public class RowDataDerSerializationSchemaTest extends PulsarTestBase {
 
     @Test
     public void testAvroSerializeDeserialize() throws Exception {

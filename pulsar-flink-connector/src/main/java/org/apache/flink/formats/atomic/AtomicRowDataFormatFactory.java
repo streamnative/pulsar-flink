@@ -17,7 +17,6 @@ package org.apache.flink.formats.atomic;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.configuration.ConfigOption;
-import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.streaming.connectors.pulsar.util.DataTypeUtils;
 import org.apache.flink.table.connector.ChangelogMode;
@@ -26,8 +25,6 @@ import org.apache.flink.table.connector.format.EncodingFormat;
 import org.apache.flink.table.connector.sink.DynamicTableSink;
 import org.apache.flink.table.connector.source.DynamicTableSource;
 import org.apache.flink.table.data.RowData;
-import org.apache.flink.table.descriptors.AtomicValidator;
-import org.apache.flink.table.descriptors.DescriptorProperties;
 import org.apache.flink.table.factories.DeserializationFormatFactory;
 import org.apache.flink.table.factories.DynamicTableFactory;
 import org.apache.flink.table.factories.SerializationFormatFactory;
@@ -38,31 +35,15 @@ import org.apache.flink.table.types.FieldsDataType;
 import javax.annotation.Nullable;
 
 import java.util.Collections;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
 /**
- * rowFormatFactory for atomic type.
+ * rowDataFormatFactory for atomic type.
  */
-public class AtomicRowFormatFactory implements SerializationFormatFactory, DeserializationFormatFactory {
+public class AtomicRowDataFormatFactory implements SerializationFormatFactory, DeserializationFormatFactory {
 
     private static final String IDENTIFIER = "atomic";
-
-    private static final ConfigOption<String> FORMAT_CLASS_NAME = ConfigOptions.key("format.classname")
-            .stringType()
-            .noDefaultValue()
-            .withDescription("");
-
-    private static DescriptorProperties getValidatedProperties(Map<String, String> propertiesMap) {
-        final DescriptorProperties descriptorProperties = new DescriptorProperties();
-        descriptorProperties.putProperties(propertiesMap);
-
-        // validate
-        new AtomicValidator().validate(descriptorProperties);
-
-        return descriptorProperties;
-    }
 
     @Override
     public DecodingFormat<DeserializationSchema<RowData>> createDecodingFormat(DynamicTableFactory.Context context,
@@ -77,7 +58,7 @@ public class AtomicRowFormatFactory implements SerializationFormatFactory, Deser
             @Override
             public DeserializationSchema<RowData> createRuntimeDecoder(DynamicTableSource.Context context,
                                                                        DataType dataType) {
-                return new AtomicRowDeserializationSchema.Builder(getClassName(dataType))
+                return new AtomicRowDataDeserializationSchema.Builder(getClassName(dataType))
                         .useExtendFields(false)
                         .build();
             }
@@ -111,7 +92,7 @@ public class AtomicRowFormatFactory implements SerializationFormatFactory, Deser
             @Override
             public SerializationSchema<RowData> createRuntimeEncoder(DynamicTableSink.Context context,
                                                                      DataType dataType) {
-                return new AtomicRowSerializationSchema.Builder(getClassName(dataType))
+                return new AtomicRowDataSerializationSchema.Builder(getClassName(dataType))
                         .useExtendFields(false)
                         .build();
             }

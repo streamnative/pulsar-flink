@@ -35,7 +35,9 @@ public class RowDataUtil {
         if (value instanceof LocalDate) {
             rowData.setField(pos, (int) ((LocalDate) value).toEpochDay());
         } else if (value instanceof LocalTime) {
-            rowData.setField(pos, ((LocalTime) value).toSecondOfDay());
+            rowData.setField(pos, ((LocalTime) value).toNanoOfDay());
+        } else if (value instanceof Instant) {
+            rowData.setField(pos, TimestampData.fromInstant((Instant) value));
         } else if (value instanceof String) {
             rowData.setField(pos, StringData.fromString((String) value));
         } else if (value instanceof LocalDateTime) {
@@ -52,8 +54,11 @@ public class RowDataUtil {
             final int value = rowData.getInt(pos);
             return LocalDate.ofEpochDay(value);
         } else if (clazz.isAssignableFrom(LocalTime.class)) {
-            final int value = rowData.getInt(pos);
-            return LocalTime.ofSecondOfDay(value);
+            final long value = rowData.getLong(pos);
+            return LocalTime.ofNanoOfDay(value);
+        } else if (clazz.isAssignableFrom(Instant.class)) {
+            final TimestampData timestamp = rowData.getTimestamp(pos, 3);
+            return timestamp.toInstant();
         } else if (clazz.isAssignableFrom(String.class)) {
             return rowData.getString(pos).toString();
         } else if (clazz.isAssignableFrom(LocalDateTime.class)) {

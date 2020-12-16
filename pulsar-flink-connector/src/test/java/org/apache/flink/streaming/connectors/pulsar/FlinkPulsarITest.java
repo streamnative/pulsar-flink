@@ -25,7 +25,7 @@ import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.formats.atomic.AtomicRowDeserializationSchema;
+import org.apache.flink.formats.atomic.AtomicRowDataDeserializationSchema;
 import org.apache.flink.formats.json.JsonOptions;
 import org.apache.flink.formats.json.JsonRowDataDeserializationSchema;
 import org.apache.flink.formats.json.JsonRowDataSerializationSchema;
@@ -1523,7 +1523,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         @Override
         public void open(DeserializationSchema.InitializationContext context) throws Exception {
             deserializationSchema =
-                    new AtomicRowDeserializationSchema(dataType.getConversionClass().getCanonicalName(), false);
+                    new AtomicRowDataDeserializationSchema(dataType.getConversionClass().getCanonicalName(), false);
         }
 
         @Override

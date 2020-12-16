@@ -1,4 +1,3 @@
-
 # Pulsar Flink Connector
 The Pulsar Flink connector implements elastic data processing using [Apache Pulsar](https://pulsar.apache.org) and [Apache Flink](https://flink.apache.org).
 
@@ -8,7 +7,7 @@ The Pulsar Flink connector implements elastic data processing using [Apache Puls
 -  Flink 1.9.0 or higher
 -  Pulsar 2.4.0 or higher
 
-# Basic information
+# Basic
 
 ## Client
 
@@ -476,32 +475,6 @@ We have added support for this feature in the Pulsar Flink connector as well. Th
 ## Configuration Parameters
 
 This parameter corresponds to the FlinkPulsarSource in StreamAPI, the Properties object in the FlinkPulsarSink construction parameter, and the configuration properties parameter in Table mode.
-
-| 参数                                 | 默认值        | 描述                                                         | 生效范围     |
-| ------------------------------------ | ------------- | ------------------------------------------------------------ | ------------ |
-| topic                                | null          | pulsar topic                                                 | source       |
-| topics                               | null          | 半角逗号连接的多个pulsar topic                               | source       |
-| topicspattern                        | null          | java正则匹配多的多个pulsar topic                             | source       |
-| partition.discovery.interval-millis  | -1            | 自动发现增减topic，毫秒。-1表示不开启。                      | source       |
-| clientcachesize                      | 100           | 缓存pulsar client数量                                        | source、sink |
-| auth-plugin-classname                | null          | Pulsar client鉴权类                                          | source、sink |
-| auth-params                          | null          | Pulsar client鉴权参数                                        | source、sink |
-| flushoncheckpoint                    | true          | 在flink snapshotState时写出消息到pulsar                      | sink         |
-| failonwrite                          | false         | sink出错时，继续确认消息                                     | sink         |
-| polltimeoutms                        | 120000        | 等待获取下一条消息的超时时间，毫秒                           | source       |
-| failondataloss                       | true          | 数据丢失时是否失败                                           | source       |
-| commitmaxretries                     | 3             | 向pulsar消息偏移offset时，最大重试次数                       | source       |
-| scan.startup.mode                    | latest        | earliest、latest，订阅者消费消息的位置                       | source       |
-| enable-key-hash-range                | false         | 开启Pulsar Key-Shared模式                                    | source       |
-| pulsar.reader.*                      |               | pulsar consumer的详细配置，项目可参考[Pulsar Reader](https://pulsar.apache.org/docs/en/client-libraries-java/#reader) | source       |
-| pulsar.reader.subscriptionRolePrefix | flink-pulsar- | 未指定订阅者时，自动创建订阅者名称的前缀                     | source       |
-| pulsar.reader.receiverQueueSize      | 1000          | 接收队列大小                                                 | source       |
-| pulsar.producer.*                    |               | pulsar consumer的详细配置，项目可参考[Pulsar Producer](https://pulsar.apache.org/docs/en/client-libraries-java/#producer) | Sink         |
-| pulsar.producer.sendTimeoutMs        | 30000         | 发送消息时的超时时间，毫秒                                   | Sink         |
-| pulsar.producer.blockIfQueueFull     | false         | 生产者写入消息，队列满时，阻塞方法，而不是抛出异常           | Sink         |
-
-
-
 
 | Parameters | Default Value | Description | Effective Range |
 | --------- | -------- | ---------------------- | ------------ |

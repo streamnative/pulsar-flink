@@ -28,7 +28,7 @@ Pulsar Flink connector实现了使用 [Apache Pulsar](https://pulsar.apache.org)
 - `FLINK_VERSION`参数现在有`1.9`、`1.11`、`1.12`可选。
 
 - `SCALA_BINARY_VERSION`参数很flink使用的scala版本有关，现有`2.11`、`2.12`可选。
-- `PULSAR_FLINK_VERSION`是本连接器的版本。
+- `PULSAR_FLINK_VERSION`是本连接器的版本。通常只有`2.7.0`三位的版本，但提供bug修复时会使用四位版本`2.7.0.1`。
 
 ```
     groupId = io.streamnative.connectors

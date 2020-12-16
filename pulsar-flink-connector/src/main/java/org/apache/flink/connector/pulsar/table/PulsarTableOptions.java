@@ -41,8 +41,8 @@ import java.util.Set;
  * Option utils for pulsar table source sink.
  */
 @Slf4j
-public class PulsarOptions {
-	private PulsarOptions() {}
+public class PulsarTableOptions {
+	private PulsarTableOptions() {}
 
 	// --------------------------------------------------------------------------------------------
 	// Pulsar specific options

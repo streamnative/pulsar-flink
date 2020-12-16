@@ -121,7 +121,7 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
         specificOffsets.put("-1", MessageId.earliest);
 //        specificOffsets.put(TOPIC, MessageId.earliest);
 
-        final PulsarOptions.StartupOptions startupOptions = new PulsarOptions.StartupOptions();
+        final PulsarTableOptions.StartupOptions startupOptions = new PulsarTableOptions.StartupOptions();
         startupOptions.startupMode = StartupMode.SPECIFIC_OFFSETS;
         startupOptions.specificOffsets = specificOffsets;
         DecodingFormat<DeserializationSchema<RowData>> decodingFormat =
@@ -191,7 +191,7 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
                 Thread.currentThread().getContextClassLoader()
         );
 
-        final PulsarOptions.StartupOptions startupOptions = new PulsarOptions.StartupOptions();
+        final PulsarTableOptions.StartupOptions startupOptions = new PulsarTableOptions.StartupOptions();
         startupOptions.startupMode = StartupMode.EARLIEST;
         startupOptions.specificOffsets = new HashMap<>();
         // Test scan source equals
@@ -395,7 +395,7 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
             String topicPattern,
             Properties properties,
             DecodingFormat<DeserializationSchema<RowData>> decodingFormat,
-            PulsarOptions.StartupOptions startupOptions
+            PulsarTableOptions.StartupOptions startupOptions
     ) {
 
         return new PulsarDynamicTableSource(

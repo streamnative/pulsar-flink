@@ -54,16 +54,16 @@ public class PulsarDynamicTableFactory implements
 
         ReadableConfig tableOptions = helper.getOptions();
 
-        List<String> topics = tableOptions.get(PulsarOptions.TOPIC);
-        String adminUrl = tableOptions.get(PulsarOptions.ADMIN_URL);
-        String serverUrl = tableOptions.get(PulsarOptions.SERVICE_URL);
+        List<String> topics = tableOptions.get(PulsarTableOptions.TOPIC);
+        String adminUrl = tableOptions.get(PulsarTableOptions.ADMIN_URL);
+        String serverUrl = tableOptions.get(PulsarTableOptions.SERVICE_URL);
         EncodingFormat<SerializationSchema<RowData>> encodingFormat = helper.discoverEncodingFormat(
                 SerializationFormatFactory.class,
                 FactoryUtil.FORMAT);
         // Validate the option data type.
-        helper.validateExcept(PulsarOptions.PROPERTIES_PREFIX);
+        helper.validateExcept(PulsarTableOptions.PROPERTIES_PREFIX);
         // Validate the option values.
-        PulsarOptions.validateTableSinkOptions(tableOptions);
+        PulsarTableOptions.validateTableSinkOptions(tableOptions);
 
         Properties properties = removeConnectorPrefix(context.getCatalogTable().toProperties());
 
@@ -86,21 +86,21 @@ public class PulsarDynamicTableFactory implements
 
         ReadableConfig tableOptions = helper.getOptions();
 
-        List<String> topics = tableOptions.get(PulsarOptions.TOPIC);
-        String topicPattern = tableOptions.get(PulsarOptions.TOPIC_PATTERN);
-        String adminUrl = tableOptions.get(PulsarOptions.ADMIN_URL);
-        String serviceUrl = tableOptions.get(PulsarOptions.SERVICE_URL);
+        List<String> topics = tableOptions.get(PulsarTableOptions.TOPIC);
+        String topicPattern = tableOptions.get(PulsarTableOptions.TOPIC_PATTERN);
+        String adminUrl = tableOptions.get(PulsarTableOptions.ADMIN_URL);
+        String serviceUrl = tableOptions.get(PulsarTableOptions.SERVICE_URL);
         DecodingFormat<DeserializationSchema<RowData>> decodingFormat = helper.discoverDecodingFormat(
                 DeserializationFormatFactory.class,
                 FactoryUtil.FORMAT);
         // Validate the option data type.
-        helper.validateExcept(PulsarOptions.PROPERTIES_PREFIX);
+        helper.validateExcept(PulsarTableOptions.PROPERTIES_PREFIX);
         // Validate the option values.
-        PulsarOptions.validateTableSourceOptions(tableOptions);
+        PulsarTableOptions.validateTableSourceOptions(tableOptions);
         Properties properties = removeConnectorPrefix(context.getCatalogTable().toProperties());
 
         DataType physicalDataType = context.getCatalogTable().getSchema().toPhysicalRowDataType();
-        final PulsarOptions.StartupOptions startupOptions = PulsarOptions.getStartupOptions(tableOptions, topics);
+        final PulsarTableOptions.StartupOptions startupOptions = PulsarTableOptions.getStartupOptions(tableOptions, topics);
         return new PulsarDynamicTableSource(
                 physicalDataType,
                 decodingFormat,
@@ -122,24 +122,24 @@ public class PulsarDynamicTableFactory implements
     public Set<ConfigOption<?>> requiredOptions() {
         final Set<ConfigOption<?>> options = new HashSet<>();
         options.add(FactoryUtil.FORMAT);
-        options.add(PulsarOptions.SERVICE_URL);
-        options.add(PulsarOptions.ADMIN_URL);
+        options.add(PulsarTableOptions.SERVICE_URL);
+        options.add(PulsarTableOptions.ADMIN_URL);
         return options;
     }
 
     @Override
     public Set<ConfigOption<?>> optionalOptions() {
         final Set<ConfigOption<?>> options = new HashSet<>();
-        options.add(PulsarOptions.TOPIC);
-        options.add(PulsarOptions.TOPIC_PATTERN);
-        options.add(PulsarOptions.SCAN_STARTUP_MODE);
-        options.add(PulsarOptions.SCAN_STARTUP_SPECIFIC_OFFSETS);
-        options.add(PulsarOptions.SCAN_STARTUP_SUB_NAME);
+        options.add(PulsarTableOptions.TOPIC);
+        options.add(PulsarTableOptions.TOPIC_PATTERN);
+        options.add(PulsarTableOptions.SCAN_STARTUP_MODE);
+        options.add(PulsarTableOptions.SCAN_STARTUP_SPECIFIC_OFFSETS);
+        options.add(PulsarTableOptions.SCAN_STARTUP_SUB_NAME);
 
-        options.add(PulsarOptions.PULSAR_READER_READER_NAME);
-        options.add(PulsarOptions.PULSAR_READER_SUBSCRIPTION_ROLE_PREFIX);
-        options.add(PulsarOptions.PULSAR_READER_RECEIVER_QUEUE_SIZE);
-        options.add(PulsarOptions.PARTITION_DISCOVERY_INTERVAL_MILLIS);
+        options.add(PulsarTableOptions.PULSAR_READER_READER_NAME);
+        options.add(PulsarTableOptions.PULSAR_READER_SUBSCRIPTION_ROLE_PREFIX);
+        options.add(PulsarTableOptions.PULSAR_READER_RECEIVER_QUEUE_SIZE);
+        options.add(PulsarTableOptions.PARTITION_DISCOVERY_INTERVAL_MILLIS);
 
         return options;
     }

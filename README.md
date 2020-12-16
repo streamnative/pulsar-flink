@@ -28,7 +28,7 @@ For projects using SBT, Maven, Gradle, the following parameters can be set to yo
 -  The `FLINK_VERSION` parameter is now available as `1.9`, `1.11`, and `1.12`.
 
 -  The `SCALA_BINARY_VERSION` parameter is related to the scala version used by flink, `2.11`, `2.12` are available.
--  PULSAR_FLINK_VERSION` is the version of this connector.
+-  PULSAR_FLINK_VERSION` is the version of this connector. Usually only the three-digit version `2.7.0` is available, but the four-digit version `2.7.0.1` is used when providing bug fixes.
 
 ```
      groupId = io.streamnative.connectors

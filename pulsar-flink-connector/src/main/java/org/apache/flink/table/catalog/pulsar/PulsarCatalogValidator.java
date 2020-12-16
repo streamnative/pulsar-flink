@@ -15,6 +15,7 @@
 package org.apache.flink.table.catalog.pulsar;
 
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
+import org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions;
 import org.apache.flink.table.api.ValidationException;
 import org.apache.flink.table.descriptors.CatalogDescriptorValidator;
 import org.apache.flink.table.descriptors.DescriptorProperties;
@@ -28,11 +29,11 @@ public class PulsarCatalogValidator extends CatalogDescriptorValidator {
     public static final String CATALOG_TYPE_VALUE_PULSAR = "pulsar";
     public static final String CATALOG_PULSAR_VERSION = "pulsar-version";
     public static final String CATALOG_SERVICE_URL =
-            org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.SERVICE_URL.key();
+            PulsarTableOptions.SERVICE_URL.key();
     public static final String CATALOG_ADMIN_URL =
-            org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.ADMIN_URL.key();
+            PulsarTableOptions.ADMIN_URL.key();
     public static final String CATALOG_STARTUP_MODE =
-            org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.SCAN_STARTUP_MODE.key();
+            PulsarTableOptions.SCAN_STARTUP_MODE.key();
     public static final String CATALOG_DEFAULT_PARTITIONS = PulsarOptions.DEFAULT_PARTITIONS;
 
     @Override

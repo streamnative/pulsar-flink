@@ -26,8 +26,8 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.createKeyFormatProjection;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.createValueFormatProjection;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.createKeyFormatProjection;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.createValueFormatProjection;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertThat;
@@ -35,7 +35,7 @@ import static org.junit.Assert.fail;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
 /**
- * Test for {@link PulsarOptions}.
+ * Test for {@link PulsarTableOptions}.
  */
 public class PulsarOptionsTest {
 

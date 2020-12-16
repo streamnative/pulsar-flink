@@ -47,19 +47,19 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.ADMIN_URL;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.KEY_FIELDS;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.KEY_FIELDS_PREFIX;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.KEY_FORMAT;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.PROPERTIES;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.SERVICE_URL;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.TOPIC;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.TOPIC_PATTERN;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.VALUE_FIELDS_INCLUDE;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.VALUE_FORMAT;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.createKeyFormatProjection;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.createValueFormatProjection;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.getPulsarProperties;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.ADMIN_URL;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.KEY_FIELDS;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.KEY_FIELDS_PREFIX;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.KEY_FORMAT;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.PROPERTIES;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.SERVICE_URL;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.TOPIC;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.TOPIC_PATTERN;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.VALUE_FIELDS_INCLUDE;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.VALUE_FORMAT;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.createKeyFormatProjection;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.createValueFormatProjection;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.getPulsarProperties;
 import static org.apache.flink.table.factories.FactoryUtil.FORMAT;
 
 /**
@@ -113,7 +113,7 @@ public class UpsertPulsarDynamicTableFactory implements DynamicTableSourceFactor
         String topicPattern = tableOptions.get(TOPIC_PATTERN);
 
         // Validate the option data type.
-        helper.validateExcept(PulsarOptions.PROPERTIES_PREFIX);
+        helper.validateExcept(PulsarTableOptions.PROPERTIES_PREFIX);
         TableSchema schema = context.getCatalogTable().getSchema();
         validateTableOptions(tableOptions, keyDecodingFormat, valueDecodingFormat, schema);
 
@@ -122,7 +122,7 @@ public class UpsertPulsarDynamicTableFactory implements DynamicTableSourceFactor
         Properties properties = getPulsarProperties(context.getCatalogTable().toProperties());
 
         // always use earliest to keep data integrity
-        PulsarOptions.StartupOptions startupOptions = new PulsarOptions.StartupOptions();
+        PulsarTableOptions.StartupOptions startupOptions = new PulsarTableOptions.StartupOptions();
         startupOptions.startupMode = StartupMode.EARLIEST;
         startupOptions.specificOffsets = Collections.EMPTY_MAP;
 
@@ -156,7 +156,7 @@ public class UpsertPulsarDynamicTableFactory implements DynamicTableSourceFactor
                 VALUE_FORMAT);
 
         // Validate the option data type.
-        helper.validateExcept(PulsarOptions.PROPERTIES_PREFIX);
+        helper.validateExcept(PulsarTableOptions.PROPERTIES_PREFIX);
         TableSchema schema = context.getCatalogTable().getSchema();
         validateTableOptions(tableOptions, keyEncodingFormat, valueEncodingFormat, schema);
 

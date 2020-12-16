@@ -366,9 +366,8 @@ SQL中，完整支持了物理字段、计算列、METADATA等特性。
 
 METADATA标志用于读写Pulsar Message中的元数据。支持列表如下：
 
-R/W列定义了元数据字段是否可读（R）和/或可写（W）。只读列必须声明为VIRTUAL，以便在INSERT INTO操作中排除它们。
+**R/W列定义了元数据字段是否可读（R）和/或可写（W）。只读列必须声明为VIRTUAL，以便在INSERT INTO操作中排除它们。**
 
-**The R/W column defines whether a metadata field is readable (R) and/or writable (W). Read-only columns must be declared VIRTUAL to exclude them during an INSERT INTO operation.**
 
 | Key  | Data Type | Description | R/W  |
 | ---- | --------- | ----------- | ---- |

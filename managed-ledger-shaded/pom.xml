@@ -27,7 +27,7 @@
   <name>Pulsar Shaded managed ledger</name>
 
   <properties>
-    <pulsar.version>2.6.0-sn-18-2</pulsar.version>
+    <pulsar.version>2.7.0</pulsar.version>
   </properties>
   <dependencies>
     <dependency>

@@ -35,7 +35,7 @@ Pulsar Flink connector实现了使用 [Apache Pulsar](https://pulsar.apache.org)
     artifactId = pulsar-flink-connector-{{SCALA_BINARY_VERSION}}-{{FLINK_VERSION}}
     version = {{PULSAR_FLINK_VERSION}}
 ```
-该Jar包位于 [Bintray Maven repository of StreamNative](https://dl.bintray.com/streamnative/maven)。
+该Jar包位于 [Bintray Maven repository of StreamNative](https://dl.bintray.com/streamnative/maven) 。
 
 
 Maven项目可以加入仓库配置到您的`pom.xml`，内容如下：
@@ -109,7 +109,7 @@ repositories {
 </plugin>
 ```
 
-对于gradle项目，要构建包含库和pulsar flink连接器所需的所有依赖关系的应用程序JAR，您可以使用以下[shade](https://imperceptiblethoughts.com/shadow/)插件定义模板：
+对于gradle项目，要构建包含库和pulsar flink连接器所需的所有依赖关系的应用程序JAR，您可以使用以下[shade](https://imperceptiblethoughts.com/shadow/) 插件定义模板：
 
 ```groovy
 buildscript {
@@ -160,7 +160,8 @@ $ ./bin/start-scala-shell.sh remote <hostname> <portnumber>
 
 
 ### SQL Client
-要使用 [SQL Client](https://ci.apache.org/projects/flink/flink-docs-release-1.12/dev/table/sqlClient.html 并编写SQL查询操作Pulsar中的数据，你可以使用 `--addclasspath` 参数直接添加 `pulsar-flink-connector-{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar`。
+要使用 [SQL Client](https://ci.apache.org/projects/flink/flink-docs-release-1.12/dev/table/sqlClient.html) 
+并编写SQL查询操作Pulsar中的数据，你可以使用 `--addclasspath` 参数直接添加 `pulsar-flink-connector-{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar`。
 
 栗子🌰
 ```
@@ -332,7 +333,7 @@ VALUES
 SELECT * FROM pulsar
 ```
 
-SQL中，完整支持了物理字段、计算列、METADATA等特性。
+SQL中，完整支持了物理字段、计算列、watermark、METADATA等特性。
 
 
 
@@ -553,7 +554,7 @@ Flink 社区用户对 Upsert 模式消息队列有很高的需求，主要原因
 
 2. 安装Docker
 
-   Pulsar-flink连接器正在使用[Testcontainers](https://www.testcontainers.org/)进行集成测试。 为了运行集成测试，请确保已安装 [Docker](https://docs.docker.com/docker-for-mac/install/)。
+   Pulsar-flink连接器正在使用[Testcontainers](https://www.testcontainers.org/) 进行集成测试。 为了运行集成测试，请确保已安装 [Docker](https://docs.docker.com/docker-for-mac/install/) 。
 
 3. 设置Java版本
 

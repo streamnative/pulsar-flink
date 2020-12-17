@@ -29,7 +29,7 @@
 
   <groupId>io.streamnative.connectors</groupId>
   <artifactId>pulsar-flink-parent</artifactId>
-  <version>2.5.8-SNAPSHOT</version>
+  <version>2.7.0-SNAPSHOT</version>
 
 
   <name>StreamNative :: Pulsar Flink Connector</name>
@@ -398,15 +398,6 @@
       <id>bintray-streamnative-maven</id>
       <name>bintray</name>
       <url>https://dl.bintray.com/streamnative/maven</url>
-    </repository>
-    <repository>
-      <id>apache-snapshots</id>
-      <url>
-        https://repository.apache.org/content/repositories/snapshots/
-      </url>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
     </repository>
   </repositories>
   <distributionManagement>

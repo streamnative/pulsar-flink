@@ -1,6 +1,8 @@
 # Pulsar Flink Connector
 The Pulsar Flink connector implements elastic data processing using [Apache Pulsar](https://pulsar.apache.org) and [Apache Flink](https://flink.apache.org).
 
+Chinese document: [README_CN](doc/README_CN.md)
+
 # Prerequisites
 
 -  Java 8 or higher
@@ -28,14 +30,15 @@ For projects using SBT, Maven, Gradle, the following parameters can be set to yo
 -  The `FLINK_VERSION` parameter is now available as `1.9`, `1.11`, and `1.12`.
 
 -  The `SCALA_BINARY_VERSION` parameter is related to the scala version used by flink, `2.11`, `2.12` are available.
--  PULSAR_FLINK_VERSION` is the version of this connector. Usually only the three-digit version `2.7.0` is available, but the four-digit version `2.7.0.1` is used when providing bug fixes.
+-  The `PULSAR_FLINK_VERSION` is the version of this connector. Usually only the three-digit version `2.7.0` is 
+   available, but the four-digit version `2.7.0.1` is used when providing bug fixes.
 
 ```
      groupId = io.streamnative.connectors
      artifactId = pulsar-flink-connector-{{SCALA_BINARY_VERSION}}-{{FLINK_VERSION}}
      version = {{PULSAR_FLINK_VERSION}}
 ```
-The jar package is located in the [Bintray Maven repository of StreamNative](https://dl.bintray.com/streamnative/maven)。
+The jar package is located in the [Bintray Maven repository of StreamNative](https://dl.bintray.com/streamnative/maven) 。
 
 
 Maven projects can be added to the repository configuration to your `pom.xml` with the following content.
@@ -156,11 +159,12 @@ Example:
 $ . /bin/start-scala-shell.sh remote <hostname> <portnumber>
  --addclasspath pulsar-flink-connector-{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar
 ```
-For more information on submitting applications using the CLI, please refer to [Command-Line Interface](https://ci.apache.org/projects/flink/flink-docs-release-1.12/deployment/cli.html).
+For more information on submitting applications using the CLI, please refer to [Command-Line Interface](https://ci.apache.org/projects/flink/flink-docs-release-1.12/deployment/cli.html) .
 
 
 ### SQL Client
-To use [SQL Client](https://ci.apache.org/projects/flink/flink-docs-release-1.12/dev/table/sqlClient.html and write SQL queries to manipulate the data in Pulsar, you can use the  `-addclasspath` parameter to directly add `pulsar-flink-connector-{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar`.
+To use [SQL Client](https://ci.apache.org/projects/flink/flink-docs-release-1.12/dev/table/sqlClient.html) and write 
+SQL queries to manipulate the data in Pulsar, you can use the  `-addclasspath` parameter to directly add `pulsar-flink-connector-{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar`.
 
 Example:
 ```
@@ -272,12 +276,15 @@ PulsarSerializationSchema uses the builder pattern and you can call setKeyExtrac
 
 In particular, since Pulsar maintains its own Schema information internally, our messages must be able to export a SchemaInfo when they are written to Pulsar. The useSpecialMode, useAtomicMode, usePojoMode, and useRowMode methods can help you quickly build the Schema information you need for Pulsar. You must choose only one of these four modes.
 
--  ecialMode: Specify directly the `Schema<? >` mode, make sure this Schema is compatible with your setting of Flink SerializationSchema.
+-  SpecialMode: Specify directly the `Schema<? >` mode, make sure this Schema is compatible with your setting of 
+   Flink SerializationSchema.
 
--  omicMode: For some atomic types, pass the type of AtomicDataType, such as `DataTypes.INT()`, which will correspond to `Schema<Integer>` in Pulsar.
--  joMode: You need to pass a custom Class object and one of Json or Arvo to specify the way to build a composite type Schema. For example `usePojoMode(Person.class, RecordSchemaType.JSON)`.
+-  AtomicMode: For some atomic types, pass the type of AtomicDataType, such as `DataTypes.INT()`, which will 
+   correspond to `Schema<Integer>` in Pulsar.
+-  PojoMode: You need to pass a custom Class object and one of Json or Arvo to specify the way to build a composite 
+   type Schema. For example `usePojoMode(Person.class, RecordSchemaType.JSON)`.
 
--  wMode: In general, you will not use this mode, it is used for our internal Table&SQL API implementation.
+-  RowMode: In general, you will not use this mode, it is used for our internal Table&SQL API implementation.
 
 
 
@@ -332,7 +339,7 @@ VALUES
 SELECT * FROM pulsar
 ```
 
-SQL is complete with support for physical fields, calculated columns, METADATA and other features.
+SQL is complete with support for physical fields, calculated columns, watermark, METADATA and other features.
 
 
 

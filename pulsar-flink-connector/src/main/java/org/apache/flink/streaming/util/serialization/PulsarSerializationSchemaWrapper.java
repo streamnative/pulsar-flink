@@ -76,6 +76,9 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
 
     @Override
     public void serialize(T element, TypedMessageBuilder<T> messageBuilder) {
+        if (keyExtractor != null) {
+            messageBuilder.keyBytes(keyExtractor.apply(element));
+        }
         messageBuilder.value(element);
     }
 
@@ -197,6 +200,8 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
         }
 
         public PulsarSerializationSchemaWrapper<T> build() {
+            checkNotNull(mode, "Must set mode " +
+                    "use useSpecialMode or useAtomicMode or usePojoMode or useRowMode");
             return new PulsarSerializationSchemaWrapper<>(
                     serializationSchema,
                     recordSchemaType,

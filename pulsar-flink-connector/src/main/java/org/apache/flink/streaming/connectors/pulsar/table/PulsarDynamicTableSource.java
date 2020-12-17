@@ -136,7 +136,7 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
     /**
      * The startup mode for the contained consumer (default is {@link StartupMode#LATEST}).
      */
-    protected final PulsarOptions.StartupOptions startupOptions;
+    protected final PulsarTableOptions.StartupOptions startupOptions;
 
     /**
      * The default value when startup timestamp is not used.
@@ -158,7 +158,7 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
             String serviceUrl,
             String adminUrl,
             Properties properties,
-            PulsarOptions.StartupOptions startupOptions,
+            PulsarTableOptions.StartupOptions startupOptions,
             boolean upsertMode) {
         this.producedDataType = physicalDataType;
         setTopicInfo(properties, topics, topicPattern);

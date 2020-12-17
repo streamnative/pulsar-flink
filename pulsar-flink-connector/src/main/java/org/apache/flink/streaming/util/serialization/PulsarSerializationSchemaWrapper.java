@@ -44,14 +44,16 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
     private final DataType dataType;
     private final SchemaMode schemaMode;
     private final SerializableFunction<T, String> topicExtractor;
+    private final SerializableFunction<T, byte[]> keyExtractor;
 
     private PulsarSerializationSchemaWrapper(SerializationSchema<T> serializationSchema,
-                                            RecordSchemaType recordSchemaType,
-                                            Class<?> clazz,
-                                            Schema<?> schema,
-                                            DataType dataType,
-                                            SchemaMode schemaMode,
-                                            SerializableFunction<T, String> topicExtractor) {
+                                             RecordSchemaType recordSchemaType,
+                                             Class<?> clazz,
+                                             Schema<?> schema,
+                                             DataType dataType,
+                                             SchemaMode schemaMode,
+                                             SerializableFunction<T, String> topicExtractor,
+                                             SerializableFunction<T, byte[]> keyExtractor) {
         this.serializationSchema = serializationSchema;
         this.recordSchemaType = recordSchemaType;
         this.schema = schema;
@@ -59,7 +61,7 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
         this.dataType = dataType;
         this.schemaMode = checkNotNull(schemaMode);
         this.topicExtractor = topicExtractor;
-
+        this.keyExtractor = keyExtractor;
     }
 
     @Override
@@ -141,6 +143,7 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
         private DataType dataType;
         private SchemaMode mode;
         private SerializableFunction<T, String> topicExtractor = (T) -> null;
+        private SerializableFunction<T, byte[]> keyExtractor;
 
         public Builder(SerializationSchema<T> serializationSchema) {
             this.serializationSchema = serializationSchema;
@@ -187,6 +190,12 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
             return this;
         }
 
+        public PulsarSerializationSchemaWrapper.Builder<T> setKeyExtractor(
+                SerializableFunction<T, byte[]> keyExtractor) {
+            this.keyExtractor = keyExtractor;
+            return this;
+        }
+
         public PulsarSerializationSchemaWrapper<T> build() {
             return new PulsarSerializationSchemaWrapper<>(
                     serializationSchema,
@@ -195,7 +204,8 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
                     schema,
                     dataType,
                     mode,
-                    topicExtractor);
+                    topicExtractor,
+                    keyExtractor);
         }
     }
 }

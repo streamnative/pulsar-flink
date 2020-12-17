@@ -141,7 +141,7 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
         specificOffsets.put("-1", MessageId.earliest);
 //        specificOffsets.put(TOPIC, MessageId.earliest);
 
-        final PulsarOptions.StartupOptions startupOptions = new PulsarOptions.StartupOptions();
+        final PulsarTableOptions.StartupOptions startupOptions = new PulsarTableOptions.StartupOptions();
         startupOptions.startupMode = StartupMode.SPECIFIC_OFFSETS;
         startupOptions.specificOffsets = specificOffsets;
 
@@ -205,7 +205,7 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
                 });
         final DynamicTableSource actualSource = createTableSource(SCHEMA, modifiedOptions);
 
-        final PulsarOptions.StartupOptions startupOptions = new PulsarOptions.StartupOptions();
+        final PulsarTableOptions.StartupOptions startupOptions = new PulsarTableOptions.StartupOptions();
         startupOptions.startupMode = StartupMode.EARLIEST;
         startupOptions.specificOffsets = new HashMap<>();
 
@@ -275,7 +275,7 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
                 .notNull();
         expectedValueFormat.metadataKeys = Collections.singletonList("metadata_2");
 
-        final PulsarOptions.StartupOptions startupOptions = new PulsarOptions.StartupOptions();
+        final PulsarTableOptions.StartupOptions startupOptions = new PulsarTableOptions.StartupOptions();
         startupOptions.startupMode = StartupMode.LATEST;
         startupOptions.specificOffsets = new HashMap<>();
 
@@ -516,7 +516,7 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
             @Nullable List<String> topics,
             String topicPattern,
             Properties properties,
-            PulsarOptions.StartupOptions startupOptions) {
+            PulsarTableOptions.StartupOptions startupOptions) {
         return new PulsarDynamicTableSource(
                 physicalDataType,
                 keyDecodingFormat,
@@ -634,8 +634,8 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
         tableOptions.put("topic", TOPIC);
         tableOptions.put("service-url", SERVICE_URL);
         tableOptions.put("admin-url", ADMIN_URL);
-        tableOptions.put("sink.semantic", PulsarOptions.SINK_SEMANTIC_VALUE_AT_LEAST_ONCE);
-        tableOptions.put("sink.message-router", PulsarOptions.SINK_MESSAGE_ROUTER_VALUE_KEY_HASH);
+        tableOptions.put("sink.semantic", PulsarTableOptions.SINK_SEMANTIC_VALUE_AT_LEAST_ONCE);
+        tableOptions.put("sink.message-router", PulsarTableOptions.SINK_MESSAGE_ROUTER_VALUE_KEY_HASH);
         tableOptions.put("properties.pulsar.reader.readername", "testReaderName");
 
         // Format options.
@@ -655,7 +655,7 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
         tableOptions.put("admin-url", ADMIN_URL);
         tableOptions.put("partition.discovery.interval-millis", DISCOVERY_INTERVAL);
         tableOptions.put("properties.pulsar.reader.readername", "testReaderName");
-        tableOptions.put("sink.semantic", PulsarOptions.SINK_SEMANTIC_VALUE_EXACTLY_ONCE);
+        tableOptions.put("sink.semantic", PulsarTableOptions.SINK_SEMANTIC_VALUE_EXACTLY_ONCE);
         // Format options.
         tableOptions.put("key.format", TestFormatFactory.IDENTIFIER);
         tableOptions.put(
@@ -666,7 +666,7 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
         tableOptions.put(
                 String.format("value.%s.%s", TestFormatFactory.IDENTIFIER, TestFormatFactory.DELIMITER.key()),
                 "|");
-        tableOptions.put("value.fields-include", PulsarOptions.ValueFieldsStrategy.EXCEPT_KEY.toString());
+        tableOptions.put("value.fields-include", PulsarTableOptions.ValueFieldsStrategy.EXCEPT_KEY.toString());
         return tableOptions;
     }
 

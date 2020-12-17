@@ -14,7 +14,7 @@
 
 package org.apache.flink.table.catalog.pulsar.factories;
 
-import org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions;
+import org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions;
 import org.apache.flink.table.catalog.Catalog;
 import org.apache.flink.table.catalog.pulsar.PulsarCatalog;
 import org.apache.flink.table.catalog.pulsar.PulsarCatalogValidator;
@@ -67,12 +67,12 @@ public class PulsarCatalogFactory implements CatalogFactory {
         props.add(CATALOG_ADMIN_URL);
         props.add(CATALOG_STARTUP_MODE);
         props.add(CATALOG_DEFAULT_PARTITIONS);
-        props.add(PulsarOptions.KEY_FORMAT.key());
-        props.add(PulsarOptions.KEY_FIELDS.key());
-        props.add(PulsarOptions.KEY_FIELDS_PREFIX.key());
-        props.add(PulsarOptions.VALUE_FORMAT.key());
-        props.add(PulsarOptions.VALUE_FIELDS_INCLUDE.key());
-        props.add(PulsarOptions.SINK_SEMANTIC.key());
+        props.add(PulsarTableOptions.KEY_FORMAT.key());
+        props.add(PulsarTableOptions.KEY_FIELDS.key());
+        props.add(PulsarTableOptions.KEY_FIELDS_PREFIX.key());
+        props.add(PulsarTableOptions.VALUE_FORMAT.key());
+        props.add(PulsarTableOptions.VALUE_FIELDS_INCLUDE.key());
+        props.add(PulsarTableOptions.SINK_SEMANTIC.key());
         props.add(FormatDescriptorValidator.FORMAT);
         props.add(FormatDescriptorValidator.FORMAT + ".*");
         return props;

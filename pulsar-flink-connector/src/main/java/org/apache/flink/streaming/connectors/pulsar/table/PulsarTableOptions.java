@@ -59,8 +59,8 @@ import static org.apache.flink.table.types.logical.utils.LogicalTypeChecks.hasRo
  * Option utils for pulsar table source sink.
  */
 @Slf4j
-public class PulsarOptions {
-    private PulsarOptions() {
+public class PulsarTableOptions {
+    private PulsarTableOptions() {
     }
 
     // --------------------------------------------------------------------------------------------
@@ -174,21 +174,6 @@ public class PulsarOptions {
             .longType()
             .noDefaultValue()
             .withDescription("Optional timestamp used in case of \"timestamp\" startup mode");
-    public static final ConfigOption<String> PULSAR_READER_READER_NAME = ConfigOptions
-            .key("pulsar.reader.readerName")
-            .stringType()
-            .noDefaultValue()
-            .withDescription("Optional pulsar reader readerName of \"readerName\"");
-    public static final ConfigOption<String> PULSAR_READER_SUBSCRIPTION_ROLE_PREFIX = ConfigOptions
-            .key("pulsar.reader.subscriptionRolePrefix")
-            .stringType()
-            .noDefaultValue()
-            .withDescription("Optional pulsar reader subscriptionRolePrefix of \"subscriptionRolePrefix\"");
-    public static final ConfigOption<String> PULSAR_READER_RECEIVER_QUEUE_SIZE = ConfigOptions
-            .key("pulsar.reader.receiver-queue-size")
-            .stringType()
-            .noDefaultValue()
-            .withDescription("Optional pulsar reader receiverQueueSize of \"receiver-queue-size\"");
 
     public static final ConfigOption<Long> PARTITION_DISCOVERY_INTERVAL_MILLIS = ConfigOptions
             .key("partition.discovery.interval-millis")

@@ -47,32 +47,29 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.ADMIN_URL;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.KEY_FIELDS;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.KEY_FIELDS_PREFIX;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.KEY_FORMAT;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.PARTITION_DISCOVERY_INTERVAL_MILLIS;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.PROPERTIES;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.PROPERTIES_PREFIX;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.PULSAR_READER_READER_NAME;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.PULSAR_READER_RECEIVER_QUEUE_SIZE;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.PULSAR_READER_SUBSCRIPTION_ROLE_PREFIX;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.SCAN_STARTUP_MODE;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.SCAN_STARTUP_SPECIFIC_OFFSETS;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.SCAN_STARTUP_SUB_NAME;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.SERVICE_URL;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.SINK_MESSAGE_ROUTER;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.SINK_SEMANTIC;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.TOPIC;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.TOPIC_PATTERN;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.VALUE_FIELDS_INCLUDE;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.VALUE_FORMAT;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.createKeyFormatProjection;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.createValueFormatProjection;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.getMessageRouter;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.getPulsarProperties;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.validateSinkMessageRouter;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarOptions.validateTableSourceOptions;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.ADMIN_URL;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.KEY_FIELDS;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.KEY_FIELDS_PREFIX;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.KEY_FORMAT;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.PARTITION_DISCOVERY_INTERVAL_MILLIS;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.PROPERTIES;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.PROPERTIES_PREFIX;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.SCAN_STARTUP_MODE;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.SCAN_STARTUP_SPECIFIC_OFFSETS;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.SCAN_STARTUP_SUB_NAME;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.SERVICE_URL;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.SINK_MESSAGE_ROUTER;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.SINK_SEMANTIC;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.TOPIC;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.TOPIC_PATTERN;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.VALUE_FIELDS_INCLUDE;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.VALUE_FORMAT;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.createKeyFormatProjection;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.createValueFormatProjection;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.getMessageRouter;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.getPulsarProperties;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.validateSinkMessageRouter;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.validateTableSourceOptions;
 import static org.apache.flink.table.factories.FactoryUtil.FORMAT;
 import static org.apache.flink.table.factories.FactoryUtil.SINK_PARALLELISM;
 
@@ -86,7 +83,7 @@ public class PulsarDynamicTableFactory implements
 
     public static final String IDENTIFIER = "pulsar";
 
-    private boolean inCatalog;
+    private final boolean inCatalog;
 
     public PulsarDynamicTableFactory() {
         this.inCatalog = false;
@@ -118,7 +115,7 @@ public class PulsarDynamicTableFactory implements
         // Validate the option data type.
         helper.validateExcept(PROPERTIES_PREFIX, "type", "table-default-partitions");
         // Validate the option values.
-        PulsarOptions.validateTableSinkOptions(tableOptions);
+        PulsarTableOptions.validateTableSinkOptions(tableOptions);
 
         Properties properties = getPulsarProperties(context.getCatalogTable().toProperties());
         validatePKConstraints(context.getObjectIdentifier(), context.getCatalogTable(), valueEncodingFormat);
@@ -156,7 +153,7 @@ public class PulsarDynamicTableFactory implements
                 keyProjection,
                 valueProjection,
                 keyPrefix,
-                PulsarOptions.getSinkSemantic(tableOptions),
+                PulsarTableOptions.getSinkSemantic(tableOptions),
                 formatType,
                 false,
                 parallelism,
@@ -194,7 +191,8 @@ public class PulsarDynamicTableFactory implements
 
         Properties properties = getPulsarProperties(context.getCatalogTable().toProperties());
 
-        final PulsarOptions.StartupOptions startupOptions = PulsarOptions.getStartupOptions(tableOptions, topics);
+        final PulsarTableOptions.StartupOptions startupOptions = PulsarTableOptions
+                .getStartupOptions(tableOptions, topics);
 
         final DataType physicalDataType = context.getCatalogTable().getSchema().toPhysicalRowDataType();
 
@@ -247,9 +245,6 @@ public class PulsarDynamicTableFactory implements
         options.add(SCAN_STARTUP_SPECIFIC_OFFSETS);
         options.add(SCAN_STARTUP_SUB_NAME);
 
-        options.add(PULSAR_READER_READER_NAME);
-        options.add(PULSAR_READER_SUBSCRIPTION_ROLE_PREFIX);
-        options.add(PULSAR_READER_RECEIVER_QUEUE_SIZE);
         options.add(PARTITION_DISCOVERY_INTERVAL_MILLIS);
         options.add(SINK_SEMANTIC);
         options.add(SINK_MESSAGE_ROUTER);
@@ -337,7 +332,7 @@ public class PulsarDynamicTableFactory implements
             String serviceUrl,
             String adminUrl,
             Properties properties,
-            PulsarOptions.StartupOptions startupOptions) {
+            PulsarTableOptions.StartupOptions startupOptions) {
         return new PulsarDynamicTableSource(
                 physicalDataType,
                 keyDecodingFormat,

@@ -394,7 +394,7 @@ public class UpsertPulsarDynamicTableFactoryTest extends TestLogger {
             String keyPrefix,
             String topic,
             Properties properties) {
-        PulsarOptions.StartupOptions startupOptions = new PulsarOptions.StartupOptions();
+        PulsarTableOptions.StartupOptions startupOptions = new PulsarTableOptions.StartupOptions();
         startupOptions.startupMode = StartupMode.EARLIEST;
         startupOptions.specificOffsets = Collections.EMPTY_MAP;
         return new PulsarDynamicTableSource(

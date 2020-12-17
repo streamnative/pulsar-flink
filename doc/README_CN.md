@@ -142,9 +142,8 @@ apply plugin: 'java'
 栗子🌰
 
 ```
-$ ./bin/flink run
-  -c com.example.entry.point.ClassName file://path/to/jars/your_fat_jar.jar
-  ...
+$ ./bin/flink run -c com.example.entry.point.ClassName file://path/to/jars/your_fat_jar.jar
+ ...
 ```
 
 ### Scala REPL

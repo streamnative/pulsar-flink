@@ -44,18 +44,18 @@ The jar package is located in the [Bintray Maven repository of StreamNative](htt
 Maven projects can be added to the repository configuration to your `pom.xml` with the following content.
 
 ```xml
- <repositories>
-     <repository>
-       <id>central</id>
-       <layout>default</layout>
-       <url>https://repo1.maven.org/maven2</url>
-     </repository>.
-     <repository>
-       <id>bintray-streamnative-maven</id
-       <name>bintray</name>
-       <url>https://dl.bintray.com/streamnative/maven</url>
-     </repository>.
- </repositories>.
+  <repositories>
+    <repository>
+      <id>central</id>
+      <layout>default</layout>
+      <url>https://repo1.maven.org/maven2</url>
+    </repository>
+    <repository>
+      <id>bintray-streamnative-maven</id>
+      <name>bintray</name>
+      <url>https://dl.bintray.com/streamnative/maven</url>
+    </repository>
+  </repositories>
 ```
 Gradle projects can add the repository configuration in `build.gradle`, as follows.
 
@@ -71,45 +71,45 @@ For maven projects, to build an application JAR that contains all the dependenci
 
 ```xml
 <plugin>
- <!-- Shade all the dependencies to avoid conflicts -->
- <groupId>org.apache.maven.plugins</groupId>
- <artifactId>maven-shade-plugin</artifactId>
- <version>${maven-shade-plugin.version}</version
- <executions
-     <execution
-       <phase>package</phase>
-       <goals>
-         <goal>shade</goal
-       </goals>.
-       <configuration>
-         <createDependencyReducedPom>true</createDependencyReducedPom>
-         <promoteTransitiveDependencies>true</promoteTransitiveDependencies
-         <minimizeJar>false</minimizeJar>
+  <!-- Shade all the dependencies to avoid conflicts -->
+  <groupId>org.apache.maven.plugins</groupId>
+  <artifactId>maven-shade-plugin</artifactId>
+  <version>${maven-shade-plugin.version}</version>
+  <executions>
+    <execution>
+      <phase>package</phase>
+      <goals>
+        <goal>shade</goal>
+      </goals>
+      <configuration>
+        <createDependencyReducedPom>true</createDependencyReducedPom>
+        <promoteTransitiveDependencies>true</promoteTransitiveDependencies>
+        <minimizeJar>false</minimizeJar>
 
-         <artifactSet>
-           <includes>
-             <include>io.streamnative.connectors:*</include>
-             <!-- more libs to include here -->
-           </includes>
-         </artifactSet>.
-         <filters>
-           <filter>
-             <artifact>*:*</artifact>
-             <excludes>
-               <exclude>META-INF/*.SF</exclude>
-               <exclude>META-INF/*.DSA</exclude>
-               <exclude>META-INF/*.RSA</exclude>
-             </excludes>
-           </filter>.
-         </filters
-         <transformers>
-           <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
-           <transformer implementation="org.apache.maven.plugins.shade.resource.PluginXmlResourceTransformer" />
-         </transformers>.
-       </configuration>.
-     </execution>.
- </executions>.
-</plugin
+        <artifactSet>
+          <includes>
+            <include>io.streamnative.connectors:*</include>
+            <!-- more libs to include here -->
+          </includes>
+        </artifactSet>
+        <filters>
+          <filter>
+            <artifact>*:*</artifact>
+            <excludes>
+              <exclude>META-INF/*.SF</exclude>
+              <exclude>META-INF/*.DSA</exclude>
+              <exclude>META-INF/*.RSA</exclude>
+            </excludes>
+          </filter>
+        </filters>
+        <transformers>
+          <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+          <transformer implementation="org.apache.maven.plugins.shade.resource.PluginXmlResourceTransformer" />
+        </transformers>
+      </configuration>
+    </execution>
+  </executions>
+</plugin>
 ```
 
 For gradle projects, to build an application JAR containing all the dependencies needed for the library and pulsar flink connector, you can define a template using the following [shade](https://imperceptiblethoughts.com/shadow/) plugin.
@@ -135,7 +135,7 @@ apply plugin: 'java'
 ## Deployment
 
 ### Client library
-As with any Flink application, `. /bin/flink run` is used to compile and start your application.
+As with any Flink application, `./bin/flink run` is used to compile and start your application.
 
 If you have already built a jar with dependencies using the shade plugin above, you can add your jar to `flink run` using `--classpath`.
 
@@ -145,8 +145,7 @@ If you have already built a jar with dependencies using the shade plugin above, 
 Example:
 
 ```
-$ . /bin/flink run
- -c com.example.entry.point.ClassName file://path/to/jars/your_fat_jar.jar
+$ ./bin/flink run -c com.example.entry.point.ClassName file://path/to/jars/your_fat_jar.jar
  ...
 ```
 
@@ -156,7 +155,7 @@ Try it in the interactive Scala shell `bin/start-scala-shell.sh`, you can add `p
 Example:
 
 ```
-$ . /bin/start-scala-shell.sh remote <hostname> <portnumber>
+$ ./bin/start-scala-shell.sh remote <hostname> <portnumber>
  --addclasspath pulsar-flink-connector-{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar
 ```
 For more information on submitting applications using the CLI, please refer to [Command-Line Interface](https://ci.apache.org/projects/flink/flink-docs-release-1.12/deployment/cli.html) .
@@ -170,18 +169,19 @@ Example:
 ```
 $ ./bin/sql-client.sh embedded --jar pulsar-flink-connector-{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar
 ```
-> If you put the jar of our connector under `$FLINK_HOME/lib`, please do not use `-jar` again to specify the package of the connector.
+> If you put the jar of our connector under `$FLINK_HOME/lib`, please do not use `--jar` again to specify the 
+> package of the connector.
 
-By default, to use the Pulsar directory in SQL Client and register it automatically at startup, SQL Client reads its configuration from the environment file `. /conf/sql-client-defaults.yaml` to read its configuration. You need to add the Pulsar catalog to the `catalogs` section of this YAML file.
+By default, to use the Pulsar directory in SQL Client and register it automatically at startup, SQL Client reads its configuration from the environment file `./conf/sql-client-defaults.yaml` to read its configuration. You need to add the Pulsar catalog to the `catalogs` section of this YAML file.
 
 ```yaml
 catalogs:
--  me: pulsarcatalog
-     type: pulsar
-     default-database: tn/ns
-     service-url: "pulsar://localhost:6650"
-     admin-url: "http://localhost:8080"
-     format: json
+- name: pulsarcatalog
+    type: pulsar
+    default-database: tn/ns
+    service-url: "pulsar://localhost:6650"
+    admin-url: "http://localhost:8080"
+    format: json
 ```
 
 
@@ -201,7 +201,8 @@ Its constructor method has the following parameters.
 3. the Properties parameter, which is used to configure the behavior of the Pulsar Consumer.
    Properties necessary parameters, as follows:
 
-    -  e and only one of these parameters `topic`, `topics` or `topicsPattern` must have a value present. This is used to configure the Topic information to be consumed. (**`topics` is multiple topics separated by a comma `,`, `topicsPattern` is a java regular expression that matches a number of topics**)
+    -  One of these parameters `topic`, `topics` or `topicsPattern` must have a value present. This is 
+       used to configure the Topic information to be consumed. (**`topics` is multiple topics separated by a comma `,`, `topicsPattern` is a java regular expression that matches a number of topics**)
 4. Set consumption mode can be set by setStartFromLatest, setStartFromEarliest, setStartFromSpecificOffsets, setStartFromSubscription, etc. of FlinkPulsarSource. When using setStartFromSubscription subscriber mode, the checkpoint function must be enabled.
 
 
@@ -240,12 +241,12 @@ PulsarSerializationSchema<Person> pulsarSerialization = new PulsarSerializationS
 .setTopicExtractor(person -> null)
 .build();
 FlinkPulsarSink<Person> sink = new FlinkPulsarSink(
- serviceUrl,
- adminUrl,
- Optional.of(topic),       // mandatory target topic or use `Optional.empty()` if sink to different topics for each record
- props,
- pulsarSerialization,
- PulsarSinkSemantic.AT_LEAST_ONCE);
+  serviceUrl,
+  adminUrl,
+  Optional.of(topic),      // mandatory target topic or use `Optional.empty()` if sink to different topics for each record
+  props,
+  pulsarSerialization,
+  PulsarSinkSemantic.AT_LEAST_ONCE);
 
 stream.addSink(sink);
 ```
@@ -276,7 +277,7 @@ PulsarSerializationSchema uses the builder pattern and you can call setKeyExtrac
 
 In particular, since Pulsar maintains its own Schema information internally, our messages must be able to export a SchemaInfo when they are written to Pulsar. The useSpecialMode, useAtomicMode, usePojoMode, and useRowMode methods can help you quickly build the Schema information you need for Pulsar. You must choose only one of these four modes.
 
--  SpecialMode: Specify directly the `Schema<? >` mode, make sure this Schema is compatible with your setting of 
+-  SpecialMode: Specify directly the `Schema<?>` mode, make sure this Schema is compatible with your setting of 
    Flink SerializationSchema.
 
 -  AtomicMode: For some atomic types, pass the type of AtomicDataType, such as `DataTypes.INT()`, which will 
@@ -311,23 +312,23 @@ SQL Example
 
 ```sql
 CREATE TABLE pulsar (
- `physical_1` STRING,
- `physical_2` INT,
- `eventTime` TIMESTAMP(3) METADATA,
- `properties` MAP<STRING, STRING> METADATA ,
- `topic` STRING METADATA VIRTUAL,
- `sequenceId` BIGINT METADATA VIRTUAL,
- `key` STRING ,
- `physical_3` BOOLEAN
+  `physical_1` STRING,
+  `physical_2` INT,
+  `eventTime` TIMESTAMP(3) METADATA,
+  `properties` MAP<STRING, STRING> METADATA ,
+  `topic` STRING METADATA VIRTUAL,
+  `sequenceId` BIGINT METADATA VIRTUAL,
+  `key` STRING ,
+  `physical_3` BOOLEAN
 ) WITH (
- 'connector' = 'pulsar',
- 'topic' = 'persistent://public/default/topic82547611',
- 'key.format' = 'raw',
- 'key.fields' = 'key',
- 'value.format' = 'avro',
- 'service-url' = 'pulsar://localhost:6650',
- 'admin-url' = 'http://localhost:8080',
- 'scan.startup.mode' = 'earliest' 
+  'connector' = 'pulsar',
+  'topic' = 'persistent://public/default/topic82547611',
+  'key.format' = 'raw',
+  'key.fields' = 'key',
+  'value.format' = 'avro',
+  'service-url' = 'pulsar://localhost:6650',
+  'admin-url' = 'http://localhost:8080',
+  'scan.startup.mode' = 'earliest' 
 )
 
 INSERT INTO pulsar 
@@ -457,8 +458,8 @@ We have created a new Flink format component called `atomic` that you can use in
 There is a high demand for Upsert mode message queues from Flink community users for three main reasons.
 
 -  Interpret Pulsar Topic as a changelog stream, which interprets records with keys as upsert events.
--   As part of the real-time pipeline, multiple streams are connected for enrichment and the results are stored in Pulsar Topic for further computation later. However, the results may contain update events.
--   As part of the real-time pipeline, the data stream is aggregated and the results are stored in Pulsar Topic for further computation later. However, the results may contain update events.
+-  As part of the real-time pipeline, multiple streams are connected for enrichment and the results are stored in Pulsar Topic for further computation later. However, the results may contain update events.
+-  As part of the real-time pipeline, the data stream is aggregated and the results are stored in Pulsar Topic for further computation later. However, the results may contain update events.
     Based on these requirements, we have also implemented support for Upsert Pulsar. Using this feature, users can read data from and write data to Pulsar topics in an upsert fashion.
 
 
@@ -527,19 +528,19 @@ For FlinkPulsarSource, FlinkPulsarSink, you have two ways to set up authenticati
 
 -  Connstructed parameters `Properties`
 
- ```java
- props.setProperty(PulsarOptions.AUTH_PLUGIN_CLASSNAME_KEY, "org.apache.pulsar.client.impl.auth.AuthenticationToken");
- props.setProperty(PulsarOptions.AUTH_PARAMS_KEY, "token:eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyMSJ9.2AgtxHe8- 2QBV529B5DrRtpuqP6RJjrk21Mhnomfivo");
- ```
+  ```java
+  props.setProperty(PulsarOptions.AUTH_PLUGIN_CLASSNAME_KEY, "org.apache.pulsar.client.impl.auth.AuthenticationToken");
+  props.setProperty(PulsarOptions.AUTH_PARAMS_KEY, "token:eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyMSJ9.2AgtxHe8-2QBV529B5DrRtpuqP6RJjrk21Mhnomfivo");
+  ```
 
 -  Constructs the parameter `ClientConfigurationData`, which has a higher priority than `Properties`.
 
- ```java
- ClientConfigurationData conf = new ClientConfigurationData();
- conf.setServiceUrl(serviceUrl);
- conf.setAuthPluginClassName(className);
- conf.setAuthParams(params);
- ```
+  ```java
+  ClientConfigurationData conf = new ClientConfigurationData();
+  conf.setServiceUrl(serviceUrl);
+  conf.setAuthPluginClassName(className);
+  conf.setAuthParams(params);
+  ```
 
 For detailed configuration of authentication, please refer to [Pulsar Security](https://pulsar.apache.org/docs/en/security-overview/).
 

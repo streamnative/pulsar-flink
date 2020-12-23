@@ -1,44 +1,47 @@
-# Pulsar Flink Connector
-Pulsar Flink connector实现了使用 [Apache Pulsar](https://pulsar.apache.org) 和 [Apache Flink](https://flink.apache.org)进行弹性数据处理的功能。
+# Pulsar Flink 连接器
+
+Pulsar Flink 连接器使用 [Apache Pulsar](https://pulsar.apache.org) 和 [Apache Flink](https://flink.apache.org) 处理弹性数据。
 
 # 前提条件
 
-- Java 8或更高
-- Flink 1.9.0 或更高
-- Pulsar 2.4.0 或更高
+- Java 8 或更高版本
+- Flink 1.9.0 或更高版本
+- Pulsar 2.4.0 或更高版本
 
 # 基本信息
 
+本章节介绍 Pulsar Flink 连接器的基本信息。
+
 ## 客户端
 
-现在支持有Flink多个版本：
+目前，支持多个 Flink 版本：
 
-- Flink 1.9 - 1.10 维护在分支`flink-1.9`
+- Flink 1.9 - 1.10：在 [`flink-1.9` 分支](https://github.com/streamnative/pulsar-flink/tree/flink-1.9)进行维护。
+- Flink 1.11：在 [`flink-1.11` 分支](https://github.com/streamnative/pulsar-flink/tree/flink-1.11)进行维护。
+- Flink 1.12：在 [`master` 分支](https://github.com/streamnative/pulsar-flink/tree/master)进行维护。
 
-- Flink 1.11 维护在分支`flink-1.11`
+> **说明**  
+> Flink API 变化较大。master 分支主要覆盖新特性。其他分支主要包括一些 Bug 修复。
 
-- Flink 1.12 是当前的主力支持的版本，在`master`分支
+该 JAR 包位于 [Bintray Maven repository of StreamNative](https://dl.bintray.com/streamnative/maven)。
 
-  >  由于Flink的API变化较大，我们主要在master进行新特性的开发，其余分支以Bug修复为主。
+对于使用 SBT、Maven、Gradle 的项目，可以设置以下参数到相关项目。
 
+- `FLINK_VERSION`：支持 `1.9`、`1.11`、`1.12`。
+- `SCALA_BINARY_VERSION`：与 Flink 使用的 Scala 版本相关。目前，支持 `2.11`、`2.12`。
+- `PULSAR_FLINK_VERSION`：Pulsar Flink 连接器的版本。通常，使用三位数表示主版本（例如 `2.7.0`）。使用四位数表示分支版本（例如 `2.7.0.1`）。
 
-
-对于使用SBT、Maven、Gradle的项目，可以使用下面参数设置到您的项目。
-
-- `FLINK_VERSION`参数现在有`1.9`、`1.11`、`1.12`可选。
-
-- `SCALA_BINARY_VERSION`参数很flink使用的scala版本有关，现有`2.11`、`2.12`可选。
-- `PULSAR_FLINK_VERSION`是本连接器的版本。通常只有`2.7.0`三位的版本，但提供bug修复时会使用四位版本`2.7.0.1`。
+以下举例说明如何配置用 SBT、Maven、Gradle 的项目。
 
 ```
-    groupId = io.streamnative.connectors
-    artifactId = pulsar-flink-connector-{{SCALA_BINARY_VERSION}}-{{FLINK_VERSION}}
-    version = {{PULSAR_FLINK_VERSION}}
+groupId = io.streamnative.connectors
+artifactId = pulsar-flink-connector-{{SCALA_BINARY_VERSION}}-{{FLINK_VERSION}}
+version = {{PULSAR_FLINK_VERSION}}
 ```
-该Jar包位于 [Bintray Maven repository of StreamNative](https://dl.bintray.com/streamnative/maven) 。
 
+## Maven 项目
 
-Maven项目可以加入仓库配置到您的`pom.xml`，内容如下：
+对于 Maven 项目，用户可以在 `pom.xml` 中添加仓库的配置，内容如下：
 
 ```xml
   <repositories>
@@ -54,17 +57,8 @@ Maven项目可以加入仓库配置到您的`pom.xml`，内容如下：
     </repository>
   </repositories>
 ```
-Gradle项目可以在`build.gradle`中添加仓库的配置，内容如下：
 
-```groovy
-repositories {
-        maven {
-            url 'https://dl.bintray.com/streamnative/maven'
-        }
-}
-```
-
-对于maven项目，要构建包含库和pulsar flink连接器所需的所有依赖关系的应用程序JAR，您可以使用以下shade插件定义模板：
+对于 Maven 项目，想要构建包含库和 Pulsar Flink 连接器所需的所有依赖关系的 JAR 包，用户可以使用以下 [shade](https://imperceptiblethoughts.com/shadow/) 插件定义模板：
 
 ```xml
 <plugin>
@@ -109,7 +103,19 @@ repositories {
 </plugin>
 ```
 
-对于gradle项目，要构建包含库和pulsar flink连接器所需的所有依赖关系的应用程序JAR，您可以使用以下[shade](https://imperceptiblethoughts.com/shadow/) 插件定义模板：
+## Gradle项目
+
+对于 Gradle 项目，用户可以在 `build.gradle` 中添加仓库的配置，内容如下：
+
+```groovy
+repositories {
+        maven {
+            url 'https://dl.bintray.com/streamnative/maven'
+        }
+}
+```
+
+对于 Gradle 项目，想要构建包含库和 Pulsar Flink 连接器所需的所有依赖关系的 JAR 包，用户可以使用以下[shade](https://imperceptiblethoughts.com/shadow/) 插件定义模板：
 
 ```groovy
 buildscript {
@@ -125,50 +131,90 @@ apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'java'
 ```
 
+# 构建 Pulsar Flink 连接器
 
+Pulsar Flink 连接器用来从 Pulsar 中读取数据或者将结果写入 Pulsar。如需构建 Pulsar Flink 连接器，请遵循以下步骤。
 
+1. 克隆源代码。
 
+  ```bash
+  git clone https://github.com/streamnative/pulsar-flink.git
+  cd pulsar-flink
+  ```
 
-## 部署
+2. 安装 Docker。
 
-### Client library
-与任何Flink应用程序一样，`./bin/flink run`用于编译和启动您的应用程序。
+  Pulsar Flink 连接器使用[Testcontainers](https://www.testcontainers.org/) 进行集成测试。为了运行集成测试，请确保已安装 [Docker](https://docs.docker.com/docker-for-mac/install/)。
 
-如果您已经使用上面的shade插件构建了一个包含依赖的jar，则可以使用`--classpath`将您的jar添加到`flink run` 中。
+3. 设置 Java 版本。
 
-> #### Note
-> 路径的格式必须是协议（例如， `file://`），并且该路径在所有节点上都可以访问。
+  在 `pom.xml` 文件中修改 `java.version` 和 `java.binary.version` 参数。
+  > **说明**  
+  > Java 版本应与使用的 Flink 的 Java 版本保持一致。
 
-栗子🌰
+4. 构建项目。
+
+  ```bash
+  mvn clean install -DskipTests
+  ```
+
+5. 运行测试。
+
+  ```bash
+  mvn clean install
+  ```
+
+安装完成后，在本地 Maven 项目库和 `target` 目录下都会生成一个包含依赖的 JAR 包。
+
+> **说明**  
+> 如果使用 intellij IDEA 调试本项目，可能会遇到无法找到 `org.apache.pulsar.shade.org.bookkeeper.ledger` 包的错误。在这种情况下，首先运行 ` mvn clean install -DskipTests` 命令，安装 JAR 包到本地仓库，然后忽略项目的 `managed-ledger-shaded` Maven 模块，最后单击 **刷新**按钮，即可解决错误。
+
+# 部署 Pulsar Flink 连接器
+
+本章节介绍如何部署 Pulsar Flink 连接器。
+
+## Client library
+
+与其他 Flink 应用程序一样，`./bin/flink run` 命令用于编译和启动用户的应用程序。
+
+如果用户已使用 shade 插件构建了一个包含依赖关系的 JAR 包，则可以使用 `--classpath` 参数将该 JAR 包添加到 `flink run` 中。
+
+> **说明**  
+> 路径必须采用协议格式（例如，`file://`），并且所有节点都可以访问该路径。
+
+**举例**
 
 ```
-$ ./bin/flink run -c com.example.entry.point.ClassName file://path/to/jars/your_fat_jar.jar
- ...
+./bin/flink run -c com.example.entry.point.ClassName file://path/to/jars/your_fat_jar.jar
 ```
 
-### Scala REPL
-在交互式的Scala shell中进行尝试 `bin/start-scala-shell.sh`，你可以使用 `--addclasspath` 参数直接添加 `pulsar-flink-connector_{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar`。
+## Scala REPL
 
-栗子🌰
+在交互式的 Scala shell 中进行尝试 `bin/start-scala-shell.sh`，你可以使用 `--addclasspath` 参数直接添加 `pulsar-flink-connector_{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar`。
+
+**举例**
 
 ```
-$ ./bin/start-scala-shell.sh remote <hostname> <portnumber>
+./bin/start-scala-shell.sh remote <hostname> <portnumber>
   --addclasspath pulsar-flink-connector-{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar
 ```
-有关使用CLI提交应用程序的更多信息，请参考 [Command-Line Interface](https://ci.apache.org/projects/flink/flink-docs-release-1.12/deployment/cli.html).
 
+有关使用 CLI 提交应用程序的更多信息，参见 [Command-Line Interface](https://ci.apache.org/projects/flink/flink-docs-release-1.12/deployment/cli.html).
 
-### SQL Client
-要使用 [SQL Client](https://ci.apache.org/projects/flink/flink-docs-release-1.12/dev/table/sqlClient.html) 
-并编写SQL查询操作Pulsar中的数据，你可以使用 `--addclasspath` 参数直接添加 `pulsar-flink-connector-{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar`。
+## SQL 客户端
 
-栗子🌰
+如需使用 [SQL 客户端](https://ci.apache.org/projects/flink/flink-docs-release-1.12/dev/table/sqlClient.html)并编写 SQL 查询、操作 Pulsar 中的数据，用户可以使用 `--addclasspath` 参数直接添加 `pulsar-flink-connector-{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar`。
+
+**举例**
+
 ```
-$ ./bin/sql-client.sh embedded --jar pulsar-flink-connector-{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar
+./bin/sql-client.sh embedded --jar pulsar-flink-connector-{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar
 ```
-> 如果您把我们连接器的jar放到`$FLINK_HOME/lib`下，请不要再使用`--jar`指定连接器的包。
 
-默认情况下，要在SQL Client中使用Pulsar目录并在启动时自动进行注册，SQL Client会从环境文件`./conf/sql-client-defaults.yaml`中读取其配置。 您需要在此YAML文件的`catalogs`部分中添加Pulsar目录：
+> **说明**
+> 如果连接器的 JAR 包已经位于 `$FLINK_HOME/lib` 下，请不要再使用 `--jar` 参数指定连接器的 JAR 包。
+
+默认情况下，要在 SQL 客户端中使用 Pulsar 目录并在启动时自动进行注册，SQL 客户端会从 `./conf/sql-client-defaults.yaml` 环境文件中读取其配置。用户需要在此 YAML 文件的 `catalogs` 部分中添加 Pulsar 目录，如下所示。
 
 ```yaml
 catalogs:
@@ -180,28 +226,26 @@ catalogs:
     format: json
 ```
 
+# 使用场景
 
+本章节介绍 Pulsar Flink 连接器的使用场景。
 
+## Stream 环境
 
+本章节介绍如何在 Stream 环境中使用 Pulsar Flink 连接器。
 
-# Stream环境
+### Source
 
-## Source
+在 Flink 中，Pulsar consumer 被称为 `FlinkPulsarSource<T>`。`FlinkPulsarSource<T>` 支持访问一个或多个 Pulsar 主题。
 
-Flink的Pulsar消费者被称为`FlinkPulsarSource<T>`。 它提供对一个或多个Pulsar主题的访问。
+用户可以使用以下参数来构造 `FlinkPulsarSource<T>`。
 
-它的构造方法有以下参数：
+- `serviceUrl` 和 `adminUrl`：用于连接 Pulsar 实例的服务地址和管理地址。
+- `PulsarDeserializationSchema`：使用 `FlinkPulsarSource` 时，需要设置 `PulsarDeserializationSchema<T>`。
+- `Properties`：用于配置 Pulsar Consumer 的行为。这些参数中，`topic`、 `topics` 或 `topicsPattern` 参数用于配置消费的 Topic 信息，必须配置取值，且同时只能配置其中一个参数。(**`topics` 参数支持使用逗号（,）分隔多个 Topic。`topicsPattern` 参数是一个 JAVA 正则表达式，可以匹配若干 Topic。**)
+- `FlinkPulsarSource的setStartFromLatest`、`setStartFromEarliest`、`setStartFromSpecificOffsets`、`setStartFromSubscription`：用于配置订阅模式。设置为 `setStartFromSubscription` 订阅模式时，必须开启 checkpoint 功能。
 
-1. 连接Pulsar实例使用的服务地址`serviceUrl`和管理地址`adminUrl`。
-2. 使用 `FlinkPulsarSource`时，需要设置`PulsarDeserializationSchema<T>`。
-3. Properties参数，用于配置Pulsar Consumer的行为。
-   Properties必须的参数，如下:
-
-   - 这些参数中 `topic`, `topics` or `topicsPattern` 必须有一个存在值，且只能有一个。用于配置消费的Topic信息. (**`topics` 是用逗号`,`分隔的多个topic, `topicsPattern`是一个java正则表达式，可以匹配出若干topic**)
-4. 设置消费模式可以通过 FlinkPulsarSource的setStartFromLatest、setStartFromEarliest、setStartFromSpecificOffsets、setStartFromSubscription等设置。使用setStartFromSubscription订阅者模式时，必须开启checkpoint功能。
-
-
-例子:
+**举例**
 
 ```java
 StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
@@ -222,13 +266,11 @@ DataStream<String> stream = see.addSource(source);
 see.execute();
 ```
 
+### Sink
 
+Pulsar producer 使用 `FlinkPulsarSink` 实例。`FlinkPulsarSink` 实例允许将记录流写入一个或多个 Pulsar Topic。
 
-## Sink
-
-Pulsar生产者使用 `FlinkPulsarSink`实例。它允许将记录流写入一个或多个Pulsar Topic。
-
-Example:
+**举例**
 
 ```java
 PulsarSerializationSchema<Person> pulsarSerialization = new PulsarSerializationSchemaWrapper.Builder<>(JsonSer.of(Person.class))
@@ -246,61 +288,53 @@ FlinkPulsarSink<Person> sink = new FlinkPulsarSink(
 stream.addSink(sink);
 ```
 
-
-
 ## PulsarDeserializationSchema
 
-PulsarDeserializationSchema是连接器定义的Flink DeserializationSchema封装，可以灵活的操作Pulsar Message。
+PulsarDeserializationSchema 是 Pulsar Flink 连接器定义的 Flink DeserializationSchema 封装，可以灵活地操作 Pulsar 消息。
 
-PulsarDeserializationSchemaWrapper是PulsarDeserializationSchema的简单实现，构造方法有两个参数: Flink DeserializationSchema 和解码的消息类型信息。
+PulsarDeserializationSchemaWrapper 是 PulsarDeserializationSchema 的简单实现。用户可以使用 Flink DeserializationSchema 和解码的消息类型信息构造 PulsarDeserializationSchema，如下所示。
 
 ```
 PulsarDeserializationSchemaWrapper(new SimpleStringSchema(),DataTypes.STRING())
 ```
 
+> **说明**  
+> `DataTypes` 类型来自 Flink的 `table-common` 模块。
 
+### PulsarSerializationSchema
 
-> DataTypes类型来自flink的`table-common`模块。
+PulsarSerializationSchema 是 Flink SerializationSchema 的一个封装器，实现更多功能。大多数情况下，用户无需自己实现 PulsarSerializationSchema。我们支持使用 PulsarSerializationSchemaWrapper 来将 Flink SerializationSchema 包装成为 PulsarSerializationSchema。
 
+PulsarSerializationSchema 使用构建器模式。用户可以调用 `setKeyExtractor` 或 `setTopicExtractor`，从每个消息中提取密钥和自定义目标 Topic。
 
+Pulsar 在内部维护着自己的 Schema 信息，所以我们的消息在写入 Pulsar 时必须能够导出一个 SchemaInfo。`useSpecialMode`、`useAtomicMode`、`usePojoMode` 和 `useRowMode` 方法可以帮助用户快速构建 Pulsar 所需的 Schema 信息。
 
-## PulsarSerializationSchema
+- SpecialMode：直接指定 Pulsar 的 `Schema<?>` 模式。确保该 Schema 和 Flink SerializationSchema 相互兼容。
+- AtomicMode：对于一些原子类型的数据，传递 AtomicDataType 的类型，如`DataTypes.INT()`。它对应 Pulsar 中的 `Schema<Integer>`。
+- PojoMode：传递一个自定义 Class 对象和 JSON 或 Arvo 中用于指定构建复合类型 Schema 的方式。例如 `usePojoMode(Person.class, RecordSchemaType.JSON)`。
+- RowMode：一般来说，用户不会使用这个模式。它用于我们内部的 Table&SQL API 的实现。
 
-PulsarSerializationSchema 是 Flink SerializationSchema 的一个封装器，提供了更多的功能。大多数情况下，你不需要自己实现 PulsarSerializationSchema，我们提供 PulsarSerializationSchemaWrapper 来包装一个 Flink SerializationSchema 成为 PulsarSerializationSchema。
+### 容错
 
-PulsarSerializationSchema 使用构建器模式，你可以调用 setKeyExtractor 或 setTopicExtractor 来满足从每个消息中提取密钥和自定义目标Topic的需求。
+启用 Flink 的 checkpoint 功能后，`FlinkPulsarSink` 可以实现 `at-least-once`、`exactly-once` 的交货保证。
 
-特别是，由于 Pulsar 在内部维护着自己的 Schema 信息，所以我们的消息在写入 Pulsar 时必须能够导出一个 SchemaInfo。 useSpecialMode、useAtomicMode、usePojoMode 和 useRowMode 方法可以帮助您快 速构建 Pulsar 所需的 Schema 信息。你必须在这四种模式中只选择一种。
+除了启用 Flink 的 checkpoint 功能之外，用户还应该配置 `setLogFailuresOnly(boolean)` 和 `setFlushOnCheckpoint(boolean)` 参数。
 
-- SpecialMode：直接指定 Pulsar 中的 `Schema<?>`模式，请保证这个Schema和你设置 Flink SerializationSchema是兼容的。
+> **说明**  
+> *`setFlushOnCheckpoint(boolean)`*：默认情况下，设置为 `true`。启用此功能后，会在当前 checkpoint snapshotState 时记录写入 Pulsar 的数据。这样可以确保checkpoint 之前的所有数据都已经写入 Pulsar。但是，必须同时开启 Flink 的 `at-least-once` 设置。
 
-- AtomicMode：对于一些原子类型的数据，传递 AtomicDataType 的类型，如`DataTypes.INT()`，它将对应 Pulsar 中的 `Schema<Integer>`。
-- PojoMode：你需要传递一个自定义 Class 对象和 Json 或 Arvo 中的一个来指定构建复合类型 Schema 的方式。例如 `usePojoMode(Person.class, RecordSchemaType.JSON)`。
+## Table 环境
 
-- RowMode：一般来说，你不会使用这个模式，它用于我们内部的 Table&SQL API 的实现。
+Pulsar Flink 连接器全面支持 Table 功能。
 
-
-
-## 容错
-
-启用Flink的检查点后，`FlinkPulsarSink`可以提供at-least-once、exactly-once的交货保证。
-
-除了启用Flink的检查点之外，您还应该配置`setLogFailuresOnly(boolean)` 和 `setFlushOnCheckpoint(boolean)`。
-
-*`setFlushOnCheckpoint(boolean)`*：默认情况下，它设置为`true`。启用此功能后，写入pulsar记录会在本次checkpoint snapshotState时执行。这样可以确保checkpoint之前的所有记录写给pulsar了。注意必须同时开启flink的at-least-once设置。
-
-
-
-# Table环境
-
-Pulsar-flink连接器全面支持了Table功能，覆盖了以下列表：
-
-- SQL、DDL
+- SQL and DDL
 - Catalog
 
-## SQL、DDL
+### SQL 和 DDL
 
-SQL实例
+本章节介绍 SQL 配置和 DDL 配置。
+
+### SQL 配置
 
 ```sql
 CREATE TABLE pulsar (
@@ -332,59 +366,49 @@ VALUES
 SELECT * FROM pulsar
 ```
 
-SQL中，完整支持了物理字段、计算列、watermark、METADATA等特性。
+SQL 全面支持物理字段、计算列、watermark、METADATA 等特性。
 
-
-
-### DDL配置支持列表
+### DDL 配置
 
 | 参数                          | 默认值        | 描述                                                         | 必填 |
 | ----------------------------- | ------------- | ------------------------------------------------------------ | ---- |
-| connector                     | null          | 使用的连接器，可选择pulsar和upsert-pulsar。                  | 是   |
-| topic                         | null          | 输入或输出的topic，多个时使用半角逗号 `,` 连接。与`topic-pattern`二选一 | 否   |
-| topic-pattern                 | null          | 使用正则获得匹配的Topic。与`topic`二选一。                   | 否   |
-| service-url                   | null          | Pulsar broker服务地址                                        | 是   |
-| admin-url                     | null          | Pulsar admin服务地址                                         | 是   |
-| scan.startup.mode             | latest        | Source的启动模式，可选项 earliest、latest、external-subscription、specific-offsets | 否   |
-| scan.startup.specific-offsets | null          | 当使用specific-offsets时，必须指定消息偏移量                 | 否   |
-| scan.startup.sub-name         | null          | 当使用订阅模式（external-subscription）时，必须设置。        | 否   |
-| discovery topic interval      | null          | 分区发现的时间间隔，毫秒                                     | 否   |
-| sink.message-router           | key-hash      | 写消息到Pulsar分区的路由方式，可选项key-hash、round-robin、自定义MessageRouter实现类的引用路径 | 否   |
-| sink.semantic                 | at-least-once | Sink写出消息的保障级别。可选项at-least-once、exactly-once、none | 否   |
-| properties                    | empty         | Pulsar可选的配置集，格式 `properties.key='value'`,具体参考 #配置参数 | 否   |
-| key.format                    | null          | Pulsar Message的Key序列化格式，可选raw、avro、json等等       | 否   |
-| key.fields                    | null          | 序列化Key时需要使用的SQL定义字段，多个按半角逗号 `,`连接。   | 否   |
-| key.fields-prefix             | null          | 为键格式的所有字段定义一个自定义前缀，以避免名称与值格式的字段冲突。默认情况下，前缀为空。如果定义了自定义前缀，则Table模式和`'key.fields'`都将使用带前缀的名称。构造密钥格式的数据类型时，前缀将被删除，并且非前缀名称将在密钥格式内使用。 | 否   |
-| format或value.format          | null          | Pulsar消息正文的序列化格式，支持json、avro等，更多参考Flink format。 | 是   |
-| value.fields-include          | ALL           | Pulsar消息正文包含字段策略，可选项ALL, EXCEPT_KEY            | 否   |
+| connector                     | null          | 使用的连接器，可选择pulsar和upsert-pulsar。               | 是   |
+| topic                         | null          | 输入或输出的 Topic。如果有多个 Topic，使用半角逗号 （, 连接。与 `topic-pattern` 参数互斥。 | 否   |
+| topic-pattern                 | null          | 使用正则获得匹配的 Topic。与`topic` 参数互斥。                 | 否   |
+| service-url                   | null          | Pulsar broker 的服务地址。                                      | 是   |
+| admin-url                     | null          | Pulsar Admin 的服务地址                                         | 是   |
+| scan.startup.mode             | latest        | Source 的启动模式。支持 `earliest`、`latest`、`external-subscription`、`specific-offsets` 选项。 | 否   |
+| scan.startup.specific-offsets | null          | 当使用 `specific-offsets ` 参数时，必须指定消息偏移量。               | 否   |
+| scan.startup.sub-name         | null          | 当使用 `external-subscription` 参数时，必须设置该参数。        | 否   |
+| discovery topic interval      | null          | 分区发现的时间间隔，单位为毫秒。                                     | 否   |
+| sink.message-router           | key-hash      | 写消息到 Pulsar 分区的路由方式。支持 `key-hash`、 `round-robin`、自定义 MessageRouter 实现类的引用路径。 | 否   |
+| sink.semantic                 | at-least-once | Sink 写出消息的保障级别。支持 `at-least-once`、`exactly-once`、`none` 选项。 | 否   |
+| properties                    | empty         | Pulsar 可选的配置集，格式为 `properties.key='value'`。有关详细信息，参见[配置参数](#配置参数)。 | 否   |
+| key.format                    | null          | Pulsar 消息的键序列化格式。支持 `raw`、`avro`、`json` 等格式。       | 否   |
+| key.fields                    | null          | 序列化键时需要使用的 SQL 定义字段。如有多个字段，使用半角逗号（,）连接。   | 否   |
+| key.fields-prefix             | null          | 为键格式的所有字段定义一个自定义前缀，以避免名称与值格式的字段冲突。默认情况下，前缀为空。如果定义了自定义前缀，则 Table 模式和 `'key.fields'` 都将使用带前缀的名称。构造密钥格式的数据类型时，前缀将被删除，并且密钥格式内使用非前缀名称。 | 否   |
+| format或value.format          | null          | Pulsar 消息正文的序列化格式。支持 `json`、`avro` 等格式。有关详细信息，参见 Flink 格式 | 是   |
+| value.fields-include          | ALL           | Pulsar 消息正文包含的字段策略。支持 `ALL` 和 `EXCEPT_KEY` 选项。           | 否   |
 
+#### Pulsar 消息的元数据配置
 
+`METADATA` 标志用于读写 Pulsar 消息中的元数据，如下所示
 
+> **说明**  
+> R/W 列定义了元数据字段是否可读（R）和/或可写（W）。只读列必须声明为 VIRTUAL，以便在 INSERT INTO 操作中排除它们。**
 
-
-### Pulsar Message元数据操作
-
-METADATA标志用于读写Pulsar Message中的元数据。支持列表如下：
-
-**R/W列定义了元数据字段是否可读（R）和/或可写（W）。只读列必须声明为VIRTUAL，以便在INSERT INTO操作中排除它们。**
-
-
-| Key  | Data Type | Description | R/W  |
+|    元数据   | 数据类型 | 描述 | R/W  |
 | ---- | --------- | ----------- | ---- |
-| topic | STRING NOT NULL | Topic name of the Pulsar Message. | R    |
-| messageId | BYTES NOT NULL | MessageId of the Pulsar Message. |R |
-| sequenceId | BIGINT NOT NULL| Pulsar Message sequence Id | R |
-| publishTime | TIMESTAMP(3) WITH LOCAL TIME ZONE NOT NULL | Pulsar message published time| R |
-| eventTime | TIMESTAMP(3) WITH LOCAL TIME ZONE NOT NULL | Message Generation Time |R/W |
-| properties | MAP<STRING, STRING> NOT NULL | Pulsar Message Extensions Information. | R/W |
+| topic | STRING NOT NULL | Pulsar 消息所在的 topic 的名称。 | R    |
+| messageId | BYTES NOT NULL | Pulsar 消息 ID。 |R |
+| sequenceId | BIGINT NOT NULL| Pulsar 消息的序列号。 | R |
+| publishTime | TIMESTAMP(3) WITH LOCAL TIME ZONE NOT NULL | Pulsar 消息的发布时间。 | R |
+| eventTime | TIMESTAMP(3) WITH LOCAL TIME ZONE NOT NULL | Pulsar 消息的生成时间。 |R/W |
+| properties | MAP<STRING, STRING> NOT NULL | Pulsar 消息的扩展信息。 | R/W |
 
+### Catalog
 
-
-
-
-## Catalog
-
-Flink始终在当前目录和数据库中搜索表，视图和UDF。 要使用Pulsar Catalog并将Pulsar中的topic作为Flink中的表对待，您应该使用已在`./conf/sql-client-defaults.yaml`中定义的`pulsarcatalog`。 .
+Flink 始终在当前目录和数据库中搜索表，视图和 UDF。如需使用 Pulsar Catalog 并将 Pulsar 中的 Topic 用作 Flink 中的表，用户应该使用已在 `./conf/sql-client-defaults.yaml` 中定义的 `pulsarcatalog`。
 
 ```java
 tableEnv.useCatalog("pulsarcatalog")
@@ -398,7 +422,7 @@ Flink SQL> USE `public/default`;
 Flink SQL> select * from topic0;
 ```
 
-以下配置在环境文件中是可选的，或者可以使用`SET`命令在SQL客户端会话中覆盖。
+以下配置在环境文件中是可选的，或者可以使用 `SET` 命令在 SQL 客户端会话中覆盖原先的取值。
 
 <table class="table">
 <tr><th>Option</th><th>Value</th><th>Default</th><th>Description</th></tr>
@@ -406,74 +430,60 @@ Flink SQL> select * from topic0;
   <td>`default-database`</td>
   <td>默认数据库名称。</td>
   <td>public/default</td>
-  <td>使用Pulsar catalog时，Pulsar中的topic被视为Flink中的表，因此，`database`是`tenant/namespace`的另一个名称。 数据库是表查找或创建的基本路径。</td>
+  <td>使用 Pulsar catalog 时，Pulsar 中的 Topic 用作 Flink 中的表。因此，`database` 是 `tenant/namespace` 的另一个名称。数据库是表查找或创建的基本路径。</td>
   </tr>
   <tr>
   <td>`table-default-partitions`</td>
-  <td>Topic默认分区</td>
+  <td>Topic 默认分区</td>
   <td>5</td>
-  <td>使用Pulsar catalog时，Pulsar中的topic被视为Flink中的表。创建Topic时，设置的分区大小。</td>
+  <td>使用 Pulsar catalog 时，Pulsar 中的 Topic 用作 Flink 中的表。因此，创建 Topic 时，需要设置 Topic 分区大小。</td>
   </tr>
 </table>
 
+更多详细信息，参见[DDL 配置](#ddl-配置)。
 
-更多参数明细参考DDL中的配置项
-
-注意：由于删除操作具有危险性，Catalog中删除`tenant/namespace`、`topic`操作暂不被支持。
-
-
-
+> **说明**  
+> Catalog 不支持删除`tenant/namespace`、`topic`。
 
 # 高级特性
 
+本章节介绍 Pulsar Flink 连接器支持的高级特性。
 
+## Pulsar 原生类型
 
-## Pulsar原生类型
+Pulsar 自身提供了一些基本的原生类型。用户可以通过以下方式使用 Pulsar 的原生类型。
 
-Pulsar自身提供了一些基本的原生类型，如果你需要使用原生类型，可以以下列方式支持
+### Stream API 环境
 
-
-
-### Stream API环境
-
-PulsarPrimitiveSchema是`PulsarDeserializationSchema`、`PulsarSerializationSchema`接口的实现。
-
-您可以以相似的方法创建需要的实例`new PulsarSerializationSchema(String.class)`。
-
-
+PulsarPrimitiveSchema 是 `PulsarDeserializationSchema` 和 `PulsarSerializationSchema` 接口的实现形式。用户可以采用类似 `new PulsarSerializationSchema(String.class)` 的方法创所需要的实例。
 
 ### Table 环境
 
-我们创建了一款名为`atomic`新的Flink format组件，您可以在SQL的format使用它。在Source中，它会将Pulsar原生类型翻译成只有一列值得RowData。在Sink中，它会将RowData的第一列翻译成Pulsar原生类型写入Pulsar。
-
-
+我们创建了一款新的 Flink format 组件，命名为`atomic`。用户可以在 SQL 的 format 中使用。在 Source 中，它会将 Pulsar 原生类型翻译成只有一列值的 RowData。在Sink 中，它会将 RowData 的第一列翻译成 Pulsar 原生类型并写入 Pulsar。
 
 ## Upsert Pulsar
 
 Flink 社区用户对 Upsert 模式消息队列有很高的需求，主要原因有三个：
 
 - 将 Pulsar Topic 解释为一个 changelog 流，它将带有键的记录解释为 upsert 事件；
--  作为实时管道的一部分，将多个流连接起来进行充实，并将结果存储到 Pulsar Topic 中，以便以后进行进一步的计算。但结果可能包含更新事件。
-- 作为实时管道的一部分，聚合数据流并将结果存储到 Pulsar Topic 中，以便以后进行进一步计算。但是结果可能包含更新事件。
-  基于这些需求，我们也实现了对 Upsert Pulsar 的支持。使用这个功能，用户能够以 upsert 的方式从 Pulsar 主题中读取数据和向 Pulsar 主题写入数据。
+- 作为实时管道的一部分，将多个流连接起来进行充实，并将结果存储在 Pulsar Topic 中，以便进一步的计算。但结果可能包含更新事件。
+- 作为实时管道的一部分，聚合数据流并将结果存储在 Pulsar Topic 中，以便进一步计算。但是结果可能包含更新事件。
 
+基于这些需求，我们也实现了对 Upsert Pulsar 的支持。该功能支持用户以 upsert 的方式从 Pulsar Topic 中读取数据和向 Pulsar Topic 中写入数据。
 
+在vSQL DDL 定义中，用户将 `connector` 设置为 `upsert-pulsar`，即可使用 Upsert Pulsar 连接器。
 
-在SQL DDL定义中，您将connector设置为upsert-pulsar，即可使用Upsert Pulsar连接器。
+在配置方面，必须指定 Table 的主键，且`key.fields` 不能使用。
 
-在配置方面，必须指定Table的主键，且`key.fields`不能使用。
+作为 source，Upsert Pulsar 连接器生产 changelog 流，其中每条数据记录代表一个更新或删除事件。更准确地说，如果存在这个 key（，数据记录中的 value 是同一键的最后一个值的 UPDATE。如果不存在相应的 key，则该更新被视为 INSERT）。用表来类比，changelog 流中的数据记录是 UPSERT，也称为 INSERT/UPDATE，因为任何具有相同键的已存在行都会被覆盖。另外，值为空的消息将会被视作为 DELETE 消息。
 
-作为 source，upsert-pulsar 连接器生产 changelog 流，其中每条数据记录代表一个更新或删除事件。更准确地说，数据记录中的 value 被解释为同一 key 的最后一个 value 的 UPDATE，如果有这个 key（如果不存在相应的 key，则该更新被视为 INSERT）。用表来类比，changelog 流中的数据记录被解释为 UPSERT，也称为 INSERT/UPDATE，因为任何具有相同 key 的已存在行都会被覆盖。另外，value 为空的消息将会被视作为 DELETE 消息。
+作为 sink，uUpsert Pulsar 连接器可以消费 changelog 流。它会将 INSERT/UPDATE_AFTER 数据作为正常的 Pulsar 消息写入，并将 DELETE 数据作为 value 为空的 Pulsar 消息写入（表示对应键的消息被删除）。Flink 将根据主键列的值对数据进行分区，从而保证主键上的消息有序，因此同一主键上的更新/删除消息将落在同一分区中。
 
-作为 sink，upsert-pulsar 连接器可以消费 changelog 流。它会将 INSERT/UPDATE_AFTER 数据作为正常的 Pulsar 消息写入，并将 DELETE 数据以 value 为空的 Pulsar 消息写入（表示对应 key 的消息被删除）。Flink 将根据主键列的值对数据进行分区，从而保证主键上的消息有序，因此同一主键上的更新/删除消息将落在同一分区中。
+## Key-Shared 订阅模式
 
+在有些场景下，用户需要严格保证消息顺序，这样才能保证正确处理业务。通常，在消息严格保序的情况下，只能同时有一个 consumer 消费消息。这样会导致消息的吞吐量大幅度降低。Pulsar 为这样的场景设计了 Key-Shared 订阅模式。在该模式下，为消息增加 Key，将相同 Key Hash 的消息路由到同一个 consumer ，这样既保证了消息的消息顺序，又提高了吞吐量。
 
-
-## Pulsar Key-Shared
-
-高性能的有序消息队列在有些场景下，用户需要消息严格保证消息顺序，才能保证业务处理正确。通常在消息严格保序的情况下，只能同时有一个消费者消费消息，才能保证顺序。这样会导致消息的吞吐量大幅度降低。Pulsar 为这样的场景设计了 Key-Shared 订阅模式，通过对消息增加 Key，将相同 Key Hash 的消息路由到同一个消息者上，这样既保证了消息的消息顺序，又提高了吞吐量。
-
-我们在 Pulsar Flink 连接器中也添加了对该功能的支持。可以通过配置参数`enable-key-hash-range=true` 启用这个功能。开启功能后，会根据任务的并行度划分每个消费者处理的 Key Hash 范围。
+Pulsar Flink 连接器也支持 Key-Shared 订阅模式。可以通过配置参数 `enable-key-hash-range=true` 启用这个功能。使能后，系统会根据任务的并行度划分每个 consumer 处理的 Key Hash 范围。
 
 ## 配置参数
 
@@ -481,54 +491,50 @@ Flink 社区用户对 Upsert 模式消息队列有很高的需求，主要原因
 
 | 参数                                 | 默认值        | 描述                                                         | 生效范围     |
 | ------------------------------------ | ------------- | ------------------------------------------------------------ | ------------ |
-| topic                                | null          | pulsar topic                                                 | source       |
-| topics                               | null          | 半角逗号连接的多个pulsar topic                               | source       |
-| topicspattern                        | null          | java正则匹配多的多个pulsar topic                             | source       |
-| partition.discovery.interval-millis  | -1            | 自动发现增减topic，毫秒。-1表示不开启。                      | source       |
-| clientcachesize                      | 100           | 缓存pulsar client数量                                        | source、sink |
-| auth-plugin-classname                | null          | Pulsar client鉴权类                                          | source、sink |
-| auth-params                          | null          | Pulsar client鉴权参数                                        | source、sink |
-| flushoncheckpoint                    | true          | 在flink snapshotState时写出消息到pulsar                      | sink         |
-| failonwrite                          | false         | sink出错时，继续确认消息                                     | sink         |
-| polltimeoutms                        | 120000        | 等待获取下一条消息的超时时间，毫秒                           | source       |
-| failondataloss                       | true          | 数据丢失时是否失败                                           | source       |
-| commitmaxretries                     | 3             | 向pulsar消息偏移offset时，最大重试次数                       | source       |
-| scan.startup.mode                    | latest        | earliest、latest，订阅者消费消息的位置                       | source       |
-| enable-key-hash-range                | false         | 开启Pulsar Key-Shared模式                                    | source       |
-| pulsar.reader.*                      |               | pulsar consumer的详细配置，项目可参考[Pulsar Reader](https://pulsar.apache.org/docs/en/client-libraries-java/#reader) | source       |
-| pulsar.reader.subscriptionRolePrefix | flink-pulsar- | 未指定订阅者时，自动创建订阅者名称的前缀                     | source       |
-| pulsar.reader.receiverQueueSize      | 1000          | 接收队列大小                                                 | source       |
-| pulsar.producer.*                    |               | pulsar consumer的详细配置，项目可参考[Pulsar Producer](https://pulsar.apache.org/docs/en/client-libraries-java/#producer) | Sink         |
-| pulsar.producer.sendTimeoutMs        | 30000         | 发送消息时的超时时间，毫秒                                   | Sink         |
-| pulsar.producer.blockIfQueueFull     | false         | 生产者写入消息，队列满时，阻塞方法，而不是抛出异常           | Sink         |
+| topic                                | null          | Pulsar Topic。                                                 | source       |
+| topics                               | null          | 使用半角逗号（,）连接的多个 Pulsar Topic。                              | source       |
+| topicspattern                        | null          | 使用 Java 正则匹配多的多个 pulsar Topic。                             | source       |
+| partition.discovery.interval-millis  | -1            | 自动发现增减 Topic，单位为毫秒。取值为-1，则表示禁用该功能。                      | source       |
+| clientcachesize                      | 100           | Pulsar 客户端的缓存数量。                                       | source、sink |
+| auth-plugin-classname                | null          | Pulsar 客户端的鉴权类。                                       | source、sink |
+| auth-params                          | null          | Pulsar 客户端的鉴权参数。                                      | source、sink |
+| flushoncheckpoint                    | true          | 在 Flink snapshotState 时，向 Pulsar Topic 中写入消息。                      | sink         |
+| failonwrite                          | false         | Sink 出错时，继续确认消息。                                   | sink         |
+| polltimeoutms                        | 120000        | 等待获取下一条消息的超时时间，单位为毫秒。                        | source       |
+| failondataloss                       | true          | 数据丢失时，是否失败。                                       | source       |
+| commitmaxretries                     | 3             | 向 Pulsar 消息偏移 offset 时，最大重试次数。                    | source       |
+| scan.startup.mode                    | latest        | 消费消息的位置。支持 `earliest` 和 `latest`选项。                      | source       |
+| enable-key-hash-range                | false         | 开启 Pulsar Key-Shared 订阅模式。                                    | source       |
+| pulsar.reader.*                      |               | Pulsar reader 的详细配置。有关详细信息，参见 [Pulsar Reader](https://pulsar.apache.org/docs/en/client-libraries-java/#reader)。 | source       |
+| pulsar.reader.subscriptionRolePrefix | flink-pulsar- | 未指定订阅者时，自动创建订阅者名称的前缀。                     | source       |
+| pulsar.reader.receiverQueueSize      | 1000          | 接收队列大小。                                                 | source       |
+| pulsar.producer.*                    |               | Pulsar producer 的详细配置。有关详细信息，参见 [Pulsar Producer](https://pulsar.apache.org/docs/en/client-libraries-java/#producer)。 | Sink         |
+| pulsar.producer.sendTimeoutMs        | 30000         | 发送消息时的超时时间，单位为毫秒。                                 | Sink         |
+| pulsar.producer.blockIfQueueFull     | false         | Producer 写入消息的队列满时，支持阻塞方法，而不是抛出异常。           | Sink         |
 
-`pulsar.reader.*`和`pulsar.producer.*`指定更详细的配置pulsar的行为，*替换为pulsar中的配置名，内容参考表中的链接。
+`pulsar.reader.*` 和 `pulsar.producer.*` 定义配置 Pulsar 行为的详细信息。星号（*）可以替换为 Pulsar 中的配置名，有关详细信息，参见 [Pulsar Reader](https://pulsar.apache.org/docs/en/client-libraries-java/#reader)和 [Pulsar Producer](https://pulsar.apache.org/docs/en/client-libraries-java/#producer)。
 
-
-
-在DDL语句中，使用的样例如下:
+在 DDL 语句中，用户可以采用以下配置:
 
 ```
 'properties.pulsar.reader.subscriptionRolePrefix' = 'pulsar-flink-',
 'properties.pulsar.producer.sendTimeoutMs' = '30000',
 ```
 
+## 认证配置
 
+对于配置了认证的 Pulsar 实例，可以使用与常规 Pulsar 客户端相类似的方式设置 Pulsar Flink 连接器。
 
-## 身份验证配置
+对于 `FlinkPulsarSource` 和 `FlinkPulsarSink`，支持通过以下两种方式设置认证。
 
-对于配置了身份验证的Pulsar实例，可以使用常规Pulsar客户端类似的方式设置Pulsar Flink连接器。
-
-对于FlinkPulsarSource、FlinkPulsarSink，您有两种方式设置认证
-
-- 构造参数 `Properties`
+- 构造参数 `Properties` 参数。
 
   ```java
   props.setProperty(PulsarOptions.AUTH_PLUGIN_CLASSNAME_KEY, "org.apache.pulsar.client.impl.auth.AuthenticationToken");
   props.setProperty(PulsarOptions.AUTH_PARAMS_KEY, "token:eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyMSJ9.2AgtxHe8-2QBV529B5DrRtpuqP6RJjrk21Mhnomfivo");
   ```
 
-- 构造参数 `ClientConfigurationData`，它的优先级高于`Properties`。
+- 构造参数 `ClientConfigurationData` 参数。`ClientConfigurationData` 参数的优先级高于 `Properties` 参数的优先级。
 
   ```java
   ClientConfigurationData conf = new ClientConfigurationData();
@@ -537,39 +543,4 @@ Flink 社区用户对 Upsert 模式消息队列有很高的需求，主要原因
   conf.setAuthParams(params);
   ```
 
-身份验证详细配置请参考 [Pulsar Security](https://pulsar.apache.org/docs/en/security-overview/) 。
-
-
-
-
-
-# 构建 Pulsar Flink Connector
-如果要构建Pulsar Flink连接器，期望从Pulsar读取数据或者将结果写入Pulsar，请按照以下步骤操作。
-1. 检出源代码
-    ```bash
-    $ git clone https://github.com/streamnative/pulsar-flink.git
-    $ cd pulsar-flink
-    ```
-
-2. 安装Docker
-
-   Pulsar-flink连接器正在使用[Testcontainers](https://www.testcontainers.org/) 进行集成测试。 为了运行集成测试，请确保已安装 [Docker](https://docs.docker.com/docker-for-mac/install/) 。
-
-3. 设置Java版本
-
-   在`pom.xml`修改 `java.version` 和 `java.binary.version`。
-   > #### Note
-   > Java版本应与您使用的flink的Java版本一致。
-
-4. 构建项目
-    ```bash
-    $ mvn clean install -DskipTests
-    ```
-
-5. 运行测试
-    ```bash
-    $ mvn clean install
-    ```
-安装完成后，在本地maven repo和`target`目录下都会生成一个包含依赖的jar。
-
-> 注意：如果你使用 intellij IDEA 来调试这个项目，可能会遇到找不到package `org.apache.pulsar.shade.org.bookkeeper.ledger` 错误。 解决办法:先运行 ` mvn clean install -DskipTests` 安装 jar 到本地仓库，然后在项目上忽略maven模块`managed-ledger-shaded`。刷新项目后错误消失。
+有关认证的详细信息，参见 [Pulsar Security](https://pulsar.apache.org/docs/en/security-overview/)。

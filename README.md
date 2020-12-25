@@ -1,47 +1,51 @@
 # Pulsar Flink Connector
+
 The Pulsar Flink connector implements elastic data processing using [Apache Pulsar](https://pulsar.apache.org) and [Apache Flink](https://flink.apache.org).
 
-Chinese document: [README_CN](doc/README_CN.md)
+For details about the Chinese document, see [here](doc/README_CN.md).
 
 # Prerequisites
 
--  Java 8 or higher
--  Flink 1.9.0 or higher
--  Pulsar 2.4.0 or higher
+- Java 8 or higher version
+- Flink 1.9.0 or higher version
+- Pulsar 2.4.0 or higher version
 
-# Basic
+# Basic information
+
+This section describes basic information about the Pulsar Flink connector.
 
 ## Client
 
-Multiple versions of Flink are now supported.
+Currently, the following Flink versions are supported.
 
--  Flink 1.9 - 1.10 maintained in branch `flink-1.9`
+- Flink 1.9 - 1.10: they are maintained in the [`flink-1.9` branch](https://github.com/streamnative/pulsar-flink/tree/flink-1.9).
 
--  Flink 1.11 is maintained in branch `flink-1.11`
+- Flink 1.11: it is maintained in the [`flink-1.11` branch](https://github.com/streamnative/pulsar-flink/tree/flink-1.11).
 
--  Flink 1.12 is the current master supported version, in the `master` branch
+- Flink 1.12: it is maintained in the [`master` branch](https://github.com/streamnative/pulsar-flink/tree/master).
 
-> Since Flink's API has changed a lot, we mainly work on new features in master, and the rest of the branches focus on bug fixes.
+> **Note**  
+> Since Flink's API has changed greatly, we mainly work on new features in the `master` branch and fix bugs in other branches.
 
+The JAR package is located in the [Bintray Maven repository of StreamNative](https://dl.bintray.com/streamnative/maven).
 
+For projects using SBT, Maven, or Gradle, you can set the following parameters for your project.
 
-For projects using SBT, Maven, Gradle, the following parameters can be set to your project.
+- `FLINK_VERSION`: currently, versions `1.9`, `1.11`, and `1.12` are available.
+- `SCALA_BINARY_VERSION`: this parameter defines the Scala version used by Flink. Versions `2.11` and `2.12` are available.
+- `PULSAR_FLINK_VERSION`: it is the version of the Pulsar Flink connector. Usually, use a three-digit version (such as version `2.7.0`) for a master release and a four-digit version for a branch release (such as version `2.7.0.1`).
 
--  The `FLINK_VERSION` parameter is now available as `1.9`, `1.11`, and `1.12`.
+Here is an example about how to configure parameters for projects using SBT, Maven, or Gradle.
 
--  The `SCALA_BINARY_VERSION` parameter is related to the scala version used by flink, `2.11`, `2.12` are available.
--  The `PULSAR_FLINK_VERSION` is the version of this connector. Usually only the three-digit version `2.7.0` is 
-   available, but the four-digit version `2.7.0.1` is used when providing bug fixes.
-
+```shell
+groupId = io.streamnative.connectors
+artifactId = pulsar-flink-connector-{{SCALA_BINARY_VERSION}}-{{FLINK_VERSION}}
+version = {{PULSAR_FLINK_VERSION}}
 ```
-     groupId = io.streamnative.connectors
-     artifactId = pulsar-flink-connector-{{SCALA_BINARY_VERSION}}-{{FLINK_VERSION}}
-     version = {{PULSAR_FLINK_VERSION}}
-```
-The jar package is located in the [Bintray Maven repository of StreamNative](https://dl.bintray.com/streamnative/maven) 。
 
+## Maven projects
 
-Maven projects can be added to the repository configuration to your `pom.xml` with the following content.
+For Maven projects, you can add the repository configuration to your `pom.xml`, as shown below.
 
 ```xml
   <repositories>
@@ -57,17 +61,8 @@ Maven projects can be added to the repository configuration to your `pom.xml` wi
     </repository>
   </repositories>
 ```
-Gradle projects can add the repository configuration in `build.gradle`, as follows.
 
-```groovy
-repositories {
-         maven {
-             url 'https://dl.bintray.com/streamnative/maven'
-         }
-}
-```
-
-For maven projects, to build an application JAR that contains all the dependencies required for the library and pulsar flink connector, you can use the following shade plugin definition template.
+For Maven projects, you can use the following [shade](https://imperceptiblethoughts.com/shadow/) plugin definition template to build an application JAR package that contains all the dependencies required for the client library and Pulsar Flink connector.
 
 ```xml
 <plugin>
@@ -112,7 +107,19 @@ For maven projects, to build an application JAR that contains all the dependenci
 </plugin>
 ```
 
-For gradle projects, to build an application JAR containing all the dependencies needed for the library and pulsar flink connector, you can define a template using the following [shade](https://imperceptiblethoughts.com/shadow/) plugin.
+## Gradle projects
+
+For Gradle projects, you can add the repository configuration to your `build.gradle`, as shown below.
+
+```groovy
+repositories {
+         maven {
+             url 'https://dl.bintray.com/streamnative/maven'
+         }
+}
+```
+
+For gradle projects, you can use the following [shade](https://imperceptiblethoughts.com/shadow/) plugin definition template to build an application JAR package that contains all the dependencies required for the client library and Pulsar Flink connector.
 
 ```groovy
 buildscript {
@@ -128,51 +135,91 @@ apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'java'
 ```
 
+# Build Pulsar Flink connector
 
+To build the Pulsar Flink connector for reading data from Pulsar or writing the results to Pulsar, follow these steps.
 
+1. Check out the source code.
 
+  ```bash
+  git clone https://github.com/streamnative/pulsar-flink.git
+  cd pulsar-flink
+  ```
 
-## Deployment
+2. Install the Docker.
 
-### Client library
-As with any Flink application, `./bin/flink run` is used to compile and start your application.
+  The Pulsar Flink connector uses [Testcontainers](https://www.testcontainers.org/) for integration test. To run the integration test, ensure to install the Docker. For details about how to install the Docker, see [here](https://docs.docker.com/docker-for-mac/install/).
 
-If you have already built a jar with dependencies using the shade plugin above, you can add your jar to `flink run` using `--classpath`.
+3. Set the Java version.
 
-> #### Note
-> The path must be in a protocol format (e.g., `file://`) and the path must be accessible on all nodes.
+   Modify `java.version` and `java.binary.version` in `pom.xml`.
 
-Example:
+   > **Note**  
+   > Ensure that the Java version should be identical to the Java version for the Pulsar Flink connector.
+
+4. Build the project.
+
+  ```bash
+  mvn clean install -DskipTests
+  ```
+
+5. Run the test.
+
+  ```bash
+  mvn clean install
+  ```
+
+After the Pulsar Flink connector is installed, a JAR package that contains all the dependencies is generated in both the local Maven repository and the `target` directory.
+
+> **Note**  
+> If you use intellij IDEA to debug this project, you might encounter the `org.apache.pulsar.shade.org.bookkeeper.ledger` package error. To fix the error, use the ` mvn clean install -DskipTests` command to install the JAR package to the local repository, ignore the `managed-ledger-shaded` Maven module on the project, and then click **Refresh**.
+
+# Deploy Pulsar Flink connector
+
+This section describes how to deploy the Pulsar Flink connector.
+
+## Client library
+
+For any Flink application, use the `./bin/flink run` command to compile and start your application.
+
+If you have already built a JAR package with dependencies using the above shade plugin, you can use the `--classpath` option to add your JAR package.
+
+> **Note**  
+> The path must be in a protocol format (such as `file://`) and the path must be accessible on all nodes.
+
+**Example**
 
 ```
-$ ./bin/flink run -c com.example.entry.point.ClassName file://path/to/jars/your_fat_jar.jar
- ...
+./bin/flink run -c com.example.entry.point.ClassName file://path/to/jars/your_fat_jar.jar
 ```
 
-### Scala REPL
-Try it in the interactive Scala shell `bin/start-scala-shell.sh`, you can add `pulsar-flink-connector_{{SCALA_BINARY_VERSION}}-{{ PULSAR_FLINK_VERSION}}.jar`.
+## Scala REPL
 
-Example:
+The Scala REPL is a tool (scala) for evaluating expressions in Scala. Use the `bin/start-scala-shell.sh` command to deploy Pulsar Flink connector on Scala client. You can use the `--addclasspath` to add `pulsar-flink-connector_{{SCALA_BINARY_VERSION}}-{{ PULSAR_FLINK_VERSION}}.jar` package.
+
+**Example**
 
 ```
-$ ./bin/start-scala-shell.sh remote <hostname> <portnumber>
+./bin/start-scala-shell.sh remote <hostname> <portnumber>
  --addclasspath pulsar-flink-connector-{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar
 ```
-For more information on submitting applications using the CLI, please refer to [Command-Line Interface](https://ci.apache.org/projects/flink/flink-docs-release-1.12/deployment/cli.html) .
 
+For more information on submitting applications through the CLI, see [Command-Line Interface](https://ci.apache.org/projects/flink/flink-docs-release-1.12/deployment/cli.html) .
 
-### SQL Client
-To use [SQL Client](https://ci.apache.org/projects/flink/flink-docs-release-1.12/dev/table/sqlClient.html) and write 
-SQL queries to manipulate the data in Pulsar, you can use the  `-addclasspath` parameter to directly add `pulsar-flink-connector-{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar`.
+## SQL client
 
-Example:
+The [SQL Client](https://ci.apache.org/projects/flink/flink-docs-release-1.12/dev/table/sqlClient.html) is used to write SQL queries for manipulating data in Pulsar, you can use the `-addclasspath` option to add `pulsar-flink-connector-{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar` package.
+
+**Example**
+
 ```
-$ ./bin/sql-client.sh embedded --jar pulsar-flink-connector-{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar
+./bin/sql-client.sh embedded --jar pulsar-flink-connector-{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar
 ```
-> If you put the jar of our connector under `$FLINK_HOME/lib`, please do not use `--jar` again to specify the 
-> package of the connector.
 
-By default, to use the Pulsar directory in SQL Client and register it automatically at startup, SQL Client reads its configuration from the environment file `./conf/sql-client-defaults.yaml` to read its configuration. You need to add the Pulsar catalog to the `catalogs` section of this YAML file.
+> **Note**  
+> If you put the JAR package of our connector under `$FLINK_HOME/lib`, do not use `--jar` again to specify the package of the connector.
+
+By default, to use the Pulsar directory in the SQL client and register it automatically at startup, the SQL client reads its configuration from the `./conf/sql-client-defaults.yaml` environment file. You need to add the Pulsar catalog to the `catalogs` section of this YAML file, as shown below.
 
 ```yaml
 catalogs:
@@ -184,29 +231,26 @@ catalogs:
     format: json
 ```
 
+# Usage
 
+This section describes how to use the Pulsar Flink connector in the stream environment and table environment.
 
+## Stream environment
 
+This section describes how to use the Pulsar Flink connector in the stream environment.
 
-# Stream environment
+### Source
 
-## Source
-
-Flink's Pulsar consumer is called `FlinkPulsarSource<T>`. It provides access to one or more Pulsar topics.
+In Pulsar Flink, the Pulsar consumer is called `FlinkPulsarSource<T>`. It accesses to one or more Pulsar topics.
 
 Its constructor method has the following parameters.
 
-1. the service address `serviceUrl` and the administrative address `adminUrl` used to connect to the Pulsar instance.
-2. When using `FlinkPulsarSource`, you need to set `PulsarDeserializationSchema<T>`.
-3. the Properties parameter, which is used to configure the behavior of the Pulsar Consumer.
-   Properties necessary parameters, as follows:
+- `serviceUrl` (service address) and `adminUrl` (administrative address): they are used to connect to the Pulsar instance.
+- `PulsarDeserializationSchema<T>`: when the `FlinkPulsarSource` is used, you need to set the `PulsarDeserializationSchema<T>` parameter.
+- `Properties`: it is used to configure the behavior of the Pulsar consumer, including the `topic`, `topics`, and `topicsPattern` options. The `topic`, `topics`, or `topicsPattern` option is used to configure information about the topic to be consumed. You must set a value for it. (**The `topics` parameters refers to multiple topics separated by a comma (,), and the `topicsPattern` parameter is a Java regular expression that matches a number of topics**.)
+- `setStartFromLatest`, `setStartFromEarliest`, `setStartFromSpecificOffsets`, or `setStartFromSubscription`: these parameters are used to configure the consumption mode. When the `setStartFromSubscription` consumption mode is configured, the checkpoint function must be enabled.
 
-    -  One of these parameters `topic`, `topics` or `topicsPattern` must have a value present. This is 
-       used to configure the Topic information to be consumed. (**`topics` is multiple topics separated by a comma `,`, `topicsPattern` is a java regular expression that matches a number of topics**)
-4. Set consumption mode can be set by setStartFromLatest, setStartFromEarliest, setStartFromSpecificOffsets, setStartFromSubscription, etc. of FlinkPulsarSource. When using setStartFromSubscription subscriber mode, the checkpoint function must be enabled.
-
-
-Example:
+**Example**
 
 ```java
 StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
@@ -227,13 +271,11 @@ DataStream<String> stream = see.addSource(source);
 see.execute();
 ```
 
+### Sink
 
+The Pulsar producer uses the `FlinkPulsarSink` instance. It allows to write record streams to one or more Pulsar topics.
 
-## Sink
-
-The Pulsar producer uses the `FlinkPulsarSink` instance. It allows to write record streams to one or more Pulsar Topics.
-
-Example:
+**Example**
 
 ```java
 PulsarSerializationSchema<Person> pulsarSerialization = new PulsarSerializationSchemaWrapper.Builder<>(JsonSer.of(Person.class))
@@ -251,64 +293,52 @@ FlinkPulsarSink<Person> sink = new FlinkPulsarSink(
 stream.addSink(sink);
 ```
 
+### PulsarDeserializationSchema
 
-
-## PulsarDeserializationSchema
-
-PulsarDeserializationSchema is a connector-defined Flink DeserializationSchema wrapper that allows flexible manipulation of Pulsar Message.
+PulsarDeserializationSchema is a connector-defined Flink DeserializationSchema wrapper that allows flexible manipulation of Pulsar messages.
 
 PulsarDeserializationSchemaWrapper is a simple implementation of PulsarDeserializationSchema with two parameters: Flink DeserializationSchema and information about the decoded message type.
 
 ```
 PulsarDeserializationSchemaWrapper(new SimpleStringSchema(),DataTypes.STRING())
 ```
+> **Note**  
+> The `DataTypes` type comes from Flink's `table-common` module.
 
+### PulsarSerializationSchema
 
+PulsarSerializationSchema is a wrapper for Flink SerializationSchema that provides more functionality. In most cases, users do not need to implement PulsarSerializationSchema by themselves. PulsarSerializationSchemaWrapper is provided to wrap a Flink SerializationSchema as  PulsarSerializationSchema.
 
-> DataTypes type from flink's `table-common` module.
+PulsarSerializationSchema uses the builder pattern and you can call `setKeyExtractor` or `setTopicExtractor` to extract the key and customize the target topic from each message.
 
+In particular, since Pulsar maintains its own Schema information internally, our messages must be able to export SchemaInfo when they are written to Pulsar. The `useSpecialMode`, `useAtomicMode`, `usePojoMode`, and `useRowMode` methods help you quickly build the Schema information required for Pulsar. You must choose one of these four modes.
 
+- SpecialMode: specify the `Schema<?>` mode directly. Ensure that this Schema is compatible with the Flink SerializationSchema setting.
+- AtomicMode: For some atomic types, pass the type of AtomicDataType, such as `DataTypes.INT()`, which corresponds to `Schema<Integer>` in Pulsar.
+- PojoMode: you need to pass a custom class object and either JSON or Arvo Schema to specify how to build a composite type Schema, such as `usePojoMode(Person.class, RecordSchemaType.JSON)`.
+- RowMode: in general, it is used for our internal `Table&SQL` API implementation.
 
-## PulsarSerializationSchema
+### Fault tolerance
 
-PulsarSerializationSchema is a wrapper for Flink SerializationSchema that provides more functionality. In most cases, you don't need to implement PulsarSerializationSchema yourself, we provide PulsarSerializationSchemaWrapper to wrap a Flink SerializationSchema as  PulsarSerializationSchema.
+With Flink's checkpoints being enabled, `FlinkPulsarSink` can provide at-least-once and exactly-once delivery guarantees.
 
-PulsarSerializationSchema uses the builder pattern and you can call setKeyExtractor or setTopicExtractor to satisfy the need to extract the key and customize the target Topic from each message.
+In addition to enabling checkpoints for Flink, you should also configure `setLogFailuresOnly(boolean)` and `setFlushOnCheckpoint(boolean)` parameters.
 
-In particular, since Pulsar maintains its own Schema information internally, our messages must be able to export a SchemaInfo when they are written to Pulsar. The useSpecialMode, useAtomicMode, usePojoMode, and useRowMode methods can help you quickly build the Schema information you need for Pulsar. You must choose only one of these four modes.
+> **Note**  
+> `setFlushOnCheckpoint(boolean)`: by default, it is set to `true`. When it is enabled, writing to Pulsar records is performed at this checkpoint snapshotState. This ensures that all records before the checkpoint are written to Pulsar. And, at-least-once setting must also be enabled.
 
--  SpecialMode: Specify directly the `Schema<?>` mode, make sure this Schema is compatible with your setting of 
-   Flink SerializationSchema.
+## Table environment
 
--  AtomicMode: For some atomic types, pass the type of AtomicDataType, such as `DataTypes.INT()`, which will 
-   correspond to `Schema<Integer>` in Pulsar.
--  PojoMode: You need to pass a custom Class object and one of Json or Arvo to specify the way to build a composite 
-   type Schema. For example `usePojoMode(Person.class, RecordSchemaType.JSON)`.
+The Pulsar Flink connector supports all the Table features, as listed below.
 
--  RowMode: In general, you will not use this mode, it is used for our internal Table&SQL API implementation.
+- SQL and DDL
+- Catalog
 
+### SQL and DDL
 
+The following section describes SQL configurations and DDL configurations.
 
-## Fault tolerance
-
-With Flink's checkpointing enabled, `FlinkPulsarSink` can provide at-least-once, exactly-once delivery guarantees.
-
-In addition to enabling checkpoints for Flink, you should also configure `setLogFailuresOnly(boolean)` and `setFlushOnCheckpoint(boolean)`.
-
-*`setFlushOnCheckpoint(boolean)`*: by default, it is set to `true`. When this is enabled, writing to pulsar records will be executed at this checkpoint snapshotState. This ensures that all records before checkpoint are written to pulsar. Note that flink's at-least-once setting must also be enabled.
-
-
-
-# Table environment
-
-The Pulsar-flink connector fully supports the Table feature, covering the following list.
-
--  SQL, DDL
--  Catalog
-
-## SQL, DDL
-
-SQL Example
+#### SQL configurations
 
 ```sql
 CREATE TABLE pulsar (
@@ -340,56 +370,49 @@ VALUES
 SELECT * FROM pulsar
 ```
 
-SQL is complete with support for physical fields, calculated columns, watermark, METADATA and other features.
+SQL supports configuring physical fields, calculated columns, watermark, METADATA and other features.
 
+#### DDL configurations
 
-
-### DDL configuration support list
-
-| Parameters                    | Default Value | Description                                                  | Required |
+| Parameter                    | Default value | Description                                                  | Required or not |
 | ----------------------------- | ------------- | ------------------------------------------------------------ | -------- |
-| connector                     | null          | The connectors used are available as pulsar and upsert-pulsar. | Yes      |
-| topic                         | null          | Input or output topic, use half comma  when multiple, concatenate. Choose one with topic-pattern | No       |
-| topic-pattern                 | null          | Use regular to get the matching Topic.                       | No       |
-| service-url                   | null          | Pulsar broker service address                                | Yes      |
-| admin-url                     | null          | Pulsar admin service address                                 | Yes      |
-| scan.startup.mode             | latest        | Source's startup mode, options earliest, latest, external-subscription, specific-offsets | No       |
-| scan.startup.specific-offsets | null          | When using specific-offsets, the message offset must be specified | No       |
-| scan.startup.sub-name         | null          | Must be set when using the subscription mode (external-subscription). | No       |
-| discovery topic interval      | null          | Time interval for partition discovery, milliseconds          | No       |
-| sink.message-router           | key-hash      | Routing method for writing messages to the Pulsar partition, with options for key-hash, round-robin, and custom MessageRouter implementation class reference paths | No       |
-| sink.semantic                 | at-least-once | Sink writes the assurance level of the message. Options at-least-once, exactly-once, none | No       |
-| properties                    | empty         | Pulsar's optional configuration set,  format `properties.key='value'`, refer to #Configuration Parameters | No       |
-| key.format                    | null          | Pulsar Message's Key serialization No format, optional raw, avro, json, etc. | No       |
+| connector                     | null          | Set the connector type. Available options are `pulsar` and `upsert-pulsar`. | Yes      |
+| topic                         | null          | Set the input or output topic, use half comma for multiple and concatenate topics. Choose one with the topic-pattern. | No       |
+| topic-pattern                 | null          | Use regular to get the matching topic.                       | No       |
+| service-url                   | null          | Set the Pulsar broker service address.                               | Yes      |
+| admin-url                     | null          | Set the Pulsar administration service address.                                 | Yes      |
+| scan.startup.mode             | latest        | COnfigure the Source's startup mode,. Available options are `earliest`, `latest`, `external-subscription`, and `specific-offsets`. | No       |
+| scan.startup.specific-offsets | null          | This parameter is required when the `specific-offsets` parameter is specified. | No       |
+| scan.startup.sub-name         | null          | This parameter is required for the External subscription mode . | No       |
+| discovery topic interval      | null          | Set the time interval for partition discovery, in unit of milliseconds.         | No       |
+| sink.message-router           | key-hash      | Set the routing method for writing messages to the Pulsar partition. Available options are `key-hash`, `round-robin`, and `custom MessageRouter`. | No       |
+| sink.semantic                 | at-least-once | The Sink writes the assurance level of the message. Available options are `at-least-once`, `exactly-once`, and `none`. | No       |
+| properties                    | empty         | Set Pulsar's optional configurations, in a format of `properties.key='value'`. For details, see [Configuration parameters](#configuration-parameters). | No       |
+| key.format                    | null          | Set the key-based serialization format for Pulsar messages. Available options are `No format`, `optional raw`, `Avro`, `JSON`, etc. | No       |
 | key.fields                    | null          | The SQL definition field to be used when serializing Key, multiple by half comma `,` concatenated. | No       |
-| key.fields-prefix             | null          | Define a custom prefix for all fields in the key format to avoid name conflicts  with fields in the value format. By  default, the prefix is empty. If a custom prefix is defined, the Table schema and 'key.fields' will both use the | No       |
-| format or value.format        | null          | name with the prefix. When constructing data types in key format, the prefix will be removed and non- prefixed names will be used within the key format.Pulsar message value serialization format, support json, avro, etc., for<br/> more reference Flink format. | Yes      |
-| value.fields-include          | ALL           | Pulsar message value contains field policy, optionally ALL, EXCEPT_KEY | No       |
+| key.fields-prefix             | null          | Define a custom prefix for all fields in the key format to avoid name conflicts with fields in the value format. By default, the prefix is empty. If a custom prefix is defined, the Table schema and `key.fields` are used. | No       |
+| format or value.format        | null          | Set the name with a prefix. When constructing data types in the key format, the prefix is removed and non-prefixed names are used within the key format. Pulsar message value serialization format, support JSON, Avro, etc. For more information, see the Flink format. | Yes      |
+| value.fields-include          | ALL           | The Pulsar message value contains the field policy, optionally ALL, and EXCEPT_KEY. | No       |
 
+#### Metadata configurations
 
+The METADATA flag is used to read and write metadata in Pulsar messages. The support list is as follows.
 
-### Pulsar Message metadata manipulation
-
-The METADATA flag is used to read and write metadata in Pulsar Message. The support list is as follows.
-
-**The R/W column defines whether a metadata field is readable (R) and/or writable (W). Read-only columns must be declared VIRTUAL to exclude them during an INSERT INTO operation.**
+> **Note**  
+> The R/W column defines whether a metadata field is readable (R) and/or writable (W). Read-only columns must be declared VIRTUAL to exclude them during an INSERT INTO operation.
 
 | Key         | Data Type                                  | Description                            | R/W  |
 | ----------- | ------------------------------------------ | -------------------------------------- | ---- |
-| topic       | STRING NOT NULL                            | Topic name of the Pulsar Message.      | R    |
-| messageId   | BYTES NOT NULL                             | MessageId of the Pulsar Message.       | R    |
-| sequenceId  | BIGINT NOT NULL                            | Pulsar Message sequence Id             | R    |
-| publishTime | TIMESTAMP(3) WITH LOCAL TIME ZONE NOT NULL | Pulsar message published time          | R    |
-| eventTime   | TIMESTAMP(3) WITH LOCAL TIME ZONE NOT NULL | Message Generation Time                | R/W  |
-| properties  | MAP<STRING, STRING> NOT NULL               | Pulsar Message Extensions Information. | R/W  |
+| topic       | STRING NOT NULL                            | Topic name of the Pulsar message.      | R    |
+| messageId   | BYTES NOT NULL                             | Message ID of the Pulsar message.      | R    |
+| sequenceId  | BIGINT NOT NULL                            | sequence ID of the Pulsar message.     | R    |
+| publishTime | TIMESTAMP(3) WITH LOCAL TIME ZONE NOT NULL | Publishing time of the Pulsar message. | R    |
+| eventTime   | TIMESTAMP(3) WITH LOCAL TIME ZONE NOT NULL | Generation time of the Pulsar message. | R/W  |
+| properties  | MAP<STRING, STRING> NOT NULL               | Extensions information of the Pulsar message. | R/W  |
 
+### Catalog
 
-
-
-
-## Catalog
-
-Flink always searches for tables, views and UDFs in the current catalog and database. To use the Pulsar Catalog and treat the topic in Pulsar as a table in Flink, you should use the `pulsarcatalog` that has been defined in `. /conf/sql-client-defaults.yaml` defined in `pulsarcatalog`. .
+Flink always searches for tables, views and UDFs in the current catalog and database. To use the Pulsar Catalog and treat the topic in Pulsar as a table in Flink, you should use the `pulsarcatalog` that has been defined in `./conf/sql-client-defaults.yaml` in `pulsarcatalog`.
 
 ```java
 tableEnv.useCatalog("pulsarcatalog")
@@ -403,137 +426,121 @@ Flink SQL> USE `public/default`;
 Flink SQL> select * from topic0;
 ```
 
-The following configuration is optional in the environment file, or can be overridden in the SQL client session using the `SET` command.
+The following configuration is optional in the environment file, or it can be overridden in the SQL client session using the `SET` command.
 
 <table class="table">
 <tr><th>Option</th><th>Value</th><th>Default</th><th>Description</th></tr >
 <tr>
  <td>`default-database`</td>
- <td>Default database name. </td>
+ <td>Default database name </td>
  <td>public/default</td>
- <td>When using the Pulsar catalog, the topic in Pulsar is treated as a table in Flink, so `database` is another name for `tenant/namespace`. The database is the base path for table lookups or creation. </td>
+ <td>When using the Pulsar catalog, the topic in Pulsar is treated as a table in Flink. Therefore, `database` is another name for `tenant/namespace`. The database is the base path for table lookups or creation. </td>
  </tr>
  <tr>
  <td>`table-default-partitions`</td>
- <td>Topic default partition</td>
+ <td>Default topic partition</td>
  <td>5</td>
- <td>When using the Pulsar catalog, the topic in Pulsar is treated as a table in Flink. The size of the partition set when creating the Topic. </td>
+ <td>When using the Pulsar catalog, the topic in Pulsar is treated as a table in Flink. The size of the partition is set when creating the topic. </td>
  </tr>
 </table>
 
+For more details, see [DDL configurations](#ddl-configurations).
 
-Refer to the configuration items in the DDL for more details on the parameters
+> **Note**  
+> In Catalog, you cannot delete `tenant/namespace` or `topic`.
 
-Note: Due to the dangerous nature of the delete operation, the delete `tenant/namespace` and `topic` operations in Catalog are not supported at the moment.
+# Advanced features
 
-
-
-
-# Advanced Features
-
-
+This section describes advanced features supported by Pulsar Flink connector.
 
 ## Pulsar primitive types
 
-Pulsar itself provides some basic native types, and if you need to use native types, you can support them in the following way
-
-
+Pulsar provides some basic native types. To use these native types, you can support them in the following ways.
 
 ### Stream API environment
 
-PulsarPrimitiveSchema is an implementation of the `PulsarDeserializationSchema`, `PulsarSerializationSchema` interfaces.
+PulsarPrimitiveSchema is an implementation of the `PulsarDeserializationSchema` and `PulsarSerializationSchema` interfaces.
 
 You can create the required instance in a similar way `new PulsarSerializationSchema(String.class)`.
 
+### Table environment
 
-
-### Table Environment
-
-We have created a new Flink format component called `atomic` that you can use in SQL format. In Source, it translates the Pulsar native type into only one column worth of RowData. in Sink, it translates the first column of RowData into the Pulsar native type and writes it to Pulsar.
-
-
+We have created a new Flink format component called `atomic` that you can use in SQL format. In Source, it translates the Pulsar native type into only one column of RowData. In Sink, it translates the first column of RowData into the Pulsar native type and writes it to Pulsar.
 
 ## Upsert Pulsar
 
-There is a high demand for Upsert mode message queues from Flink community users for three main reasons.
+There is an increasing demand for Upsert mode message queues for three main reasons.
 
--  Interpret Pulsar Topic as a changelog stream, which interprets records with keys as upsert events.
--  As part of the real-time pipeline, multiple streams are connected for enrichment and the results are stored in Pulsar Topic for further computation later. However, the results may contain update events.
--  As part of the real-time pipeline, the data stream is aggregated and the results are stored in Pulsar Topic for further computation later. However, the results may contain update events.
-    Based on these requirements, we have also implemented support for Upsert Pulsar. Using this feature, users can read data from and write data to Pulsar topics in an upsert fashion.
+- Interpret the Pulsar topic as a changelog stream, which interprets records with keys as Upsert events.
+- As part of the real-time pipeline, multiple streams are connected for enrichment and the results are stored in the Pulsar topic for further computation. However, the results may contain updated events.
+- As part of the real-time pipeline, the data stream is aggregated and the results are stored in Pulsar Topic for further computation. However, the results may contain updated events.
+  
+Based on these requirements, we support Upsert Pulsar. With this feature, users can read data from and write data to Pulsar topics in an Upsert fashion.
 
-
-
-In the SQL DDL definition, you set the connector to upsert-pulsar to use the Upsert Pulsar connector.
+In the SQL DDL definition, you can set the connector to `upsert-pulsar` to use the Upsert Pulsar connector.
 
 In terms of configuration, the primary key of the Table must be specified, and `key.fields` cannot be used.
 
-As source, the upsert-pulsar connector produces changelog streams, where each data record represents an update or deletion event. More precisely, the value in a data record is interpreted as a UPDATE of the last value of the same key, if this key exists (if the corresponding key does not exist, the update is considered as an INSERT). Using the table analogy, data records in the changelog stream are interpreted as UPSERT, also known as INSERT/UPDATE, because any existing row with the same key is overwritten. Also, a message with a null value will be treated as a DELETE message.
+As a source, the Upsert Pulsar connector produces changelog streams, where each data record represents an update or deletion event. More precisely, the value in a data record is interpreted as a UPDATE of the last value of the same key, if this key exists (If the corresponding key does not exist, the UPDATE is considered as an INSERT.). Using the table analogy, data records in the changelog stream are interpreted as UPSERT, also known as INSERT/UPDATE, because any existing row with the same key is overwritten. Also, a message with a null value is treated as a DELETE message.
 
-As a sink, the upsert-pulsar connector can consume changelog streams. It writes INSERT/UPDATE_AFTER data as normal Pulsar messages and writes DELETE data as Pulsar messages with null value (indicating that the message corresponding to the key is deleted). Flink will partition the data based on the value of the primary key column so that the messages on the primary key are ordered, so that update/delete messages on the same primary key will fall in the same partition.
+As a sink, the Upsert Pulsar connector can consume changelog streams. It writes INSERT/UPDATE_AFTER data as normal Pulsar messages and writes DELETE data as Pulsar messages with null value (It indicates that key of the message is deleted). Flink partitions the data based on the value of the primary key so that the messages on the primary key are ordered. And, UPDATE/DELETE messages with the same primary key fall in the same partition.
 
+## Key-Shared subscription mode
 
+In some scenarios, users need messages to be strictly guaranteed message order to ensure correct business processing. Usually, in the case of strictly order-preserving messages, only one consumer can consume messages at the same time to guarantee the order. This results in a significant reduction in message throughput. Pulsar designs the Key-Shared subscription mode for such scenarios by adding keys to messages and routing messages with the same Key Hash to the same messenger, which ensures message order and improves throughput.
 
-## Pulsar Key-Shared
+Pulsar Flink connector supports this feature the as well. This feature can be enabled by configuring the `enable-key-hash-range=true` parameter. When enabled, the range of Key Hash processed by each consumer is divided based on the parallelism of the task.
 
-High Performance Ordered Message Queues In some scenarios, users need messages to be strictly guaranteed message order in order to ensure correct business processing. Usually, in the case of strictly order-preserving messages, only one consumer can consume messages at the same time to guarantee the order. This results in a significant reduction in message throughput. pulsar designs the Key-Shared subscription pattern for such scenarios by adding Keys to messages and routing messages with the same Key Hash to the same messenger, which ensures message order and improves throughput.
+## Configuration parameters
 
-We have added support for this feature in the Pulsar Flink connector as well. This feature can be enabled by configuring the parameter `enable-key-hash-range=true`. When enabled, the range of Key Hash processed by each consumer will be divided according to the parallelism of the task.
+This parameter corresponds to the `FlinkPulsarSource` in StreamAPI, the Properties object in the FlinkPulsarSink construction parameter, and the configuration properties parameter in Table mode.
 
-## Configuration Parameters
-
-This parameter corresponds to the FlinkPulsarSource in StreamAPI, the Properties object in the FlinkPulsarSink construction parameter, and the configuration properties parameter in Table mode.
-
-| Parameters | Default Value | Description | Effective Range |
+| Parameter | Default value | Description | Effective range |
 | --------- | -------- | ---------------------- | ------------ |
-| topic | null | pulsar topic | source |
-| topics | null | Multiple pulsar topics connected by half-width commas | source |
-| topicspattern | null | Multiple pulsar topics with more java regular matching | source |
-| partition.discovery.interval-millis | -1 | Automatically discover increase and decrease topics, milliseconds. -1 means not open. | source |
-| clientcachesize | 100 | Number of cached pulsar clients | source, sink |
-| auth-params | null | pulsar clients auth params | source, sink |
-| auth-plugin-classname | null | pulsar clients auth class name | source, sink |
-| flushoncheckpoint | true | Write a message to pulsar | sink |
-| failonwrite | false | When sink error occurs, continue to confirm the message | sink |
-| polltimeoutms | 120000 | The timeout period for waiting to get the next message, milliseconds | source |
-| failondataloss | true | Does it fail when data is lost | source |
-| commitmaxretries | 3 | Maximum number of retries when offset to pulsar message | source |
-| scan.startup.mode | null | earliest, latest, the position where subscribers consume news, required | source |
-| enable-key-hash-range | false | enable pulsar Key-Shared mode | source |
-| pulsar.reader.* | | For detailed configuration of pulsar consumer, please refer to [pulsar reader](https://pulsar.apache.org/docs/en/client-libraries-java/#reader) | source |
-| pulsar.reader.subscriptionRolePrefix | flink-pulsar- | When no subscriber is specified, the prefix of the subscriber name is automatically created | source |
-| pulsar.reader.receiverQueueSize | 1000 | Receive queue size | source |
-| pulsar.producer.* | | For detailed configuration of pulsar consumer, please refer to [pulsar producer](https://pulsar.apache.org/docs/en/client-libraries-java/#producer) | Sink |
-| pulsar.producer.sendTimeoutMs | 30000 | Timeout time when sending a message, milliseconds | Sink |
-| pulsar.producer.blockIfQueueFull | false | Producer writes messages. When the queue is full, block the method instead of throwing an exception | Sink |
+| topic | null | Pulsar topic | source |
+| topics | null | Multiple Pulsar topics connected by half-width commas | source |
+| topicspattern | null | Multiple Pulsar topics with more Java regular matching | source |
+| partition.discovery.interval-millis | -1 | Automatically discover added or removed topics, in unit of milliseconds. If the value is set to -1, it indicates that means not open. | source |
+| clientcachesize | 100 | Set the number of cached Pulsar clients. | source, sink |
+| auth-params | null | Set the authentication parameters for Pulsar clients. | source, sink |
+| auth-plugin-classname | null | Set the authentication class name for Pulsar clients.  | source, sink |
+| flushoncheckpoint | true | Write a message to Pulsar topics. | sink |
+| failonwrite | false | When sink error occurs, continue to confirm the message. | sink |
+| polltimeoutms | 120000 | Set the timeout for waiting to get the next message, in unit of milliseconds. | source |
+| failondataloss | true | When data is lost, the operation fails. | source |
+| commitmaxretries | 3 | Set the maximum number of retries when an offset is set for Pulsar messages. | source |
+| scan.startup.mode | null | Set the earliest, latest, and the position where subscribers consume news,. It is a required parameter. | source |
+| enable-key-hash-range | false | Enable the Key-Shared subscription mode. | source |
+| pulsar.reader.* | | For details about Pulsar reader configurations, see [Pulsar reader](https://pulsar.apache.org/docs/en/client-libraries-java/#reader). | source |
+| pulsar.reader.subscriptionRolePrefix | flink-pulsar- | When no subscriber is specified, the prefix of the subscriber name is automatically created. | source |
+| pulsar.reader.receiverQueueSize | 1000 | Set the receive queue size. | source |
+| pulsar.producer.* | | For details about Pulsar producer configurations, see [Pulsar producer](https://pulsar.apache.org/docs/en/client-libraries-java/#producer). | Sink |
+| pulsar.producer.sendTimeoutMs | 30000 | Set the timeout for sending a message, in unit of milliseconds. | Sink |
+| pulsar.producer.blockIfQueueFull | false | The Pulsar producer writes messages. When the queue is full, the method is blocked instead of an exception is thrown. | Sink |
 
-`pulsar.reader.*` and `pulsar.producer.*` specify more detailed configuration of pulsar's behavior, * is replaced by the configuration name in pulsar, refer to the link in the table for the contents.
+`pulsar.reader.*` and `pulsar.producer.*` specify more detailed configuration of the Pulsar behavior. The asterisk sign (*) is replaced by the configuration name in Pulsar. For details, see [Pulsar reader](https://pulsar.apache.org/docs/en/client-libraries-java/#reader) and [Pulsar producer](https://pulsar.apache.org/docs/en/client-libraries-java/#producer).
 
-
-
-In the DDL statement, the sample used is as follows:
+In the DDL statement, the sample which is similar to the following is used.
 
 ```
 'properties.pulsar.reader.subscriptionRolePrefix' = 'pulsar-flink-',
 'properties.pulsar.producer.sendTimeoutMs' = '30000',
 ```
 
+## Authentication configuration
 
+For Pulsar instances configured with authentication, the Pulsar Flink connector can be configured in a similar as the regular Pulsar client.
 
-## Authentication Configuration
+For `FlinkPulsarSource` and `FlinkPulsarSink`, you can use one of the following ways to set up authentication.
 
-For Pulsar instances with authentication configured, the Pulsar Flink connector can be set up in a similar manner to the regular Pulsar client.
-
-For FlinkPulsarSource, FlinkPulsarSink, you have two ways to set up authentication
-
--  Connstructed parameters `Properties`
+- Set the `Properties` parameter.
 
   ```java
   props.setProperty(PulsarOptions.AUTH_PLUGIN_CLASSNAME_KEY, "org.apache.pulsar.client.impl.auth.AuthenticationToken");
-  props.setProperty(PulsarOptions.AUTH_PARAMS_KEY, "token:eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyMSJ9.2AgtxHe8-2QBV529B5DrRtpuqP6RJjrk21Mhnomfivo");
+  props.setProperty(PulsarOptions.AUTH_PARAMS_KEY, "token:abcdefghijklmn");
   ```
 
--  Constructs the parameter `ClientConfigurationData`, which has a higher priority than `Properties`.
+- Set the `ClientConfigurationData` parameter, which has a higher priority than the `Properties` parameter.
 
   ```java
   ClientConfigurationData conf = new ClientConfigurationData();
@@ -542,40 +549,5 @@ For FlinkPulsarSource, FlinkPulsarSink, you have two ways to set up authenticati
   conf.setAuthParams(params);
   ```
 
-For detailed configuration of authentication, please refer to [Pulsar Security](https://pulsar.apache.org/docs/en/security-overview/).
-
-
-
-
-
-# Build Pulsar Flink Connector
-To build the Pulsar Flink connector expecting to read data from Pulsar or write the results to Pulsar, follow these steps
-1. Check out the source code
-     ```bash
-     $ git clone https://github.com/streamnative/pulsar-flink.git
-     $ cd pulsar-flink
-     ```
-
-2. install Docker
-
-   The Pulsar-flink connector is using [Testcontainers](https://www.testcontainers.org/) for integration testing. In order to run the integration tests, make sure that [Docker](https://docs.docker.com/docker-for-mac/install/) is installed.
-
-3. set the Java version
-
-   Modify `java.version` and `java.binary.version` in `pom.xml`.
-   > #### Note
-   > Java version should be the same as the Java version of flink you are using.
-
-4. Build project
-     ```bash
-     $ mvn clean install -DskipTests
-     ```
-
-5. Run the test
-     ```bash
-     $ mvn clean install
-     ```
-After the installation is complete, a jar containing the dependencies will be generated in both the local maven repo and `target` directories.
-
-> Note: If you use intellij IDEA to debug this project, you may encounter the package `org.apache.pulsar.shade.org.bookkeeper.ledger` error. Workaround:First run ` mvn clean install -DskipTests` to install the jar to the local repository, then ignore the maven module `managed-ledger-shaded` on the project. The error disappears after refreshing the project.
+For details about authentication configuration, see [Pulsar Security](https://pulsar.apache.org/docs/en/security-overview/).
 

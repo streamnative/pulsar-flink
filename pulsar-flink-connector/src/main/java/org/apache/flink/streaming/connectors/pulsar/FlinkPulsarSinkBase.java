@@ -53,6 +53,7 @@ import org.apache.pulsar.client.api.transaction.Transaction;
 import org.apache.pulsar.client.api.transaction.TransactionCoordinatorClientException;
 import org.apache.pulsar.client.api.transaction.TxnID;
 import org.apache.pulsar.client.impl.PulsarClientImpl;
+import org.apache.pulsar.client.impl.auth.AuthenticationDisabled;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.client.impl.transaction.TransactionCoordinatorClientImpl;
 import org.apache.pulsar.client.impl.transaction.TransactionImpl;
@@ -331,6 +332,11 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
             Schema<T> schema) {
 
         try {
+            // As `authentication` is not serializable, it will be null after the client config is
+            // deserialized, which results in that the `getAuthentication` return a new instance of
+            // `AuthenticationDisabled`.
+            // To hit the guava cache, we should set the authentication to the static instance.
+            clientConf.setAuthentication(AuthenticationDisabled.INSTANCE);
             ProducerBuilder<T> builder = CachedPulsarClient
                     .getOrCreate(clientConf)
                     .newProducer(schema)

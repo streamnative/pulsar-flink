@@ -119,10 +119,9 @@ public class ReaderThread<T> extends Thread {
     }
 
     protected void createActualReader() throws org.apache.pulsar.client.api.PulsarClientException, ExecutionException {
-        // As `authentication` is not serializable, it will be null after the client config is
-        // deserialized, which results in that the `getAuthentication` return a new instance of
-        // `AuthenticationDisabled`.
+        // when `authentication` is null, the `getAuthentication` returns a new instance of `AuthenticationDisabled`.
         // To hit the guava cache, we should set the authentication to the static instance.
+        // The `authentication` will be reconstructed by `authParams` when instantiating pulsar client.
         clientConf.setAuthentication(AuthenticationDisabled.INSTANCE);
         ReaderBuilder<T> readerBuilder = CachedPulsarClient
                 .getOrCreate(clientConf)

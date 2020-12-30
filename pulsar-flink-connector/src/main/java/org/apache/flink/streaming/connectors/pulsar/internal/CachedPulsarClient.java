@@ -80,6 +80,7 @@ public class CachedPulsarClient {
             ClientConfigurationData clientConfig) throws PulsarClientException {
         PulsarClientImpl client;
         try {
+            // Use cloned config, as it will be modified after client was instantiated.
             client = new PulsarClientImpl(clientConfig.clone());
             log.debug("Created a new instance of PulsarClientImpl for clientConf = {}",
                     clientConfig.toString());

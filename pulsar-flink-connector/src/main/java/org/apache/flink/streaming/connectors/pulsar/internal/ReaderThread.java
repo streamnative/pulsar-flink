@@ -23,7 +23,6 @@ import org.apache.pulsar.client.api.Reader;
 import org.apache.pulsar.client.api.ReaderBuilder;
 import org.apache.pulsar.client.impl.BatchMessageIdImpl;
 import org.apache.pulsar.client.impl.MessageIdImpl;
-import org.apache.pulsar.client.impl.auth.AuthenticationDisabled;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 
 import java.io.IOException;
@@ -119,10 +118,6 @@ public class ReaderThread<T> extends Thread {
     }
 
     protected void createActualReader() throws org.apache.pulsar.client.api.PulsarClientException, ExecutionException {
-        // when `authentication` is null, the `getAuthentication` returns a new instance of `AuthenticationDisabled`.
-        // To hit the guava cache, we should set the authentication to the static instance.
-        // The `authentication` will be reconstructed by `authParams` when instantiating pulsar client.
-        clientConf.setAuthentication(AuthenticationDisabled.INSTANCE);
         ReaderBuilder<T> readerBuilder = CachedPulsarClient
                 .getOrCreate(clientConf)
                 .newReader(deserializer.getSchema())

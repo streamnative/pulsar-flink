@@ -17,6 +17,7 @@ package org.apache.flink.streaming.connectors.pulsar.internal;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.PulsarClientImpl;
+import org.apache.pulsar.client.impl.auth.AuthenticationDisabled;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.shade.com.google.common.cache.CacheBuilder;
 import org.apache.pulsar.shade.com.google.common.cache.CacheLoader;
@@ -80,6 +81,10 @@ public class CachedPulsarClient {
             ClientConfigurationData clientConfig) throws PulsarClientException {
         PulsarClientImpl client;
         try {
+            // when `authentication` is null, the `getAuthentication` returns a new instance of `AuthenticationDisabled`.
+            // To hit the guava cache, we should set the authentication to the static instance.
+            // The `authentication` will be reconstructed by `authParams` when instantiating pulsar client.
+            clientConfig.setAuthentication(AuthenticationDisabled.INSTANCE);
             // Use cloned config, as it will be modified after client was instantiated.
             client = new PulsarClientImpl(clientConfig.clone());
             log.debug("Created a new instance of PulsarClientImpl for clientConf = {}",

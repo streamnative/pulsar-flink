@@ -48,6 +48,11 @@ public class PulsarDeserializationSchemaWrapper<T> implements PulsarDeserializat
         this.dataType = checkNotNull(dataType);
     }
 
+    public PulsarDeserializationSchemaWrapper(DeserializationSchema<T> deSerializationSchema) {
+        this.deSerializationSchema = checkNotNull(deSerializationSchema);
+        this.dataType = null;
+    }
+
     @Override
     public Optional<String> getTargetTopic(T element) {
         return Optional.empty();
@@ -56,6 +61,11 @@ public class PulsarDeserializationSchemaWrapper<T> implements PulsarDeserializat
     @Override
     public Schema<T> getSchema() {
         SchemaInfo si = BytesSchema.of().getSchemaInfo();
+
+        if (dataType == null) {
+            // No need to consider the impact of DataType
+            return new FlinkSchema<>(si, null, deSerializationSchema);
+        }
 
         if (deSerializationSchema instanceof SimpleStringSchema) {
             si = (new SchemaInfo()).setName("String").setType(SchemaType.STRING).setSchema(new byte[0]);

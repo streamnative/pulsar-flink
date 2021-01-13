@@ -16,6 +16,7 @@ package org.apache.flink.streaming.connectors.pulsar;
 
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
+import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.serialization.RuntimeContextInitializationContextAdapters;
 import org.apache.flink.api.common.state.ListState;
 import org.apache.flink.api.common.state.ListStateDescriptor;
@@ -48,6 +49,7 @@ import org.apache.flink.streaming.runtime.operators.util.AssignerWithPeriodicWat
 import org.apache.flink.streaming.runtime.operators.util.AssignerWithPunctuatedWatermarksAdapter;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
 import org.apache.flink.streaming.util.serialization.PulsarDeserializationSchema;
+import org.apache.flink.streaming.util.serialization.PulsarDeserializationSchemaWrapper;
 import org.apache.flink.util.ExceptionUtils;
 import org.apache.flink.util.SerializedValue;
 
@@ -242,6 +244,15 @@ public class FlinkPulsarSource<T>
             PulsarDeserializationSchema<T> deserializer,
             Properties properties) {
         this(adminUrl, PulsarClientUtils.newClientConf(checkNotNull(serviceUrl), properties), deserializer, properties);
+    }
+
+    public FlinkPulsarSource(
+            String serviceUrl,
+            String adminUrl,
+            DeserializationSchema<T> deserializer,
+            Properties properties) {
+        this(adminUrl, PulsarClientUtils.newClientConf(checkNotNull(serviceUrl), properties),
+                new PulsarDeserializationSchemaWrapper<>(deserializer), properties);
     }
 
     // ------------------------------------------------------------------------

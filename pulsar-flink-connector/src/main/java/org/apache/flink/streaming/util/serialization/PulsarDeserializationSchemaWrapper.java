@@ -15,21 +15,15 @@
 package org.apache.flink.streaming.util.serialization;
 
 import org.apache.flink.api.common.serialization.DeserializationSchema;
-import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.formats.avro.AvroDeserializationSchema;
-import org.apache.flink.formats.avro.typeutils.AvroSchemaConverter;
-import org.apache.flink.formats.json.JsonNodeDeserializationSchema;
 import org.apache.flink.table.types.DataType;
 
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.impl.schema.BytesSchema;
 import org.apache.pulsar.common.schema.SchemaInfo;
-import org.apache.pulsar.common.schema.SchemaType;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
@@ -41,11 +35,13 @@ public class PulsarDeserializationSchemaWrapper<T> implements PulsarDeserializat
 
     private final DeserializationSchema<T> deSerializationSchema;
 
-    private final DataType dataType;
-
+    @Deprecated
     public PulsarDeserializationSchemaWrapper(DeserializationSchema<T> deSerializationSchema, DataType dataType) {
         this.deSerializationSchema = checkNotNull(deSerializationSchema);
-        this.dataType = checkNotNull(dataType);
+    }
+
+    public PulsarDeserializationSchemaWrapper(DeserializationSchema<T> deSerializationSchema) {
+        this.deSerializationSchema = checkNotNull(deSerializationSchema);
     }
 
     @Override
@@ -56,22 +52,6 @@ public class PulsarDeserializationSchemaWrapper<T> implements PulsarDeserializat
     @Override
     public Schema<T> getSchema() {
         SchemaInfo si = BytesSchema.of().getSchemaInfo();
-
-        if (deSerializationSchema instanceof SimpleStringSchema) {
-            si = (new SchemaInfo()).setName("String").setType(SchemaType.STRING).setSchema(new byte[0]);
-        } else if (deSerializationSchema instanceof AvroDeserializationSchema) {
-            final org.apache.avro.Schema schema = AvroSchemaConverter.convertToSchema(dataType.getLogicalType());
-            byte[] schemaBytes = schema.toString().getBytes(StandardCharsets.UTF_8);
-            si.setName("Record");
-            si.setSchema(schemaBytes);
-            si.setType(SchemaType.AVRO);
-        } else if (deSerializationSchema instanceof JsonNodeDeserializationSchema) {
-            final org.apache.avro.Schema schema = AvroSchemaConverter.convertToSchema(dataType.getLogicalType());
-            byte[] schemaBytes = schema.toString().getBytes(StandardCharsets.UTF_8);
-            si.setName("Record");
-            si.setSchema(schemaBytes);
-            si.setType(SchemaType.JSON);
-        }
         return new FlinkSchema<>(si, null, deSerializationSchema);
     }
 

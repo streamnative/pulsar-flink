@@ -393,7 +393,14 @@ public class PulsarFetcher<T> {
         Set<TopicRange> topics = subscribedPartitionStates.stream()
                 .map(PulsarTopicState::getTopicRange).collect(Collectors.toSet());
 
-        metadataReader.removeCursor(topics);
+        try {
+            metadataReader.removeCursor(topics);
+        } catch (PulsarMetadataReader.ClosedException e) {
+            // metadata reader has already close. Do nothing
+        } catch (Exception e) {
+            throw e;
+        }
+
         // make sure the main thread wakes up soon
         unassignedPartitionsQueue.addIfOpen(PoisonState.INSTANCE);
     }

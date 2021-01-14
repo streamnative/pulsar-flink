@@ -242,7 +242,11 @@ public class PulsarMetadataReader implements AutoCloseable {
         }
     }
 
-    public void removeCursor(Set<TopicRange> topics) {
+    public void removeCursor(Set<TopicRange> topics) throws ClosedException {
+        if (closed) {
+            throw new ClosedException();
+        }
+
         if (!useExternalSubscription) {
             for (TopicRange topicRange : topics) {
                 try {

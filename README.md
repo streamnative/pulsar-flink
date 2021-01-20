@@ -491,6 +491,49 @@ In some scenarios, users need messages to be strictly guaranteed message order t
 
 Pulsar Flink connector supports this feature the as well. This feature can be enabled by configuring the `enable-key-hash-range=true` parameter. When enabled, the range of Key Hash processed by each consumer is divided based on the parallelism of the task.
 
+## Fault tolerance
+
+Pulsar Flink connector 2.7.0 provides different semantics for source and sink.
+
+### Source
+
+For Pulsar source, Pulsar Flink connector 2.7.0 provides `exactly-once` semantic.
+
+### Sink
+
+Pulsar Flink connector 2.4.12 only supports `at-least-once` semantic for sink. Based on transactions supported in Pulsar 2.7.0 and the Flink [`TwoPhaseCommitSinkFunction` API](https://ci.apache.org/projects/flink/flink-docs-master/api/java/org/apache/flink/streaming/api/functions/sink/TwoPhaseCommitSinkFunction.html), Pulsar Flink connector 2.7.0 supports both `exactly-once` and `at-least-once` semantics for sink. For more information, see [here](https://flink.apache.org/2021/01/07/pulsar-flink-connector-270.html).
+
+Before setting `exactly_once` semantic for a sink, you need to make the following configuration changes.
+
+1. In Pulsar, transaction related functions are **disabled by default**. In this case, you need to set `transactionCoordinatorEnabled = true` in the configuration file (`conf/standalone.conf` or `conf/broker.conf`) .
+
+2. When creating a sink, set `PulsarSinkSemantic.EXACTLY_ONCE`. The default value of  `PulsarSinkSemantic` is `AT_LEAST_ONCE`.
+
+    Example
+
+    ```
+    SinkFunction<Integer> sink = new FlinkPulsarSink<>(
+          adminUrl,
+          Optional.of(topic),
+          clientConfigurationData,
+          new Properties(),
+          new PulsarSerializationSchemaWrapper.Builder<>
+                  ((SerializationSchema<Integer>) element -> Schema.INT32.encode(element))
+                  .useAtomicMode(DataTypes.INT())
+                  .build(),
+          PulsarSinkSemantic.EXACTLY_ONCE
+    );
+    ```
+
+    Additionally, you can set transaction related configurations as below.
+
+    Parameter|Description|Default value
+    ---|---|---
+    `PulsarOptions.TRANSACTION_TIMEOUT`|Timeout for transactions in Pulsar. If the time exceeds, the transaction operation fails.|360000ms
+    `PulsarOptions.MAX_BLOCK_TIME_MS`|Maximum time to wait for a transaction to commit or abort. If the time exceeds, the operator throws an exception.|100000ms
+
+    Alternatively, you can override these configurations in the `Properties` object and pass it into the `Sink` constructor.
+
 ## Configuration parameters
 
 This parameter corresponds to the `FlinkPulsarSource` in StreamAPI, the Properties object in the FlinkPulsarSink construction parameter, and the configuration properties parameter in Table mode.

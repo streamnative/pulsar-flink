@@ -49,6 +49,7 @@ public class ReaderThread<T> extends Thread {
     private boolean failOnDataLoss = true;
 
     protected volatile boolean running = true;
+    protected volatile boolean closed = false;
 
     protected final PulsarDeserializationSchema<T> deserializer;
 
@@ -109,7 +110,7 @@ public class ReaderThread<T> extends Thread {
         } finally {
             if (reader != null) {
                 try {
-                    reader.close();
+                    close();
                 } catch (Throwable e) {
                     log.error("Error while closing Pulsar reader " + e.toString());
                 }
@@ -211,13 +212,22 @@ public class ReaderThread<T> extends Thread {
 
         if (reader != null) {
             try {
-                reader.close();
+                close();
             } catch (IOException e) {
                 log.error("failed to close reader. ", e);
             }
         }
 
         this.interrupt();
+    }
+
+    public void close() throws IOException {
+        if (closed) {
+            return;
+        }
+        closed = true;
+        reader.close();
+        log.info("Reader closed");
     }
 
     public boolean isRunning() {

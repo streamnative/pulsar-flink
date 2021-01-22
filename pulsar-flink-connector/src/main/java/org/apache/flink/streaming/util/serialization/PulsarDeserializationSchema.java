@@ -34,11 +34,10 @@ import java.io.Serializable;
 @PublicEvolving
 public interface PulsarDeserializationSchema<T> extends PulsarContextAware<T>, Serializable {
 
+    @Deprecated
     static <V> PulsarDeserializationSchemaBuilder<V> builder() {
         return new PulsarDeserializationSchemaBuilder<>();
     }
-
-    ;
 
     /**
      * Wraps a Flink {@link DeserializationSchema} to a {@link PulsarDeserializationSchema}.
@@ -57,11 +56,6 @@ public interface PulsarDeserializationSchema<T> extends PulsarContextAware<T>, S
             @Override
             public V deserialize(Message<V> message) throws IOException {
                 return valueDeserializer.deserialize(message.getData());
-            }
-
-            @Override
-            public void deserialize(Message<V> message, Collector<V> collector) throws IOException {
-                valueDeserializer.deserialize(message.getData(), collector);
             }
 
             @Override

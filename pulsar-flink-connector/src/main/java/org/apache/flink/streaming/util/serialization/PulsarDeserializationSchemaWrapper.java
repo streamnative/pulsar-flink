@@ -30,7 +30,10 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
  * An interface for the deserialization of Pulsar messages.
+ *
+ * @deprecated {@link PulsarDeserializationSchema#valueOnly(DeserializationSchema)}
  */
+@Deprecated
 public class PulsarDeserializationSchemaWrapper<T> implements PulsarDeserializationSchema<T>, PulsarContextAware<T> {
 
     private final DeserializationSchema<T> deSerializationSchema;
@@ -40,6 +43,7 @@ public class PulsarDeserializationSchemaWrapper<T> implements PulsarDeserializat
         this.deSerializationSchema = checkNotNull(deSerializationSchema);
     }
 
+    @Deprecated
     public PulsarDeserializationSchemaWrapper(DeserializationSchema<T> deSerializationSchema) {
         this.deSerializationSchema = checkNotNull(deSerializationSchema);
     }

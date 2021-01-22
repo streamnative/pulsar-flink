@@ -17,7 +17,7 @@ package org.apache.flink.streaming.connectors.pulsar.internal;
 /**
  * Exception designates the incompatibility between pulsar and flink type.
  */
-public class IncompatibleSchemaException extends Exception {
+public class IncompatibleSchemaException extends RuntimeException {
     public IncompatibleSchemaException(String message, Throwable e) {
         super(message, e);
     }

@@ -50,6 +50,15 @@ catalogs:
       startup:
         mode: "$VAR_STARTING"
     format: "atomic"
+  - name: pulsarcatalog3
+    type: pulsar
+    default-database: public/default
+    service-url: "$VAR_SERVICEURL"
+    admin-url: "$VAR_ADMINURL"
+    scan:
+      startup:
+        mode: "$VAR_STARTING"
+    format: "$VAR_FORMAT"
   - name: inmemorycatalog
     type: generic_in_memory
     default-database: mydatabase

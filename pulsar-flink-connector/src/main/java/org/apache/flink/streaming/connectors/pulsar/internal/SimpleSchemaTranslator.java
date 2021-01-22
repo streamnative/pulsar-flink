@@ -105,7 +105,7 @@ public class SimpleSchemaTranslator extends SchemaTranslator {
     }
 
     public static Schema sqlType2AvroSchema(DataType flinkType) throws IncompatibleSchemaException {
-        return sqlType2AvroSchema(flinkType, false, "topLevelRecord", "");
+        return sqlType2AvroSchema(flinkType, false, "record", "");
     }
 
     private static Schema sqlType2AvroSchema(DataType flinkType, boolean nullable, String recordName, String namespace) throws IncompatibleSchemaException {

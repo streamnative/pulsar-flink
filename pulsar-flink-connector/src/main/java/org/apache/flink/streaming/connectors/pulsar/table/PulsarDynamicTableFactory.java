@@ -113,7 +113,7 @@ public class PulsarDynamicTableFactory implements
                 getValueEncodingFormat(helper);
 
         // Validate the option data type.
-        helper.validateExcept(PROPERTIES_PREFIX, "type", "table-default-partitions");
+        helper.validateExcept(PROPERTIES_PREFIX, "type", "table-default-partitions", "default-database");
         // Validate the option values.
         PulsarTableOptions.validateTableSinkOptions(tableOptions);
 
@@ -183,7 +183,7 @@ public class PulsarDynamicTableFactory implements
         final DecodingFormat<DeserializationSchema<RowData>> valueDecodingFormat =
                 getValueDecodingFormat(helper);
         // Validate the option data type.
-        helper.validateExcept(PROPERTIES_PREFIX, "type", "table-default-partitions");
+        helper.validateExcept(PROPERTIES_PREFIX, "type", "table-default-partitions", "default-database");
         // Validate the option values.
         validateTableSourceOptions(tableOptions);
         validateSinkMessageRouter(tableOptions);

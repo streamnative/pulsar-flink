@@ -260,7 +260,7 @@ public class SchemaUtils {
                             SimpleSchemaTranslator.sqlType2PulsarSchema(dataType.getChildren().get(0));
                     return pulsarSchema.getSchemaInfo();
                 } catch (IncompatibleSchemaException e) {
-                    throw new RuntimeException("cant convert" + dataType + "to pulsar schema");
+                    throw new RuntimeException("cant convert" + dataType + "to pulsar schema", e);
                 }
             default:
                 throw new UnsupportedOperationException(

@@ -16,6 +16,7 @@ package org.apache.flink.streaming.connectors.pulsar.table;
 
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.streaming.connectors.pulsar.internal.IncompatibleSchemaException;
 import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils;
 import org.apache.flink.streaming.util.serialization.FlinkSchema;
 import org.apache.flink.streaming.util.serialization.PulsarContextAware;
@@ -192,8 +193,12 @@ class DynamicPulsarSerializationSchema
         if (StringUtils.isBlank(valueFormatType)) {
             return new FlinkSchema<>(Schema.BYTES.getSchemaInfo(), valueSerialization, null);
         }
-        final SchemaInfo schemaInfo = SchemaUtils.tableSchemaToSchemaInfo(valueFormatType, valueDataType);
-        return new FlinkSchema<>(schemaInfo, valueSerialization, null);
+        try {
+            SchemaInfo schemaInfo = SchemaUtils.tableSchemaToSchemaInfo(valueFormatType, valueDataType);
+            return new FlinkSchema<>(schemaInfo, valueSerialization, null);
+        } catch (IncompatibleSchemaException e) {
+            throw new RuntimeException("build Pulsar schema error", e);
+        }
     }
 
     // --------------------------------------------------------------------------------------------

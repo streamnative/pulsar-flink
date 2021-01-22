@@ -97,7 +97,7 @@ public class PulsarCatalogSupport {
         pulsarMetadataReader.putSchema(topicName, tableSchemaToPulsarSchema(format, schema));
     }
 
-    private SchemaInfo tableSchemaToPulsarSchema(String format, TableSchema schema) {
+    private SchemaInfo tableSchemaToPulsarSchema(String format, TableSchema schema) throws IncompatibleSchemaException {
         // The exclusion logic for the key is not handled correctly here when the user sets the key-related fields using pulsar
         final DataType physicalRowDataType = schema.toPhysicalRowDataType();
         return SchemaUtils.tableSchemaToSchemaInfo(format, physicalRowDataType);

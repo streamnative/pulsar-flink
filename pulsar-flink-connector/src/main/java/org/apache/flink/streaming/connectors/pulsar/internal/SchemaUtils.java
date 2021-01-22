@@ -248,20 +248,17 @@ public class SchemaUtils {
         }
     }
 
-    public static SchemaInfo tableSchemaToSchemaInfo(String format, DataType dataType) {
+    public static SchemaInfo tableSchemaToSchemaInfo(String format, DataType dataType)
+            throws IncompatibleSchemaException {
         switch (StringUtils.lowerCase(format)) {
             case "json":
                 return getSchemaInfo(SchemaType.JSON, dataType);
             case "avro":
                 return getSchemaInfo(SchemaType.AVRO, dataType);
             case "atomic":
-                try {
-                    org.apache.pulsar.client.api.Schema pulsarSchema =
-                            SimpleSchemaTranslator.sqlType2PulsarSchema(dataType.getChildren().get(0));
-                    return pulsarSchema.getSchemaInfo();
-                } catch (IncompatibleSchemaException e) {
-                    throw new RuntimeException("cant convert" + dataType + "to pulsar schema", e);
-                }
+                org.apache.pulsar.client.api.Schema pulsarSchema =
+                        SimpleSchemaTranslator.sqlType2PulsarSchema(dataType.getChildren().get(0));
+                return pulsarSchema.getSchemaInfo();
             default:
                 throw new UnsupportedOperationException(
                         "Generic schema is not supported on schema type " + dataType + "'");

@@ -19,6 +19,7 @@ import org.apache.flink.streaming.connectors.pulsar.internal.PulsarCatalogSuppor
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.streaming.connectors.pulsar.internal.SimpleSchemaTranslator;
 import org.apache.flink.streaming.connectors.pulsar.table.PulsarDynamicTableFactory;
+import org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions;
 import org.apache.flink.table.catalog.CatalogBaseTable;
 import org.apache.flink.table.catalog.CatalogDatabase;
 import org.apache.flink.table.catalog.CatalogDatabaseImpl;
@@ -39,6 +40,7 @@ import org.apache.flink.table.catalog.exceptions.TableNotExistException;
 import org.apache.flink.table.catalog.exceptions.TableNotPartitionedException;
 import org.apache.flink.table.catalog.stats.CatalogColumnStatistics;
 import org.apache.flink.table.catalog.stats.CatalogTableStatistics;
+import org.apache.flink.table.descriptors.FormatDescriptorValidator;
 import org.apache.flink.table.expressions.Expression;
 import org.apache.flink.table.factories.Factory;
 
@@ -195,7 +197,7 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
 
         try {
             catalogSupport.createTopic(tablePath, defaultNumPartitions, table);
-            catalogSupport.putSchema(tablePath, table);
+            catalogSupport.putSchema(tablePath, table, getFormat());
         } catch (PulsarAdminException e) {
             if (e.getStatusCode() == 409) {
                 throw new TableAlreadyExistException(getName(), tablePath, e);
@@ -205,6 +207,11 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
         } catch (IncompatibleSchemaException e) {
             throw new CatalogException("Failed to translate Flink type to Pulsar", e);
         }
+    }
+
+    private String getFormat() {
+        return Optional.ofNullable(properties.get(FormatDescriptorValidator.FORMAT))
+                .orElseGet(() -> properties.get(PulsarTableOptions.VALUE_FORMAT.key()));
     }
 
     // ------------------------------------------------------------------------

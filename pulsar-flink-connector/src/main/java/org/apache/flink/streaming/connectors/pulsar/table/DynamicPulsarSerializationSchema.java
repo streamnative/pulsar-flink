@@ -16,9 +16,7 @@ package org.apache.flink.streaming.connectors.pulsar.table;
 
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.formats.avro.typeutils.AvroSchemaConverter;
-import org.apache.flink.streaming.connectors.pulsar.internal.IncompatibleSchemaException;
-import org.apache.flink.streaming.connectors.pulsar.internal.SimpleSchemaTranslator;
+import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils;
 import org.apache.flink.streaming.util.serialization.FlinkSchema;
 import org.apache.flink.streaming.util.serialization.PulsarContextAware;
 import org.apache.flink.streaming.util.serialization.PulsarSerializationSchema;
@@ -33,17 +31,13 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
 import org.apache.pulsar.common.schema.SchemaInfo;
-import org.apache.pulsar.common.schema.SchemaType;
 
 import javax.annotation.Nullable;
 
 import java.io.Serializable;
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 
-import static org.apache.avro.Schema.Type.RECORD;
 import static org.apache.flink.shaded.guava18.com.google.common.base.Preconditions.checkArgument;
 
 /**
@@ -198,46 +192,8 @@ class DynamicPulsarSerializationSchema
         if (StringUtils.isBlank(valueFormatType)) {
             return new FlinkSchema<>(Schema.BYTES.getSchemaInfo(), valueSerialization, null);
         }
-        switch (StringUtils.lowerCase(valueFormatType)) {
-            case "json":
-                return new FlinkSchema<>(getSchemaInfo(SchemaType.JSON), valueSerialization, null);
-            case "avro":
-                return new FlinkSchema<>(getSchemaInfo(SchemaType.AVRO), valueSerialization, null);
-            case "atomic":
-                try {
-                    Schema pulsarSchema =
-                            SimpleSchemaTranslator.sqlType2PulsarSchema(valueDataType.getChildren().get(0));
-                    return new FlinkSchema<>(pulsarSchema.getSchemaInfo(), valueSerialization, null);
-                } catch (IncompatibleSchemaException e) {
-                    throw new RuntimeException("cant convert" + valueDataType + "to pulsar schema");
-                }
-
-            default:
-                throw new UnsupportedOperationException(
-                        "Generic schema is not supported on schema type " + valueFormatType + "'");
-        }
-    }
-
-    private SchemaInfo getSchemaInfo(SchemaType type) {
-        byte[] schemaBytes = getAvroSchema().toString().getBytes(StandardCharsets.UTF_8);
-        return SchemaInfo.builder()
-                .name("Record")
-                .schema(schemaBytes)
-                .type(type)
-                .properties(Collections.emptyMap())
-                .build();
-    }
-
-    private org.apache.avro.Schema getAvroSchema() {
-        org.apache.avro.Schema schema = AvroSchemaConverter.convertToSchema(valueDataType.getLogicalType());
-        if (schema.isNullable()) {
-            schema = schema.getTypes().stream()
-                    .filter(s -> s.getType() == RECORD)
-                    .findAny()
-                    .orElseThrow(
-                            () -> new IllegalArgumentException("not support DataType: " + valueDataType.toString()));
-        }
-        return schema;
+        final SchemaInfo schemaInfo = SchemaUtils.tableSchemaToSchemaInfo(valueFormatType, valueDataType);
+        return new FlinkSchema<>(schemaInfo, valueSerialization, null);
     }
 
     // --------------------------------------------------------------------------------------------

@@ -17,6 +17,7 @@ package org.apache.flink.streaming.connectors.pulsar.internal;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.catalog.CatalogBaseTable;
 import org.apache.flink.table.catalog.ObjectPath;
+import org.apache.flink.table.types.DataType;
 
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.PulsarClientException;
@@ -89,16 +90,17 @@ public class PulsarCatalogSupport {
         pulsarMetadataReader.createTopic(topicName, defaultNumPartitions);
     }
 
-    public void putSchema(ObjectPath tablePath, CatalogBaseTable table)
+    public void putSchema(ObjectPath tablePath, CatalogBaseTable table, String format)
             throws PulsarAdminException, IncompatibleSchemaException {
         String topicName = objectPath2TopicName(tablePath);
         final TableSchema schema = table.getSchema();
-        pulsarMetadataReader.putSchema(topicName, tableSchemaToPulsarSchema(schema));
+        pulsarMetadataReader.putSchema(topicName, tableSchemaToPulsarSchema(format, schema));
     }
 
-    // TODO 补充 schema的转换
-    private SchemaInfo tableSchemaToPulsarSchema(TableSchema schema) throws IncompatibleSchemaException {
-        return schemaTranslator.tableSchemaToPulsarSchema(schema);
+    private SchemaInfo tableSchemaToPulsarSchema(String format, TableSchema schema) {
+        // The exclusion logic for the key is not handled correctly here when the user sets the key-related fields using pulsar
+        final DataType physicalRowDataType = schema.toPhysicalRowDataType();
+        return SchemaUtils.tableSchemaToSchemaInfo(format, physicalRowDataType);
     }
 
     private TableSchema pulsarSchemaToTableSchema(SchemaInfo pulsarSchema) throws IncompatibleSchemaException {

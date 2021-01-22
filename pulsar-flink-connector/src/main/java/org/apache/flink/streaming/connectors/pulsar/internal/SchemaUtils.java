@@ -21,6 +21,7 @@ import org.apache.flink.table.types.FieldsDataType;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.table.types.utils.TypeConversions;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.schema.GenericRecord;
@@ -48,7 +49,9 @@ import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.shade.org.apache.avro.Schema;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 
+import static org.apache.avro.Schema.Type.RECORD;
 import static org.apache.pulsar.shade.com.google.common.base.Preconditions.checkNotNull;
 
 /**
@@ -201,7 +204,7 @@ public class SchemaUtils {
     }
 
     public static SchemaInfo buildRowSchema(DataType dataType,
-                                                                        RecordSchemaType recordSchemaType) {
+                                            RecordSchemaType recordSchemaType) {
         org.apache.avro.Schema avroSchema = AvroSchemaConverter.convertToSchema(dataType.getLogicalType());
         byte[] schemaBytes = avroSchema.toString().getBytes(StandardCharsets.UTF_8);
         SchemaInfo si = new SchemaInfo();
@@ -243,5 +246,47 @@ public class SchemaUtils {
             default:
                 throw new IllegalArgumentException("not support schema type " + recordSchemaType);
         }
+    }
+
+    public static SchemaInfo tableSchemaToSchemaInfo(String format, DataType dataType) {
+        switch (StringUtils.lowerCase(format)) {
+            case "json":
+                return getSchemaInfo(SchemaType.JSON, dataType);
+            case "avro":
+                return getSchemaInfo(SchemaType.AVRO, dataType);
+            case "atomic":
+                try {
+                    org.apache.pulsar.client.api.Schema pulsarSchema =
+                            SimpleSchemaTranslator.sqlType2PulsarSchema(dataType.getChildren().get(0));
+                    return pulsarSchema.getSchemaInfo();
+                } catch (IncompatibleSchemaException e) {
+                    throw new RuntimeException("cant convert" + dataType + "to pulsar schema");
+                }
+            default:
+                throw new UnsupportedOperationException(
+                        "Generic schema is not supported on schema type " + dataType + "'");
+        }
+    }
+
+    public static SchemaInfo getSchemaInfo(SchemaType type, DataType dataType) {
+        byte[] schemaBytes = getAvroSchema(dataType).toString().getBytes(StandardCharsets.UTF_8);
+        return SchemaInfo.builder()
+                .name("Record")
+                .schema(schemaBytes)
+                .type(type)
+                .properties(Collections.emptyMap())
+                .build();
+    }
+
+    public static org.apache.avro.Schema getAvroSchema(DataType dataType) {
+        org.apache.avro.Schema schema = AvroSchemaConverter.convertToSchema(dataType.getLogicalType());
+        if (schema.isNullable()) {
+            schema = schema.getTypes().stream()
+                    .filter(s -> s.getType() == RECORD)
+                    .findAny()
+                    .orElseThrow(
+                            () -> new IllegalArgumentException("not support DataType: " + dataType.toString()));
+        }
+        return schema;
     }
 }

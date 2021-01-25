@@ -25,8 +25,11 @@ import java.io.Serializable;
 
 /**
  * Pulsar deserialization schema builder.
+ *
  * @param <V>
+ * @deprecated {@link PulsarDeserializationSchema#valueOnly(DeserializationSchema)}
  */
+@Deprecated
 public class PulsarDeserializationSchemaBuilder<V> implements Serializable {
 
     private DeserializationSchema<V> valueDeserializer;
@@ -37,6 +40,7 @@ public class PulsarDeserializationSchemaBuilder<V> implements Serializable {
 
     private Schema<V> pulsarSchema;
 
+    @Deprecated
     public PulsarDeserializationSchemaBuilder() {
     }
 

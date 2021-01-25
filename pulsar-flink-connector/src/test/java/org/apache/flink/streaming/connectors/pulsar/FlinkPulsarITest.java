@@ -50,13 +50,11 @@ import org.apache.flink.streaming.connectors.pulsar.internal.SimpleSchemaTransla
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper;
 import org.apache.flink.streaming.connectors.pulsar.testutils.SingletonStreamSink;
 import org.apache.flink.streaming.connectors.pulsar.testutils.ValidatingExactlyOnceSink;
-import org.apache.flink.streaming.connectors.pulsar.util.DataTypeUtils;
 import org.apache.flink.streaming.connectors.pulsar.util.RowDataUtil;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
 import org.apache.flink.streaming.util.OneInputStreamOperatorTestHarness;
 import org.apache.flink.streaming.util.serialization.FlinkSchema;
 import org.apache.flink.streaming.util.serialization.PulsarDeserializationSchema;
-import org.apache.flink.streaming.util.serialization.PulsarDeserializationSchemaWrapper;
 import org.apache.flink.streaming.util.serialization.PulsarPrimitiveSchema;
 import org.apache.flink.streaming.util.serialization.PulsarSerializationSchema;
 import org.apache.flink.streaming.util.serialization.PulsarSerializationSchemaWrapper;
@@ -293,17 +291,14 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         sourceProp.setProperty(TOPIC_MULTI_OPTION_KEY, StringUtils.join(topics.toArray(), ','));
         sourceProp.setProperty(USE_EXTEND_FIELD, "true");
 
-        PulsarDeserializationSchema<RowData> pulsarRowDeserializationSchema =
-                PulsarDeserializationSchema.<RowData>builder()
-                        .setDataType(intRowWithTopicType())
-                        .setValueDeserializer(getJsonRowDataDerSchema((RowType) intRowWithTopicType().getLogicalType()))
-                        .build();
+        final DeserializationSchema<RowData> jsonRowDataDerSchema =
+                getJsonRowDataDerSchema((RowType) intRowWithTopicType().getLogicalType());
 
         DataStream<RowData> stream1 = env.addSource(
                 new FlinkPulsarSource<RowData>(
                         serviceUrl,
                         adminUrl,
-                        pulsarRowDeserializationSchema,
+                        PulsarDeserializationSchema.valueOnly(jsonRowDataDerSchema),
                         sourceProp)
                         .setStartFromEarliest());
 
@@ -395,8 +390,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
 
         FlinkPulsarSource<SchemaData.Foo> source =
                 new FlinkPulsarSource<>(serviceUrl, adminUrl,
-                        new PulsarDeserializationSchemaWrapper(AvroDeser.of(SchemaData.Foo.class),
-                                DataTypeUtils.toDataType(SchemaData.Foo.class)),
+                        PulsarDeserializationSchema.valueOnly(AvroDeser.of(SchemaData.Foo.class)),
                         sourceProps)
                         .setStartFromEarliest();
 
@@ -430,9 +424,9 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
 
         FlinkPulsarSource<SchemaData.Foo> source =
                 new FlinkPulsarSource<>(serviceUrl, adminUrl,
-                        new PulsarDeserializationSchemaWrapper(JsonDeser.of(SchemaData.Foo.class),
-                                DataTypeUtils.toDataType(SchemaData.Foo.class)), sourceProps)
-                        .setStartFromEarliest();
+                        PulsarDeserializationSchema.valueOnly(JsonDeser.of(SchemaData.Foo.class)),
+                        sourceProps
+                ).setStartFromEarliest();
 
         DataStream<Integer> ds = see.addSource(source)
                 .map(SchemaData.Foo::getI);
@@ -639,7 +633,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         Properties properties = new Properties();
         properties.put(TOPIC_SINGLE_OPTION_KEY, topic);
         FlinkPulsarSource<SchemaData.FA> integerFlinkPulsarSource = new FlinkPulsarSource<>(serviceUrl, adminUrl,
-                new PulsarDeserializationSchemaWrapper<SchemaData.FA>(new DeserializationSchema<SchemaData.FA>() {
+                PulsarDeserializationSchema.valueOnly(new DeserializationSchema<SchemaData.FA>() {
                     @Override
                     public SchemaData.FA deserialize(byte[] message) throws IOException {
                         return Schema.JSON(SchemaData.FA.class).decode(message);
@@ -654,7 +648,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
                     public TypeInformation<SchemaData.FA> getProducedType() {
                         return TypeInformation.of(SchemaData.FA.class);
                     }
-                }, DataTypes.RAW(TypeInformation.of(SchemaData.FA.class))), properties).setStartFromEarliest();
+                }), properties).setStartFromEarliest();
 
         //env.addSource(integerFlinkPulsarSource).addSink(new PrintSinkFunction<>());
         //TestUtils.tryExecute(env, "one to one exactly once test");
@@ -886,8 +880,9 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         env.addSource(new FlinkPulsarSource<String>(
                 serviceUrl,
                 adminUrl,
-                new PulsarDeserializationSchemaWrapper<>(new SimpleStringSchema(), DataTypes.STRING()),
-                prop).setStartFromEarliest())
+                PulsarDeserializationSchema.valueOnly(new SimpleStringSchema()),
+                prop
+        ).setStartFromEarliest())
                 .addSink(new DiscardingSink<>());
 
         JobGraph jobGraph = StreamingJobGraphGenerator.createJobGraph(env.getStreamGraph());
@@ -1454,7 +1449,8 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
                                         .useSpecialMode(Schema.STRING)
                                         .build(), null) {
                             @Override
-                            protected void invoke(PulsarTransactionState<String> stringPulsarTransactionState, String s, Context context) throws Exception {
+                            protected void invoke(PulsarTransactionState<String> stringPulsarTransactionState, String s,
+                                                  Context context) throws Exception {
                                 return;
                             }
                         });

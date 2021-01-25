@@ -14,8 +14,11 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
+import org.apache.flink.formats.avro.AvroFormatFactory;
+import org.apache.flink.formats.json.JsonFormatFactory;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.api.TableSchema;
+import org.apache.flink.table.formats.raw.RawFormatFactory;
 import org.apache.flink.table.types.AtomicDataType;
 import org.apache.flink.table.types.CollectionDataType;
 import org.apache.flink.table.types.DataType;
@@ -26,8 +29,13 @@ import org.apache.flink.table.types.logical.LogicalTypeRoot;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.table.types.utils.TypeConversions;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.pulsar.client.api.schema.Field;
 import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.apache.pulsar.client.api.schema.GenericSchema;
+import org.apache.pulsar.client.impl.schema.KeyValueSchemaInfo;
+import org.apache.pulsar.client.impl.schema.generic.GenericJsonSchema;
+import org.apache.pulsar.common.schema.KeyValue;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.shade.com.google.common.collect.ImmutableList;
@@ -40,7 +48,9 @@ import org.apache.pulsar.shade.org.apache.avro.SchemaBuilder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -49,6 +59,10 @@ import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOption
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.MESSAGE_ID_NAME;
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.PUBLISH_TIME_NAME;
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.TOPIC_ATTRIBUTE_NAME;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.KEY_FIELDS;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.KEY_FORMAT;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.VALUE_FORMAT;
+import static org.apache.flink.table.factories.FactoryUtil.FORMAT;
 
 /**
  * flink 1.11 schema translator.
@@ -261,6 +275,64 @@ public class SimpleSchemaTranslator extends SchemaTranslator {
             mainSchema.addAll(METADATA_FIELDS);
         }
         return (FieldsDataType) DataTypes.ROW(mainSchema.toArray(new DataTypes.Field[0]));
+    }
+
+    @Override
+    public Map<String, String> schemaInfo2TableProperties(SchemaInfo si) throws IncompatibleSchemaException {
+
+        Map<String, String> properties = new HashMap<>();
+
+        if (si.getType().equals(SchemaType.KEY_VALUE)) {
+
+            KeyValue<SchemaInfo, SchemaInfo> keyValue = KeyValueSchemaInfo.decodeKeyValueSchemaInfo(si);
+            String keyFormat = nonKeyValueSchema2Format(keyValue.getKey().getType());
+            if (StringUtils.isNotBlank(keyFormat)) {
+                properties.put(KEY_FORMAT.key(), keyFormat);
+                String keyFields = getSchemaKeyFieldNames(keyValue.getKey());
+                if (StringUtils.isNotBlank(keyFields)) {
+                    properties.put(KEY_FIELDS.key(), keyFields);
+                } else {
+                    throw new IncompatibleSchemaException(String.format("Schema %s key format is defined, " +
+                                    "the 'key.fields' option is required.",
+                            si.getName())
+                    );
+                }
+            }
+
+            properties.put(VALUE_FORMAT.key(), nonKeyValueSchema2Format(keyValue.getValue().getType()));
+        } else {
+            String format = nonKeyValueSchema2Format(si.getType());
+            if (StringUtils.isNotBlank(format)) {
+                properties.put(FORMAT.key(), format);
+            }
+        }
+        return properties;
+    }
+
+    private static String getSchemaKeyFieldNames(SchemaInfo si) {
+        if (si.getType().equals(SchemaType.NONE)) {
+            return null;
+        } else if (si.getType().isPrimitive()) {
+            return "key";
+        } else if (si.getType().equals(SchemaType.JSON) || si.getType().equals(SchemaType.AVRO)) {
+            return GenericJsonSchema.of(si).getFields().stream().map(Field::getName).collect(Collectors.joining(","));
+        } else {
+            throw new UnsupportedOperationException(String.format("We do not support %s currently.", si.getType()));
+        }
+    }
+
+    private static String nonKeyValueSchema2Format(SchemaType schemaType) {
+        if (schemaType.equals(SchemaType.NONE)) {
+            return null;
+        } else if (schemaType.isPrimitive()) {
+            return RawFormatFactory.IDENTIFIER;
+        } else if (schemaType.equals(SchemaType.JSON)) {
+            return JsonFormatFactory.IDENTIFIER;
+        } else if (schemaType.equals(SchemaType.AVRO)) {
+            return AvroFormatFactory.IDENTIFIER;
+        } else {
+            throw new UnsupportedOperationException(String.format("We do not support %s currently.", schemaType));
+        }
     }
 
     public static final List<DataTypes.Field> METADATA_FIELDS = ImmutableList.of(

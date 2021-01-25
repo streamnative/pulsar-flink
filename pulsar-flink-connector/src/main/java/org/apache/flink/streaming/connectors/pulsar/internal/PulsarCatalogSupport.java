@@ -30,6 +30,8 @@ import org.apache.pulsar.common.schema.SchemaInfo;
 import java.util.List;
 import java.util.Map;
 
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.TOPIC;
+
 /**
  * catalog support.
  */
@@ -95,6 +97,20 @@ public class PulsarCatalogSupport {
         String topicName = objectPath2TopicName(tablePath);
         final TableSchema schema = table.getSchema();
         pulsarMetadataReader.putSchema(topicName, tableSchemaToPulsarSchema(format, schema));
+    }
+
+    /**
+     * Get default table properties by pulsar schemaRegistry.
+     * @param objectPath
+     * @return table properties
+     * @throws IncompatibleSchemaException
+     */
+    public Map<String, String> getCatalogTableDefaultProperties(ObjectPath objectPath) throws IncompatibleSchemaException {
+        String topicName = objectPath2TopicName(objectPath);
+        final SchemaInfo pulsarSchema = pulsarMetadataReader.getPulsarSchema(topicName);
+        Map<String, String> properties = schemaTranslator.schemaInfo2TableProperties(pulsarSchema);
+        properties.put(TOPIC.key(), topicName);
+        return properties;
     }
 
     private SchemaInfo tableSchemaToPulsarSchema(String format, TableSchema schema) throws IncompatibleSchemaException {

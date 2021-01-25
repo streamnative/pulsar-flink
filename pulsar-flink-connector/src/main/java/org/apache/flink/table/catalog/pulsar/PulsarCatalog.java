@@ -159,7 +159,11 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
     @Override
     public CatalogBaseTable getTable(ObjectPath tablePath) throws TableNotExistException, CatalogException {
         try {
-            return new CatalogTableImpl(catalogSupport.getTableSchema(tablePath), properties, "");
+            //deep-copy properties
+            Map<String, String> catalogTableProperties  = new HashMap<>();
+            catalogTableProperties.putAll(properties);
+            catalogTableProperties.putAll(catalogSupport.getCatalogTableDefaultProperties(tablePath));
+            return new CatalogTableImpl(catalogSupport.getTableSchema(tablePath), catalogTableProperties, "");
         } catch (PulsarAdminException.NotFoundException e) {
             throw new TableNotExistException(getName(), tablePath, e);
         } catch (PulsarAdminException | IncompatibleSchemaException e) {

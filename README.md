@@ -258,7 +258,7 @@ Properties props = new Properties();
 props.setProperty("topic", "test-source-topic");
 props.setProperty("partition.discovery.interval-millis", "5000");
 
-FlinkPulsarSource<String> source = new FlinkPulsarSource<>(serviceUrl, adminUrl, new PulsarDeserializationSchemaWrapper(new SimpleStringSchema(),DataTypes.STRING()), props);
+FlinkPulsarSource<String> source = new FlinkPulsarSource<>(serviceUrl, adminUrl, PulsarDeserializationSchema.valueOnly(new SimpleStringSchema()), props);
 
 // or setStartFromLatest、setStartFromSpecificOffsets、setStartFromSubscription
 source.setStartFromEarliest(); 

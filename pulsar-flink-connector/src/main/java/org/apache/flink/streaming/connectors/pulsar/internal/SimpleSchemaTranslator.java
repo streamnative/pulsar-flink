@@ -315,7 +315,7 @@ public class SimpleSchemaTranslator extends SchemaTranslator {
         } else if (si.getType().isPrimitive()) {
             return "key";
         } else if (si.getType().equals(SchemaType.JSON) || si.getType().equals(SchemaType.AVRO)) {
-            return GenericJsonSchema.of(si).getFields().stream().map(Field::getName).collect(Collectors.joining(","));
+            return GenericJsonSchema.of(si).getFields().stream().map(Field::getName).collect(Collectors.joining(";"));
         } else {
             throw new UnsupportedOperationException(String.format("We do not support %s currently.", si.getType()));
         }

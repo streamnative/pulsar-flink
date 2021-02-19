@@ -75,6 +75,7 @@ public class PulsarCatalogFactory implements CatalogFactory {
         props.add(PulsarTableOptions.SINK_SEMANTIC.key());
         props.add(FormatDescriptorValidator.FORMAT);
         props.add(FormatDescriptorValidator.FORMAT + ".*");
+        props.add("properties.*");
         return props;
     }
 

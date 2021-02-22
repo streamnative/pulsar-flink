@@ -50,8 +50,9 @@ import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.impl.schema.AutoConsumeSchema;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
-import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
+
+import javax.validation.constraints.NotNull;
 
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
@@ -232,7 +233,8 @@ public class RowDataDerSerializationSchemaTest extends PulsarTestBase {
         return new FlinkSchema<>(si, serializationSchema, deserializationSchema);
     }
 
-    public void sendMessage(String topic, org.apache.pulsar.client.api.Schema<RowData> schema, RowData data) throws Exception {
+    public void sendMessage(String topic, org.apache.pulsar.client.api.Schema<RowData> schema, RowData data)
+            throws Exception {
         try (
                 PulsarClient pulsarClient = PulsarClient.builder()
                         .serviceUrl(serviceUrl)

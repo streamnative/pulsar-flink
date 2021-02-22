@@ -28,6 +28,7 @@ import org.apache.flink.streaming.connectors.pulsar.internal.TopicRange;
 import org.apache.flink.streaming.util.TestStreamEnvironment;
 import org.apache.flink.util.TestLogger;
 
+import io.streamnative.tests.pulsar.service.PulsarContainerStartOptions;
 import io.streamnative.tests.pulsar.service.PulsarService;
 import io.streamnative.tests.pulsar.service.PulsarServiceSpec;
 import io.streamnative.tests.pulsar.service.testcontainers.PulsarStandaloneContainerService;
@@ -56,6 +57,7 @@ import org.junit.BeforeClass;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -101,7 +103,7 @@ public abstract class PulsarTestBase extends TestLogger {
 
     @BeforeClass
     public static void prepare() throws Exception {
-
+        System.out.println(System.getProperty("user.dir"));
         adminUrl = System.getenv("PULSAR_ADMIN_URL");
         serviceUrl = System.getenv("PULSAR_SERVICE_URL");
         zkUrl = System.getenv("PULSAR_ZK_URL");
@@ -109,7 +111,6 @@ public abstract class PulsarTestBase extends TestLogger {
         log.info("-------------------------------------------------------------------------");
         log.info("    Starting PulsarTestBase ");
         log.info("-------------------------------------------------------------------------");
-
         if (StringUtils.isNotBlank(adminUrl) && StringUtils.isNotBlank(serviceUrl)) {
             pulsarService = mock(PulsarStandaloneContainerService.class);
             log.info("    Use extend Pulsar Service ");
@@ -117,9 +118,18 @@ public abstract class PulsarTestBase extends TestLogger {
             if (System.getProperty("pulsar.systemtest.image") == null) {
                 System.setProperty("pulsar.systemtest.image", "apachepulsar/pulsar:2.7.0");
             }
+            final PulsarContainerStartOptions startOptions = new PulsarContainerStartOptions();
+            startOptions.setWaitForNamespacePublicDefault(true);
+            startOptions.setLoadGoExampleResources(false);
+            startOptions.setLoadPythonExampleResources(false);
+            startOptions.setLoadJavaExampleResources(false);
             PulsarServiceSpec spec = PulsarServiceSpec.builder()
                     .clusterName("standalone-" + UUID.randomUUID())
                     .enableContainerLogging(false)
+                    .commandList(Collections.singletonList("bin/pulsar standalone --no-stream-storage -nfw"))
+                    .extendsPortList(Collections.singletonList(2181))
+                    .pulsarContainerStartOptions(startOptions)
+                    .enableTLS(false)
                     .build();
 
             pulsarService = new PulsarStandaloneContainerService(spec);
@@ -131,7 +141,8 @@ public abstract class PulsarTestBase extends TestLogger {
                     adminUrl = uri.toString();
                 }
             }
-            zkUrl = ((PulsarStandaloneContainerService) pulsarService).getZkUrl();
+            zkUrl = "localhost:" +
+                    ((PulsarStandaloneContainerService) pulsarService).getContainer().getMappedPort(2181);
             Thread.sleep(80 * 100L);
         }
         clientConfigurationData.setServiceUrl(serviceUrl);
@@ -151,9 +162,8 @@ public abstract class PulsarTestBase extends TestLogger {
         log.info("-------------------------------------------------------------------------");
 
         try {
-            final PulsarAdmin pulsarAdmin = getPulsarAdmin();
             for (String topic : topics) {
-                pulsarAdmin.topics().deletePartitionedTopic(topic, true);
+                deleteTestTopic(topic, true);
             }
         } catch (Exception e) {
             log.warn("", e);

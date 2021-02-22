@@ -72,6 +72,12 @@ public class SourceSinkUtils {
 
     public static boolean belongsTo(TopicRange topicRange, int numParallelSubtasks, int index) {
         String topic = topicRange.getTopic();
+
+        if (!(topicRange.isFullRange()) && rangesAreEqual(topicRange.getRange().getPulsarRange(),
+                distributeRange(numParallelSubtasks, index))) {
+            return true;
+        }
+
         if (topic.contains(PulsarOptions.PARTITION_SUFFIX)) {
             int pos = topic.lastIndexOf(PulsarOptions.PARTITION_SUFFIX);
             String topicPrefix = topic.substring(0, pos);
@@ -83,6 +89,10 @@ public class SourceSinkUtils {
             }
         }
         return (topic.hashCode() * 31 & Integer.MAX_VALUE) % numParallelSubtasks == index;
+    }
+
+    private static boolean rangesAreEqual(Range pulsarRange, Range distributeRange) {
+        return pulsarRange.getStart() == distributeRange.getStart() && pulsarRange.getEnd() == distributeRange.getEnd();
     }
 
     public static long getPartitionDiscoveryIntervalInMillis(Map<String, String> parameters) {
@@ -138,7 +148,8 @@ public class SourceSinkUtils {
     public static Map<String, Object> getReaderParams(Map<String, String> parameters) {
         return parameters.keySet().stream()
                 .filter(k -> k.startsWith(PulsarOptions.PULSAR_READER_OPTION_KEY_PREFIX))
-                .collect(Collectors.toMap(k -> k.substring(PulsarOptions.PULSAR_READER_OPTION_KEY_PREFIX.length()), k -> parameters.get(k)));
+                .collect(Collectors.toMap(k -> k.substring(PulsarOptions.PULSAR_READER_OPTION_KEY_PREFIX.length()),
+                        k -> parameters.get(k)));
     }
 
     public static Map<String, String> toCaceInsensitiveParams(Map<String, String> parameters) {
@@ -149,7 +160,8 @@ public class SourceSinkUtils {
     public static Map<String, Object> getProducerParams(Map<String, String> parameters) {
         return parameters.keySet().stream()
                 .filter(k -> k.startsWith(PulsarOptions.PULSAR_PRODUCER_OPTION_KEY_PREFIX))
-                .collect(Collectors.toMap(k -> k.substring(PulsarOptions.PULSAR_PRODUCER_OPTION_KEY_PREFIX.length()), k -> parameters.get(k)));
+                .collect(Collectors.toMap(k -> k.substring(PulsarOptions.PULSAR_PRODUCER_OPTION_KEY_PREFIX.length()),
+                        k -> parameters.get(k)));
     }
 
     /**

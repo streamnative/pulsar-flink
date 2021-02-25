@@ -15,12 +15,14 @@
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import org.apache.flink.formats.avro.typeutils.AvroSchemaConverter;
+import org.apache.flink.formats.protobuf.PbFormatOptions;
 import org.apache.flink.streaming.connectors.pulsar.config.RecordSchemaType;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.FieldsDataType;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.table.types.utils.TypeConversions;
 
+import com.google.protobuf.GeneratedMessageV3;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
@@ -50,6 +52,7 @@ import org.apache.pulsar.shade.org.apache.avro.Schema;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.Map;
 
 import static org.apache.avro.Schema.Type.RECORD;
 import static org.apache.pulsar.shade.com.google.common.base.Preconditions.checkNotNull;
@@ -243,18 +246,35 @@ public class SchemaUtils {
                 return org.apache.pulsar.client.api.Schema.AVRO(recordClazz);
             case JSON:
                 return org.apache.pulsar.client.api.Schema.JSON(recordClazz);
+            case PROTOBUF:
+                @SuppressWarnings("unchecked")
+                final org.apache.pulsar.client.api.Schema<T> tSchema =
+                        (org.apache.pulsar.client.api.Schema<T>) org.apache.pulsar.client.api.Schema
+                                .PROTOBUF_NATIVE(convertProtobuf(recordClazz));
+                return tSchema;
             default:
                 throw new IllegalArgumentException("not support schema type " + recordSchemaType);
         }
     }
 
-    public static SchemaInfo tableSchemaToSchemaInfo(String format, DataType dataType)
+    @SuppressWarnings("unchecked")
+    private static <T extends GeneratedMessageV3> Class<T> convertProtobuf(Class recordClazz) {
+        if (!recordClazz.isAssignableFrom(GeneratedMessageV3.class)) {
+            throw new IllegalArgumentException("not support protobuf class " + recordClazz);
+        }
+        return recordClazz;
+    }
+
+    public static SchemaInfo tableSchemaToSchemaInfo(String format, DataType dataType,
+                                                     Map<String, String> options)
             throws IncompatibleSchemaException {
         switch (StringUtils.lowerCase(format)) {
             case "json":
                 return getSchemaInfo(SchemaType.JSON, dataType);
             case "avro":
                 return getSchemaInfo(SchemaType.AVRO, dataType);
+            case "protobuf":
+                return getProtobufSchemaInfo(SchemaType.PROTOBUF, dataType, options);
             case "atomic":
                 org.apache.pulsar.client.api.Schema pulsarSchema =
                         SimpleSchemaTranslator.sqlType2PulsarSchema(dataType.getChildren().get(0));
@@ -262,6 +282,21 @@ public class SchemaUtils {
             default:
                 throw new UnsupportedOperationException(
                         "Generic schema is not supported on schema type " + dataType + "'");
+        }
+    }
+
+    // TODO use user classload
+    private static <T extends GeneratedMessageV3> SchemaInfo getProtobufSchemaInfo(SchemaType protobuf,
+                                                                                   DataType dataType,
+                                                    Map<String, String> options) {
+
+        final String messageClassName = options.get(PbFormatOptions.MESSAGE_CLASS_NAME.key());
+        try {
+            final org.apache.pulsar.client.api.Schema<T> tSchema = org.apache.pulsar.client.api.Schema
+                    .PROTOBUF_NATIVE(convertProtobuf(Class.forName(messageClassName)));
+            return tSchema.getSchemaInfo();
+        } catch (ClassNotFoundException e) {
+            throw new IllegalArgumentException("not load Protobuf class: " + messageClassName, e);
         }
     }
 

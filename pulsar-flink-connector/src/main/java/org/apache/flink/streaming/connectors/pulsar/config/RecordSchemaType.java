@@ -23,5 +23,7 @@ public enum RecordSchemaType {
 
     JSON,
 
-    ATOMIC
+    ATOMIC,
+
+    PROTOBUF
 }

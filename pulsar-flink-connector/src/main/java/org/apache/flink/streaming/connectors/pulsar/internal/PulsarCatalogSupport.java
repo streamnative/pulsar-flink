@@ -94,13 +94,14 @@ public class PulsarCatalogSupport {
             throws PulsarAdminException, IncompatibleSchemaException {
         String topicName = objectPath2TopicName(tablePath);
         final TableSchema schema = table.getSchema();
-        pulsarMetadataReader.putSchema(topicName, tableSchemaToPulsarSchema(format, schema));
+        pulsarMetadataReader.putSchema(topicName, tableSchemaToPulsarSchema(format, schema, table.getOptions()));
     }
 
-    private SchemaInfo tableSchemaToPulsarSchema(String format, TableSchema schema) throws IncompatibleSchemaException {
+    private SchemaInfo tableSchemaToPulsarSchema(String format, TableSchema schema,
+                                                 Map<String, String> options) throws IncompatibleSchemaException {
         // The exclusion logic for the key is not handled correctly here when the user sets the key-related fields using pulsar
         final DataType physicalRowDataType = schema.toPhysicalRowDataType();
-        return SchemaUtils.tableSchemaToSchemaInfo(format, physicalRowDataType);
+        return SchemaUtils.tableSchemaToSchemaInfo(format, physicalRowDataType, options);
     }
 
     private TableSchema pulsarSchemaToTableSchema(SchemaInfo pulsarSchema) throws IncompatibleSchemaException {

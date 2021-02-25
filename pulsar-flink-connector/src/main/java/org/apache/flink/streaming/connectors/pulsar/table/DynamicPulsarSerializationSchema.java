@@ -16,6 +16,8 @@ package org.apache.flink.streaming.connectors.pulsar.table;
 
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.formats.protobuf.PbFormatOptions;
+import org.apache.flink.formats.protobuf.serialize.PbRowSerializationSchema;
 import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils;
 import org.apache.flink.streaming.util.serialization.FlinkSchema;
 import org.apache.flink.streaming.util.serialization.PulsarContextAware;
@@ -28,6 +30,7 @@ import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.types.RowKind;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
 import org.apache.pulsar.common.schema.SchemaInfo;
@@ -35,6 +38,7 @@ import org.apache.pulsar.common.schema.SchemaInfo;
 import javax.annotation.Nullable;
 
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -77,6 +81,8 @@ class DynamicPulsarSerializationSchema
 
     private String valueFormatType;
 
+    private ClassLoader userClassLoader;
+
     DynamicPulsarSerializationSchema(
             @Nullable SerializationSchema<RowData> keySerialization,
             SerializationSchema<RowData> valueSerialization,
@@ -108,6 +114,7 @@ class DynamicPulsarSerializationSchema
             keySerialization.open(context);
         }
         valueSerialization.open(context);
+        userClassLoader = context.getUserCodeClassLoader().asClassLoader();
     }
 
     @Override
@@ -192,8 +199,23 @@ class DynamicPulsarSerializationSchema
         if (StringUtils.isBlank(valueFormatType)) {
             return new FlinkSchema<>(Schema.BYTES.getSchemaInfo(), valueSerialization, null);
         }
-        SchemaInfo schemaInfo = SchemaUtils.tableSchemaToSchemaInfo(valueFormatType, valueDataType);
+        Map<String, String> options = new HashMap<>();
+        hackPbSerializationSchema(options);
+        SchemaInfo schemaInfo = SchemaUtils.tableSchemaToSchemaInfo(valueFormatType, valueDataType, options);
         return new FlinkSchema<>(schemaInfo, valueSerialization, null);
+    }
+
+    private void hackPbSerializationSchema(Map<String, String> options) {
+        // reflect read PbRowSerializationSchema#messageClassName
+        if (valueSerialization instanceof PbRowSerializationSchema){
+            try {
+                String messageClassName =
+                        (String) FieldUtils.readDeclaredField(valueSerialization, "messageClassName", true);
+                options.put(PbFormatOptions.MESSAGE_CLASS_NAME.key(),messageClassName);
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     // --------------------------------------------------------------------------------------------

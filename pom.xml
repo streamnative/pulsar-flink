@@ -17,6 +17,7 @@
   <modelVersion>4.0.0</modelVersion>
   <packaging>pom</packaging>
   <modules>
+    <module>flink-protobuf</module>
     <module>managed-ledger-shaded</module>
     <module>pulsar-flink-connector</module>
   </modules>
@@ -202,6 +203,7 @@
             <exclude>doc</exclude>
             <exclude>tools/**</exclude>
             <exclude>**/**.key</exclude>
+            <exclude>flink-protobuf/**</exclude>
           </excludes>
           <mapping>
             <proto>JAVADOC_STYLE</proto>

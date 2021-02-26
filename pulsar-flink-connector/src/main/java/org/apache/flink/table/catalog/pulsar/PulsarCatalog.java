@@ -54,6 +54,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.PROPERTIES_PREFIX;
 import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CONNECTOR;
 
 /**
@@ -85,9 +86,9 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
         if (catalogSupport == null) {
             try {
                 final ClientConfigurationData clientConf = new ClientConfigurationData();
-                clientConf.setAuthParams(properties.get("properties." + PulsarOptions.AUTH_PARAMS_KEY));
+                clientConf.setAuthParams(properties.get(PROPERTIES_PREFIX + PulsarOptions.AUTH_PARAMS_KEY));
                 clientConf.setAuthPluginClassName(
-                        properties.get("properties." + PulsarOptions.AUTH_PLUGIN_CLASSNAME_KEY));
+                        properties.get(PROPERTIES_PREFIX + PulsarOptions.AUTH_PLUGIN_CLASSNAME_KEY));
                 catalogSupport = new PulsarCatalogSupport(adminUrl, clientConf, "",
                         new HashMap<>(), -1, -1, new SimpleSchemaTranslator(false));
             } catch (PulsarClientException e) {

@@ -19,6 +19,7 @@ import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.connectors.pulsar.FlinkPulsarSource;
 import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarClientUtils;
 import org.apache.flink.streaming.util.serialization.PulsarDeserializationSchema;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.connector.ChangelogMode;
@@ -224,7 +225,7 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
         PulsarDeserializationSchema<RowData> deserializationSchema = createPulsarDeserialization(keyDeserialization,
                 valueDeserialization,
                 producedTypeInfo);
-        final ClientConfigurationData clientConfigurationData = newClientConf(serviceUrl);
+        final ClientConfigurationData clientConfigurationData = PulsarClientUtils.newClientConf(serviceUrl, properties);
         FlinkPulsarSource<RowData> source = new FlinkPulsarSource<>(
                 adminUrl,
                 clientConfigurationData,

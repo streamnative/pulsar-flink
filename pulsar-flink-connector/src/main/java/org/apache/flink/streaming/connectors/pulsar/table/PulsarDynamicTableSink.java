@@ -17,6 +17,7 @@ package org.apache.flink.streaming.connectors.pulsar.table;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 import org.apache.flink.streaming.connectors.pulsar.FlinkPulsarSink;
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarClientUtils;
 import org.apache.flink.streaming.util.serialization.PulsarSerializationSchema;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.connector.ChangelogMode;
@@ -207,8 +208,8 @@ public class PulsarDynamicTableSink implements DynamicTableSink, SupportsWriting
 
     private SinkFunction<RowData> createPulsarSink(String topic, Properties properties,
                                                    PulsarSerializationSchema<RowData> pulsarSerializer) {
-        final ClientConfigurationData configurationData = new ClientConfigurationData();
-        configurationData.setServiceUrl(serviceUrl);
+        final ClientConfigurationData configurationData = PulsarClientUtils
+                .newClientConf(serviceUrl, properties);
         return new FlinkPulsarSink<RowData>(
                 adminUrl,
                 Optional.ofNullable(topic),

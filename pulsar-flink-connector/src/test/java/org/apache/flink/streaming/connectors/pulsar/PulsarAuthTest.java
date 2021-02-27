@@ -79,7 +79,7 @@ public class PulsarAuthTest {
         startOptions.setLoadGoExampleResources(false);
         startOptions.setLoadPythonExampleResources(false);
         startOptions.setLoadJavaExampleResources(false);
-        startOptions.setWaitForNamespacePublicDefault(true);
+        startOptions.setWaitForNamespacePublicDefault(false);
         PulsarServiceSpec spec = PulsarServiceSpec.builder()
                 .clusterName("standalone-" + UUID.randomUUID())
                 .enableContainerLogging(false)

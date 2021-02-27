@@ -119,7 +119,7 @@ public abstract class PulsarTestBase extends TestLogger {
                 System.setProperty("pulsar.systemtest.image", "apachepulsar/pulsar:2.7.0");
             }
             final PulsarContainerStartOptions startOptions = new PulsarContainerStartOptions();
-            startOptions.setWaitForNamespacePublicDefault(true);
+            startOptions.setWaitForNamespacePublicDefault(false);
             startOptions.setLoadGoExampleResources(false);
             startOptions.setLoadPythonExampleResources(false);
             startOptions.setLoadJavaExampleResources(false);

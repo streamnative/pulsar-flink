@@ -154,6 +154,12 @@
         </exclusion>
       </exclusions>
     </dependency>
+    <!--    streamnative-test incorrectly uses the log2j package, waiting for a fix-->
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-api</artifactId>
+      <version>2.10.0</version>
+    </dependency>
     <dependency>
       <groupId>io.streamnative.tests</groupId>
       <artifactId>framework-pulsar</artifactId>

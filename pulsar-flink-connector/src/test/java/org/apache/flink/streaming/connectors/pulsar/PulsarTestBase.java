@@ -28,10 +28,6 @@ import org.apache.flink.streaming.connectors.pulsar.internal.TopicRange;
 import org.apache.flink.streaming.util.TestStreamEnvironment;
 import org.apache.flink.util.TestLogger;
 
-import io.streamnative.tests.pulsar.service.PulsarContainerStartOptions;
-import io.streamnative.tests.pulsar.service.PulsarService;
-import io.streamnative.tests.pulsar.service.PulsarServiceSpec;
-import io.streamnative.tests.pulsar.service.testcontainers.PulsarStandaloneContainerService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -53,11 +49,12 @@ import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.testcontainers.containers.PulsarContainer;
+import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.utility.DockerImageName;
 
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -73,7 +70,7 @@ import static org.mockito.Mockito.mock;
 @Slf4j
 public abstract class PulsarTestBase extends TestLogger {
 
-    protected static PulsarService pulsarService;
+    protected static PulsarContainer pulsarService;
 
     protected static String serviceUrl;
 
@@ -112,38 +109,18 @@ public abstract class PulsarTestBase extends TestLogger {
         log.info("    Starting PulsarTestBase ");
         log.info("-------------------------------------------------------------------------");
         if (StringUtils.isNotBlank(adminUrl) && StringUtils.isNotBlank(serviceUrl)) {
-            pulsarService = mock(PulsarStandaloneContainerService.class);
+            pulsarService = mock(PulsarContainer.class);
             log.info("    Use extend Pulsar Service ");
         } else {
-            if (System.getProperty("pulsar.systemtest.image") == null) {
-                System.setProperty("pulsar.systemtest.image", "apachepulsar/pulsar:2.7.0");
-            }
-            final PulsarContainerStartOptions startOptions = new PulsarContainerStartOptions();
-            startOptions.setWaitForNamespacePublicDefault(false);
-            startOptions.setLoadGoExampleResources(false);
-            startOptions.setLoadPythonExampleResources(false);
-            startOptions.setLoadJavaExampleResources(false);
-            PulsarServiceSpec spec = PulsarServiceSpec.builder()
-                    .clusterName("standalone-" + UUID.randomUUID())
-                    .enableContainerLogging(false)
-                    .commandList(Collections.singletonList("bin/pulsar standalone --no-stream-storage -nfw"))
-                    .extendsPortList(Collections.singletonList(2181))
-                    .pulsarContainerStartOptions(startOptions)
-                    .enableTLS(false)
-                    .build();
-
-            pulsarService = new PulsarStandaloneContainerService(spec);
+            final String pulsarImage = System.getProperty("pulsar.systemtest.image", "apachepulsar/pulsar:2.7.0");
+            pulsarService = new PulsarContainer(DockerImageName.parse(pulsarImage));
+            pulsarService.addExposedPort(2181);
             pulsarService.start();
-            for (URI uri : pulsarService.getServiceUris()) {
-                if (uri != null && uri.getScheme().equals("pulsar")) {
-                    serviceUrl = uri.toString();
-                } else if (uri != null && !uri.getScheme().equals("pulsar")) {
-                    adminUrl = uri.toString();
-                }
-            }
-            zkUrl = "localhost:" +
-                    ((PulsarStandaloneContainerService) pulsarService).getContainer().getMappedPort(2181);
-            Thread.sleep(80 * 100L);
+            pulsarService.followOutput(new Slf4jLogConsumer(log));
+            serviceUrl = pulsarService.getPulsarBrokerUrl();
+            adminUrl = pulsarService.getHttpServiceUrl();
+            zkUrl = "localhost:" + pulsarService.getMappedPort(2181);
+            Thread.sleep(8 * 1000L);
         }
         clientConfigurationData.setServiceUrl(serviceUrl);
         consumerConfigurationData.setSubscriptionMode(SubscriptionMode.NonDurable);

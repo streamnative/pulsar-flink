@@ -24,30 +24,26 @@ import org.apache.flink.streaming.util.TestStreamEnvironment;
 import org.apache.flink.streaming.util.serialization.FlinkSchema;
 import org.apache.flink.streaming.util.serialization.PulsarDeserializationSchema;
 import org.apache.flink.test.util.SuccessException;
+import org.apache.flink.test.util.TestUtils;
 
-import io.streamnative.tests.pulsar.service.PulsarContainerStartOptions;
-import io.streamnative.tests.pulsar.service.PulsarServiceSpec;
-import io.streamnative.tests.pulsar.service.testcontainers.PulsarStandaloneContainerService;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testcontainers.containers.BindMode;
+import org.testcontainers.containers.PulsarContainer;
+import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.utility.DockerImageName;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Properties;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -58,7 +54,7 @@ public class PulsarAuthTest {
     private static final Logger log = LoggerFactory.getLogger(PulsarAuthTest.class);
     private static String serviceUrl;
     private static String adminUrl;
-    private static PulsarStandaloneContainerService pulsarService;
+    private static PulsarContainer pulsarService;
     private static String authPluginClassName;
     private static String authParamsString;
 
@@ -68,36 +64,21 @@ public class PulsarAuthTest {
         log.info("-------------------------------------------------------------------------");
         log.info("    Starting PulsarTestBase ");
         log.info("-------------------------------------------------------------------------");
-        if (System.getProperty("pulsar.systemtest.image") == null) {
-            System.setProperty("pulsar.systemtest.image", "apachepulsar/pulsar:2.7.0");
-        }
-        Map<String, String> map = new HashMap<>();
-        map.put("standalone.conf", "/pulsar/conf/standalone.conf");
-        map.put("my-secret.key", "/pulsar/conf/my-secret.key");
-        map.put("client.conf", "/pulsar/conf/client.conf");
-        final PulsarContainerStartOptions startOptions = new PulsarContainerStartOptions();
-        startOptions.setLoadGoExampleResources(false);
-        startOptions.setLoadPythonExampleResources(false);
-        startOptions.setLoadJavaExampleResources(false);
-        startOptions.setWaitForNamespacePublicDefault(false);
-        PulsarServiceSpec spec = PulsarServiceSpec.builder()
-                .clusterName("standalone-" + UUID.randomUUID())
-                .enableContainerLogging(false)
-                .commandList(Collections.singletonList("bin/pulsar standalone --no-stream-storage -nfw"))
-                .classPathVolumeMounts(map)
-                .pulsarContainerStartOptions(startOptions)
-                .build();
 
-        pulsarService =
-                new PulsarStandaloneContainerService(spec);
+        final String pulsarImage = System.getProperty("pulsar.systemtest.image", "apachepulsar/pulsar:2.7.0");
+        pulsarService = new PulsarContainer(DockerImageName.parse(pulsarImage));
+        pulsarService
+                .withClasspathResourceMapping("pulsar/auth-standalone.conf", "/pulsar/conf/standalone.conf",
+                        BindMode.READ_ONLY);
+        pulsarService.withClasspathResourceMapping("pulsar/auth-client.conf", "/pulsar/conf/client.conf",
+                BindMode.READ_ONLY);
         pulsarService.start();
-
-        serviceUrl = pulsarService.getContainer().getExposedPlainTextServiceUrl();
-        adminUrl = pulsarService.getContainer().getExposedHttpServiceUrl();
-
+        pulsarService.followOutput(new Slf4jLogConsumer(log));
+        serviceUrl = pulsarService.getPulsarBrokerUrl();
+        adminUrl = pulsarService.getHttpServiceUrl();
         Thread.sleep(30 * 1000);
         log.info("-------------------------------------------------------------------------");
-        log.info("Successfully started pulsar service at cluster " + spec.clusterName());
+        log.info("Successfully started pulsar service at cluster " + pulsarService.getContainerName());
         log.info("-------------------------------------------------------------------------");
 
     }
@@ -151,13 +132,7 @@ public class PulsarAuthTest {
         environment.addSource(stringFlinkPulsarSource)
                 .map(new IgnoreMap(total))
                 .print();
-        try {
-            environment.execute();
-        } catch (Exception e) {
-            if (!(ExceptionUtils.getRootCause(e) instanceof SuccessException)) {
-                Assert.fail();
-            }
-        }
+        TestUtils.tryExecute(environment, "test-auth-source");
     }
 
     protected void sendMessage(String topic, PulsarClient pulsarClient, int total) throws PulsarClientException {

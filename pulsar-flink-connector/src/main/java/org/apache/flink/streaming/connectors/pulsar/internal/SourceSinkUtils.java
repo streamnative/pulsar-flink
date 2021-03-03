@@ -72,12 +72,6 @@ public class SourceSinkUtils {
 
     public static boolean belongsTo(TopicRange topicRange, int numParallelSubtasks, int index) {
         String topic = topicRange.getTopic();
-
-        if (!(topicRange.isFullRange()) && rangesAreEqual(topicRange.getRange().getPulsarRange(),
-                distributeRange(numParallelSubtasks, index))) {
-            return true;
-        }
-
         if (topic.contains(PulsarOptions.PARTITION_SUFFIX)) {
             int pos = topic.lastIndexOf(PulsarOptions.PARTITION_SUFFIX);
             String topicPrefix = topic.substring(0, pos);
@@ -89,10 +83,6 @@ public class SourceSinkUtils {
             }
         }
         return (topic.hashCode() * 31 & Integer.MAX_VALUE) % numParallelSubtasks == index;
-    }
-
-    private static boolean rangesAreEqual(Range pulsarRange, Range distributeRange) {
-        return pulsarRange.getStart() == distributeRange.getStart() && pulsarRange.getEnd() == distributeRange.getEnd();
     }
 
     public static long getPartitionDiscoveryIntervalInMillis(Map<String, String> parameters) {

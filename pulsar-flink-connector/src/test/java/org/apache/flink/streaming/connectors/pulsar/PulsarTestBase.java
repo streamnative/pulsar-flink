@@ -100,7 +100,6 @@ public abstract class PulsarTestBase extends TestLogger {
 
     @BeforeClass
     public static void prepare() throws Exception {
-        System.out.println(System.getProperty("user.dir"));
         adminUrl = System.getenv("PULSAR_ADMIN_URL");
         serviceUrl = System.getenv("PULSAR_SERVICE_URL");
         zkUrl = System.getenv("PULSAR_ZK_URL");

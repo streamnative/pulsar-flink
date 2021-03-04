@@ -22,14 +22,11 @@ import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 import org.apache.flink.streaming.connectors.pulsar.table.PulsarSinkSemantic;
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper;
 import org.apache.flink.streaming.connectors.pulsar.testutils.IntegerSource;
-import org.apache.flink.streaming.connectors.pulsar.testutils.PulsarContainer;
 import org.apache.flink.streaming.util.TestStreamEnvironment;
 import org.apache.flink.streaming.util.serialization.PulsarSerializationSchemaWrapper;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.test.util.TestUtils;
 
-import io.streamnative.tests.pulsar.service.PulsarServiceSpec;
-import io.streamnative.tests.pulsar.service.testcontainers.containers.PulsarStandaloneContainer;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.compress.utils.Sets;
 import org.apache.pulsar.client.admin.PulsarAdmin;
@@ -46,17 +43,22 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.testcontainers.containers.BindMode;
-import org.testcontainers.containers.Network;
+import org.testcontainers.containers.PulsarContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
+import org.testcontainers.utility.DockerImageName;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.UUID;
 
+import static java.time.temporal.ChronoUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
+import static org.testcontainers.containers.PulsarContainer.BROKER_HTTP_PORT;
 
 /**
  * Test for pulsar transactional sink that guarantee exactly-once semantic.
@@ -66,39 +68,29 @@ public class PulsarTransactionalSinkTest {
     private PulsarAdmin admin;
     public static final String CLUSTER_NAME = "standalone";
 
-    private static PulsarStandaloneContainer container;
+    private static PulsarContainer pulsarService;
     private static String serviceUrl;
     private static String adminUrl;
 
     @BeforeClass
     public static void prepare() throws Exception {
-
-        log.info("-------------------------------------------------------------------------");
         log.info("    Starting PulsarTestBase ");
-        log.info("-------------------------------------------------------------------------");
-        if (System.getProperty("pulsar.systemtest.image") == null) {
-            System.setProperty("pulsar.systemtest.image", "apachepulsar/pulsar:2.7.0");
-        }
-        PulsarServiceSpec spec = PulsarServiceSpec.builder()
-                .clusterName("standalone-" + UUID.randomUUID())
-                .enableContainerLogging(false)
-                .build();
-        container = new PulsarContainer(spec.clusterName())
-                .withClasspathResourceMapping("txnStandalone.conf", "/pulsar/conf/standalone.conf", BindMode.READ_ONLY)
-                .withNetwork(Network.newNetwork())
-                .withNetworkAliases(PulsarStandaloneContainer.NAME + "-" + spec.clusterName());
-        if (spec.enableContainerLogging()) {
-            container.withLogConsumer(new Slf4jLogConsumer(log));
-        }
-        container.start();
-        serviceUrl = container.getExposedPlainTextServiceUrl();
-        adminUrl = container.getExposedHttpServiceUrl();
 
-        Thread.sleep(80 * 100L);
-        log.info("-------------------------------------------------------------------------");
-        log.info("Successfully started pulsar service at cluster " + spec.clusterName());
-        log.info("-------------------------------------------------------------------------");
+        final String pulsarImage = System.getProperty("pulsar.systemtest.image", "apachepulsar/pulsar:2.7.0");
+        pulsarService = new PulsarContainer(DockerImageName.parse(pulsarImage));
+        pulsarService.withClasspathResourceMapping("pulsar/txnStandalone.conf", "/pulsar/conf/standalone.conf",
+                BindMode.READ_ONLY);
+        pulsarService.waitingFor(new HttpWaitStrategy()
+                .forPort(BROKER_HTTP_PORT)
+                .forStatusCode(200)
+                .forPath("/admin/v2/namespaces/public/default")
+                .withStartupTimeout(Duration.of(40, SECONDS)));
+        pulsarService.start();
+        pulsarService.followOutput(new Slf4jLogConsumer(log));
+        serviceUrl = pulsarService.getPulsarBrokerUrl();
+        adminUrl = pulsarService.getHttpServiceUrl();
 
+        log.info("Successfully started pulsar service at cluster " + pulsarService.getContainerName());
     }
 
     @AfterClass
@@ -109,8 +101,8 @@ public class PulsarTransactionalSinkTest {
 
         TestStreamEnvironment.unsetAsContext();
 
-        if (container != null) {
-            container.stop();
+        if (pulsarService != null) {
+            pulsarService.stop();
         }
 
         log.info("-------------------------------------------------------------------------");
@@ -225,7 +217,8 @@ public class PulsarTransactionalSinkTest {
             }
         }
 
-        fail(String.format("Expected %s, but was: %s", formatElements(expectedElements), formatElements(actualElements)));
+        fail(String
+                .format("Expected %s, but was: %s", formatElements(expectedElements), formatElements(actualElements)));
     }
 
     private String formatElements(List<Integer> elements) {

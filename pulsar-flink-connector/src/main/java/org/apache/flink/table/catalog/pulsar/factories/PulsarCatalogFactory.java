@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.PROPERTIES_PREFIX;
 import static org.apache.flink.table.catalog.pulsar.PulsarCatalogValidator.CATALOG_ADMIN_URL;
 import static org.apache.flink.table.catalog.pulsar.PulsarCatalogValidator.CATALOG_DEFAULT_PARTITIONS;
 import static org.apache.flink.table.catalog.pulsar.PulsarCatalogValidator.CATALOG_PULSAR_VERSION;
@@ -75,6 +76,7 @@ public class PulsarCatalogFactory implements CatalogFactory {
         props.add(PulsarTableOptions.SINK_SEMANTIC.key());
         props.add(FormatDescriptorValidator.FORMAT);
         props.add(FormatDescriptorValidator.FORMAT + ".*");
+        props.add(PROPERTIES_PREFIX + "*");
         return props;
     }
 

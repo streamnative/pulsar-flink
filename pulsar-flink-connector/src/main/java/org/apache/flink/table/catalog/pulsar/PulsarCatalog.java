@@ -53,8 +53,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Properties;
 
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.PROPERTIES_PREFIX;
 import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CONNECTOR;
 
 /**
@@ -78,8 +78,6 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
 
     @Override
     public Optional<Factory> getFactory() {
-        Properties props = new Properties();
-        props.putAll(properties);
         return Optional.of(new PulsarDynamicTableFactory(true));
     }
 
@@ -87,7 +85,11 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
     public void open() throws CatalogException {
         if (catalogSupport == null) {
             try {
-                catalogSupport = new PulsarCatalogSupport(adminUrl, new ClientConfigurationData(), "",
+                final ClientConfigurationData clientConf = new ClientConfigurationData();
+                clientConf.setAuthParams(properties.get(PROPERTIES_PREFIX + PulsarOptions.AUTH_PARAMS_KEY));
+                clientConf.setAuthPluginClassName(
+                        properties.get(PROPERTIES_PREFIX + PulsarOptions.AUTH_PLUGIN_CLASSNAME_KEY));
+                catalogSupport = new PulsarCatalogSupport(adminUrl, clientConf, "",
                         new HashMap<>(), -1, -1, new SimpleSchemaTranslator(false));
             } catch (PulsarClientException e) {
                 throw new CatalogException("Failed to create Pulsar admin using " + adminUrl, e);

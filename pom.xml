@@ -248,6 +248,10 @@
                   <include>commons-collections:commons-collections</include>
                   <include>org.slf4j:jul-to-slf4j</include>
                   <include>io.airlift:*</include>
+                  <include>org.apache.flink:flink-json</include>
+                  <include>org.apache.flink:flink-avro</include>
+                  <include>org.apache.avro:avro</include>
+                  <include>com.fasterxml.jackson.core:*</include>
                 </includes>
               </artifactSet>
               <filters>

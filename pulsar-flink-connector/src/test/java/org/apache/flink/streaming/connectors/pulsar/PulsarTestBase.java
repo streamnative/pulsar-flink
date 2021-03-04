@@ -51,8 +51,10 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.testcontainers.containers.PulsarContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
 import org.testcontainers.utility.DockerImageName;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -62,7 +64,8 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import static org.mockito.Mockito.mock;
+import static java.time.temporal.ChronoUnit.SECONDS;
+import static org.testcontainers.containers.PulsarContainer.BROKER_HTTP_PORT;
 
 /**
  * Start / stop a Pulsar cluster.
@@ -104,31 +107,30 @@ public abstract class PulsarTestBase extends TestLogger {
         serviceUrl = System.getenv("PULSAR_SERVICE_URL");
         zkUrl = System.getenv("PULSAR_ZK_URL");
 
-        log.info("-------------------------------------------------------------------------");
         log.info("    Starting PulsarTestBase ");
-        log.info("-------------------------------------------------------------------------");
         if (StringUtils.isNotBlank(adminUrl) && StringUtils.isNotBlank(serviceUrl)) {
-            pulsarService = mock(PulsarContainer.class);
             log.info("    Use extend Pulsar Service ");
         } else {
             final String pulsarImage = System.getProperty("pulsar.systemtest.image", "apachepulsar/pulsar:2.7.0");
             pulsarService = new PulsarContainer(DockerImageName.parse(pulsarImage));
             pulsarService.addExposedPort(2181);
+            pulsarService.waitingFor(new HttpWaitStrategy()
+                    .forPort(BROKER_HTTP_PORT)
+                    .forStatusCode(200)
+                    .forPath("/admin/v2/namespaces/public/default")
+                    .withStartupTimeout(Duration.of(40, SECONDS)));
             pulsarService.start();
             pulsarService.followOutput(new Slf4jLogConsumer(log));
             serviceUrl = pulsarService.getPulsarBrokerUrl();
             adminUrl = pulsarService.getHttpServiceUrl();
             zkUrl = "localhost:" + pulsarService.getMappedPort(2181);
-            Thread.sleep(8 * 1000L);
         }
         clientConfigurationData.setServiceUrl(serviceUrl);
         consumerConfigurationData.setSubscriptionMode(SubscriptionMode.NonDurable);
         consumerConfigurationData.setSubscriptionType(SubscriptionType.Exclusive);
         consumerConfigurationData.setSubscriptionName("flink-" + UUID.randomUUID());
 
-        log.info("-------------------------------------------------------------------------");
         log.info("Successfully started pulsar service");
-        log.info("-------------------------------------------------------------------------");
     }
 
     @AfterClass

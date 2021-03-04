@@ -45,16 +45,20 @@ import org.junit.Test;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.PulsarContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
 import org.testcontainers.utility.DockerImageName;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.UUID;
 
+import static java.time.temporal.ChronoUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
+import static org.testcontainers.containers.PulsarContainer.BROKER_HTTP_PORT;
 
 /**
  * Test for pulsar transactional sink that guarantee exactly-once semantic.
@@ -70,24 +74,23 @@ public class PulsarTransactionalSinkTest {
 
     @BeforeClass
     public static void prepare() throws Exception {
-
-        log.info("-------------------------------------------------------------------------");
         log.info("    Starting PulsarTestBase ");
-        log.info("-------------------------------------------------------------------------");
 
         final String pulsarImage = System.getProperty("pulsar.systemtest.image", "apachepulsar/pulsar:2.7.0");
         pulsarService = new PulsarContainer(DockerImageName.parse(pulsarImage));
         pulsarService.withClasspathResourceMapping("pulsar/txnStandalone.conf", "/pulsar/conf/standalone.conf",
                 BindMode.READ_ONLY);
+        pulsarService.waitingFor(new HttpWaitStrategy()
+                .forPort(BROKER_HTTP_PORT)
+                .forStatusCode(200)
+                .forPath("/admin/v2/namespaces/public/default")
+                .withStartupTimeout(Duration.of(40, SECONDS)));
         pulsarService.start();
         pulsarService.followOutput(new Slf4jLogConsumer(log));
         serviceUrl = pulsarService.getPulsarBrokerUrl();
         adminUrl = pulsarService.getHttpServiceUrl();
-        Thread.sleep(80 * 100L);
-        log.info("-------------------------------------------------------------------------");
-        log.info("Successfully started pulsar service at cluster " + pulsarService.getContainerName());
-        log.info("-------------------------------------------------------------------------");
 
+        log.info("Successfully started pulsar service at cluster " + pulsarService.getContainerName());
     }
 
     @AfterClass

@@ -25,6 +25,8 @@ import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 import org.apache.flink.table.catalog.Catalog;
+import org.apache.flink.table.catalog.CatalogBaseTable;
+import org.apache.flink.table.catalog.ObjectPath;
 import org.apache.flink.table.catalog.pulsar.PulsarCatalog;
 import org.apache.flink.table.client.config.Environment;
 import org.apache.flink.table.client.gateway.SessionContext;
@@ -43,8 +45,11 @@ import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.SubscriptionInitialPosition;
 import org.apache.pulsar.client.api.schema.GenericRecord;
+import org.apache.pulsar.client.impl.schema.JSONSchema;
+import org.apache.pulsar.common.naming.NamespaceName;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.policies.data.TenantInfo;
+import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.junit.Before;
 import org.junit.Test;
@@ -127,6 +132,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         TableEnvironment tableEnv = context.getTableEnvironment();
 
         tableEnv.useCatalog(pulsarCatalog1);
+
         assertEquals(tableEnv.getCurrentDatabase(), "public/default");
 
         try (PulsarAdmin admin = PulsarAdmin.builder().serviceHttpUrl(getAdminUrl()).build()) {
@@ -172,6 +178,72 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
                 e.printStackTrace();
             }
         }
+    }
+
+    @Test(timeout = 40 * 1000L)
+    public void testGetTable() throws Exception {
+        //with default 'format'
+        String pulsarcatalog2 = "pulsarcatalog2";
+        //without default 'format'
+        String pulsarcatalog3 = "pulsarcatalog3";
+        String tenant = "tn-1";
+        String namespaces = "ns-1";
+        String topicname1 = "topic-1";
+        String topicname2 = "topic-2";
+        SchemaInfo si = JSONSchema.of(SchemaData.Foo.class).getSchemaInfo();
+        NamespaceName ns = NamespaceName.get(tenant, namespaces);
+        TopicName topic1 = TopicName.get("persistent", ns, topicname1);
+        TopicName topic2 = TopicName.get("persistent", ns, topicname2);
+
+        ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE, getStreamingConfs());
+        TableEnvironment tableEnv = context.getTableEnvironment();
+
+        PulsarAdmin admin = PulsarAdmin.builder().serviceHttpUrl(getAdminUrl()).build();
+        try {
+
+            admin.tenants().createTenant(tenant,
+                    new TenantInfo(Sets.newHashSet(), Sets.newHashSet("standalone")));
+            admin.namespaces().createNamespace(ns.toString());
+            admin.topics().createPartitionedTopic(topic1.toString(), 3);
+            admin.topics().createNonPartitionedTopic(topic2.toString());
+            admin.schemas().createSchema(topic1.toString(), si);
+            admin.schemas().createSchema(topic2.toString(), si);
+
+            for (String pulsarcatalog :
+                    Arrays.asList(pulsarcatalog2, pulsarcatalog3)) {
+                tableEnv.useCatalog(pulsarcatalog3);
+                tableEnv.useDatabase(ns.toString());
+                Catalog catalog = tableEnv.getCatalog(pulsarcatalog).orElse(null);
+
+                CatalogBaseTable catalogTable1 = catalog.getTable(new ObjectPath(topic1.getNamespace(),
+                        topic1.getLocalName()));
+
+                assertEquals(catalogTable1.getOptions().get("topic"), topic1.toString());
+                assertEquals(catalogTable1.getOptions().get("format"), "json");
+                assertNotNull(catalogTable1.getSchema());
+                assertTrue(catalogTable1.getSchema().getFieldCount() > 0);
+
+                CatalogBaseTable catalogTable2 = catalog.getTable(new ObjectPath(topic1.getNamespace(),
+                        topic1.getLocalName()));
+                assertEquals(catalogTable2.getOptions().get("topic"), topic2.toString());
+                assertEquals(catalogTable2.getOptions().get("format"), "json");
+                assertNotNull(catalogTable2.getSchema());
+                assertTrue(catalogTable2.getSchema().getFieldCount() > 0);
+            }
+
+        } finally {
+            try {
+                admin.schemas().deleteSchema(topic1.toString());
+                admin.schemas().deleteSchema(topic2.toString());
+                admin.topics().deletePartitionedTopic(topic1.toString(), true);
+                admin.topics().delete(topic2.toString(), true);
+                admin.namespaces().deleteNamespace(ns.toString(), true);
+                admin.tenants().deleteTenant("tn1");
+            } catch (PulsarAdminException e) {
+                e.printStackTrace();
+            }
+        }
+
     }
 
     @Test(timeout = 40 * 1000L)

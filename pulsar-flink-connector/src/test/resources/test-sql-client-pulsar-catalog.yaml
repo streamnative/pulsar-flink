@@ -42,6 +42,10 @@ catalogs:
     service-url: "$VAR_SERVICEURL"
     admin-url: "$VAR_ADMINURL"
     format: "atomic"
+  - name: pulsarcatalog3
+    type: pulsar
+    service-url: "$VAR_SERVICEURL"
+    admin-url: "$VAR_ADMINURL"
   - name: inmemorycatalog
     type: generic_in_memory
     default-database: mydatabase

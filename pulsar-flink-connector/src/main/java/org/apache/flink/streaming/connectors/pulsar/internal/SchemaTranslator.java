@@ -34,6 +34,7 @@ import org.apache.pulsar.client.impl.schema.ShortSchema;
 import org.apache.pulsar.common.schema.SchemaInfo;
 
 import java.io.Serializable;
+import java.util.Map;
 
 /**
  * schema translator.
@@ -48,6 +49,8 @@ public abstract class SchemaTranslator implements Serializable {
             throws IncompatibleSchemaException;
 
     public abstract DataType schemaInfo2SqlType(SchemaInfo si) throws IncompatibleSchemaException;
+
+    public abstract Map<String, String> schemaInfo2TableProperties(SchemaInfo si) throws IncompatibleSchemaException;
 
     public static Schema atomicType2PulsarSchema(DataType flinkType) throws IncompatibleSchemaException {
         LogicalTypeRoot type = flinkType.getLogicalType().getTypeRoot();

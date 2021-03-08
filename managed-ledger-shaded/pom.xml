@@ -28,6 +28,8 @@
 
   <properties>
     <pulsar.version>2.7.0</pulsar.version>
+    <license.skip>true</license.skip>
+    <checkstyle.skip>true</checkstyle.skip>
   </properties>
   <dependencies>
     <dependency>

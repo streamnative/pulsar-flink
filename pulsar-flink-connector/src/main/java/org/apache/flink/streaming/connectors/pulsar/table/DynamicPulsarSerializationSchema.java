@@ -17,7 +17,7 @@ package org.apache.flink.streaming.connectors.pulsar.table;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.formats.protobuf.PbFormatOptions;
-import org.apache.flink.formats.protobuf.serialize.PbRowSerializationSchema;
+import org.apache.flink.formats.protobuf.serialize.PbRowDataSerializationSchema;
 import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils;
 import org.apache.flink.streaming.util.serialization.FlinkSchema;
 import org.apache.flink.streaming.util.serialization.PulsarContextAware;
@@ -207,11 +207,11 @@ class DynamicPulsarSerializationSchema
 
     private void hackPbSerializationSchema(Map<String, String> options) {
         // reflect read PbRowSerializationSchema#messageClassName
-        if (valueSerialization instanceof PbRowSerializationSchema){
+        if (valueSerialization instanceof PbRowDataSerializationSchema){
             try {
                 String messageClassName =
                         (String) FieldUtils.readDeclaredField(valueSerialization, "messageClassName", true);
-                options.put(PbFormatOptions.MESSAGE_CLASS_NAME.key(),messageClassName);
+                options.put(PbFormatOptions.MESSAGE_CLASS_NAME.key(), messageClassName);
             } catch (IllegalAccessException e) {
                 e.printStackTrace();
             }

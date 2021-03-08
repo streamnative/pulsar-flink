@@ -14,6 +14,7 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
+import org.apache.flink.formats.avro.typeutils.AvroSchemaConverter;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.types.AtomicDataType;
@@ -231,8 +232,11 @@ public class SimpleSchemaTranslator extends SchemaTranslator {
 
     @Override
     public TableSchema pulsarSchemaToTableSchema(SchemaInfo pulsarSchema) throws IncompatibleSchemaException {
-        final FieldsDataType fieldsDataType = pulsarSchemaToFieldsDataType(pulsarSchema);
-        RowType rt = (RowType) fieldsDataType.getLogicalType();
+        final DataType dataType =
+                AvroSchemaConverter.convertToDataType(new String(pulsarSchema.getSchema(), StandardCharsets.UTF_8));
+
+        final FieldsDataType fieldsDataType = (FieldsDataType) dataType;
+        RowType rt = (RowType) dataType.getLogicalType();
         List<DataType> fieldTypes = fieldsDataType.getChildren();
         return TableSchema.builder().fields(
                 rt.getFieldNames().toArray(new String[0]), fieldTypes.toArray(new DataType[0])).build();

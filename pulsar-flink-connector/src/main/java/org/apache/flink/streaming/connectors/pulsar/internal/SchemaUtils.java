@@ -259,8 +259,9 @@ public class SchemaUtils {
 
     @SuppressWarnings("unchecked")
     private static <T extends GeneratedMessageV3> Class<T> convertProtobuf(Class recordClazz) {
-        if (!recordClazz.isAssignableFrom(GeneratedMessageV3.class)) {
-            throw new IllegalArgumentException("not support protobuf class " + recordClazz);
+        if (!GeneratedMessageV3.class.isAssignableFrom(recordClazz)) {
+            throw new IllegalArgumentException(
+                    "Message classes must extend GeneratedMessage or GeneratedMessageLite" + recordClazz);
         }
         return recordClazz;
     }

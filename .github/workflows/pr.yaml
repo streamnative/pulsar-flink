@@ -33,6 +33,7 @@ jobs:
           java-version: 1.8
       - name: Run check and test
         run: |
+          mvn -pl flink-protobuf test-compile jar:test-jar install
           ./tools/retry.sh mvn -B -ntp clean install -Pscala-2.11
 
   unit-tests-scala-2_12:
@@ -50,6 +51,7 @@ jobs:
 
       - name: Run check and test
         run: |
+          mvn -pl flink-protobuf test-compile jar:test-jar install
           ./tools/retry.sh mvn -B -ntp clean install -Pscala-2.12
   unit-tests-local:
     runs-on: ubuntu-latest
@@ -78,5 +80,6 @@ jobs:
           export PULSAR_ADMIN_URL=http://127.0.0.1:8080
           export PULSAR_SERVICE_URL=pulsar://127.0.0.1:6650
           export PULSAR_ZK_URL=127.0.0.1:2181
+          mvn -pl flink-protobuf test-compile jar:test-jar install
           mvn -ntp install -DskipTests
           mvn -ntp test -pl pulsar-flink-connector -Dtest=org.apache.flink.batch.connectors.pulsar.PulsarInputFormatITest

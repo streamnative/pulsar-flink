@@ -594,3 +594,35 @@ For `FlinkPulsarSource` and `FlinkPulsarSink`, you can use one of the following 
 
 For details about authentication configuration, see [Pulsar Security](https://pulsar.apache.org/docs/en/security-overview/).
 
+## ProtoBuf supports [experimental features].
+
+This feature is based on [Flink: New Format of protobuf](https://github.com/apache/flink/pull/14376) and is currently pending merge.
+Example of using protobuf in sql: 
+```
+create table pulsar (
+                        a INT,
+                        b BIGINT,
+                        c BOOLEAN,
+                        d FLOAT,
+                        e DOUBLE,
+                        f VARCHAR(32),
+                        g BYTES,
+                        h VARCHAR(32),
+                        f_abc_7d INT,
+                        `eventTime` TIMESTAMP(3) METADATA,
+                        compute as a + 1,
+                        watermark for eventTime as eventTime
+                        ) with (
+                        'connector' = 'pulsar',
+                        'topic' = 'test-protobuf',
+                        'service-url' = 'pulsar://localhost:6650',
+                        'admin-url' = 'http://localhost:8080',
+                        'scan.startup.mode' = 'earliest',
+                        'format' = 'protobuf',
+                        'protobuf.message-class-name' = 'org.apache.flink.formats.protobuf.testproto.SimpleTest'
+                        )
+
+INSERT INTO pulsar VALUES (1,2,false,0.1,0.01,'haha', ENCODE('1', 'utf-8'), 'IMAGES',1, TIMESTAMP '2020-03-08 13:12:11.123');
+```
+Requirement: `SimpleTest` class must implement `GeneratedMessageV3`.
+Since the Flink Format: ProtoBuf component has not been merged, it is temporarily placed in this repository as a source code for packaging and dependencies.

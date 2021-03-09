@@ -112,7 +112,8 @@ public class SimpleSchemaTranslator extends SchemaTranslator {
         return sqlType2AvroSchema(flinkType, false, "record", "");
     }
 
-    private static Schema sqlType2AvroSchema(DataType flinkType, boolean nullable, String recordName, String namespace)
+    private static Schema sqlType2AvroSchema(DataType flinkType, boolean nullable,
+                                             String recordName, String namespace)
             throws IncompatibleSchemaException {
         SchemaBuilder.TypeBuilder<Schema> builder = SchemaBuilder.builder();
         LogicalTypeRoot type = flinkType.getLogicalType().getTypeRoot();
@@ -348,7 +349,7 @@ public class SimpleSchemaTranslator extends SchemaTranslator {
         }
 
         if (fields.isEmpty()) {
-            throw new RuntimeException("No FieldDescriptors found");
+            throw new IllegalArgumentException("No FieldDescriptors found");
         }
         return DataTypes.ROW(fields.toArray(new DataTypes.Field[0]));
     }
@@ -394,7 +395,7 @@ public class SimpleSchemaTranslator extends SchemaTranslator {
                 dataType = DataTypes.STRING();
                 break;
             default:
-                throw new RuntimeException(
+                throw new IllegalArgumentException(
                         "Unknown type: " + type.toString() + " for FieldDescriptor: " + field.toString());
         }
         //list

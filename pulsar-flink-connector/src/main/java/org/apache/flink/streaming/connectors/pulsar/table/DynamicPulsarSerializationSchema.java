@@ -81,8 +81,6 @@ class DynamicPulsarSerializationSchema
 
     private String valueFormatType;
 
-    private ClassLoader userClassLoader;
-
     DynamicPulsarSerializationSchema(
             @Nullable SerializationSchema<RowData> keySerialization,
             SerializationSchema<RowData> valueSerialization,
@@ -114,7 +112,6 @@ class DynamicPulsarSerializationSchema
             keySerialization.open(context);
         }
         valueSerialization.open(context);
-        userClassLoader = context.getUserCodeClassLoader().asClassLoader();
     }
 
     @Override
@@ -207,7 +204,7 @@ class DynamicPulsarSerializationSchema
 
     private void hackPbSerializationSchema(Map<String, String> options) {
         // reflect read PbRowSerializationSchema#messageClassName
-        if (valueSerialization instanceof PbRowDataSerializationSchema){
+        if (valueSerialization instanceof PbRowDataSerializationSchema) {
             try {
                 String messageClassName =
                         (String) FieldUtils.readDeclaredField(valueSerialization, "messageClassName", true);

@@ -247,8 +247,7 @@ public class SchemaUtils {
             case JSON:
                 return org.apache.pulsar.client.api.Schema.JSON(recordClazz);
             case PROTOBUF:
-                @SuppressWarnings("unchecked")
-                final org.apache.pulsar.client.api.Schema<T> tSchema =
+                @SuppressWarnings("unchecked") final org.apache.pulsar.client.api.Schema<T> tSchema =
                         (org.apache.pulsar.client.api.Schema<T>) org.apache.pulsar.client.api.Schema
                                 .PROTOBUF_NATIVE(convertProtobuf(recordClazz));
                 return tSchema;
@@ -275,7 +274,8 @@ public class SchemaUtils {
             case "avro":
                 return getSchemaInfo(SchemaType.AVRO, dataType);
             case "protobuf":
-                return getProtobufSchemaInfo(SchemaType.PROTOBUF, dataType, options);
+                final String messageClassName = options.get(PbFormatOptions.MESSAGE_CLASS_NAME.key());
+                return getProtobufSchemaInfo(messageClassName, SchemaUtils.class.getClassLoader());
             case "atomic":
                 org.apache.pulsar.client.api.Schema pulsarSchema =
                         SimpleSchemaTranslator.sqlType2PulsarSchema(dataType.getChildren().get(0));
@@ -286,15 +286,11 @@ public class SchemaUtils {
         }
     }
 
-    // TODO use user classload
-    private static <T extends GeneratedMessageV3> SchemaInfo getProtobufSchemaInfo(SchemaType protobuf,
-                                                                                   DataType dataType,
-                                                    Map<String, String> options) {
-
-        final String messageClassName = options.get(PbFormatOptions.MESSAGE_CLASS_NAME.key());
+    private static <T extends GeneratedMessageV3> SchemaInfo getProtobufSchemaInfo(String messageClassName,
+                                                                                   ClassLoader classLoader) {
         try {
             final org.apache.pulsar.client.api.Schema<T> tSchema = org.apache.pulsar.client.api.Schema
-                    .PROTOBUF_NATIVE(convertProtobuf(Class.forName(messageClassName)));
+                    .PROTOBUF_NATIVE(convertProtobuf(classLoader.loadClass(messageClassName)));
             return tSchema.getSchemaInfo();
         } catch (ClassNotFoundException e) {
             throw new IllegalArgumentException("not load Protobuf class: " + messageClassName, e);

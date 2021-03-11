@@ -260,7 +260,7 @@ public class SchemaUtils {
     private static <T extends GeneratedMessageV3> Class<T> convertProtobuf(Class recordClazz) {
         if (!GeneratedMessageV3.class.isAssignableFrom(recordClazz)) {
             throw new IllegalArgumentException(
-                    "Message classes must extend GeneratedMessage or GeneratedMessageLite" + recordClazz);
+                    "Message classes must extend GeneratedMessageV3" + recordClazz);
         }
         return recordClazz;
     }

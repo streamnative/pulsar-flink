@@ -14,15 +14,19 @@
 
 package org.apache.flink.streaming.connectors.pulsar;
 
+import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.state.ListState;
 import org.apache.flink.api.common.state.ListStateDescriptor;
 import org.apache.flink.api.common.state.OperatorStateStore;
 import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.common.typeutils.TypeSerializer;
+import org.apache.flink.api.common.typeutils.base.array.BytePrimitiveArraySerializer;
 import org.apache.flink.api.java.ClosureCleaner;
-import org.apache.flink.api.java.tuple.Tuple3;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.ResultTypeQueryable;
+import org.apache.flink.api.java.typeutils.runtime.TupleSerializer;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.metrics.Counter;
 import org.apache.flink.runtime.state.CheckpointListener;
@@ -35,14 +39,18 @@ import org.apache.flink.streaming.api.functions.source.RichParallelSourceFunctio
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
 import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
 import org.apache.flink.streaming.connectors.pulsar.internal.CachedPulsarClient;
+import org.apache.flink.streaming.connectors.pulsar.internal.MessageIdSerializer;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarClientUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarCommitCallback;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarDeserializationSchema;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarFetcher;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarSourceStateSerializer;
 import org.apache.flink.streaming.connectors.pulsar.internal.SourceSinkUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.TopicRange;
+import org.apache.flink.streaming.connectors.pulsar.internal.TopicSubscription;
+import org.apache.flink.streaming.connectors.pulsar.internal.TopicSubscriptionSerializer;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
 import org.apache.flink.util.ExceptionUtils;
 import org.apache.flink.util.SerializedValue;
@@ -57,7 +65,10 @@ import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.shade.com.google.common.collect.Maps;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -83,11 +94,17 @@ public class FlinkPulsarSource<T>
         CheckpointListener,
         CheckpointedFunction {
 
-    /** The maximum number of pending non-committed checkpoints to track, to avoid memory leaks. */
+    /**
+     * The maximum number of pending non-committed checkpoints to track, to avoid memory leaks.
+     */
     public static final int MAX_NUM_PENDING_CHECKPOINTS = 100;
 
-    /** State name of the consumer's partition offset states. */
+    /**
+     * State name of the consumer's partition offset states.
+     */
     private static final String OFFSETS_STATE_NAME = "topic-partition-offset-states";
+
+    private static final String NEW_OFFSETS_STATE_NAME = "new-topic-partition-offset-states";
 
     // ------------------------------------------------------------------------
     //  configuration state, set on the client relevant for all subtasks
@@ -105,37 +122,50 @@ public class FlinkPulsarSource<T>
 
     private Map<TopicRange, MessageId> ownedTopicStarts;
 
-    /** Optional timestamp extractor / watermark generator that will be run per pulsar partition,
+    /**
+     * Optional timestamp extractor / watermark generator that will be run per pulsar partition,
      * to exploit per-partition timestamp characteristics.
-     * The assigner is kept in serialized form, to deserialize it into multiple copies. */
+     * The assigner is kept in serialized form, to deserialize it into multiple copies.
+     */
     private SerializedValue<AssignerWithPeriodicWatermarks<T>> periodicWatermarkAssigner;
 
-    /** Optional timestamp extractor / watermark generator that will be run per pulsar partition,
+    /**
+     * Optional timestamp extractor / watermark generator that will be run per pulsar partition,
      * to exploit per-partition timestamp characteristics.
-     * The assigner is kept in serialized form, to deserialize it into multiple copies. */
+     * The assigner is kept in serialized form, to deserialize it into multiple copies.
+     */
     private SerializedValue<AssignerWithPunctuatedWatermarks<T>> punctuatedWatermarkAssigner;
 
-    /** User configured value for discovery interval, in milliseconds. */
+    /**
+     * User configured value for discovery interval, in milliseconds.
+     */
     private final long discoveryIntervalMillis;
 
     protected final int pollTimeoutMs;
 
     protected final int commitMaxRetries;
 
-    /** The startup mode for the reader (default is {@link StartupMode#LATEST}). */
+    /**
+     * The startup mode for the reader (default is {@link StartupMode#LATEST}).
+     */
     private StartupMode startupMode = StartupMode.LATEST;
 
-    /** Specific startup offsets; only relevant when startup mode is {@link StartupMode#SPECIFIC_OFFSETS}. */
+    /**
+     * Specific startup offsets; only relevant when startup mode is {@link StartupMode#SPECIFIC_OFFSETS}.
+     */
     private transient Map<TopicRange, MessageId> specificStartupOffsets;
 
-    /** The subscription name to be used; only relevant when startup mode is {@link StartupMode#EXTERNAL_SUBSCRIPTION}
+    /**
+     * The subscription name to be used; only relevant when startup mode is {@link StartupMode#EXTERNAL_SUBSCRIPTION}
      * If the subscription exists for a partition, we would start reading this partition from the subscription cursor.
      * At the same time, checkpoint for the job would made progress on the subscription.
      */
     private String externalSubscriptionName;
 
-    /** The subscription position to use when subscription does not exist (default is {@link MessageId#latest});
-     * Only relevant when startup mode is {@link StartupMode#EXTERNAL_SUBSCRIPTION}. */
+    /**
+     * The subscription position to use when subscription does not exist (default is {@link MessageId#latest});
+     * Only relevant when startup mode is {@link StartupMode#EXTERNAL_SUBSCRIPTION}.
+     */
     private MessageId subscriptionPosition = MessageId.latest;
 
     // TODO: remove this when MessageId is serializable itself.
@@ -150,13 +180,19 @@ public class FlinkPulsarSource<T>
     //  runtime state (used individually by each parallel subtask)
     // ------------------------------------------------------------------------
 
-    /** Data for pending but uncommitted offsets. */
+    /**
+     * Data for pending but uncommitted offsets.
+     */
     private final LinkedMap pendingOffsetsToCommit = new LinkedMap();
 
-    /** Fetcher implements Pulsar reads. */
+    /**
+     * Fetcher implements Pulsar reads.
+     */
     private transient volatile PulsarFetcher<T> pulsarFetcher;
 
-    /** The partition discoverer, used to find new partitions. */
+    /**
+     * The partition discoverer, used to find new partitions.
+     */
     protected transient volatile PulsarMetadataReader metadataReader;
 
     /**
@@ -169,25 +205,43 @@ public class FlinkPulsarSource<T>
      */
     private transient volatile TreeMap<TopicRange, MessageId> restoredState;
 
-    /** Accessor for state in the operator state backend. */
+    /**
+     * Accessor for state in the operator state backend.
+     */
+    private transient ListState<Tuple2<TopicSubscription, MessageId>> unionOffsetStates;
 
-    private transient ListState<Tuple3<TopicRange, MessageId, String>> unionOffsetStates;
+    private static final ListStateDescriptor<byte[]> WRITER_RAW_STATES_DESC =
+            new ListStateDescriptor<>(OFFSETS_STATE_NAME, BytePrimitiveArraySerializer.INSTANCE);
+
+    private volatile boolean clearOldOffsetStates = false;
+
+    private int useOldStateSerVersion = 0;
 
     private volatile boolean stateSubEqualexternalSub = false;
 
-    /** Discovery loop, executed in a separate thread. */
+    /**
+     * Discovery loop, executed in a separate thread.
+     */
     private transient volatile Thread discoveryLoopThread;
 
-    /** Flag indicating whether the consumer is still running. */
+    /**
+     * Flag indicating whether the consumer is still running.
+     */
     private volatile boolean running = true;
 
-    /** Counter for successful Pulsar offset commits. */
+    /**
+     * Counter for successful Pulsar offset commits.
+     */
     private transient Counter successfulCommits;
 
-    /** Counter for failed Pulsar offset commits. */
+    /**
+     * Counter for failed Pulsar offset commits.
+     */
     private transient Counter failedCommits;
 
-    /** Callback interface that will be invoked upon async pulsar commit completion. */
+    /**
+     * Callback interface that will be invoked upon async pulsar commit completion.
+     */
     private transient PulsarCommitCallback offsetCommitCallback;
 
     private transient int taskIndex;
@@ -613,7 +667,6 @@ public class FlinkPulsarSource<T>
         }
     }
 
-
     // ------------------------------------------------------------------------
     //  ResultTypeQueryable methods
     // ------------------------------------------------------------------------
@@ -622,7 +675,6 @@ public class FlinkPulsarSource<T>
     public TypeInformation<T> getProducedType() {
         return deserializer.getProducedType();
     }
-
 
     // ------------------------------------------------------------------------
     //  Checkpoint and restore
@@ -634,27 +686,104 @@ public class FlinkPulsarSource<T>
 
         unionOffsetStates = stateStore.getUnionListState(
                 new ListStateDescriptor<>(
-                        OFFSETS_STATE_NAME,
-                        TypeInformation.of(new TypeHint<Tuple3<TopicRange, MessageId, String>>() {
-                        })));
+                        NEW_OFFSETS_STATE_NAME,
+                        createStateSerializer()
+                )
+        );
 
         if (context.isRestored()) {
             restoredState = new TreeMap<>();
-            unionOffsetStates.get().forEach(e -> restoredState.put(e.f0, e.f1));
-            for (Tuple3<TopicRange, MessageId, String> e : unionOffsetStates.get()) {
-                if (e.f2 != null && e.f2.equals(externalSubscriptionName)) {
-                    stateSubEqualexternalSub = true;
-                    log.info("Source restored state with subscriptionName {}", e.f2);
-                }
-                break;
-            }
+            Iterator<Tuple2<TopicSubscription, MessageId>> iterator = unionOffsetStates.get().iterator();
 
+            if (!iterator.hasNext()) {
+                iterator = tryMigrationState(stateStore);
+            }
+            while (iterator.hasNext()) {
+                final Tuple2<TopicSubscription, MessageId> tuple2 = iterator.next();
+                final TopicRange topicRange = new TopicRange(tuple2.f0.getTopic(), tuple2.f0.getRange().getPulsarRange());
+                restoredState.put(topicRange, tuple2.f1);
+                String subscriptionName = tuple2.f0.getSubscriptionName();
+                if (!stateSubEqualexternalSub && StringUtils.equals(subscriptionName, externalSubscriptionName)) {
+                    stateSubEqualexternalSub = true;
+                    log.info("Source restored state with subscriptionName {}", subscriptionName);
+                }
+            }
             log.info("Source subtask {} restored state {}",
                     taskIndex,
                     StringUtils.join(restoredState.entrySet()));
         } else {
             log.info("Source subtask {} has no restore state", taskIndex);
         }
+    }
+
+    @VisibleForTesting
+    static TupleSerializer<Tuple2<TopicSubscription, MessageId>> createStateSerializer() {
+        // explicit serializer will keep the compatibility with GenericTypeInformation and allow to
+        // disableGenericTypes for users
+        TypeSerializer<?>[] fieldSerializers =
+                new TypeSerializer<?>[]{
+                        TopicSubscriptionSerializer.INSTANCE,
+                        MessageIdSerializer.INSTANCE
+                };
+        @SuppressWarnings("unchecked")
+        Class<Tuple2<TopicSubscription, MessageId>> tupleClass =
+                (Class<Tuple2<TopicSubscription, MessageId>>) (Class<?>) Tuple2.class;
+        return new TupleSerializer<>(tupleClass, fieldSerializers);
+    }
+
+    private Iterator<Tuple2<TopicSubscription, MessageId>> tryMigrationState(OperatorStateStore stateStore) throws Exception {
+        ListState<String> OldUnionSubscriptionNameStates =
+                stateStore.getUnionListState(
+                        new ListStateDescriptor<>(
+                                OFFSETS_STATE_NAME + "_subName",
+                                TypeInformation.of(new TypeHint<String>() {
+                                })));
+
+        final PulsarSourceStateSerializer stateSerializer =
+                new PulsarSourceStateSerializer(getRuntimeContext().getExecutionConfig());
+        Iterator<Tuple2<TopicRange, MessageId>> unionListState = null;
+        ListState<?> listState = null;
+        switch (useOldStateSerVersion) {
+            case 0:
+                ListState<Tuple2<String, MessageId>> stateV0 = stateStore.getUnionListState(
+                        new ListStateDescriptor<>(OFFSETS_STATE_NAME, stateSerializer.getV0Serializer())
+                );
+                List<Tuple2<TopicRange, MessageId>> result = new ArrayList<>();
+                stateV0.get().forEach(t -> {
+                    result.add(Tuple2.of(new TopicRange(t.f0), t.f1));
+                });
+                unionListState = result.listIterator();
+                listState = stateV0;
+                break;
+            case 1:
+                ListState<Tuple2<TopicRange, MessageId>> stateV1 = stateStore.getUnionListState(
+                        new ListStateDescriptor<>(OFFSETS_STATE_NAME, stateSerializer.getV1Serializer())
+                );
+                unionListState = stateV1.get().iterator();
+                listState = stateV1;
+                break;
+            default:
+                throw new IllegalArgumentException("unsupported version ");
+        }
+
+        final Iterator<String> subNameIterator = OldUnionSubscriptionNameStates.get().iterator();
+        final List<Tuple2<TopicSubscription, MessageId>> records = new ArrayList<>();
+        while (unionListState.hasNext() && subNameIterator.hasNext()) {
+            final Tuple2<TopicRange, MessageId> tuple2 = unionListState.next();
+            final String subName = subNameIterator.next();
+
+            final TopicSubscription topicSubscription = TopicSubscription.builder()
+                    .topic(tuple2.f0.getTopic())
+                    .range(tuple2.f0.getRange())
+                    .subscriptionName(subName)
+                    .build();
+            final Tuple2<TopicSubscription, MessageId> record = Tuple2.of(topicSubscription, tuple2.f1);
+            log.info("migrationState {}", record);
+            records.add(record);
+        }
+        listState.clear();
+        OldUnionSubscriptionNameStates.clear();
+        return records.listIterator();
     }
 
     @Override
@@ -670,14 +799,24 @@ public class FlinkPulsarSource<T>
                 // the fetcher has not yet been initialized, which means we need to return the
                 // originally restored offsets or the assigned partitions
                 for (Map.Entry<TopicRange, MessageId> entry : ownedTopicStarts.entrySet()) {
-                    unionOffsetStates.add(Tuple3.of(entry.getKey(), entry.getValue(), getSubscriptionName()));
+                    final TopicSubscription topicSubscription = TopicSubscription.builder()
+                            .topic(entry.getKey().getTopic())
+                            .range(entry.getKey().getRange())
+                            .subscriptionName(getSubscriptionName())
+                            .build();
+                    unionOffsetStates.add(Tuple2.of(topicSubscription, entry.getValue()));
                 }
                 pendingOffsetsToCommit.put(context.getCheckpointId(), restoredState);
             } else {
                 Map<TopicRange, MessageId> currentOffsets = fetcher.snapshotCurrentState();
                 pendingOffsetsToCommit.put(context.getCheckpointId(), currentOffsets);
                 for (Map.Entry<TopicRange, MessageId> entry : currentOffsets.entrySet()) {
-                    unionOffsetStates.add(Tuple3.of(entry.getKey(), entry.getValue(), getSubscriptionName()));
+                    final TopicSubscription topicSubscription = TopicSubscription.builder()
+                            .topic(entry.getKey().getTopic())
+                            .range(entry.getKey().getRange())
+                            .subscriptionName(getSubscriptionName())
+                            .build();
+                    unionOffsetStates.add(Tuple2.of(topicSubscription, entry.getValue()));
                 }
                 while (pendingOffsetsToCommit.size() > MAX_NUM_PENDING_CHECKPOINTS) {
                     pendingOffsetsToCommit.remove(0);
@@ -730,7 +869,7 @@ public class FlinkPulsarSource<T>
         }
     }
 
-//    @Override
+    //    @Override
     public void notifyCheckpointAborted(long checkpointId) throws Exception {
         log.error("checkpoint aborted, checkpointId: {}", checkpointId);
     }

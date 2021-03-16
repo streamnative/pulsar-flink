@@ -73,7 +73,9 @@ public class TopicSubscriptionSerializer extends TypeSerializer<TopicSubscriptio
              ObjectOutputStream out = new ObjectOutputStream(baos)) {
             out.writeObject(record);
             out.flush();
-            target.write(baos.toByteArray());
+            final byte[] bytes = baos.toByteArray();
+            target.writeInt(bytes.length);
+            target.write(bytes);
         }
     }
 

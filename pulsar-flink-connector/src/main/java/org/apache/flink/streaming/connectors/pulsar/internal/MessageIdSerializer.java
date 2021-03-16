@@ -67,7 +67,9 @@ public class MessageIdSerializer extends TypeSerializer<MessageId> {
 
     @Override
     public void serialize(MessageId record, DataOutputView target) throws IOException {
-        target.write(record.toByteArray());
+        final byte[] bytes = record.toByteArray();
+        target.writeInt(bytes.length);
+        target.write(bytes);
     }
 
     @Override

@@ -709,6 +709,7 @@ public class FlinkPulsarSource<T>
 
     private Iterator<Tuple2<TopicSubscription, MessageId>> tryMigrationState(OperatorStateStore stateStore)
             throws Exception {
+        log.info("restore old state version {}", oldStateVersion);
         PulsarSourceStateSerializer stateSerializer =
                 new PulsarSourceStateSerializer(getRuntimeContext().getExecutionConfig());
         ListState<?> rawStates = stateStore.getUnionListState(new ListStateDescriptor<>(
@@ -725,11 +726,16 @@ public class FlinkPulsarSource<T>
         final Iterator<String> subNameIterator = oldUnionSubscriptionNameStates.get().iterator();
 
         Iterator<?> tuple2s = rawStates.get().iterator();
+        log.info("restore old state has data {}", tuple2s.hasNext());
         final List<Tuple2<TopicSubscription, MessageId>> records = new ArrayList<>();
-        while (tuple2s.hasNext() && subNameIterator.hasNext()) {
+        while (tuple2s.hasNext()) {
             final Object next = tuple2s.next();
             Tuple2<TopicSubscription, MessageId> tuple2 = stateSerializer.deserialize(oldStateVersion, next);
-            final String subName = subNameIterator.next();
+
+            String subName = tuple2.f0.getSubscriptionName();
+            if (subNameIterator.hasNext()){
+                subName = subNameIterator.next();
+            }
             final TopicSubscription topicSubscription = TopicSubscription.builder()
                     .topic(tuple2.f0.getTopic())
                     .range(tuple2.f0.getRange())

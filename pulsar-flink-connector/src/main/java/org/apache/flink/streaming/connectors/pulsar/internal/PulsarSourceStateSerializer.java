@@ -25,6 +25,7 @@ import org.apache.flink.core.io.SimpleVersionedSerializer;
 import org.apache.flink.core.memory.DataInputDeserializer;
 import org.apache.flink.core.memory.DataOutputSerializer;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.MessageId;
 
 import java.io.IOException;
@@ -36,6 +37,7 @@ import java.util.Map;
 /**
  * Old PulsarSourceState Serializer for flink state.
  */
+@Slf4j
 public class PulsarSourceStateSerializer
         implements SimpleVersionedSerializer<Tuple2<TopicSubscription, MessageId>>, Serializable {
 
@@ -94,7 +96,9 @@ public class PulsarSourceStateSerializer
         for (Map.Entry<Integer, SerializableFunction<byte[], Tuple2<TopicSubscription, MessageId>>> entry : oldStateSerializer
                 .entrySet()) {
             try {
-                return entry.getValue().apply(serialized);
+                final Tuple2<TopicSubscription, MessageId> tuple2 = entry.getValue().apply(serialized);
+                log.info("pulsar deser old state " + tuple2);
+                return tuple2;
             } catch (Exception e) {
                 exception = e;
             }

@@ -26,11 +26,10 @@ import org.apache.pulsar.client.impl.schema.BytesSchema;
 import org.apache.pulsar.client.impl.schema.DoubleSchema;
 import org.apache.pulsar.client.impl.schema.FloatSchema;
 import org.apache.pulsar.client.impl.schema.IntSchema;
-import org.apache.pulsar.client.impl.schema.LocalDateSchema;
-import org.apache.pulsar.client.impl.schema.LocalDateTimeSchema;
 import org.apache.pulsar.client.impl.schema.LongSchema;
 import org.apache.pulsar.client.impl.schema.ShortSchema;
 import org.apache.pulsar.common.schema.SchemaInfo;
+import org.apache.pulsar.common.schema.SchemaType;
 
 import java.io.Serializable;
 
@@ -43,7 +42,8 @@ public abstract class SchemaTranslator implements Serializable {
 
     public abstract TableSchema pulsarSchemaToTableSchema(SchemaInfo pulsarSchema) throws IncompatibleSchemaException;
 
-    public abstract FieldsDataType pulsarSchemaToFieldsDataType(SchemaInfo pulsarSchema) throws IncompatibleSchemaException;
+    public abstract FieldsDataType pulsarSchemaToFieldsDataType(SchemaInfo pulsarSchema)
+            throws IncompatibleSchemaException;
 
     public abstract DataType schemaInfo2SqlType(SchemaInfo si) throws IncompatibleSchemaException;
 
@@ -55,11 +55,21 @@ public abstract class SchemaTranslator implements Serializable {
             case VARBINARY:
                 return BytesSchema.of();
             case DATE:
-                return LocalDateSchema.of();
+                final SchemaInfo localDate = SchemaInfo.builder()
+                        .name("LocalDate")
+                        .type(SchemaType.valueOf("LOCAL_DATE"))
+                        .schema(new byte[0])
+                        .build();
+                return Schema.getSchema(localDate);
             case VARCHAR:
                 return Schema.STRING;
             case TIMESTAMP_WITHOUT_TIME_ZONE:
-                return LocalDateTimeSchema.of();
+                final SchemaInfo localDateTime = SchemaInfo.builder()
+                        .name("LocalDateTime")
+                        .type(SchemaType.valueOf("LOCAL_DATE_TIME"))
+                        .schema(new byte[0])
+                        .build();
+                return Schema.getSchema(localDateTime);
             case TINYINT:
                 return ByteSchema.of();
             case DOUBLE:
@@ -73,7 +83,8 @@ public abstract class SchemaTranslator implements Serializable {
             case SMALLINT:
                 return ShortSchema.of();
             default:
-                throw new IncompatibleSchemaException(String.format("%s is not supported by Pulsar yet", flinkType.toString()), null);
+                throw new IncompatibleSchemaException(
+                        String.format("%s is not supported by Pulsar yet", flinkType.toString()), null);
         }
     }
 }

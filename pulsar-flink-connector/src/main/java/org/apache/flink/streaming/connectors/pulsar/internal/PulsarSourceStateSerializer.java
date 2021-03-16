@@ -23,6 +23,7 @@ import org.apache.flink.api.java.typeutils.runtime.TupleSerializer;
 import org.apache.flink.api.java.typeutils.runtime.kryo.KryoSerializer;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 import org.apache.flink.core.memory.DataInputDeserializer;
+import org.apache.flink.core.memory.DataOutputSerializer;
 
 import org.apache.pulsar.client.api.MessageId;
 
@@ -35,7 +36,8 @@ import java.util.Map;
 /**
  * Old PulsarSourceState Serializer for flink state.
  */
-public class PulsarSourceStateSerializer implements SimpleVersionedSerializer<Tuple2<TopicSubscription, MessageId>>, Serializable {
+public class PulsarSourceStateSerializer
+        implements SimpleVersionedSerializer<Tuple2<TopicSubscription, MessageId>>, Serializable {
 
     private static final int CURRENT_VERSION = 4;
 
@@ -89,7 +91,8 @@ public class PulsarSourceStateSerializer implements SimpleVersionedSerializer<Tu
     @Override
     public Tuple2<TopicSubscription, MessageId> deserialize(int version, byte[] serialized) throws IOException {
         Exception exception = null;
-        for (Map.Entry<Integer, SerializableFunction<byte[], Tuple2<TopicSubscription, MessageId>>> entry : oldStateSerializer.entrySet()) {
+        for (Map.Entry<Integer, SerializableFunction<byte[], Tuple2<TopicSubscription, MessageId>>> entry : oldStateSerializer
+                .entrySet()) {
             try {
                 return entry.getValue().apply(serialized);
             } catch (Exception e) {
@@ -97,6 +100,24 @@ public class PulsarSourceStateSerializer implements SimpleVersionedSerializer<Tu
             }
         }
         throw new IllegalArgumentException("not restore Pulsar state", exception);
+    }
+
+    public Tuple2<TopicSubscription, MessageId> deserialize(int version, Object oldStateObject) throws IOException {
+        final DataOutputSerializer target = new DataOutputSerializer(1024 * 8);
+        switch (version) {
+            case 0:
+                getV0Serializer().serialize((Tuple2<String, MessageId>) oldStateObject, target);
+                break;
+            case 1:
+                getV1Serializer().serialize((Tuple2<TopicRange, MessageId>) oldStateObject, target);
+                break;
+            case 2:
+                getV2Serializer().serialize((Tuple3<TopicRange, MessageId, String>) oldStateObject, target);
+                break;
+            default:
+                throw new IllegalArgumentException("unsupport old pulsar state version");
+        }
+        return deserialize(version, target.getSharedBuffer());
     }
 
     public TupleSerializer<Tuple2<String, MessageId>> getV0Serializer() {
@@ -134,6 +155,19 @@ public class PulsarSourceStateSerializer implements SimpleVersionedSerializer<Tu
         Class<Tuple3<TopicRange, MessageId, String>> tupleClass =
                 (Class<Tuple3<TopicRange, MessageId, String>>) (Class<?>) Tuple3.class;
         return new TupleSerializer<>(tupleClass, fieldSerializers);
+    }
+
+    public TupleSerializer<?> getSerializer(int oldStateVersion) {
+        switch (oldStateVersion) {
+            case 0:
+                return getV0Serializer();
+            case 1:
+                return getV1Serializer();
+            case 2:
+                return getV2Serializer();
+            default:
+                throw new IllegalArgumentException("unsupport old pulsar state version");
+        }
     }
 
     /**

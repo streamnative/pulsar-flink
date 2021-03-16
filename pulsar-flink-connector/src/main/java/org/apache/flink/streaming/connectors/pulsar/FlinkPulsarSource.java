@@ -37,7 +37,6 @@ import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
 import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
 import org.apache.flink.streaming.api.functions.source.RichParallelSourceFunction;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
-import org.apache.flink.streaming.api.operators.util.SimpleVersionedListState;
 import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
 import org.apache.flink.streaming.connectors.pulsar.internal.CachedPulsarClient;
 import org.apache.flink.streaming.connectors.pulsar.internal.MessageIdSerializer;
@@ -119,14 +118,18 @@ public class FlinkPulsarSource<T>
 
     private Map<TopicRange, MessageId> ownedTopicStarts;
 
-    /** Optional timestamp extractor / watermark generator that will be run per pulsar partition,
+    /**
+     * Optional timestamp extractor / watermark generator that will be run per pulsar partition,
      * to exploit per-partition timestamp characteristics.
-     * The assigner is kept in serialized form, to deserialize it into multiple copies. */
+     * The assigner is kept in serialized form, to deserialize it into multiple copies.
+     */
     private SerializedValue<AssignerWithPeriodicWatermarks<T>> periodicWatermarkAssigner;
 
-    /** Optional timestamp extractor / watermark generator that will be run per pulsar partition,
+    /**
+     * Optional timestamp extractor / watermark generator that will be run per pulsar partition,
      * to exploit per-partition timestamp characteristics.
-     * The assigner is kept in serialized form, to deserialize it into multiple copies. */
+     * The assigner is kept in serialized form, to deserialize it into multiple copies.
+     */
     private SerializedValue<AssignerWithPunctuatedWatermarks<T>> punctuatedWatermarkAssigner;
 
     /** User configured value for discovery interval, in milliseconds. */
@@ -142,14 +145,17 @@ public class FlinkPulsarSource<T>
     /** Specific startup offsets; only relevant when startup mode is {@link StartupMode#SPECIFIC_OFFSETS}. */
     private transient Map<TopicRange, MessageId> specificStartupOffsets;
 
-    /** The subscription name to be used; only relevant when startup mode is {@link StartupMode#EXTERNAL_SUBSCRIPTION}
+    /**
+     * The subscription name to be used; only relevant when startup mode is {@link StartupMode#EXTERNAL_SUBSCRIPTION}
      * If the subscription exists for a partition, we would start reading this partition from the subscription cursor.
      * At the same time, checkpoint for the job would made progress on the subscription.
      */
     private String externalSubscriptionName;
 
-    /** The subscription position to use when subscription does not exist (default is {@link MessageId#latest});
-     * Only relevant when startup mode is {@link StartupMode#EXTERNAL_SUBSCRIPTION}. */
+    /**
+     * The subscription position to use when subscription does not exist (default is {@link MessageId#latest});
+     * Only relevant when startup mode is {@link StartupMode#EXTERNAL_SUBSCRIPTION}.
+     */
     private MessageId subscriptionPosition = MessageId.latest;
 
     // TODO: remove this when MessageId is serializable itself.
@@ -190,6 +196,8 @@ public class FlinkPulsarSource<T>
 
     private static final ListStateDescriptor<byte[]> WRITER_RAW_STATES_DESC =
             new ListStateDescriptor<>(OFFSETS_STATE_NAME, BytePrimitiveArraySerializer.INSTANCE);
+
+    private int oldStateVersion = 0;
 
     private volatile boolean stateSubEqualexternalSub = false;
 
@@ -234,6 +242,7 @@ public class FlinkPulsarSource<T>
 
         CachedPulsarClient.setCacheSize(SourceSinkUtils.getClientCacheSize(caseInsensitiveParams));
 
+        this.oldStateVersion = SourceSinkUtils.getOldStateVersion(caseInsensitiveParams);
         if (this.clientConfigurationData.getServiceUrl() == null) {
             throw new IllegalArgumentException("ServiceUrl must be supplied in the client configuration");
         }
@@ -356,7 +365,8 @@ public class FlinkPulsarSource<T>
         return this;
     }
 
-    public FlinkPulsarSource<T> setStartFromSubscription(String externalSubscriptionName, MessageId subscriptionPosition) {
+    public FlinkPulsarSource<T> setStartFromSubscription(String externalSubscriptionName,
+                                                         MessageId subscriptionPosition) {
         this.startupMode = StartupMode.EXTERNAL_SUBSCRIPTION;
         this.externalSubscriptionName = checkNotNull(externalSubscriptionName);
         this.subscriptionPosition = checkNotNull(subscriptionPosition);
@@ -633,7 +643,6 @@ public class FlinkPulsarSource<T>
         }
     }
 
-
     // ------------------------------------------------------------------------
     //  ResultTypeQueryable methods
     // ------------------------------------------------------------------------
@@ -642,7 +651,6 @@ public class FlinkPulsarSource<T>
     public TypeInformation<T> getProducedType() {
         return deserializer.getProducedType();
     }
-
 
     // ------------------------------------------------------------------------
     //  Checkpoint and restore
@@ -656,7 +664,7 @@ public class FlinkPulsarSource<T>
                 new ListStateDescriptor<>(
                         NEW_OFFSETS_STATE_NAME,
                         createStateSerializer()
-                        ));
+                ));
 
         if (context.isRestored()) {
             restoredState = new TreeMap<>();
@@ -667,7 +675,8 @@ public class FlinkPulsarSource<T>
             }
             while (iterator.hasNext()) {
                 final Tuple2<TopicSubscription, MessageId> tuple2 = iterator.next();
-                final TopicRange topicRange = new TopicRange(tuple2.f0.getTopic(), tuple2.f0.getRange().getPulsarRange());
+                final TopicRange topicRange =
+                        new TopicRange(tuple2.f0.getTopic(), tuple2.f0.getRange().getPulsarRange());
                 restoredState.put(topicRange, tuple2.f1);
                 String subscriptionName = tuple2.f0.getSubscriptionName();
                 if (!stateSubEqualexternalSub && StringUtils.equals(subscriptionName, externalSubscriptionName)) {
@@ -698,12 +707,14 @@ public class FlinkPulsarSource<T>
         return new TupleSerializer<>(tupleClass, fieldSerializers);
     }
 
-    private Iterator<Tuple2<TopicSubscription, MessageId>> tryMigrationState(OperatorStateStore stateStore) throws Exception {
-        ListState<byte[]> rawStates = stateStore.getUnionListState(WRITER_RAW_STATES_DESC);
+    private Iterator<Tuple2<TopicSubscription, MessageId>> tryMigrationState(OperatorStateStore stateStore)
+            throws Exception {
         PulsarSourceStateSerializer stateSerializer =
                 new PulsarSourceStateSerializer(getRuntimeContext().getExecutionConfig());
-        SimpleVersionedListState<Tuple2<TopicSubscription, MessageId>> versionedListState =
-                new SimpleVersionedListState<>(rawStates, stateSerializer);
+        ListState<?> rawStates = stateStore.getUnionListState(new ListStateDescriptor<>(
+                OFFSETS_STATE_NAME,
+                stateSerializer.getSerializer(oldStateVersion)
+        ));
 
         ListState<String> oldUnionSubscriptionNameStates =
                 stateStore.getUnionListState(
@@ -712,14 +723,12 @@ public class FlinkPulsarSource<T>
                                 TypeInformation.of(new TypeHint<String>() {
                                 })));
         final Iterator<String> subNameIterator = oldUnionSubscriptionNameStates.get().iterator();
-        if (!subNameIterator.hasNext()) {
-            return versionedListState.get().iterator();
-        }
 
-        Iterator<Tuple2<TopicSubscription, MessageId>> tuple2s = versionedListState.get().iterator();
+        Iterator<?> tuple2s = rawStates.get().iterator();
         final List<Tuple2<TopicSubscription, MessageId>> records = new ArrayList<>();
         while (tuple2s.hasNext() && subNameIterator.hasNext()) {
-            Tuple2<TopicSubscription, MessageId> tuple2 = tuple2s.next();
+            final Object next = tuple2s.next();
+            Tuple2<TopicSubscription, MessageId> tuple2 = stateSerializer.deserialize(oldStateVersion, next);
             final String subName = subNameIterator.next();
             final TopicSubscription topicSubscription = TopicSubscription.builder()
                     .topic(tuple2.f0.getTopic())
@@ -730,7 +739,7 @@ public class FlinkPulsarSource<T>
             log.info("migrationState {}", record);
             records.add(record);
         }
-        versionedListState.clear();
+        rawStates.clear();
         oldUnionSubscriptionNameStates.clear();
         return records.listIterator();
     }

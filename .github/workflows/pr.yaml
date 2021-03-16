@@ -68,9 +68,9 @@ jobs:
         run: |
           apt update && apt install -y wget
           cd /tmp
-          wget -O 'apache-pulsar-2.6.1-bin.tar.gz' 'https://www.apache.org/dyn/mirrors/mirrors.cgi?action=download&filename=pulsar/pulsar-2.6.1/apache-pulsar-2.6.1-bin.tar.gz'
-          tar -xvzf apache-pulsar-2.6.1-bin.tar.gz
-          cd apache-pulsar-2.6.1
+          wget -O 'apache-pulsar-2.7.0-bin.tar.gz' 'https://archive.apache.org/dist/pulsar/pulsar-2.7.0/apache-pulsar-2.7.0-bin.tar.gz'
+          tar -xvzf apache-pulsar-2.7.0-bin.tar.gz
+          cd apache-pulsar-2.7.0
           chmod +x ./bin/*
           nohup ./bin/pulsar standalone --no-stream-storage -nfw &
       - name: run batch test

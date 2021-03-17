@@ -21,6 +21,7 @@ import org.apache.flink.table.types.FieldsDataType;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.table.types.utils.TypeConversions;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
@@ -49,6 +50,7 @@ import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.shade.org.apache.avro.Schema;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
 
 import static org.apache.avro.Schema.Type.RECORD;
@@ -57,6 +59,7 @@ import static org.apache.pulsar.shade.com.google.common.base.Preconditions.check
 /**
  * Various utilities to working with Pulsar Schema and Flink type system.
  */
+@Slf4j
 public class SchemaUtils {
 
     public static void uploadPulsarSchema(PulsarAdmin admin, String topic, SchemaInfo schemaInfo) {
@@ -99,9 +102,14 @@ public class SchemaUtils {
                         String.format("Failed to create schema information for %s", TopicName.get(topic).toString()),
                         e);
             }
-        } else if (!existingSchema.equals(schemaInfo) && !compatibleSchema(existingSchema, schemaInfo)) {
+        } else if (!schemaEqualsIgnoreProperties(schemaInfo, existingSchema) && !compatibleSchema(existingSchema, schemaInfo)) {
             throw new RuntimeException("Writing to a topic which have incompatible schema");
         }
+    }
+
+    private static boolean schemaEqualsIgnoreProperties(SchemaInfo schemaInfo, SchemaInfo existingSchema) {
+        return existingSchema.getType().equals(schemaInfo.getType()) && Arrays.equals(existingSchema.getSchema(),
+                schemaInfo.getSchema());
     }
 
     private static String getSchemaString(SchemaInfo schemaInfo) {

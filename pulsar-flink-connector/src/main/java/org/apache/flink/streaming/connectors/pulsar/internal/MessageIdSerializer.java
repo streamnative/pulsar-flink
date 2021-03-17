@@ -94,7 +94,9 @@ public class MessageIdSerializer extends TypeSerializer<MessageId> {
     public boolean equals(Object obj) {
         if (this == obj) {
             return true;
-        } else return obj != null && this.getClass() == obj.getClass();
+        } else {
+            return obj != null && this.getClass() == obj.getClass();
+        }
     }
 
     @Override

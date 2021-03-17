@@ -22,7 +22,6 @@ import org.apache.flink.api.common.state.OperatorStateStore;
 import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeutils.TypeSerializer;
-import org.apache.flink.api.common.typeutils.base.array.BytePrimitiveArraySerializer;
 import org.apache.flink.api.java.ClosureCleaner;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.typeutils.ResultTypeQueryable;
@@ -193,9 +192,6 @@ public class FlinkPulsarSource<T>
      * Accessor for state in the operator state backend.
      */
     private transient ListState<Tuple2<TopicSubscription, MessageId>> unionOffsetStates;
-
-    private static final ListStateDescriptor<byte[]> WRITER_RAW_STATES_DESC =
-            new ListStateDescriptor<>(OFFSETS_STATE_NAME, BytePrimitiveArraySerializer.INSTANCE);
 
     private int oldStateVersion = 0;
 

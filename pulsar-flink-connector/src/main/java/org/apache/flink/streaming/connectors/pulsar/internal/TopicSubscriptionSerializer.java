@@ -108,7 +108,9 @@ public class TopicSubscriptionSerializer extends TypeSerializer<TopicSubscriptio
     public boolean equals(Object obj) {
         if (this == obj) {
             return true;
-        } else return obj != null && this.getClass() == obj.getClass();
+        } else {
+            return obj != null && this.getClass() == obj.getClass();
+        }
     }
 
     @Override

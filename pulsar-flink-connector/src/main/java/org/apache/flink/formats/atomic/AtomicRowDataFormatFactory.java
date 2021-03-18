@@ -43,7 +43,7 @@ import java.util.Set;
  */
 public class AtomicRowDataFormatFactory implements SerializationFormatFactory, DeserializationFormatFactory {
 
-    private static final String IDENTIFIER = "atomic";
+    public static final String IDENTIFIER = "atomic";
 
     @Override
     public DecodingFormat<DeserializationSchema<RowData>> createDecodingFormat(DynamicTableFactory.Context context,

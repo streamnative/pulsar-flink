@@ -15,6 +15,7 @@
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.formats.atomic.AtomicRowDataFormatFactory;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.catalog.CatalogBaseTable;
 import org.apache.flink.table.catalog.CatalogTable;
@@ -25,6 +26,7 @@ import org.apache.flink.table.descriptors.DescriptorProperties;
 import org.apache.flink.table.descriptors.Schema;
 import org.apache.flink.table.types.DataType;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
@@ -110,7 +112,10 @@ public class PulsarCatalogSupport {
         final TableSchema schema = table.getSchema();
         final SchemaInfo schemaInfo = tableSchemaToPulsarSchema(format, schema);
 
-        schemaInfo.setProperties(extractedProperties(table));
+        // Writing schemaInfo#properties causes the client to fail to consume it when it is a Pulsar native type.
+        if (!StringUtils.equals(format, AtomicRowDataFormatFactory.IDENTIFIER)) {
+            schemaInfo.setProperties(extractedProperties(table));
+        }
         pulsarMetadataReader.putSchema(topicName, schemaInfo);
     }
 
@@ -122,7 +127,9 @@ public class PulsarCatalogSupport {
         }
         Map<String, String> properties = new HashMap<>(tableSchemaProps.asMap());
         properties = maskFlinkProperties(properties);
-        properties.put(PulsarCatalogSupport.COMMENT, table.getComment());
+        if (table.getComment() == null) {
+            properties.put(PulsarCatalogSupport.COMMENT, table.getComment());
+        }
         properties.put(IS_CATALOG_TOPIC, "true");
         return properties;
     }
@@ -159,7 +166,7 @@ public class PulsarCatalogSupport {
                                                   Map<String, String> flinkProperties)
             throws IncompatibleSchemaException {
         boolean isCatalogTopic = Boolean.parseBoolean(pulsarSchema.getProperties().get(IS_CATALOG_TOPIC));
-        if (isCatalogTopic){
+        if (isCatalogTopic) {
             Map<String, String> properties = retrieveFlinkProperties(pulsarSchema.getProperties());
             DescriptorProperties tableSchemaProps = new DescriptorProperties(true);
             tableSchemaProps.putProperties(properties);
@@ -174,7 +181,7 @@ public class PulsarCatalogSupport {
             properties.remove(IS_CATALOG_TOPIC);
             String comment = properties.remove(PulsarCatalogSupport.COMMENT);
             return new CatalogTableImpl(tableSchema, partitionKeys, properties, comment);
-        }else {
+        } else {
             final TableSchema tableSchema = schemaTranslator.pulsarSchemaToTableSchema(pulsarSchema);
             return new CatalogTableImpl(tableSchema, flinkProperties, "");
         }

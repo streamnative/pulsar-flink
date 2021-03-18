@@ -81,6 +81,8 @@ class DynamicPulsarSerializationSchema
 
     private String valueFormatType;
 
+    private volatile Schema<RowData> schema;
+
     DynamicPulsarSerializationSchema(
             @Nullable SerializationSchema<RowData> keySerialization,
             SerializationSchema<RowData> valueSerialization,
@@ -193,6 +195,17 @@ class DynamicPulsarSerializationSchema
 
     @Override
     public Schema<RowData> getSchema() {
+        if (schema == null) {
+            synchronized (this) {
+                if (schema == null) {
+                    schema = buildSchema();
+                }
+            }
+        }
+        return schema;
+    }
+
+    private FlinkSchema<RowData> buildSchema() {
         if (StringUtils.isBlank(valueFormatType)) {
             return new FlinkSchema<>(Schema.BYTES.getSchemaInfo(), valueSerialization, null);
         }
@@ -206,7 +219,7 @@ class DynamicPulsarSerializationSchema
         // reflect read PbRowSerializationSchema#messageClassName
         if (valueSerialization instanceof PbRowDataSerializationSchema) {
             try {
-                String messageClassName =
+                final String messageClassName =
                         (String) FieldUtils.readDeclaredField(valueSerialization, "messageClassName", true);
                 options.put(PbFormatOptions.MESSAGE_CLASS_NAME.key(), messageClassName);
             } catch (IllegalAccessException e) {

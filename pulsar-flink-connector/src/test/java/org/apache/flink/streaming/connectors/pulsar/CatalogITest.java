@@ -47,7 +47,6 @@ import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.policies.data.TenantInfo;
 import org.apache.pulsar.common.schema.SchemaType;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -363,7 +362,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         tableEnv2.useCatalog(pulsarCatalog1);
         final TableSchema schema2 = tableEnv2.executeSql("DESCRIBE " + tableSinkName).getTableSchema();
 
-        Assert.assertEquals(schema, schema2);
+        assertEquals(schema, schema2);
     }
 
     @Test(timeout = 40 * 10000L)

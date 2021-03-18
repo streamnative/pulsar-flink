@@ -23,6 +23,7 @@ import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMap
 import org.apache.flink.streaming.connectors.pulsar.testutils.SingletonStreamSink;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.TableEnvironment;
+import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 import org.apache.flink.table.catalog.Catalog;
 import org.apache.flink.table.catalog.pulsar.PulsarCatalog;
@@ -46,6 +47,7 @@ import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.policies.data.TenantInfo;
 import org.apache.pulsar.common.schema.SchemaType;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -327,6 +329,41 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         List<GenericRecord> result = consumeMessage(tableSinkName, Schema.AUTO_CONSUME(), 4, 10);
 
         assertEquals(4, result.size());
+    }
+
+    @Test(timeout = 40 * 10000L)
+    public void testTableSchema() throws Exception {
+
+        String tableSinkTopic = newTopic("tableSink");
+        String tableSinkName = TopicName.get(tableSinkTopic).getLocalName();
+        String pulsarCatalog1 = "pulsarcatalog3";
+
+        Map<String, String> conf = getStreamingConfs();
+        conf.put("$VAR_STARTING", "earliest");
+        conf.put("$VAR_FORMAT", "avro");
+
+        ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
+        TableEnvironment tableEnv = context.getTableEnvironment();
+
+        tableEnv.useCatalog(pulsarCatalog1);
+
+        String sinkDDL = "create table " + tableSinkName + "(\n" +
+                " id int,\n" +
+                " compute as id + 1,\n" +
+                " log_ts timestamp(3),\n" +
+                " ts as log_ts + INTERVAL '1' SECOND,\n" +
+                " watermark for ts as log_ts" +
+                ")";
+
+        tableEnv.executeSql(sinkDDL).print();
+        final TableSchema schema = tableEnv.executeSql("DESCRIBE " + tableSinkName).getTableSchema();
+
+        ExecutionContext context2 = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
+        TableEnvironment tableEnv2 = context2.getTableEnvironment();
+        tableEnv2.useCatalog(pulsarCatalog1);
+        final TableSchema schema2 = tableEnv2.executeSql("DESCRIBE " + tableSinkName).getTableSchema();
+
+        Assert.assertEquals(schema, schema2);
     }
 
     @Test(timeout = 40 * 10000L)

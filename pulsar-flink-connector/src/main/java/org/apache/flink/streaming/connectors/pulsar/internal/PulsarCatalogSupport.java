@@ -20,7 +20,6 @@ import org.apache.flink.table.catalog.CatalogBaseTable;
 import org.apache.flink.table.catalog.CatalogTable;
 import org.apache.flink.table.catalog.CatalogTableImpl;
 import org.apache.flink.table.catalog.ObjectPath;
-import org.apache.flink.table.catalog.config.CatalogConfig;
 import org.apache.flink.table.catalog.exceptions.CatalogException;
 import org.apache.flink.table.descriptors.DescriptorProperties;
 import org.apache.flink.table.descriptors.Schema;
@@ -47,6 +46,7 @@ import static org.apache.flink.table.catalog.config.CatalogConfig.FLINK_PROPERTY
 public class PulsarCatalogSupport {
 
     private static final String COMMENT = "table.comment";
+    private static final String IS_CATALOG_TOPIC = "is.catalog.topic";
     private PulsarMetadataReader pulsarMetadataReader;
 
     private SchemaTranslator schemaTranslator;
@@ -123,6 +123,7 @@ public class PulsarCatalogSupport {
         Map<String, String> properties = new HashMap<>(tableSchemaProps.asMap());
         properties = maskFlinkProperties(properties);
         properties.put(PulsarCatalogSupport.COMMENT, table.getComment());
+        properties.put(IS_CATALOG_TOPIC, "true");
         return properties;
     }
 
@@ -132,9 +133,7 @@ public class PulsarCatalogSupport {
                 .map(
                         e ->
                                 new Tuple2<>(
-                                        e.getKey().equals(CatalogConfig.IS_GENERIC)
-                                                ? e.getKey()
-                                                : FLINK_PROPERTY_PREFIX + e.getKey(),
+                                        FLINK_PROPERTY_PREFIX + e.getKey(),
                                         e.getValue()))
                 .collect(Collectors.toMap(t -> t.f0, t -> t.f1));
     }
@@ -145,8 +144,7 @@ public class PulsarCatalogSupport {
      */
     private static Map<String, String> retrieveFlinkProperties(Map<String, String> pulsarSchemaProperties) {
         return pulsarSchemaProperties.entrySet().stream()
-                .filter(e -> e.getKey().startsWith(FLINK_PROPERTY_PREFIX) ||
-                        e.getKey().equals(CatalogConfig.IS_GENERIC))
+                .filter(e -> e.getKey().startsWith(FLINK_PROPERTY_PREFIX))
                 .collect(Collectors.toMap(e -> e.getKey().replace(FLINK_PROPERTY_PREFIX, ""), e -> e.getValue()));
     }
 
@@ -160,19 +158,26 @@ public class PulsarCatalogSupport {
                                                   ObjectPath tablePath,
                                                   Map<String, String> flinkProperties)
             throws IncompatibleSchemaException {
-        Map<String, String> properties = retrieveFlinkProperties(pulsarSchema.getProperties());
-        DescriptorProperties tableSchemaProps = new DescriptorProperties(true);
-        tableSchemaProps.putProperties(properties);
-        TableSchema tableSchema = tableSchemaProps.getOptionalTableSchema(Schema.SCHEMA)
-                .orElseGet(() -> tableSchemaProps.getOptionalTableSchema("generic.table.schema")
-                        .orElseThrow(() -> new CatalogException(
-                                "Failed to get table schema from properties for generic table " + tablePath)));
-        List<String> partitionKeys = tableSchemaProps.getPartitionKeys();
-        // remove the schema from properties
-        properties = CatalogTableImpl.removeRedundant(properties, tableSchema, partitionKeys);
-        properties.putAll(flinkProperties);
-        String comment = properties.remove(PulsarCatalogSupport.COMMENT);
-        return new CatalogTableImpl(tableSchema, partitionKeys, properties, comment);
+        boolean isCatalogTopic = Boolean.parseBoolean(pulsarSchema.getProperties().get(IS_CATALOG_TOPIC));
+        if (isCatalogTopic){
+            Map<String, String> properties = retrieveFlinkProperties(pulsarSchema.getProperties());
+            DescriptorProperties tableSchemaProps = new DescriptorProperties(true);
+            tableSchemaProps.putProperties(properties);
+            TableSchema tableSchema = tableSchemaProps.getOptionalTableSchema(Schema.SCHEMA)
+                    .orElseGet(() -> tableSchemaProps.getOptionalTableSchema("generic.table.schema")
+                            .orElseThrow(() -> new CatalogException(
+                                    "Failed to get table schema from properties for generic table " + tablePath)));
+            List<String> partitionKeys = tableSchemaProps.getPartitionKeys();
+            // remove the schema from properties
+            properties = CatalogTableImpl.removeRedundant(properties, tableSchema, partitionKeys);
+            properties.putAll(flinkProperties);
+            properties.remove(IS_CATALOG_TOPIC);
+            String comment = properties.remove(PulsarCatalogSupport.COMMENT);
+            return new CatalogTableImpl(tableSchema, partitionKeys, properties, comment);
+        }else {
+            final TableSchema tableSchema = schemaTranslator.pulsarSchemaToTableSchema(pulsarSchema);
+            return new CatalogTableImpl(tableSchema, flinkProperties, "");
+        }
     }
 
     public static String objectPath2TopicName(ObjectPath objectPath) {

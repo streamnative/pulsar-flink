@@ -25,11 +25,17 @@
   <packaging>jar</packaging>
 
   <properties>
-    <flink.version>1.12.0</flink.version>
+    <flink.version>1.12.1</flink.version>
     <flink.binary.version>1.12</flink.binary.version>
+    <protoc.version>3.11.1</protoc.version>
   </properties>
 
   <dependencies>
+    <dependency>
+      <groupId>io.streamnative.connectors</groupId>
+      <artifactId>flink-protobuf</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <dependency>
       <groupId>io.streamnative.connectors</groupId>
       <artifactId>managed-ledger-shaded</artifactId>
@@ -270,6 +276,25 @@
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
                 <transformer implementation="org.apache.maven.plugins.shade.resource.PluginXmlResourceTransformer" />
               </transformers>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>com.github.os72</groupId>
+        <artifactId>protoc-jar-maven-plugin</artifactId>
+        <version>${protoc.version}</version>
+        <executions>
+          <execution>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>run</goal>
+            </goals>
+            <configuration>
+              <protocVersion>${protoc.version}</protocVersion>
+              <inputDirectories>
+                <include>src/test/proto</include>
+              </inputDirectories>
             </configuration>
           </execution>
         </executions>

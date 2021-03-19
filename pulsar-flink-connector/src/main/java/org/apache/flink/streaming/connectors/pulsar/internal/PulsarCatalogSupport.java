@@ -110,7 +110,7 @@ public class PulsarCatalogSupport {
             throws PulsarAdminException, IncompatibleSchemaException {
         String topicName = objectPath2TopicName(tablePath);
         final TableSchema schema = table.getSchema();
-        final SchemaInfo schemaInfo = tableSchemaToPulsarSchema(format, schema);
+        final SchemaInfo schemaInfo = tableSchemaToPulsarSchema(format, schema, table.getOptions());
 
         // Writing schemaInfo#properties causes the client to fail to consume it when it is a Pulsar native type.
         if (!StringUtils.equals(format, AtomicRowDataFormatFactory.IDENTIFIER)) {
@@ -155,10 +155,11 @@ public class PulsarCatalogSupport {
                 .collect(Collectors.toMap(e -> e.getKey().replace(FLINK_PROPERTY_PREFIX, ""), e -> e.getValue()));
     }
 
-    private SchemaInfo tableSchemaToPulsarSchema(String format, TableSchema schema) throws IncompatibleSchemaException {
+    private SchemaInfo tableSchemaToPulsarSchema(String format, TableSchema schema,
+                                                 Map<String, String> options) throws IncompatibleSchemaException {
         // The exclusion logic for the key is not handled correctly here when the user sets the key-related fields using pulsar
         final DataType physicalRowDataType = schema.toPhysicalRowDataType();
-        return SchemaUtils.tableSchemaToSchemaInfo(format, physicalRowDataType);
+        return SchemaUtils.tableSchemaToSchemaInfo(format, physicalRowDataType, options);
     }
 
     private CatalogTableImpl schemaToCatalogTable(SchemaInfo pulsarSchema,

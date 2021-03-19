@@ -74,14 +74,12 @@
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-json</artifactId>
       <version>${flink.version}</version>
-      <scope>provided</scope>
     </dependency>
 
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-avro</artifactId>
       <version>${flink.version}</version>
-      <scope>provided</scope>
     </dependency>
 
     <!-- test dependencies -->
@@ -219,7 +217,6 @@
         <!-- Shade all the dependencies to avoid conflicts -->
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
-        <version>${maven-shade-plugin.version}</version>
         <executions>
           <execution>
             <phase>package</phase>
@@ -236,6 +233,10 @@
                   <include>com.github.luben:*</include>
                   <include>javax.*:*</include>
                   <include>org.apache.pulsar*:*</include>
+                  <include>org.apache.flink:flink-avro</include>
+                  <include>org.apache.flink:flink-json</include>
+                  <include>org.apache.avro:avro</include>
+                  <include>com.fasterxml.jackson.core:jackson*</include>
                   <include>org.bouncycastle*:*</include>
                   <include>org.lz4*:*</include>
                   <include>commons-collections:commons-collections</include>
@@ -275,25 +276,6 @@
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
                 <transformer implementation="org.apache.maven.plugins.shade.resource.PluginXmlResourceTransformer" />
               </transformers>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>com.github.os72</groupId>
-        <artifactId>protoc-jar-maven-plugin</artifactId>
-        <version>${protoc.version}</version>
-        <executions>
-          <execution>
-            <phase>generate-sources</phase>
-            <goals>
-              <goal>run</goal>
-            </goals>
-            <configuration>
-              <protocVersion>${protoc.version}</protocVersion>
-              <inputDirectories>
-                <include>src/test/proto</include>
-              </inputDirectories>
             </configuration>
           </execution>
         </executions>

@@ -96,7 +96,6 @@ public class PulsarDynamicTableFactory implements
     @Override
     public DynamicTableSink createDynamicTableSink(Context context) {
         FactoryUtil.TableFactoryHelper helper = FactoryUtil.createTableFactoryHelper(this, context);
-
         ReadableConfig tableOptions = helper.getOptions();
         if (inCatalog) {
             final ObjectIdentifier table = context.getObjectIdentifier();
@@ -162,11 +161,8 @@ public class PulsarDynamicTableFactory implements
 
     @Override
     public DynamicTableSource createDynamicTableSource(Context context) {
-
         FactoryUtil.TableFactoryHelper helper = FactoryUtil.createTableFactoryHelper(this, context);
-
         ReadableConfig tableOptions = helper.getOptions();
-
         if (inCatalog) {
             final ObjectIdentifier table = context.getObjectIdentifier();
             final String topic = TopicName.get(table.getDatabaseName() + "/" + table.getObjectName()).toString();

@@ -57,6 +57,14 @@ class DynamicPulsarDeserializationSchema implements PulsarDeserializationSchema<
 
     private final boolean upsertMode;
 
+    private static final ThreadLocal<SimpleCollector<RowData>> tlsCollector =
+            new ThreadLocal<SimpleCollector<RowData>>() {
+                @Override
+                public SimpleCollector initialValue() {
+                    return new SimpleCollector();
+                }
+            };
+
     DynamicPulsarDeserializationSchema(
             int physicalArity,
             @Nullable DeserializationSchema<RowData> keyDeserialization,
@@ -101,9 +109,9 @@ class DynamicPulsarDeserializationSchema implements PulsarDeserializationSchema<
 
     @Override
     public RowData deserialize(Message<RowData> message) throws IOException {
-        final SimpleCollector<RowData> collector = new SimpleCollector<>();
+        final SimpleCollector<RowData> collector = tlsCollector.get();
         deserialize(message, collector);
-        return collector.getRecord();
+        return collector.takeRecord();
     }
 
     @Override
@@ -183,6 +191,12 @@ class DynamicPulsarDeserializationSchema implements PulsarDeserializationSchema<
 
         private T getRecord() {
             return record;
+        }
+
+        private T takeRecord() {
+            T result = record;
+            reset();
+            return result;
         }
 
         private void reset() {

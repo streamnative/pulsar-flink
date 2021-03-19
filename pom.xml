@@ -164,6 +164,15 @@
 
 
   <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>${maven-shade-plugin.version}</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -225,7 +234,6 @@
         </configuration>
       </plugin>
 
-
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
@@ -239,7 +247,6 @@
             </goals>
           </execution>
         </executions>
-
         <dependencies>
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>

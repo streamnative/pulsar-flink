@@ -21,9 +21,9 @@ import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarDeserializationSchema;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
+import org.apache.flink.streaming.connectors.pulsar.testutils.TestUtils;
 import org.apache.flink.streaming.util.TestStreamEnvironment;
 import org.apache.flink.test.util.SuccessException;
-import org.apache.flink.test.util.TestUtils;
 
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.Producer;
@@ -111,6 +111,7 @@ public class PulsarAuthTest {
     @Test
     public void testSource() throws Exception {
         final StreamExecutionEnvironment environment = StreamExecutionEnvironment.getExecutionEnvironment();
+        environment.setParallelism(2);
         final String topic = "persistent://public/default/test";
         int total = 20;
         try (PulsarClient client = PulsarClient.builder()

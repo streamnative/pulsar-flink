@@ -46,6 +46,7 @@ import org.apache.flink.streaming.connectors.pulsar.internal.PulsarFetcher;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarSourceStateSerializer;
+import org.apache.flink.streaming.connectors.pulsar.internal.SerializableRange;
 import org.apache.flink.streaming.connectors.pulsar.internal.SourceSinkUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.TopicRange;
 import org.apache.flink.streaming.connectors.pulsar.internal.TopicSubscription;
@@ -671,8 +672,10 @@ public class FlinkPulsarSource<T>
             }
             while (iterator.hasNext()) {
                 final Tuple2<TopicSubscription, MessageId> tuple2 = iterator.next();
+                final SerializableRange range =
+                        tuple2.f0.getRange() != null ? tuple2.f0.getRange() : SerializableRange.ofFullRange();
                 final TopicRange topicRange =
-                        new TopicRange(tuple2.f0.getTopic(), tuple2.f0.getRange().getPulsarRange());
+                        new TopicRange(tuple2.f0.getTopic(), range.getPulsarRange());
                 restoredState.put(topicRange, tuple2.f1);
                 String subscriptionName = tuple2.f0.getSubscriptionName();
                 if (!stateSubEqualexternalSub && StringUtils.equals(subscriptionName, externalSubscriptionName)) {
@@ -729,7 +732,7 @@ public class FlinkPulsarSource<T>
             Tuple2<TopicSubscription, MessageId> tuple2 = stateSerializer.deserialize(oldStateVersion, next);
 
             String subName = tuple2.f0.getSubscriptionName();
-            if (subNameIterator.hasNext()){
+            if (subNameIterator.hasNext()) {
                 subName = subNameIterator.next();
             }
             final TopicSubscription topicSubscription = TopicSubscription.builder()

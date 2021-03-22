@@ -32,7 +32,8 @@ public class TopicSubscription implements Serializable {
 
     private String topic;
 
-    private SerializableRange range;
+    @Builder.Default
+    private SerializableRange range = SerializableRange.ofFullRange();
 
     private String subscriptionName;
 }

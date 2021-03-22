@@ -69,29 +69,64 @@ public class TopicSubscriptionSerializer extends TypeSerializer<TopicSubscriptio
 
     @Override
     public void serialize(TopicSubscription record, DataOutputView target) throws IOException {
+        final byte[] bytes = record.getTopic().getBytes();
+        target.writeInt(bytes.length);
+        target.write(bytes);
+        final byte[] range = toBytes(record.getRange());
+        target.writeInt(range.length);
+        target.write(range);
+
+        final String subscriptionName = record.getSubscriptionName();
+        if (subscriptionName == null) {
+            target.writeInt(0);
+            return;
+        }
+        final byte[] subscriptionNameBytes = subscriptionName.getBytes();
+        target.writeInt(subscriptionNameBytes.length);
+        target.write(subscriptionNameBytes);
+
+    }
+
+    private byte[] toBytes(SerializableRange range) throws IOException {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
              ObjectOutputStream out = new ObjectOutputStream(baos)) {
-            out.writeObject(record);
+            out.writeObject(range);
             out.flush();
-            final byte[] bytes = baos.toByteArray();
-            target.writeInt(bytes.length);
-            target.write(bytes);
+            return baos.toByteArray();
+        }
+    }
+
+    private SerializableRange toObject(byte[] serialized) throws IOException {
+        try (ByteArrayInputStream bais = new ByteArrayInputStream(serialized);
+             ObjectInputStream in = new ObjectInputStream(bais)) {
+            try {
+                return (SerializableRange) in.readObject();
+            } catch (ClassNotFoundException e) {
+                throw new IllegalStateException(e);
+            }
         }
     }
 
     @Override
     public TopicSubscription deserialize(DataInputView source) throws IOException {
+        final TopicSubscription.TopicSubscriptionBuilder builder = TopicSubscription.builder();
         int length = source.readInt();
         byte[] serialized = new byte[length];
-        source.readFully(serialized);
-        try (ByteArrayInputStream bais = new ByteArrayInputStream(serialized);
-             ObjectInputStream in = new ObjectInputStream(bais)) {
-            try {
-                return (TopicSubscription) in.readObject();
-            } catch (ClassNotFoundException e) {
-                throw new IllegalStateException(e);
-            }
+        source.read(serialized);
+        builder.topic(new String(serialized));
+
+        length = source.readInt();
+        serialized = new byte[length];
+        source.read(serialized);
+        builder.range(toObject(serialized));
+
+        length = source.readInt();
+        if (length != 0) {
+            serialized = new byte[length];
+            source.read(serialized);
+            builder.subscriptionName(new String(serialized));
         }
+        return builder.build();
     }
 
     @Override
@@ -129,7 +164,8 @@ public class TopicSubscriptionSerializer extends TypeSerializer<TopicSubscriptio
      * Serializer configuration snapshot for compatibility and format evolution.
      */
     @SuppressWarnings("WeakerAccess")
-    public static final class TopicSubscriptionSerializerSnapshot extends SimpleTypeSerializerSnapshot<TopicSubscription> {
+    public static final class TopicSubscriptionSerializerSnapshot
+            extends SimpleTypeSerializerSnapshot<TopicSubscription> {
 
         public TopicSubscriptionSerializerSnapshot() {
             super(() -> INSTANCE);

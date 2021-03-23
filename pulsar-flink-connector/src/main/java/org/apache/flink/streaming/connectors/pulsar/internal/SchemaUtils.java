@@ -26,21 +26,6 @@ import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.apache.pulsar.client.api.schema.GenericSchema;
-import org.apache.pulsar.client.impl.schema.BooleanSchema;
-import org.apache.pulsar.client.impl.schema.ByteSchema;
-import org.apache.pulsar.client.impl.schema.BytesSchema;
-import org.apache.pulsar.client.impl.schema.DateSchema;
-import org.apache.pulsar.client.impl.schema.DoubleSchema;
-import org.apache.pulsar.client.impl.schema.FloatSchema;
-import org.apache.pulsar.client.impl.schema.IntSchema;
-import org.apache.pulsar.client.impl.schema.LocalDateSchema;
-import org.apache.pulsar.client.impl.schema.LocalDateTimeSchema;
-import org.apache.pulsar.client.impl.schema.LocalTimeSchema;
-import org.apache.pulsar.client.impl.schema.LongSchema;
-import org.apache.pulsar.client.impl.schema.ShortSchema;
-import org.apache.pulsar.client.impl.schema.TimeSchema;
-import org.apache.pulsar.client.impl.schema.TimestampSchema;
-import org.apache.pulsar.client.impl.schema.generic.GenericSchemaImpl;
 import org.apache.pulsar.client.internal.DefaultImplementation;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.protocol.schema.PostSchemaPayload;
@@ -122,49 +107,6 @@ public class SchemaUtils {
             return true;
         } else {
             return s1.getType() == SchemaType.BYTES && s2.getType() == SchemaType.NONE;
-        }
-    }
-
-    public static org.apache.pulsar.client.api.Schema<?> getPulsarSchema(SchemaInfo schemaInfo) {
-        switch (schemaInfo.getType()) {
-            case BOOLEAN:
-                return BooleanSchema.of();
-            case INT8:
-                return ByteSchema.of();
-            case INT16:
-                return ShortSchema.of();
-            case INT32:
-                return IntSchema.of();
-            case INT64:
-                return LongSchema.of();
-            case STRING:
-                return org.apache.pulsar.client.api.Schema.STRING;
-            case FLOAT:
-                return FloatSchema.of();
-            case DOUBLE:
-                return DoubleSchema.of();
-            case BYTES:
-            case NONE:
-                return BytesSchema.of();
-            case DATE:
-                return DateSchema.of();
-            case TIME:
-                return TimeSchema.of();
-            case TIMESTAMP:
-                return TimestampSchema.of();
-            // Note that this is a type only available in Pulsar 2.7.
-            case LOCAL_DATE:
-                return LocalDateSchema.of();
-            case LOCAL_TIME:
-                return LocalTimeSchema.of();
-            case LOCAL_DATE_TIME:
-                return LocalDateTimeSchema.of();
-            case AVRO:
-            case JSON:
-                return GenericSchemaImpl.of(schemaInfo);
-            default:
-                throw new IllegalArgumentException("Retrieve schema instance from schema info for type " +
-                        schemaInfo.getType() + " is not supported yet");
         }
     }
 

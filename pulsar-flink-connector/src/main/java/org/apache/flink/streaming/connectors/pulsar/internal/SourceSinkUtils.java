@@ -184,4 +184,12 @@ public class SourceSinkUtils {
 
         return Range.of(subTasksStartKey, subTasksEndKey);
     }
+
+    public static int getOldStateVersion(Map<String, String> caseInsensitiveParams) {
+        final String value = caseInsensitiveParams.get(PulsarOptions.OLD_STATE_VERSION);
+        if (StringUtils.isBlank(value)){
+            return 0;
+        }
+        return Integer.parseInt(value);
+    }
 }

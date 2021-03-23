@@ -22,7 +22,6 @@ import org.apache.flink.api.common.state.ListStateDescriptor;
 import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.state.OperatorStateStore;
 import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.testutils.CheckedThread;
 import org.apache.flink.core.testutils.OneShotLatch;
@@ -40,6 +39,7 @@ import org.apache.flink.streaming.connectors.pulsar.internal.PulsarCommitCallbac
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarFetcher;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
 import org.apache.flink.streaming.connectors.pulsar.internal.TopicRange;
+import org.apache.flink.streaming.connectors.pulsar.internal.TopicSubscription;
 import org.apache.flink.streaming.connectors.pulsar.testutils.TestMetadataReader;
 import org.apache.flink.streaming.connectors.pulsar.testutils.TestSourceContext;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
@@ -234,11 +234,12 @@ public class FlinkPulsarSourceTest extends TestLogger {
         // checkpoint 1
         source.snapshotState(new StateSnapshotContextSynchronousImpl(138, 138));
 
-        HashMap<String, MessageId> snapshot1 = new HashMap<>();
+        HashMap<TopicRange, MessageId> snapshot1 = new HashMap<>();
 
         for (Serializable serializable : listState.get()) {
-            Tuple3<String, MessageId, String> tuple2 = (Tuple3<String, MessageId, String>) serializable;
-            snapshot1.put(tuple2.f0, tuple2.f1);
+            Tuple2<TopicSubscription, MessageId> tuple2 = (Tuple2<TopicSubscription, MessageId>) serializable;
+            final TopicRange topicRange = new TopicRange(tuple2.f0.getTopic(), tuple2.f0.getRange().getPulsarRange());
+            snapshot1.put(topicRange, tuple2.f1);
         }
 
         assertEquals(state1, snapshot1);
@@ -248,11 +249,12 @@ public class FlinkPulsarSourceTest extends TestLogger {
         // checkpoint 2
         source.snapshotState(new StateSnapshotContextSynchronousImpl(140, 140));
 
-        HashMap<String, MessageId> snapshot2 = new HashMap<>();
+        HashMap<TopicRange, MessageId> snapshot2 = new HashMap<>();
 
         for (Serializable serializable : listState.get()) {
-            Tuple3<String, MessageId, String> tuple2 = (Tuple3<String, MessageId, String>) serializable;
-            snapshot2.put(tuple2.f0, tuple2.f1);
+            Tuple2<TopicSubscription, MessageId> tuple2 = (Tuple2<TopicSubscription, MessageId>) serializable;
+            final TopicRange topicRange = new TopicRange(tuple2.f0.getTopic(), tuple2.f0.getRange().getPulsarRange());
+            snapshot2.put(topicRange, tuple2.f1);
         }
 
         assertEquals(state2, snapshot2);
@@ -269,11 +271,12 @@ public class FlinkPulsarSourceTest extends TestLogger {
         // checkpoint 3
         source.snapshotState(new StateSnapshotContextSynchronousImpl(141, 141));
 
-        HashMap<String, MessageId> snapshot3 = new HashMap<>();
+        HashMap<TopicRange, MessageId> snapshot3 = new HashMap<>();
 
         for (Serializable serializable : listState.get()) {
-            Tuple3<String, MessageId, String> tuple2 = (Tuple3<String, MessageId, String>) serializable;
-            snapshot3.put(tuple2.f0, tuple2.f1);
+            Tuple2<TopicSubscription, MessageId> tuple2 = (Tuple2<TopicSubscription, MessageId>) serializable;
+            final TopicRange topicRange = new TopicRange(tuple2.f0.getTopic(), tuple2.f0.getRange().getPulsarRange());
+            snapshot3.put(topicRange, tuple2.f1);
         }
 
         assertEquals(state3, snapshot3);

@@ -14,6 +14,7 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
+import org.apache.flink.formats.avro.typeutils.AvroSchemaConverter;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.types.AtomicDataType;
@@ -33,17 +34,13 @@ import org.apache.pulsar.client.impl.schema.generic.GenericProtobufNativeSchema;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.shade.com.google.common.collect.ImmutableList;
-import org.apache.pulsar.shade.com.google.common.collect.ImmutableSet;
-import org.apache.pulsar.shade.org.apache.avro.LogicalType;
 import org.apache.pulsar.shade.org.apache.avro.LogicalTypes;
 import org.apache.pulsar.shade.org.apache.avro.Schema;
 import org.apache.pulsar.shade.org.apache.avro.SchemaBuilder;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.EVENT_TIME_NAME;
@@ -325,9 +322,9 @@ public class SimpleSchemaTranslator extends SchemaTranslator {
                 return DataTypes.SMALLINT();
             case AVRO:
             case JSON:
-                Schema avroSchema =
-                        new Schema.Parser().parse(new String(si.getSchema(), StandardCharsets.UTF_8));
-                return avro2SqlType(avroSchema, Collections.emptySet());
+                String avroSchemaString =
+                        new String(si.getSchema(), StandardCharsets.UTF_8);
+                return AvroSchemaConverter.convertToDataType(avroSchemaString);
             case PROTOBUF_NATIVE:
                 Descriptors.Descriptor descriptor =
                         ((GenericProtobufNativeSchema) GenericProtobufNativeSchema.of(si)).getProtobufNativeSchema();
@@ -404,115 +401,6 @@ public class SimpleSchemaTranslator extends SchemaTranslator {
         }
 
         return dataType;
-    }
-
-    private static DataType avro2SqlType(Schema avroSchema, Set<String> existingRecordNames) throws
-            IncompatibleSchemaException {
-        LogicalType logicalType = avroSchema.getLogicalType();
-        switch (avroSchema.getType()) {
-            case INT:
-                if (logicalType instanceof LogicalTypes.Date) {
-                    return DataTypes.DATE();
-                } else {
-                    return DataTypes.INT();
-                }
-
-            case STRING:
-            case ENUM:
-                return DataTypes.STRING();
-
-            case BOOLEAN:
-                return DataTypes.BOOLEAN();
-
-            case BYTES:
-            case FIXED:
-                // For FIXED type, if the precision requires more bytes than fixed size, the logical
-                // type will be null, which is handled by Avro library.
-                if (logicalType instanceof LogicalTypes.Decimal) {
-                    LogicalTypes.Decimal d = (LogicalTypes.Decimal) logicalType;
-                    return DataTypes.DECIMAL(d.getPrecision(), d.getScale());
-                } else {
-                    return DataTypes.BYTES();
-                }
-
-            case DOUBLE:
-                return DataTypes.DOUBLE();
-
-            case FLOAT:
-                return DataTypes.FLOAT();
-
-            case LONG:
-                if (logicalType instanceof LogicalTypes.TimestampMillis ||
-                        logicalType instanceof LogicalTypes.TimestampMicros) {
-                    return DataTypes.TIMESTAMP(3);
-                } else {
-                    return DataTypes.BIGINT();
-                }
-
-            case RECORD:
-                if (existingRecordNames.contains(avroSchema.getFullName())) {
-                    throw new IncompatibleSchemaException(
-                            String.format(
-                                    "Found recursive reference in Avro schema, which can not be processed by Flink: %s",
-                                    avroSchema.toString(true)), null);
-                }
-
-                Set<String> newRecordName = ImmutableSet.<String>builder()
-                        .addAll(existingRecordNames).add(avroSchema.getFullName()).build();
-                List<DataTypes.Field> fields = new ArrayList<>();
-                for (Schema.Field f : avroSchema.getFields()) {
-                    DataType fieldType = avro2SqlType(f.schema(), newRecordName);
-                    fields.add(DataTypes.FIELD(f.name(), fieldType));
-                }
-                return DataTypes.ROW(fields.toArray(new DataTypes.Field[0]));
-
-            case ARRAY:
-                DataType elementType = avro2SqlType(avroSchema.getElementType(), existingRecordNames);
-                return DataTypes.ARRAY(elementType);
-
-            case MAP:
-                DataType valueType = avro2SqlType(avroSchema.getValueType(), existingRecordNames);
-                return DataTypes.MAP(DataTypes.STRING(), valueType);
-
-            case UNION:
-                if (avroSchema.getTypes().stream().anyMatch(f -> f.getType() == Schema.Type.NULL)) {
-                    // In case of a union with null, eliminate it and make a recursive call
-                    List<Schema> remainingUnionTypes =
-                            avroSchema.getTypes().stream().filter(f -> f.getType() != Schema.Type.NULL).collect(
-                                    Collectors.toList());
-                    if (remainingUnionTypes.size() == 1) {
-                        return avro2SqlType(remainingUnionTypes.get(0), existingRecordNames).nullable();
-                    } else {
-                        return avro2SqlType(Schema.createUnion(remainingUnionTypes), existingRecordNames).nullable();
-                    }
-                } else {
-                    List<Schema.Type> types =
-                            avroSchema.getTypes().stream().map(Schema::getType).collect(Collectors.toList());
-                    if (types.size() == 1) {
-                        return avro2SqlType(avroSchema.getTypes().get(0), existingRecordNames);
-                    } else if (types.size() == 2 && types.contains(Schema.Type.INT) &&
-                            types.contains(Schema.Type.LONG)) {
-                        return DataTypes.BIGINT();
-                    } else if (types.size() == 2 && types.contains(Schema.Type.FLOAT) &&
-                            types.contains(Schema.Type.DOUBLE)) {
-                        return DataTypes.DOUBLE();
-                    } else {
-                        // Convert complex unions to struct types where field names are member0, member1, etc.
-                        // This is consistent with the behavior when converting between Avro and Parquet.
-                        List<DataTypes.Field> memberFields = new ArrayList<>();
-                        List<Schema> schemas = avroSchema.getTypes();
-                        for (int i = 0; i < schemas.size(); i++) {
-                            DataType memberType = avro2SqlType(schemas.get(i), existingRecordNames);
-                            memberFields.add(DataTypes.FIELD("member" + i, memberType));
-                        }
-                        return DataTypes.ROW(memberFields.toArray(new DataTypes.Field[0]));
-                    }
-                }
-
-            default:
-                throw new IncompatibleSchemaException(String.format("Unsupported type %s", avroSchema.toString(true)),
-                        null);
-        }
     }
 
     public boolean isUseExtendField() {

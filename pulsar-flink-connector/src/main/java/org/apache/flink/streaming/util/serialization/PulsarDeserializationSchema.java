@@ -73,8 +73,6 @@ public interface PulsarDeserializationSchema<T> extends PulsarContextAware<T>, S
     default void open(DeserializationSchema.InitializationContext context) throws Exception {
     }
 
-    ;
-
     /**
      * Method to decide whether the element signals the end of the stream. If
      * true is returned the element won't be emitted.
@@ -84,8 +82,6 @@ public interface PulsarDeserializationSchema<T> extends PulsarContextAware<T>, S
      * @return True, if the element signals end of stream, false otherwise.
      */
     boolean isEndOfStream(T nextElement);
-
-    ;
 
     /**
      * Deserializes the Pulsar message.

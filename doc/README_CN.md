@@ -544,3 +544,36 @@ Pulsar Flink 连接器也支持 Key-Shared 订阅模式。可以通过配置参�
   ```
 
 有关认证的详细信息，参见 [Pulsar Security](https://pulsar.apache.org/docs/en/security-overview/)。
+
+## ProtoBuf 支持【试验特性】
+
+该功能基于[Flink: New Format of protobuf](https://github.com/apache/flink/pull/14376),目前正处于等待合并中。
+该功能在SQL模式使用如下: 
+```
+create table pulsar (
+                        a INT,
+                        b BIGINT,
+                        c BOOLEAN,
+                        d FLOAT,
+                        e DOUBLE,
+                        f VARCHAR(32),
+                        g BYTES,
+                        h VARCHAR(32),
+                        f_abc_7d INT,
+                        `eventTime` TIMESTAMP(3) METADATA,
+                        compute as a + 1,
+                        watermark for eventTime as eventTime
+                        ) with (
+                        'connector' = 'pulsar',
+                        'topic' = 'test-protobuf',
+                        'service-url' = 'pulsar://localhost:6650',
+                        'admin-url' = 'http://localhost:8080',
+                        'scan.startup.mode' = 'earliest',
+                        'format' = 'protobuf',
+                        'protobuf.message-class-name' = 'org.apache.flink.formats.protobuf.testproto.SimpleTest'
+                        )
+
+INSERT INTO pulsar VALUES (1,2,false,0.1,0.01,'haha', ENCODE('1', 'utf-8'), 'IMAGES',1, TIMESTAMP '2020-03-08 13:12:11.123');
+```
+要求：`SimpleTest`类必须实现`GeneratedMessageV3`。
+由于该Flink Format: ProtoBuf组件未合并，暂放于本仓库一份源代码用于打包和依赖。

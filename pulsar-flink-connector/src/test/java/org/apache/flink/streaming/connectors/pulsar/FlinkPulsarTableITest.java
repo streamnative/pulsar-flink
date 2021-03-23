@@ -15,6 +15,7 @@
 package org.apache.flink.streaming.connectors.pulsar;
 
 import org.apache.flink.api.common.serialization.SerializationSchema;
+import org.apache.flink.formats.protobuf.testproto.SimpleTest;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -31,12 +32,14 @@ import org.apache.flink.streaming.util.serialization.PulsarSerializationSchemaWr
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.TableColumn;
 import org.apache.flink.table.api.TableSchema;
+import org.apache.flink.table.api.ValidationException;
 import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.test.util.SuccessException;
 import org.apache.flink.test.util.TestUtils;
 import org.apache.flink.types.Row;
 
+import com.google.protobuf.ByteString;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.MessageId;
@@ -46,6 +49,7 @@ import org.apache.pulsar.client.impl.schema.JSONSchema;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -81,6 +85,8 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
     private static final String JSON_FORMAT = "json";
 
     private static final String AVRO_FORMAT = "avro";
+
+    private static final String PROTOBUF_FORMAT = "protobuf";
 
     @Before
     public void clearState() {
@@ -289,17 +295,111 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
 
     @Test
     public void testSimpleSQLWork() throws Exception {
-        testSimpleSQL(JSON_FORMAT);
-        testSimpleSQL(AVRO_FORMAT);
+        testSimpleSQL(JSON_FORMAT, null);
+        testSimpleSQL(AVRO_FORMAT, null);
+        try {
+            Map<String, String> map = new HashMap<>();
+            map.put("protobuf.message-class-name", SimpleTest.class.getCanonicalName());
+            testSimpleSQL(PROTOBUF_FORMAT, map);
+            Assert.fail();
+        } catch (ValidationException e) {
+            // success
+        } catch (Exception e){
+            log.error("test fail", e);
+            Assert.fail(e.getMessage());
+        }
     }
 
-    public void testSimpleSQL(String format) throws Exception {
+    @Test
+    public void testProtobufSQLWork() throws Exception {
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.setParallelism(1);
         StreamTableEnvironment tEnv = StreamTableEnvironment.create(see);
 
         String topic = newTopic();
         final String createTable;
+
+        Map<String, String> map = new HashMap<>();
+        map.put("protobuf.message-class-name", SimpleTest.class.getCanonicalName());
+        String extendParamStr = "";
+        if (map != null && !map.isEmpty()){
+            extendParamStr = map.entrySet().stream()
+                    .map(e -> String.format("'%s' = '%s'", e.getKey(), e.getValue()))
+                    .collect(Collectors.joining(",\n"));
+            extendParamStr += ",\n";
+        }
+        createTable = String.format(
+                "create table pulsar (\n" +
+                        "  a INT, \n" +
+                        "  b BIGINT, \n" +
+                        "  c BOOLEAN, \n" +
+                        "  d FLOAT, \n" +
+                        "  e DOUBLE, \n" +
+                        "  f VARCHAR(32), \n" +
+                        "  g BYTES, \n" +
+                        "  h VARCHAR(32), \n" +
+                        "  f_abc_7d INT, \n" +
+                        " `eventTime` TIMESTAMP(3) METADATA, \n" +
+                        "  compute as a + 1, \n" +
+                        "  watermark for eventTime as eventTime\n" +
+                        ") with (\n" +
+                        "  'connector' = 'pulsar',\n" +
+                        "  'topic' = '%s',\n" +
+                        "  'service-url' = '%s',\n" +
+                        "  'admin-url' = '%s',\n" +
+                        "  'scan.startup.mode' = 'earliest', \n" +
+                        "%s" +
+                        "  %s \n" +
+                        ")",
+                topic,
+                serviceUrl,
+                adminUrl,
+                extendParamStr,
+                String.format("'format' = '%s'", PROTOBUF_FORMAT));
+
+        SimpleTest.newBuilder()
+                .setA(1)
+                .setB(2L)
+                .setC(false)
+                .setD(0.1f)
+                .setE(0.01)
+                .setF("haha")
+                .setG(ByteString.copyFrom(new byte[]{1}))
+                .setH(SimpleTest.Corpus.IMAGES)
+                .setFAbc7D(1) // test fieldNameToJsonName
+                .build();
+        tEnv.executeSql(createTable).await();
+        String initialValues = "INSERT INTO pulsar\n" +
+                "VALUES (1,2,false,0.1,0.01,'haha', ENCODE('1', 'utf-8'), 'IMAGES',1, TIMESTAMP '2020-03-08 13:12:11.123')";
+        tEnv.executeSql(initialValues).await();
+
+        // ---------- Consume stream from Pulsar -------------------
+        System.out.println("Insert ok");
+        String query = "SELECT * FROM pulsar \n";
+        DataStream<RowData> result = tEnv.toAppendStream(tEnv.sqlQuery(query), RowData.class);
+        TestingSinkFunction sink = new TestingSinkFunction(1);
+        result.addSink(sink).setParallelism(1);
+        TestUtils.tryExecute(see, "Job_2");
+
+        List<String> expected = Arrays.asList("+I(1,2,false,0.1,0.01,haha,[49],IMAGES,1,2020-03-08T13:12:11.123,2)");
+
+        assertEquals(expected, TestingSinkFunction.rows);
+    }
+
+    public void testSimpleSQL(String format, Map<String, String> extend) throws Exception {
+        StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
+        see.setParallelism(1);
+        StreamTableEnvironment tEnv = StreamTableEnvironment.create(see);
+
+        String topic = newTopic();
+        final String createTable;
+        String extendParamStr = "";
+        if (extend != null && !extend.isEmpty()){
+            extendParamStr = extend.entrySet().stream()
+                    .map(e -> String.format("'%s' = '%s'", e.getKey(), e.getValue()))
+                    .collect(Collectors.joining(",\n"));
+            extendParamStr += ",\n";
+        }
         createTable = String.format(
                 "create table pulsar (\n" +
                         "  id int, \n" +
@@ -313,11 +413,13 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
                         "  'service-url' = '%s',\n" +
                         "  'admin-url' = '%s',\n" +
                         "  'scan.startup.mode' = 'earliest', \n" +
+                        "%s" +
                         "  %s \n" +
                         ")",
                 topic,
                 serviceUrl,
                 adminUrl,
+                extendParamStr,
                 String.format("'format' = '%s'", format));
 
         tEnv.executeSql(createTable).await();
@@ -340,18 +442,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         DataStream<RowData> result = tEnv.toAppendStream(tEnv.sqlQuery(query), RowData.class);
         TestingSinkFunction sink = new TestingSinkFunction(6);
         result.addSink(sink).setParallelism(1);
-
-        try {
-            see.execute("Job_2");
-        } catch (
-                Throwable e) {
-            // we have to use a specific exception to indicate the job is finished,
-            // because the registered Pulsar source is infinite.
-            if (!isCausedByJobFinished(e)) {
-                // re-throw
-                throw e;
-            }
-        }
+        TestUtils.tryExecute(see, "Job_2");
 
         List<String> expected = Arrays.asList(
                 "+I(2)",
@@ -421,17 +512,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         TestingSinkFunction sink = new TestingSinkFunction(2);
         result.addSink(sink).setParallelism(1);
 
-        try {
-            see.execute("Job_2");
-        } catch (
-                Throwable e) {
-            // we have to use a specific exception to indicate the job is finished,
-            // because the registered Pulsar source is infinite.
-            if (!isCausedByJobFinished(e)) {
-                // re-throw
-                throw e;
-            }
-        }
+        TestUtils.tryExecute(see, "Job_2");
 
         List<String> expected = Arrays.asList(
                 "+I(2019-12-12 00:00:05.000,2019-12-12,00:00:03,2019-12-12 00:00:04.004,3,50.00)",
@@ -579,16 +660,6 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         properties.setProperty(PulsarOptions.FLUSH_ON_CHECKPOINT_OPTION_KEY, "true");
         properties.setProperty(PulsarOptions.FAIL_ON_WRITE_OPTION_KEY, "true");
         return properties;
-    }
-
-    private static boolean isCausedByJobFinished(Throwable e) {
-        if (e instanceof SuccessException) {
-            return true;
-        } else if (e.getCause() != null) {
-            return isCausedByJobFinished(e.getCause());
-        } else {
-            return false;
-        }
     }
 
     private static final class TestingSinkFunction implements SinkFunction<RowData> {

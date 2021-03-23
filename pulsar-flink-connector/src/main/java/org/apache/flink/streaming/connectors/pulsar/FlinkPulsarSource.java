@@ -147,14 +147,17 @@ public class FlinkPulsarSource<T>
     /** Specific startup offsets; only relevant when startup mode is {@link StartupMode#SPECIFIC_OFFSETS}. */
     private transient Map<TopicRange, MessageId> specificStartupOffsets;
 
-    /** The subscription name to be used; only relevant when startup mode is {@link StartupMode#EXTERNAL_SUBSCRIPTION}
+    /**
+     * The subscription name to be used; only relevant when startup mode is {@link StartupMode#EXTERNAL_SUBSCRIPTION}
      * If the subscription exists for a partition, we would start reading this partition from the subscription cursor.
      * At the same time, checkpoint for the job would made progress on the subscription.
      */
     private String externalSubscriptionName;
 
-    /** The subscription position to use when subscription does not exist (default is {@link MessageId#latest});
-     * Only relevant when startup mode is {@link StartupMode#EXTERNAL_SUBSCRIPTION}. */
+    /**
+     * The subscription position to use when subscription does not exist (default is {@link MessageId#latest});
+     * Only relevant when startup mode is {@link StartupMode#EXTERNAL_SUBSCRIPTION}.
+     */
     private MessageId subscriptionPosition = MessageId.latest;
 
     // TODO: remove this when MessageId is serializable itself.
@@ -188,7 +191,6 @@ public class FlinkPulsarSource<T>
      */
     private transient volatile TreeMap<TopicRange, MessageId> restoredState;
 
-
     /**
      * Accessor for state in the operator state backend.
      */
@@ -210,7 +212,6 @@ public class FlinkPulsarSource<T>
      * other metrics will be registered.
      */
     private final boolean useMetrics;
-
 
     /** Counter for successful Pulsar offset commits. */
     private transient Counter successfulCommits;
@@ -252,7 +253,7 @@ public class FlinkPulsarSource<T>
         if (this.clientConfigurationData.getServiceUrl() == null) {
             throw new IllegalArgumentException("ServiceUrl must be supplied in the client configuration");
         }
-        this.oldStateVersion = SourceSinkUtils.getOldStateVersion(caseInsensitiveParams);
+        this.oldStateVersion = SourceSinkUtils.getOldStateVersion(caseInsensitiveParams, oldStateVersion);
     }
 
     public FlinkPulsarSource(
@@ -704,7 +705,6 @@ public class FlinkPulsarSource<T>
         }
     }
 
-
     // ------------------------------------------------------------------------
     //  ResultTypeQueryable methods
     // ------------------------------------------------------------------------
@@ -713,7 +713,6 @@ public class FlinkPulsarSource<T>
     public TypeInformation<T> getProducedType() {
         return deserializer.getProducedType();
     }
-
 
     // ------------------------------------------------------------------------
     //  Checkpoint and restore
@@ -772,11 +771,21 @@ public class FlinkPulsarSource<T>
         return new TupleSerializer<>(tupleClass, fieldSerializers);
     }
 
+    /**
+     * Try to restore the old save point.
+     *
+     * @param stateStore state store
+     * @return state data
+     * @throws Exception Type incompatibility, serialization failure
+     */
     private Iterator<Tuple2<TopicSubscription, MessageId>> tryMigrationState(OperatorStateStore stateStore)
             throws Exception {
         log.info("restore old state version {}", oldStateVersion);
         PulsarSourceStateSerializer stateSerializer =
                 new PulsarSourceStateSerializer(getRuntimeContext().getExecutionConfig());
+        // Since stateStore.getUnionListState gets the data of a state point,
+        // it can only be registered once and will fail to register again,
+        // so it only allows the user to set a version number.
         ListState<?> rawStates = stateStore.getUnionListState(new ListStateDescriptor<>(
                 OFFSETS_STATE_NAME,
                 stateSerializer.getSerializer(oldStateVersion)

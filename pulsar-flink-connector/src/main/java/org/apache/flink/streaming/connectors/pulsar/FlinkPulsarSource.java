@@ -109,7 +109,7 @@ public class FlinkPulsarSource<T>
     /** State name of the consumer's partition offset states. */
     private static final String OFFSETS_STATE_NAME = "topic-partition-offset-states";
 
-    private static final String NEW_OFFSETS_STATE_NAME = "new-topic-partition-offset-states";
+    private static final String OFFSETS_STATE_NAME_V3 = "topic-offset-states";
 
     // ------------------------------------------------------------------------
     //  configuration state, set on the client relevant for all subtasks
@@ -724,7 +724,7 @@ public class FlinkPulsarSource<T>
 
         unionOffsetStates = stateStore.getUnionListState(
                 new ListStateDescriptor<>(
-                        NEW_OFFSETS_STATE_NAME,
+                        OFFSETS_STATE_NAME_V3,
                         createStateSerializer()
                 ));
 

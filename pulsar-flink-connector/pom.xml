@@ -21,7 +21,7 @@
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
-  <artifactId>pulsar-flink-connector-${scala.binary.version}-${flink.binary.version}</artifactId>
+  <artifactId>pulsar-flink-connector-origin-${flink.binary.version}</artifactId>
   <packaging>jar</packaging>
 
   <properties>
@@ -210,76 +210,47 @@
       <artifactId>slf4j-log4j12</artifactId>
       <version>1.7.25</version>
     </dependency>
-  </dependencies>
-  <build>
-    <plugins>
-      <plugin>
-        <!-- Shade all the dependencies to avoid conflicts -->
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-shade-plugin</artifactId>
-        <executions>
-          <execution>
-            <phase>package</phase>
-            <goals>
-              <goal>shade</goal>
-            </goals>
-            <configuration>
-              <createDependencyReducedPom>true</createDependencyReducedPom>
-              <promoteTransitiveDependencies>true</promoteTransitiveDependencies>
-              <minimizeJar>false</minimizeJar>
 
-              <artifactSet>
-                <includes>
-                  <include>com.github.luben:*</include>
-                  <include>javax.*:*</include>
-                  <include>org.apache.pulsar*:*</include>
-                  <include>org.apache.flink:flink-avro</include>
-                  <include>org.apache.flink:flink-json</include>
-                  <include>org.apache.avro:avro</include>
-                  <include>com.fasterxml.jackson.core:jackson*</include>
-                  <include>org.bouncycastle*:*</include>
-                  <include>org.lz4*:*</include>
-                  <include>commons-collections:commons-collections</include>
-                  <include>org.slf4j:jul-to-slf4j</include>
-                  <include>io.airlift:*</include>
-                </includes>
-              </artifactSet>
-              <filters>
-                <filter>
-                  <artifact>
-                    io.streamnative.connectors:pulsar-flink-connector_${scala.binary.version}
-                  </artifact>
-                  <includes>
-                    <include>**</include>
-                  </includes>
-                </filter>
-                <filter>
-                  <artifact>*:*</artifact>
-                  <excludes>
-                    <exclude>META-INF/*.SF</exclude>
-                    <exclude>META-INF/*.DSA</exclude>
-                    <exclude>META-INF/*.RSA</exclude>
-                  </excludes>
-                </filter>
-              </filters>
-              <relocations>
-                <relocation>
-                  <pattern>com.google</pattern>
-                  <shadedPattern>org.apache.pulsar.shade.com.google</shadedPattern>
-                </relocation>
-                <relocation>
-                  <pattern>org.apache.commons</pattern>
-                  <shadedPattern>org.apache.pulsar.shade.org.apache.commons</shadedPattern>
-                </relocation>
-              </relocations>
-              <transformers>
-                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
-                <transformer implementation="org.apache.maven.plugins.shade.resource.PluginXmlResourceTransformer" />
-              </transformers>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
+    <dependency>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest-all</artifactId>
+      <version>${hamcrest.version}</version>
+      <type>jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers</artifactId>
+      <version>${testcontainers.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>pulsar</artifactId>
+      <version>${testcontainers.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>${mockito.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.powermock</groupId>
+      <artifactId>powermock-module-junit4</artifactId>
+      <version>${powermock.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.powermock</groupId>
+      <artifactId>powermock-api-mockito2</artifactId>
+      <version>${powermock.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+<build>
+  <plugins>
       <plugin>
         <groupId>com.github.os72</groupId>
         <artifactId>protoc-jar-maven-plugin</artifactId>
@@ -301,84 +272,4 @@
       </plugin>
     </plugins>
   </build>
-  <profiles>
-    <profile>
-      <id>scala-2.11</id>
-      <properties>
-        <scala.version>2.11.12</scala.version>
-        <scala.binary.version>2.11</scala.binary.version>
-      </properties>
-      <activation>
-        <property>
-          <name>!scala-2.12</name>
-        </property>
-      </activation>
-      <build>
-        <plugins>
-          <!-- make sure we don't have any _2.12 dependencies when building
-          for Scala 2.11 -->
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-enforcer-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>enforce-versions</id>
-                <goals>
-                  <goal>enforce</goal>
-                </goals>
-                <configuration>
-                  <rules>
-                    <bannedDependencies>
-                      <excludes>
-                        <exclude>*:*_2.12</exclude>
-                      </excludes>
-                    </bannedDependencies>
-                  </rules>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-    <profile>
-      <id>scala-2.12</id>
-      <properties>
-        <scala.version>2.12.7</scala.version>
-        <scala.binary.version>2.12</scala.binary.version>
-      </properties>
-      <activation>
-        <property>
-          <name>scala-2.12</name>
-        </property>
-      </activation>
-      <build>
-        <plugins>
-          <!-- make sure we don't have any _2.11 dependencies when building
-          for Scala 2.12 -->
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-enforcer-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>enforce-versions</id>
-                <goals>
-                  <goal>enforce</goal>
-                </goals>
-                <configuration>
-                  <rules>
-                    <bannedDependencies>
-                      <excludes>
-                        <exclude>*:*_2.11</exclude>
-                      </excludes>
-                    </bannedDependencies>
-                  </rules>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-  </profiles>
 </project>

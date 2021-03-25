@@ -20,6 +20,8 @@
     <module>flink-protobuf</module>
     <module>managed-ledger-shaded</module>
     <module>pulsar-flink-connector</module>
+    <module>pulsar-flink-connector-shade-2.11</module>
+    <module>pulsar-flink-connector-shade-2.12</module>
   </modules>
 
   <parent>
@@ -77,6 +79,7 @@
     <powermock.version>2.0.2</powermock.version>
     <mockito.version>3.7.7</mockito.version>
     <hamcrest.version>1.3</hamcrest.version>
+    <junit.version>4.12</junit.version>
     <jackson.version>2.10.5.1</jackson.version>
     <!-- plugin dependencies -->
     <maven.version>3.5.4</maven.version>
@@ -122,47 +125,13 @@
       <artifactId>aircompressor</artifactId>
       <version>0.16</version>
     </dependency>
-
     <dependency>
-      <groupId>org.hamcrest</groupId>
-      <artifactId>hamcrest-all</artifactId>
-      <version>${hamcrest.version}</version>
-      <type>jar</type>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.testcontainers</groupId>
-      <artifactId>testcontainers</artifactId>
-      <version>${testcontainers.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.testcontainers</groupId>
-      <artifactId>pulsar</artifactId>
-      <version>${testcontainers.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-core</artifactId>
-      <version>${mockito.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.powermock</groupId>
-      <artifactId>powermock-module-junit4</artifactId>
-      <version>${powermock.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.powermock</groupId>
-      <artifactId>powermock-api-mockito2</artifactId>
-      <version>${powermock.version}</version>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>${junit.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
-
-
   <build>
     <pluginManagement>
       <plugins>
@@ -175,6 +144,7 @@
     </pluginManagement>
     <plugins>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>${maven-compiler-plugin.version}</version>
         <configuration>

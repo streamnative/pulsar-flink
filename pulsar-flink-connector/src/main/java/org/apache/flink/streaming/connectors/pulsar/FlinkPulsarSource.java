@@ -668,7 +668,7 @@ public class FlinkPulsarSource<T>
             Iterator<Tuple2<TopicSubscription, MessageId>> iterator = unionOffsetStates.get().iterator();
 
             if (!iterator.hasNext()) {
-                iterator = tryMigrationState(stateStore);
+                iterator = tryMigrateState(stateStore);
             }
             while (iterator.hasNext()) {
                 final Tuple2<TopicSubscription, MessageId> tuple2 = iterator.next();

@@ -18,8 +18,7 @@ on:
     branches:
       - flink-1.11
 jobs:
-
-  unit-tests-scala-2_11:
+  unit-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 120
 
@@ -33,24 +32,8 @@ jobs:
           java-version: 1.8
       - name: Run check and test
         run: |
-          ./tools/retry.sh mvn -B -ntp clean install -Pscala-2.11
+          ./tools/retry.sh mvn -B -ntp clean install
 
-  unit-tests-scala-2_12:
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Set up JDK 1.8
-        uses: actions/setup-java@v1
-        with:
-          java-version: 1.8
-
-      - name: Run check and test
-        run: |
-          ./tools/retry.sh mvn -B -ntp clean install -Pscala-2.12
   unit-tests-local:
     runs-on: ubuntu-latest
     timeout-minutes: 120

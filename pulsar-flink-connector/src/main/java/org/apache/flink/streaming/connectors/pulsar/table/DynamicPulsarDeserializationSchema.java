@@ -49,8 +49,6 @@ class DynamicPulsarDeserializationSchema implements PulsarDeserializationSchema<
 
     private final boolean hasMetadata;
 
-    private final BufferingCollector keyCollector;
-
     private final OutputProjectionCollector outputCollector;
 
     private final TypeInformation<RowData> producedTypeInfo;
@@ -83,7 +81,6 @@ class DynamicPulsarDeserializationSchema implements PulsarDeserializationSchema<
         this.keyDeserialization = keyDeserialization;
         this.valueDeserialization = valueDeserialization;
         this.hasMetadata = hasMetadata;
-        this.keyCollector = new BufferingCollector();
         this.outputCollector = new OutputProjectionCollector(
                 physicalArity,
                 keyProjection,
@@ -119,13 +116,22 @@ class DynamicPulsarDeserializationSchema implements PulsarDeserializationSchema<
         // shortcut in case no output projection is required,
         // also not for a cartesian product with the keys
         if (keyDeserialization == null && !hasMetadata) {
-            valueDeserialization.deserialize(message.getData(), collector);
+            // Because the Pulsar Source is designed to be multi-threaded,
+            // Flink's internal design of the Source is single-threaded,
+            // so, DeserializationSchema instances are oriented to single-threaded,
+            // and thread safety issues exist when they are accessed by multiple threads at the same time. Cause the message deserialization to fail.
+            synchronized (valueDeserialization) {
+                valueDeserialization.deserialize(message.getData(), collector);
+            }
             return;
         }
+        BufferingCollector keyCollector = new BufferingCollector();
 
         // buffer key(s)
         if (keyDeserialization != null) {
-            keyDeserialization.deserialize(message.getKeyBytes(), keyCollector);
+            synchronized (keyDeserialization) {
+                keyDeserialization.deserialize(message.getKeyBytes(), keyCollector);
+            }
         }
 
         // project output while emitting values
@@ -136,7 +142,9 @@ class DynamicPulsarDeserializationSchema implements PulsarDeserializationSchema<
             // collect tombstone messages in upsert mode by hand
             outputCollector.collect(null);
         } else {
-            valueDeserialization.deserialize(message.getData(), outputCollector);
+            synchronized (valueDeserialization) {
+                valueDeserialization.deserialize(message.getData(), outputCollector);
+            }
         }
         keyCollector.buffer.clear();
     }

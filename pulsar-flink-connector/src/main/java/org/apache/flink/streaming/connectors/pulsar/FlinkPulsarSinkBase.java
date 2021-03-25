@@ -338,7 +338,7 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
                     .sendTimeout(sendTimeOutMs, TimeUnit.MILLISECONDS)
                     .batchingMaxPublishDelay(100, TimeUnit.MILLISECONDS)
                     // maximizing the throughput
-                    .batchingMaxMessages(5 * 1024 * 1024)
+                    .batchingMaxBytes(5 * 1024 * 1024)
                     .loadConf(producerConf);
             if (messageRouter == null) {
                 return builder.create();

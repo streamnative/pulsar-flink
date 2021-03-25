@@ -25,21 +25,6 @@ import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.apache.pulsar.client.api.schema.GenericSchema;
-import org.apache.pulsar.client.impl.schema.BooleanSchema;
-import org.apache.pulsar.client.impl.schema.ByteSchema;
-import org.apache.pulsar.client.impl.schema.BytesSchema;
-import org.apache.pulsar.client.impl.schema.DateSchema;
-import org.apache.pulsar.client.impl.schema.DoubleSchema;
-import org.apache.pulsar.client.impl.schema.FloatSchema;
-import org.apache.pulsar.client.impl.schema.IntSchema;
-import org.apache.pulsar.client.impl.schema.LocalDateSchema;
-import org.apache.pulsar.client.impl.schema.LocalDateTimeSchema;
-import org.apache.pulsar.client.impl.schema.LocalTimeSchema;
-import org.apache.pulsar.client.impl.schema.LongSchema;
-import org.apache.pulsar.client.impl.schema.ShortSchema;
-import org.apache.pulsar.client.impl.schema.TimeSchema;
-import org.apache.pulsar.client.impl.schema.TimestampSchema;
-import org.apache.pulsar.client.impl.schema.generic.GenericSchemaImpl;
 import org.apache.pulsar.client.internal.DefaultImplementation;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.protocol.schema.PostSchemaPayload;
@@ -88,11 +73,13 @@ public class SchemaUtils {
                             String.format("Create schema for %s get 404", TopicName.get(topic).toString()), pae);
                 } else {
                     throw new RuntimeException(
-                            String.format("Failed to create schema information for %s", TopicName.get(topic).toString()), pae);
+                            String.format("Failed to create schema information for %s",
+                                    TopicName.get(topic).toString()), pae);
                 }
             } catch (Throwable e) {
                 throw new RuntimeException(
-                        String.format("Failed to create schema information for %s", TopicName.get(topic).toString()), e);
+                        String.format("Failed to create schema information for %s", TopicName.get(topic).toString()),
+                        e);
             }
         } else if (!existingSchema.equals(schemaInfo) && !compatibleSchema(existingSchema, schemaInfo)) {
             throw new RuntimeException("Writing to a topic which have incompatible schema");
@@ -121,46 +108,7 @@ public class SchemaUtils {
     }
 
     public static org.apache.pulsar.client.api.Schema<?> getPulsarSchema(SchemaInfo schemaInfo) {
-        switch (schemaInfo.getType()) {
-            case BOOLEAN:
-                return BooleanSchema.of();
-            case INT8:
-                return ByteSchema.of();
-            case INT16:
-                return ShortSchema.of();
-            case INT32:
-                return IntSchema.of();
-            case INT64:
-                return LongSchema.of();
-            case STRING:
-                return org.apache.pulsar.client.api.Schema.STRING;
-            case FLOAT:
-                return FloatSchema.of();
-            case DOUBLE:
-                return DoubleSchema.of();
-            case BYTES:
-            case NONE:
-                return BytesSchema.of();
-            case DATE:
-                return DateSchema.of();
-            case TIME:
-                return TimeSchema.of();
-            case TIMESTAMP:
-                return TimestampSchema.of();
-            // Note that this is a type only available in Pulsar 2.7.
-            case LOCAL_DATE:
-                return LocalDateSchema.of();
-            case LOCAL_TIME:
-                return LocalTimeSchema.of();
-            case LOCAL_DATE_TIME:
-                return LocalDateTimeSchema.of();
-            case AVRO:
-            case JSON:
-                return GenericSchemaImpl.of(schemaInfo);
-            default:
-                throw new IllegalArgumentException("Retrieve schema instance from schema info for type " +
-                        schemaInfo.getType() + " is not supported yet");
-        }
+        return org.apache.pulsar.client.api.Schema.getSchema(schemaInfo);
     }
 
     static GenericSchema<GenericRecord> avroSchema2PulsarSchema(Schema avroSchema) {
@@ -198,7 +146,8 @@ public class SchemaUtils {
         return numBytes;
     }
 
-    public static org.apache.pulsar.client.api.Schema<?> buildRowSchema(DataType dataType, RecordSchemaType recordSchemaType) {
+    public static org.apache.pulsar.client.api.Schema<?> buildRowSchema(DataType dataType,
+                                                                        RecordSchemaType recordSchemaType) {
         org.apache.avro.Schema avroSchema = AvroSchemaConverter.convertToSchema(dataType.getLogicalType());
         byte[] schemaBytes = avroSchema.toString().getBytes(StandardCharsets.UTF_8);
         SchemaInfo si = new SchemaInfo();
@@ -227,7 +176,8 @@ public class SchemaUtils {
         return org.apache.pulsar.client.api.Schema.generic(si);
     }
 
-    public static <T> org.apache.pulsar.client.api.Schema<T> buildSchemaForRecordClazz(Class<T> recordClazz, RecordSchemaType recordSchemaType) {
+    public static <T> org.apache.pulsar.client.api.Schema<T> buildSchemaForRecordClazz(Class<T> recordClazz,
+                                                                                       RecordSchemaType recordSchemaType) {
         if (recordSchemaType == null) {
             return org.apache.pulsar.client.api.Schema.AVRO(recordClazz);
         }

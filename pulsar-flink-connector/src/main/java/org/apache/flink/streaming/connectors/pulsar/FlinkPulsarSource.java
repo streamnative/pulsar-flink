@@ -706,7 +706,7 @@ public class FlinkPulsarSource<T>
         return new TupleSerializer<>(tupleClass, fieldSerializers);
     }
 
-    private Iterator<Tuple2<TopicSubscription, MessageId>> tryMigrationState(OperatorStateStore stateStore)
+    private Iterator<Tuple2<TopicSubscription, MessageId>> tryMigrateState(OperatorStateStore stateStore)
             throws Exception {
         log.info("restore old state version {}", oldStateVersion);
         PulsarSourceStateSerializer stateSerializer =

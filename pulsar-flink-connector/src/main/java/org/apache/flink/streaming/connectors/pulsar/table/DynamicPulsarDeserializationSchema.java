@@ -293,8 +293,8 @@ class DynamicPulsarDeserializationSchema implements PulsarDeserializationSchema<
                     producedRow.setField(valueProjection[valuePos], physicalValueRow.getField(valuePos));
                 }
             }
-            
-             for (int keyPos = 0; keyPos < keyProjection.length; keyPos++) {
+
+            for (int keyPos = 0; keyPos < keyProjection.length; keyPos++) {
                 assert physicalKeyRow != null;
                 producedRow.setField(keyProjection[keyPos], physicalKeyRow.getField(keyPos));
             }

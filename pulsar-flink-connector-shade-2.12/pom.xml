@@ -25,8 +25,6 @@
     <packaging>jar</packaging>
 
     <properties>
-        <scala.version>2.12.7</scala.version>
-        <scala.binary.version>2.12</scala.binary.version>
         <license.skip>true</license.skip>
         <spotbugs.skip>true</spotbugs.skip>
     </properties>
@@ -117,5 +115,20 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>default</id>
+            <properties>
+                <scala.version>2.12.7</scala.version>
+                <scala.binary.version>2.12</scala.binary.version>
+            </properties>
+            <activation>
+                <property>
+                    <name>default</name>
+                </property>
+            </activation>
+        </profile>
+    </profiles>
 </project>
 

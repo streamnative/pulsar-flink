@@ -21,12 +21,11 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>pulsar-flink-connector-2.12-${flink.binary.version}</artifactId>
+    <artifactId>pulsar-flink-connector-2.11-${flink.binary.version}</artifactId>
     <packaging>jar</packaging>
 
     <properties>
-        <scala.version>2.11.12</scala.version>
-        <scala.binary.version>2.11</scala.binary.version>
+
         <license.skip>true</license.skip>
         <spotbugs.skip>true</spotbugs.skip>
     </properties>
@@ -137,5 +136,19 @@
             </plugin>
         </plugins>
     </build>
+    <profiles>
+        <profile>
+            <id>default</id>
+            <properties>
+                <scala.version>2.11.12</scala.version>
+                <scala.binary.version>2.11</scala.binary.version>
+            </properties>
+            <activation>
+                <property>
+                    <name>default</name>
+                </property>
+            </activation>
+        </profile>
+    </profiles>
 </project>
 

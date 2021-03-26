@@ -21,12 +21,10 @@
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
-  <artifactId>pulsar-flink-connector-${scala.binary.version}-${flink.binary.version}</artifactId>
+  <artifactId>pulsar-flink-connector-origin-${flink.binary.version}</artifactId>
   <packaging>jar</packaging>
 
   <properties>
-    <flink.version>1.11.1</flink.version>
-    <flink.binary.version>1.11</flink.binary.version>
   </properties>
 
   <dependencies>
@@ -68,14 +66,12 @@
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-json</artifactId>
       <version>${flink.version}</version>
-      <scope>provided</scope>
     </dependency>
 
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-avro</artifactId>
       <version>${flink.version}</version>
-      <scope>provided</scope>
     </dependency>
 
     <!-- test dependencies -->
@@ -169,6 +165,12 @@
       <scope>test</scope>
     </dependency>
 
+    <dependency>
+      <groupId>commons-codec</groupId>
+      <artifactId>commons-codec</artifactId>
+      <version>1.15</version>
+    </dependency>
+
     <!-- Pulsar table descriptor testing -->
     <dependency>
       <groupId>org.apache.flink</groupId>
@@ -187,90 +189,56 @@
     </dependency>
 
     <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-table-planner-blink_${scala.binary.version}</artifactId>
+      <version>${flink.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
       <scope>test</scope>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-log4j12</artifactId>
       <version>1.7.25</version>
     </dependency>
+
+    <dependency>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest-all</artifactId>
+      <version>${hamcrest.version}</version>
+      <type>jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers</artifactId>
+      <version>${testcontainers.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>pulsar</artifactId>
+      <version>${testcontainers.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>${mockito.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.powermock</groupId>
+      <artifactId>powermock-module-junit4</artifactId>
+      <version>${powermock.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.powermock</groupId>
+      <artifactId>powermock-api-mockito2</artifactId>
+      <version>${powermock.version}</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
-  <profiles>
-    <profile>
-      <id>scala-2.11</id>
-      <properties>
-        <scala.version>2.11.12</scala.version>
-        <scala.binary.version>2.11</scala.binary.version>
-      </properties>
-      <activation>
-        <property>
-          <name>!scala-2.12</name>
-        </property>
-      </activation>
-      <build>
-        <plugins>
-          <!-- make sure we don't have any _2.12 dependencies when building
-          for Scala 2.11 -->
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-enforcer-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>enforce-versions</id>
-                <goals>
-                  <goal>enforce</goal>
-                </goals>
-                <configuration>
-                  <rules>
-                    <bannedDependencies>
-                      <excludes>
-                        <exclude>*:*_2.12</exclude>
-                      </excludes>
-                    </bannedDependencies>
-                  </rules>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-    <profile>
-      <id>scala-2.12</id>
-      <properties>
-        <scala.version>2.12.7</scala.version>
-        <scala.binary.version>2.12</scala.binary.version>
-      </properties>
-      <activation>
-        <property>
-          <name>scala-2.12</name>
-        </property>
-      </activation>
-      <build>
-        <plugins>
-          <!-- make sure we don't have any _2.11 dependencies when building
-          for Scala 2.12 -->
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-enforcer-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>enforce-versions</id>
-                <goals>
-                  <goal>enforce</goal>
-                </goals>
-                <configuration>
-                  <rules>
-                    <bannedDependencies>
-                      <excludes>
-                        <exclude>*:*_2.11</exclude>
-                      </excludes>
-                    </bannedDependencies>
-                  </rules>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-  </profiles>
 </project>

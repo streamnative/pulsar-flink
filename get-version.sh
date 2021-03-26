@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,10 +13,8 @@
 # limitations under the License.
 #
 
-#!/usr/bin/env bash
-
 mvn -q \
-    -Dexec.executable=echo \
-    -Dexec.args='${project.version}' \
-    --non-recursive \
-    exec:exec
+  -Dexec.executable=echo \
+  -Dexec.args='${project.version}' \
+  --non-recursive \
+  exec:exec

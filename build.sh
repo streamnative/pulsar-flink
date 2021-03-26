@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,15 +13,15 @@
 # limitations under the License.
 #
 
-#!/usr/bin/env bash
-
 set -e
 
-readonly PROJECT_DIR=`cd $(dirname "$0"); pwd`
+readonly PROJECT_DIR=$(
+  cd $(dirname "$0")
+  pwd
+)
 readonly TARGET_DIR=${PROJECT_DIR}/target
 readonly PROFILE=${1}
 
 cd ${PROJECT_DIR}
 
 mvn -B -ntp -q clean license:check install checkstyle:check spotbugs:check -P${PROFILE}
-

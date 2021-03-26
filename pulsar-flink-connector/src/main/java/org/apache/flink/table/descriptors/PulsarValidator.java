@@ -26,7 +26,6 @@ import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOption
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.TOPIC_SINGLE_OPTION_KEY;
 import static org.apache.flink.table.descriptors.DescriptorProperties.noValidation;
 
-
 /**
  * Pulsar Connector validator.
  */

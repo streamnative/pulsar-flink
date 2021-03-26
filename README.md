@@ -594,7 +594,7 @@ For `FlinkPulsarSource` and `FlinkPulsarSink`, you can use one of the following 
 
 For details about authentication configuration, see [Pulsar Security](https://pulsar.apache.org/docs/en/security-overview/).
 
-## ProtoBuf supports [experimental features].
+## ProtoBuf supports [experimental features\].
 
 This feature is based on [Flink: New Format of protobuf](https://github.com/apache/flink/pull/14376) and is currently pending merge.
 Example of using protobuf in sql: 

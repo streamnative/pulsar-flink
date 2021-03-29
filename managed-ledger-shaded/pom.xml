@@ -28,7 +28,6 @@
 
   <properties>
     <pulsar.version>2.7.0</pulsar.version>
-    <maven.javadoc.skip>true</maven.javadoc.skip>
   </properties>
   <dependencies>
     <dependency>

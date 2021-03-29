@@ -27,7 +27,6 @@
     <properties>
         <license.skip>true</license.skip>
         <spotbugs.skip>true</spotbugs.skip>
-        <maven.javadoc.skip>true</maven.javadoc.skip>
     </properties>
 
     <dependencies>

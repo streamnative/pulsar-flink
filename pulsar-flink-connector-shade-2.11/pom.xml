@@ -76,8 +76,8 @@
                             <createDependencyReducedPom>true</createDependencyReducedPom>
                             <promoteTransitiveDependencies>true</promoteTransitiveDependencies>
                             <minimizeJar>false</minimizeJar>
-
                             <createSourcesJar>true</createSourcesJar>
+
                             <artifactSet>
                                 <includes>
                                     <include>io.streamnative.connectors:pulsar-flink-connector-origin*</include>
@@ -162,16 +162,6 @@
                                 </goals>
                                 <configuration>
                                     <classifier>javadoc</classifier>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>sources-jar</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>jar</goal>
-                                </goals>
-                                <configuration>
-                                    <classifier>sources</classifier>
                                 </configuration>
                             </execution>
                         </executions>

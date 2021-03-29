@@ -77,6 +77,7 @@
             <configuration>
               <createDependencyReducedPom>true</createDependencyReducedPom>
               <promoteTransitiveDependencies>true</promoteTransitiveDependencies>
+              <createSourcesJar>true</createSourcesJar>
 
               <artifactSet>
                 <includes>
@@ -323,16 +324,6 @@
                 </goals>
                 <configuration>
                   <classifier>javadoc</classifier>
-                </configuration>
-              </execution>
-              <execution>
-                <id>sources-jar</id>
-                <phase>package</phase>
-                <goals>
-                  <goal>jar</goal>
-                </goals>
-                <configuration>
-                  <classifier>sources</classifier>
                 </configuration>
               </execution>
             </executions>

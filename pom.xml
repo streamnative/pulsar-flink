@@ -299,10 +299,8 @@
   </repositories>
   <distributionManagement>
     <repository>
-      <id>streamnative</id>
-      <url>
-        https://api.bintray.com/maven/streamnative/maven/io.streamnative.pulsar-flink/;publish=1
-      </url>
+      <id>nexus-site</id>
+      <url>http://central_nexus/server</url>
     </repository>
   </distributionManagement>
 </project>

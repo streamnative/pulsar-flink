@@ -15,6 +15,7 @@
 name: Pulsar Flink Connector Release
 on:
   release:
+    types: [created]
 jobs:
   unit-tests:
     runs-on: ubuntu-latest
@@ -28,10 +29,10 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 1.8
-      - name: Run check and test
+      - name: Release
         env:
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
         run: |
           MAVEN_SETTINGS_FILE=tools/maven/settings.xml
-          mvn --settings ${MAVEN_SETTINGS_FILE} source:jar deploy
+          mvn --settings ${MAVEN_SETTINGS_FILE} source:jar deploy -Darguments="-Dmaven.javadoc.skip=true -DskipTests=true"

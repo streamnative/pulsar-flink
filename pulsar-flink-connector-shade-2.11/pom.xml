@@ -138,14 +138,14 @@
     </build>
     <profiles>
         <profile>
-            <id>default</id>
+            <id>release</id>
             <properties>
                 <scala.version>2.11.12</scala.version>
                 <scala.binary.version>2.11</scala.binary.version>
             </properties>
             <activation>
                 <property>
-                    <name>default</name>
+                    <name>release</name>
                 </property>
                 <activeByDefault>true</activeByDefault>
             </activation>

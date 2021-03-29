@@ -323,6 +323,9 @@
   </distributionManagement>
   <profiles>
     <profile>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
       <id>release</id>
       <build>
         <plugins>

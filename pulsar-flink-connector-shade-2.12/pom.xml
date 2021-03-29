@@ -118,7 +118,7 @@
 
     <profiles>
         <profile>
-            <id>default</id>
+            <id>release</id>
             <properties>
                 <scala.version>2.12.7</scala.version>
                 <scala.binary.version>2.12</scala.binary.version>
@@ -126,7 +126,7 @@
             <activation>
                 <activeByDefault>true</activeByDefault>
                 <property>
-                    <name>default</name>
+                    <name>release</name>
                 </property>
             </activation>
         </profile>

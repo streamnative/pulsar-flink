@@ -41,4 +41,4 @@ jobs:
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
         run: |
           MAVEN_SETTINGS_FILE=tools/maven/settings.xml
-          mvn --settings ${MAVEN_SETTINGS_FILE} deploy -Dmaven.javadoc.skip=true -DskipTests
+          mvn --settings ${MAVEN_SETTINGS_FILE} source:jar deploy -Dmaven.javadoc.skip=true -DskipTests

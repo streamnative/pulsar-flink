@@ -21,7 +21,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>pulsar-flink-connector-2.12-1.11</artifactId>
+    <artifactId>pulsar-flink-connector-2.12-${flink.binary.version}</artifactId>
     <packaging>jar</packaging>
 
     <properties>
@@ -124,6 +124,7 @@
                 <scala.binary.version>2.12</scala.binary.version>
             </properties>
             <activation>
+                <activeByDefault>true</activeByDefault>
                 <property>
                     <name>default</name>
                 </property>

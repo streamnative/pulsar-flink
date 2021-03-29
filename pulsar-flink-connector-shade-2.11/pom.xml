@@ -21,7 +21,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>pulsar-flink-connector-2.11-1.11</artifactId>
+    <artifactId>pulsar-flink-connector-2.11-${flink.binary.version}</artifactId>
     <packaging>jar</packaging>
 
     <properties>
@@ -147,6 +147,7 @@
                 <property>
                     <name>default</name>
                 </property>
+                <activeByDefault>true</activeByDefault>
             </activation>
         </profile>
     </profiles>

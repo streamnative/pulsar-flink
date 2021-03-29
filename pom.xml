@@ -348,7 +348,7 @@
             <version>2.10.3</version>
             <executions>
               <execution>
-                <id>attach-sources</id>
+                <id>attach-javadocs</id>
                 <goals>
                   <goal>jar</goal>
                 </goals>

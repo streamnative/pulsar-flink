@@ -27,6 +27,7 @@
     <properties>
         <license.skip>true</license.skip>
         <spotbugs.skip>true</spotbugs.skip>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
     </properties>
 
     <dependencies>
@@ -63,7 +64,7 @@
                             <createDependencyReducedPom>true</createDependencyReducedPom>
                             <promoteTransitiveDependencies>true</promoteTransitiveDependencies>
                             <minimizeJar>false</minimizeJar>
-
+                            <createSourcesJar>true</createSourcesJar>
                             <artifactSet>
                                 <includes>
                                     <include>io.streamnative.connectors:pulsar-flink-connector-origin*</include>

@@ -65,7 +65,7 @@
                             <createDependencyReducedPom>true</createDependencyReducedPom>
                             <promoteTransitiveDependencies>true</promoteTransitiveDependencies>
                             <minimizeJar>false</minimizeJar>
-
+                            <createSourcesJar>true</createSourcesJar>
                             <artifactSet>
                                 <includes>
                                     <include>io.streamnative.connectors:pulsar-flink-connector-origin*</include>
@@ -117,5 +117,48 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-jar-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <execution>
+                                <id>default-jar</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>javadoc-jar</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                                <configuration>
+                                    <classifier>javadoc</classifier>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>sources-jar</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                                <configuration>
+                                    <classifier>sources</classifier>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
 

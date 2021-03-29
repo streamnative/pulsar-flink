@@ -1,0 +1,35 @@
+<settings>
+    <servers>
+        <server>
+            <id>ossrh</id>
+            <username>${env.SONATYPE_USERNAME}</username>
+            <password>${env.SONATYPE_PASSWORD}</password>
+        </server>
+    </servers>
+<!--    <profiles>-->
+<!--        <profile>-->
+<!--            <id>streamnative</id>-->
+<!--            <activation>-->
+<!--                <activeByDefault>true</activeByDefault>-->
+<!--            </activation>-->
+<!--            <repositories>-->
+<!--                <repository>-->
+<!--                    <id>streamnative</id>-->
+<!--                    <name>StreamNative Maven Repository</name>-->
+<!--                    <releases>-->
+<!--                        <enabled>true</enabled>-->
+<!--                        <updatePolicy>always</updatePolicy>-->
+<!--                        <checksumPolicy>warn</checksumPolicy>-->
+<!--                    </releases>-->
+<!--                    <snapshots>-->
+<!--                        <enabled>true</enabled>-->
+<!--                        <updatePolicy>never</updatePolicy>-->
+<!--                        <checksumPolicy>fail</checksumPolicy>-->
+<!--                    </snapshots>-->
+<!--                    <url>https://api.bintray.com/maven/straemnative/maven/org.apache.pulsar/;publish=1</url>-->
+<!--                    <layout>default</layout>-->
+<!--                </repository>-->
+<!--            </repositories>-->
+<!--        </profile>-->
+<!--    </profiles>-->
+</settings>

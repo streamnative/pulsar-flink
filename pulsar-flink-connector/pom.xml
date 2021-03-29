@@ -241,42 +241,4 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-  <build>
-    <plugins>
-      <plugin>
-        <artifactId>maven-shade-plugin</artifactId>
-        <executions>
-          <execution>
-            <phase>package</phase>
-            <goals>
-              <goal>shade</goal>
-            </goals>
-            <configuration>
-              <createSourcesJar>true</createSourcesJar>
-              <createDependencyReducedPom>true</createDependencyReducedPom>
-              <promoteTransitiveDependencies>true</promoteTransitiveDependencies>
-              <minimizeJar>false</minimizeJar>
-
-
-              <artifactSet>
-                <includes>
-                  <include>io.streamnative.connectors:pulsar-flink-connector-origin-*</include>
-                </includes>
-<!--                <excludes>-->
-<!--                  <exclude>*:*</exclude>-->
-<!--&lt;!&ndash;                  <exclude>junit:junit</exclude>&ndash;&gt;-->
-<!--&lt;!&ndash;                  <exclude>jmock:*</exclude>&ndash;&gt;-->
-<!--&lt;!&ndash;                  <exclude>*:xml-apis</exclude>&ndash;&gt;-->
-<!--&lt;!&ndash;                  <exclude>org.apache.maven:lib:tests</exclude>&ndash;&gt;-->
-<!--&lt;!&ndash;                  <exclude>log4j:log4j:jar:</exclude>&ndash;&gt;-->
-<!--                </excludes>-->
-              </artifactSet>
-              <filters>
-              </filters>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
 </project>

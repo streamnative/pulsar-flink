@@ -21,10 +21,10 @@
   <parent>
     <groupId>io.streamnative.connectors</groupId>
     <artifactId>pulsar-flink-parent</artifactId>
-    <version>2.7.7-SNAPSHOT</version>
+    <version>2.7.6-rc</version>
   </parent>
 
-  <artifactId>pulsar-flink-connector-${scala.binary.version}-${flink.binary.version}</artifactId>
+  <artifactId>pulsar-flink-connector-2.11-${flink.binary.version}</artifactId>
   <name>StreamNative :: Pulsar Flink Connector :: Scala 2.11</name>
 
   <packaging>jar</packaging>

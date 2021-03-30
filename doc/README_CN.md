@@ -166,9 +166,6 @@ Pulsar Flink 连接器用来从 Pulsar 中读取数据或者将结果写入 Puls
 
 安装完成后，在本地 Maven 项目库和 `target` 目录下都会生成一个包含依赖的 JAR 包。
 
-> **说明**  
-> 如果使用 intellij IDEA 调试本项目，可能会遇到无法找到 `org.apache.pulsar.shade.org.bookkeeper.ledger` 包的错误。在这种情况下，首先运行 ` mvn clean install -DskipTests` 命令，安装 JAR 包到本地仓库，然后忽略项目的 `managed-ledger-shaded` Maven 模块，最后单击 **刷新**按钮，即可解决错误。
-
 # 部署 Pulsar Flink 连接器
 
 本章节介绍如何部署 Pulsar Flink 连接器。

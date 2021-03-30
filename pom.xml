@@ -19,7 +19,6 @@
   <packaging>pom</packaging>
   <modules>
     <module>flink-protobuf</module>
-    <module>managed-ledger-shaded</module>
     <module>pulsar-flink-connector</module>
     <module>pulsar-flink-connector-shade-2.11</module>
     <module>pulsar-flink-connector-shade-2.12</module>
@@ -244,9 +243,6 @@
             <log4j.configuration>file:${project.build.testOutputDirectory}/log4j-tests.properties</log4j.configuration>
             <pulsar.systemtest.image>${pulsar.systemtest.image}</pulsar.systemtest.image>
           </systemPropertyVariables>
-          <excludes>
-            <exclude>**/PulsarInputFormatITest.java</exclude>
-          </excludes>
         </configuration>
       </plugin>
     </plugins>

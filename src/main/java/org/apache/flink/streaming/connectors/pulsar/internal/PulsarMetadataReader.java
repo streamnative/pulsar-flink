@@ -256,11 +256,11 @@ public class PulsarMetadataReader implements AutoCloseable {
                 if (e instanceof PulsarAdminException &&
                         (((PulsarAdminException) e).getStatusCode() == 404 ||
                                 ((PulsarAdminException) e).getStatusCode() == 412)) {
-                    log.info("Cannot commit cursor offset %d since the topic {} has been deleted during execution",
+                    log.info("Cannot commit cursor offset {} since the topic {} has been deleted during execution",
                             entry.getValue(), tp);
                 } else {
                     throw new RuntimeException(
-                            String.format("Failed to commit cursor offset %d for %s", entry.getValue(),  tp), e);
+                            String.format("Failed to commit cursor offset %s for %s", entry.getValue(),  tp), e);
                 }
             }
         }

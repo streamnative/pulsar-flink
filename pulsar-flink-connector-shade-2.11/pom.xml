@@ -43,16 +43,6 @@
     </dependency>
     <dependency>
       <groupId>org.apache.flink</groupId>
-      <artifactId>flink-table-common</artifactId>
-      <version>${flink.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.flink</groupId>
-      <artifactId>flink-streaming-java_${scala.binary.version}</artifactId>
-      <version>${flink.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.flink</groupId>
       <artifactId>flink-json</artifactId>
       <version>${flink.version}</version>
     </dependency>
@@ -68,7 +58,6 @@
       <version>${jackson.version}</version>
     </dependency>
   </dependencies>
-
   <build>
     <plugins>
       <plugin>
@@ -84,6 +73,7 @@
               <createDependencyReducedPom>true</createDependencyReducedPom>
               <promoteTransitiveDependencies>true</promoteTransitiveDependencies>
               <minimizeJar>false</minimizeJar>
+              <createSourcesJar>true</createSourcesJar>
 
               <artifactSet>
                 <includes>
@@ -95,7 +85,6 @@
                   <include>org.apache.flink:flink-json</include>
                   <include>com.fasterxml.jackson.core:jackson-*</include>
                   <include>org.bouncycastle*:*</include>
-                  <include>org.bouncycastle*:*</include>
                   <include>javax.*:*</include>
                   <include>org.lz4*:*</include>
                   <include>commons-collections:commons-collections</include>
@@ -104,14 +93,6 @@
                 </includes>
               </artifactSet>
               <filters>
-                <filter>
-                  <artifact>
-                    io.streamnative.connectors:pulsar-flink-connector_${scala.binary.version}
-                  </artifact>
-                  <includes>
-                    <include>**</include>
-                  </includes>
-                </filter>
                 <filter>
                   <artifact>*:*</artifact>
                   <excludes>
@@ -146,5 +127,36 @@
       </plugin>
     </plugins>
   </build>
+  <profiles>
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-jar-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>default-jar</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>jar</goal>
+                </goals>
+              </execution>
+              <execution>
+                <id>javadoc-jar</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>jar</goal>
+                </goals>
+                <configuration>
+                  <classifier>javadoc</classifier>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
 

@@ -171,9 +171,6 @@ To build the Pulsar Flink connector for reading data from Pulsar or writing the 
 
 After the Pulsar Flink connector is installed, a JAR package that contains all the dependencies is generated in both the local Maven repository and the `target` directory.
 
-> **Note**  
-> If you use intellij IDEA to debug this project, you might encounter the `org.apache.pulsar.shade.org.bookkeeper.ledger` package error. To fix the error, use the ` mvn clean install -DskipTests` command to install the JAR package to the local repository, ignore the `managed-ledger-shaded` Maven module on the project, and then click **Refresh**.
-
 # Deploy Pulsar Flink connector
 
 This section describes how to deploy the Pulsar Flink connector.

@@ -41,17 +41,6 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>io.streamnative.connectors</groupId>
-      <artifactId>managed-ledger-shaded</artifactId>
-      <version>${project.version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>*</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
       <groupId>commons-codec</groupId>
       <artifactId>commons-codec</artifactId>
       <version>${commons-codec.version}</version>

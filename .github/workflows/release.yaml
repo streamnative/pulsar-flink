@@ -29,16 +29,14 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 1.8
-      - name: Import GPG key
-        id: import_gpg
-        uses: crazy-max/ghaction-import-gpg@v3
+      - name: Release Maven package
+        uses: samuelmeuli/action-maven-publish@v1
         with:
-          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
-          passphrase: ${{ secrets.PASSPHRASE }}
-      - name: Release
-        env:
-          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
-          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
-        run: |
-          MAVEN_SETTINGS_FILE=tools/maven/settings.xml
-          mvn --settings ${MAVEN_SETTINGS_FILE} javadoc:jar source:jar deploy -DskipTests -Prelease
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg_passphrase: ${{ secrets.PASSPHRASE }}
+          nexus_username: ${{ secrets.SONATYPE_USERNAME }}
+          nexus_password: ${{ secrets.SONATYPE_PASSWORD }}
+          server_id: ossrh
+          maven_profiles: release
+          maven_goals_phases: clean deploy
+          maven_args: -DskipTests

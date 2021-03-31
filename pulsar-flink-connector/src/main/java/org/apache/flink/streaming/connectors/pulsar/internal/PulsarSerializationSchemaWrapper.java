@@ -23,7 +23,9 @@ import org.apache.flink.table.types.DataType;
 
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
-import org.apache.pulsar.shade.org.apache.http.util.Asserts;
+
+import static org.apache.flink.util.Preconditions.checkArgument;
+import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
  * A wrapper that warp flink {@link SerializationSchema} to {@link PulsarSerializationSchema}.
@@ -81,43 +83,46 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
         }
 
         public PulsarSerializationSchemaWrapper.Builder<T> useSpecialMode(Schema<?> schema) {
-            Asserts.check(mode == null, "you can only set one schemaMode");
+            checkArgument(mode == null, "you can only set one schemaMode");
             this.mode = SchemaMode.SPECIAL;
             this.schema = schema;
             return this;
         }
 
         public PulsarSerializationSchemaWrapper.Builder<T> useAtomicMode(DataType dataType) {
-            Asserts.check(mode == null, "you can only set one schemaMode");
+            checkArgument(mode == null, "you can only set one schemaMode");
             this.mode = SchemaMode.ATOMIC;
-            Asserts.check(dataType instanceof AtomicDataType, "you must set an atomic dataType");
+            checkArgument(dataType instanceof AtomicDataType, "you must set an atomic dataType");
             this.dataType = dataType;
             return this;
         }
 
         public PulsarSerializationSchemaWrapper.Builder<T> usePojoMode(Class<?> clazz, RecordSchemaType recordSchemaType) {
-            Asserts.check(mode == null, "you can only set one schemaMode");
+            checkArgument(mode == null, "you can only set one schemaMode");
             this.mode = SchemaMode.POJO;
-            Asserts.check(recordSchemaType != RecordSchemaType.ATOMIC, "cant ues RecordSchemaType.ATOMIC to build pojo type schema");
+            checkArgument(recordSchemaType != RecordSchemaType.ATOMIC,
+                    "cant ues RecordSchemaType.ATOMIC to build pojo type schema");
             this.clazz = clazz;
             this.recordSchemaType = recordSchemaType;
             return this;
         }
 
         public PulsarSerializationSchemaWrapper.Builder<T> useRowMode(DataType dataType, RecordSchemaType recordSchemaType) {
-            Asserts.check(mode == null, "you can only set one schemaMode");
+            checkArgument(mode == null, "you can only set one schemaMode");
             this.mode = SchemaMode.ROW;
             this.dataType = dataType;
             this.recordSchemaType = recordSchemaType;
             return this;
         }
 
-        public PulsarSerializationSchemaWrapper.Builder<T> setKeyExtractor(SerializableFunction<T, byte[]> keyExtractor) {
+        public PulsarSerializationSchemaWrapper.Builder<T> setKeyExtractor(
+                SerializableFunction<T, byte[]> keyExtractor) {
             this.keyExtractor = keyExtractor;
             return this;
         }
 
-        public PulsarSerializationSchemaWrapper.Builder<T> setTopicExtractor(SerializableFunction<T, String> topicExtractor) {
+        public PulsarSerializationSchemaWrapper.Builder<T> setTopicExtractor(
+                SerializableFunction<T, String> topicExtractor) {
             this.topicExtractor = topicExtractor;
             return this;
         }
@@ -204,8 +209,8 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
                 return SchemaTranslator.atomicType2PulsarSchema(dataType);
             } else {
                 // for pojo type, use avro or json
-                Asserts.notNull(clazz, "for non-atomic type, you must set clazz");
-                Asserts.notNull(clazz, "for non-atomic type, you must set recordSchemaType");
+                checkNotNull(clazz, "for non-atomic type, you must set clazz");
+                checkNotNull(clazz, "for non-atomic type, you must set recordSchemaType");
                 return SchemaUtils.buildSchemaForRecordClazz(clazz, recordSchemaType);
             }
         } catch (IncompatibleSchemaException e) {

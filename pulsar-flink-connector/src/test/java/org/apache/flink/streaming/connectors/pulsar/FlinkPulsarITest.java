@@ -24,8 +24,8 @@ import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.scala.typeutils.Types;
 import org.apache.flink.common.AtomicRowDeserializationSchemaWrapper;
-import org.apache.flink.common.IntegerDeserializer;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.formats.atomic.AtomicRowDeserializationSchema;
 import org.apache.flink.formats.json.JsonRowDeserializationSchema;
@@ -655,7 +655,6 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         SingletonStreamSink.compareWithList(
                 faList.subList(0, faList.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
     }
-
 
     //TODO test pojo
     @Test(timeout = 40 * 1000L)
@@ -1533,4 +1532,29 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         return converters;
     }
 
+    /**
+     * A deserializationSchema for integer type.
+     */
+    public static class IntegerDeserializer implements DeserializationSchema<Integer> {
+        private final TypeInformation<Integer> ti;
+
+        public IntegerDeserializer() {
+            this.ti = Types.INT();
+        }
+
+        @Override
+        public Integer deserialize(byte[] message) throws IOException {
+            return Schema.INT32.decode(message);
+        }
+
+        @Override
+        public boolean isEndOfStream(Integer nextElement) {
+            return false;
+        }
+
+        @Override
+        public TypeInformation<Integer> getProducedType() {
+            return ti;
+        }
+    }
 }

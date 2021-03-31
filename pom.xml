@@ -17,7 +17,6 @@
   <modelVersion>4.0.0</modelVersion>
   <packaging>pom</packaging>
   <modules>
-    <module>managed-ledger-shaded</module>
     <module>pulsar-flink-connector</module>
     <module>pulsar-flink-connector-shade-2.11</module>
     <module>pulsar-flink-connector-shade-2.12</module>
@@ -34,7 +33,7 @@
   <version>2.5.8.3</version>
 
 
-  <name>StreamNative :: Pulsar Flink Connector</name>
+  <name>StreamNative :: Pulsar Flink Connector :: Root</name>
   <url>http://pulsar.apache.org</url>
   <inceptionYear>2019</inceptionYear>
   <licenses>
@@ -62,12 +61,12 @@
     </developer>
   </developers>
   <properties>
+    <!-- project configuration properties -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <project.scm.id>snbot-github</project.scm.id>
     <maven.compiler.target>1.8</maven.compiler.target>
     <maven.compiler.source>1.8</maven.compiler.source>
-    <javac.target>1.8</javac.target>
     <redirectTestOutputToFile>true</redirectTestOutputToFile>
     <testRetryCount>2</testRetryCount>
 
@@ -75,56 +74,40 @@
     <pulsar.version>2.7.0</pulsar.version>
     <flink.version>1.11.1</flink.version>
     <flink.binary.version>1.11</flink.binary.version>
+    <jackson.version>2.10.5.1</jackson.version>
+    <commons-collections.version>3.2.2</commons-collections.version>
+    <commons-codec.version>1.15</commons-codec.version>
     <scala.binary.version>2.11</scala.binary.version>
+    <lombok.version>1.18.18</lombok.version>
+    <aircompressor.version>0.16</aircompressor.version>
+    <netty.version>4.1.48.Final</netty.version>
+    <janino.version>3.0.11</janino.version><!-- this should be the same version in flink-table module -->
+    <protoc.version>3.11.1</protoc.version>
+    <slf4j.version>1.7.25</slf4j.version>
+
+    <checkstyle.version>8.41</checkstyle.version>
     <testcontainers.version>1.15.2</testcontainers.version>
     <powermock.version>2.0.2</powermock.version>
     <mockito.version>3.7.7</mockito.version>
     <hamcrest.version>1.3</hamcrest.version>
     <junit.version>4.13.2</junit.version>
-    <jackson.version>2.10.5.1</jackson.version>
+
     <!-- plugin dependencies -->
     <maven.version>3.5.4</maven.version>
-    <license-maven-plugin.version>4.0.rc1</license-maven-plugin.version>
-    <maven-compiler-plugin.version>3.7.0</maven-compiler-plugin.version>
-    <maven-dependency-plugin.version>3.1.1</maven-dependency-plugin.version>
-    <maven-shade-plugin.version>3.2.4</maven-shade-plugin.version>
-    <maven-source-plugin.version>2.2.1</maven-source-plugin.version>
-    <maven-surefire-plugin.version>2.21.0</maven-surefire-plugin.version>
-    <spotbugs-maven-plugin.version>4.1.3</spotbugs-maven-plugin.version>
-    <spotbugs.version>4.2.0</spotbugs.version>
-    <pulsar.systemtest.image>apachepulsar/pulsar:2.7.0</pulsar.systemtest.image>
+    <license-maven-plugin.version>4.0.rc2</license-maven-plugin.version>
+    <spotbugs-maven-plugin.version>4.2.2</spotbugs-maven-plugin.version>
+    <maven-javadoc-plugin.version>2.10.3</maven-javadoc-plugin.version>
+    <nexus-staging-maven-plugin.version>1.6.8</nexus-staging-maven-plugin.version>
+    <pulsar.systemtest.image>apachepulsar/pulsar:${pulsar.version}</pulsar.systemtest.image>
   </properties>
 
   <!-- dependencies for all modules -->
   <dependencies>
-    <!-- pulsar dependency -->
-    <dependency>
-      <groupId>org.apache.pulsar</groupId>
-      <artifactId>pulsar-client-all</artifactId>
-      <version>${pulsar.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
-      <version>${jackson.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>commons-collections</groupId>
-      <artifactId>commons-collections</artifactId>
-      <version>3.2.2</version>
-    </dependency>
-
     <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
-      <version>1.18.10</version>
-    </dependency>
-    <dependency>
-      <groupId>io.airlift</groupId>
-      <artifactId>aircompressor</artifactId>
-      <version>0.16</version>
+      <version>${lombok.version}</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
@@ -135,22 +118,12 @@
   </dependencies>
 
   <build>
-    <pluginManagement>
-      <plugins>
-        <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-shade-plugin</artifactId>
-        <version>${maven-shade-plugin.version}</version>
-        </plugin>
-      </plugins>
-    </pluginManagement>
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>${maven-compiler-plugin.version}</version>
         <configuration>
-          <source>${javac.target}</source>
-          <target>${javac.target}</target>
+          <source>${maven.compiler.source}</source>
+          <target>${maven.compiler.target}</target>
           <compilerArgs>
             <!-- https://issues.apache.org/jira/browse/MCOMPILER-205 -->
             <compilerArg>-Xpkginfo:always</compilerArg>
@@ -176,6 +149,7 @@
           <excludes>
             <exclude>LICENSE</exclude>
             <exclude>NOTICE</exclude>
+            <exclude>.editorconfig</exclude>
             <exclude>src/resources/license.template</exclude>
             <exclude>**/build/**</exclude>
             <exclude>**/ahc.properties</exclude>
@@ -205,9 +179,7 @@
       </plugin>
 
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
-        <version>2.17</version>
         <executions>
           <execution>
             <id>checkstyle</id>
@@ -222,7 +194,7 @@
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
             <!-- Note: match version with docs/flinkDev/ide_setup.md -->
-            <version>8.18</version>
+            <version>${checkstyle.version}</version>
           </dependency>
         </dependencies>
         <configuration>
@@ -241,7 +213,7 @@
       <plugin>
         <groupId>com.github.spotbugs</groupId>
         <artifactId>spotbugs-maven-plugin</artifactId>
-        <version>3.1.12</version>
+        <version>${spotbugs-maven-plugin.version}</version>
         <executions>
           <execution>
             <id>spotbugs</id>
@@ -251,13 +223,6 @@
             </goals>
           </execution>
         </executions>
-        <dependencies>
-          <dependency>
-            <groupId>com.github.spotbugs</groupId>
-            <artifactId>spotbugs</artifactId>
-            <version>${spotbugs.version}</version>
-          </dependency>
-        </dependencies>
         <configuration>
           <xmlOutput>true</xmlOutput>
           <threshold>Low</threshold>
@@ -269,48 +234,17 @@
 
       <!--surefire for unit tests and integration tests-->
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>${maven-surefire-plugin.version}</version>
         <configuration>
           <systemPropertyVariables>
             <log4j.configuration>file:${project.build.testOutputDirectory}/log4j-tests.properties</log4j.configuration>
             <pulsar.systemtest.image>${pulsar.systemtest.image}</pulsar.systemtest.image>
           </systemPropertyVariables>
-          <excludes>
-            <exclude>**/PulsarInputFormatITest.java</exclude>
-          </excludes>
         </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-gpg-plugin</artifactId>
-        <version>1.6</version>
-        <executions>
-          <execution>
-            <id>sign-artifacts</id>
-            <phase>verify</phase>
-            <goals>
-              <goal>sign</goal>
-            </goals>
-          </execution>
-        </executions>
       </plugin>
     </plugins>
   </build>
 
-  <repositories>
-    <repository>
-      <id>central</id>
-      <layout>default</layout>
-      <url>https://repo1.maven.org/maven2</url>
-    </repository>
-    <repository>
-      <id>bintray-streamnative-maven</id>
-      <name>bintray</name>
-      <url>https://dl.bintray.com/streamnative/maven</url>
-    </repository>
-  </repositories>
   <distributionManagement>
     <snapshotRepository>
       <id>ossrh</id>
@@ -323,16 +257,11 @@
   </distributionManagement>
   <profiles>
     <profile>
-      <activation>
-        <activeByDefault>true</activeByDefault>
-      </activation>
       <id>release</id>
       <build>
         <plugins>
           <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-source-plugin</artifactId>
-            <version>3.0.1</version>
             <executions>
               <execution>
                 <id>attach-sources</id>
@@ -343,9 +272,8 @@
             </executions>
           </plugin>
           <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-javadoc-plugin</artifactId>
-            <version>2.10.3</version>
+            <version>${maven-javadoc-plugin.version}</version>
             <executions>
               <execution>
                 <id>attach-javadocs</id>
@@ -359,9 +287,7 @@
             </configuration>
           </plugin>
           <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-gpg-plugin</artifactId>
-            <version>1.6</version>
             <executions>
               <execution>
                 <id>sign-artifacts</id>
@@ -371,16 +297,23 @@
                 </goals>
               </execution>
             </executions>
+            <configuration>
+              <!-- Prevent `gpg` from using pinentry programs -->
+              <gpgArguments>
+                <arg>--pinentry-mode</arg>
+                <arg>loopback</arg>
+              </gpgArguments>
+            </configuration>
           </plugin>
           <plugin>
             <groupId>org.sonatype.plugins</groupId>
             <artifactId>nexus-staging-maven-plugin</artifactId>
-            <version>1.6.8</version>
+            <version>${nexus-staging-maven-plugin.version}</version>
             <extensions>true</extensions>
             <configuration>
               <serverId>ossrh</serverId>
               <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-              <autoReleaseAfterClose>true</autoReleaseAfterClose>
+              <autoReleaseAfterClose>false</autoReleaseAfterClose>
             </configuration>
           </plugin>
         </plugins>

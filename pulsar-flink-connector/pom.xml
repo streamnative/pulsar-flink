@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
 
     Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,41 +15,62 @@
 
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <parent>
-    <artifactId>pulsar-flink-parent</artifactId>
-    <groupId>io.streamnative.connectors</groupId>
-    <version>2.5.8.3</version>
-  </parent>
+
   <modelVersion>4.0.0</modelVersion>
 
-  <artifactId>pulsar-flink-connector-origin-${flink.binary.version}</artifactId>
-  <packaging>jar</packaging>
+  <parent>
+    <groupId>io.streamnative.connectors</groupId>
+    <artifactId>pulsar-flink-parent</artifactId>
+    <version>2.5.8.3</version>
+  </parent>
 
-  <properties>
-  </properties>
+  <artifactId>pulsar-flink-connector-origin-${flink.binary.version}</artifactId>
+  <name>StreamNative :: Pulsar Flink Connector :: Origin</name>
+
+  <packaging>jar</packaging>
 
   <dependencies>
     <dependency>
-      <groupId>io.streamnative.connectors</groupId>
-      <artifactId>managed-ledger-shaded</artifactId>
-      <version>${project.version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>*</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-      </exclusions>
+      <groupId>org.apache.pulsar</groupId>
+      <artifactId>pulsar-client-all</artifactId>
+      <version>${pulsar.version}</version>
     </dependency>
+    <dependency>
+      <groupId>commons-codec</groupId>
+      <artifactId>commons-codec</artifactId>
+      <version>${commons-codec.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>commons-collections</groupId>
+      <artifactId>commons-collections</artifactId>
+      <version>${commons-collections.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-json</artifactId>
+      <version>${flink.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-avro</artifactId>
+      <version>${flink.version}</version>
+    </dependency>
+
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-table-runtime-blink_${scala.binary.version}</artifactId>
       <version>${flink.version}</version>
       <scope>provided</scope>
     </dependency>
-
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-table-common</artifactId>
+      <version>${flink.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-connector-base</artifactId>
       <version>${flink.version}</version>
       <scope>provided</scope>
     </dependency>
@@ -62,18 +84,6 @@
       <optional>true</optional>
     </dependency>
 
-    <dependency>
-      <groupId>org.apache.flink</groupId>
-      <artifactId>flink-json</artifactId>
-      <version>${flink.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.apache.flink</groupId>
-      <artifactId>flink-avro</artifactId>
-      <version>${flink.version}</version>
-    </dependency>
-
     <!-- test dependencies -->
     <dependency>
       <groupId>org.apache.flink</groupId>
@@ -81,7 +91,6 @@
       <version>${flink.version}</version>
       <scope>test</scope>
     </dependency>
-
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-streaming-java_${scala.binary.version}</artifactId>
@@ -89,21 +98,12 @@
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
-
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-test-utils_${scala.binary.version}</artifactId>
       <version>${flink.version}</version>
       <scope>test</scope>
-      <!-- exclusion log4j-->
-<!--            <exclusions>-->
-<!--              <exclusion>-->
-<!--                <groupId>log4j</groupId>-->
-<!--                <artifactId>log4j</artifactId>-->
-<!--              </exclusion>-->
-<!--            </exclusions>-->
     </dependency>
-
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-test-utils-junit</artifactId>
@@ -125,7 +125,6 @@
         </exclusion>
       </exclusions>
     </dependency>
-
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-tests</artifactId>
@@ -133,7 +132,6 @@
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
-
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-runtime_${scala.binary.version}</artifactId>
@@ -141,14 +139,6 @@
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
-
-    <dependency>
-      <groupId>org.apache.flink</groupId>
-      <artifactId>flink-connector-base</artifactId>
-      <version>${flink.version}</version>
-      <scope>provided</scope>
-    </dependency>
-
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-core</artifactId>
@@ -156,7 +146,6 @@
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
-
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-table-planner_${scala.binary.version}</artifactId>
@@ -164,13 +153,6 @@
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
-
-    <dependency>
-      <groupId>commons-codec</groupId>
-      <artifactId>commons-codec</artifactId>
-      <version>1.15</version>
-    </dependency>
-
     <!-- Pulsar table descriptor testing -->
     <dependency>
       <groupId>org.apache.flink</groupId>
@@ -179,7 +161,6 @@
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
-
     <!-- Pulsar catalog testing -->
     <dependency>
       <groupId>org.apache.flink</groupId>
@@ -187,7 +168,6 @@
       <version>${flink.version}</version>
       <scope>test</scope>
     </dependency>
-
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-table-planner-blink_${scala.binary.version}</artifactId>
@@ -195,14 +175,12 @@
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
-
     <dependency>
-      <scope>test</scope>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-log4j12</artifactId>
-      <version>1.7.25</version>
+      <version>${slf4j.version}</version>
+      <scope>test</scope>
     </dependency>
-
     <dependency>
       <groupId>org.hamcrest</groupId>
       <artifactId>hamcrest-all</artifactId>

@@ -506,8 +506,3 @@ If you want to build a Pulsar Flink connector reading data from Pulsar and writi
     $ mvn clean install
     ```
 Once the installation is finished, there is a fat jar generated under both local maven repo and `target` directory.
-
-> Note: If you are using intellij IDEA to debug this project, you may encounter the `org.apache.pulsar.shade.org.apache
-.bookkeeper.ledger` error, solution: run `mvn clean install' first.
- -DskipTests` install jar to local repository, then disable `managed-ledger-shaded'.
-module, the project refresh error will disappear.

@@ -23,12 +23,12 @@ import org.apache.flink.table.types.utils.TypeConversions;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.ExceptionUtils;
 
-import com.fasterxml.jackson.core.JsonEncoding;
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.pulsar.shade.com.fasterxml.jackson.core.JsonEncoding;
+import org.apache.pulsar.shade.com.fasterxml.jackson.core.JsonFactory;
+import org.apache.pulsar.shade.com.fasterxml.jackson.core.JsonGenerator;
+import org.apache.pulsar.shade.com.fasterxml.jackson.core.JsonParser;
+import org.apache.pulsar.shade.com.fasterxml.jackson.core.JsonToken;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

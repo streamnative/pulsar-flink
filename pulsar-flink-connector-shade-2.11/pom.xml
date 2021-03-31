@@ -24,7 +24,7 @@
     <version>2.7.7-SNAPSHOT</version>
   </parent>
 
-  <artifactId>pulsar-flink-connector-${scala.binary.version}-${flink.binary.version}</artifactId>
+  <artifactId>pulsar-flink-connector-2.11-${flink.binary.version}</artifactId>
   <name>StreamNative :: Pulsar Flink Connector :: Scala 2.11</name>
 
   <packaging>jar</packaging>
@@ -39,42 +39,20 @@
   <dependencies>
     <dependency>
       <groupId>io.streamnative.connectors</groupId>
-      <artifactId>flink-protobuf</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.streamnative.connectors</groupId>
       <artifactId>pulsar-flink-connector-origin-${flink.binary.version}</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.apache.flink</groupId>
-      <artifactId>flink-table-common</artifactId>
-      <version>${flink.version}</version>
+      <groupId>commons-codec</groupId>
+      <artifactId>commons-codec</artifactId>
+      <version>${commons-codec.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.apache.flink</groupId>
-      <artifactId>flink-streaming-java_${scala.binary.version}</artifactId>
-      <version>${flink.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.flink</groupId>
-      <artifactId>flink-json</artifactId>
-      <version>${flink.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.apache.flink</groupId>
-      <artifactId>flink-avro</artifactId>
-      <version>${flink.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
-      <version>${jackson.version}</version>
+      <groupId>commons-collections</groupId>
+      <artifactId>commons-collections</artifactId>
+      <version>${commons-collections.version}</version>
     </dependency>
   </dependencies>
-
   <build>
     <plugins>
       <plugin>
@@ -94,31 +72,16 @@
 
               <artifactSet>
                 <includes>
-                  <include>io.streamnative.connectors:flink-protobuf</include>
                   <include>io.streamnative.connectors:pulsar-flink-connector-origin*</include>
                   <include>org.apache.pulsar:*</include>
-                  <include>org.apache.flink:flink-avro</include>
-                  <include>org.apache.avro:avro</include>
-                  <include>org.apache.flink:flink-json</include>
-                  <include>com.fasterxml.jackson.core:jackson-*</include>
-                  <include>org.bouncycastle*:*</include>
-                  <include>org.bouncycastle*:*</include>
-                  <include>javax.*:*</include>
-                  <include>org.lz4*:*</include>
+                  <include>commons-codec:commons-codec</include>
                   <include>commons-collections:commons-collections</include>
                   <include>org.slf4j:jul-to-slf4j</include>
+                  <include>org.bouncycastle*:*</include>
                   <include>io.airlift:*</include>
                 </includes>
               </artifactSet>
               <filters>
-                <filter>
-                  <artifact>
-                    io.streamnative.connectors:pulsar-flink-connector_${scala.binary.version}
-                  </artifact>
-                  <includes>
-                    <include>**</include>
-                  </includes>
-                </filter>
                 <filter>
                   <artifact>*:*</artifact>
                   <excludes>
@@ -135,13 +98,13 @@
               </filters>
               <relocations>
                 <relocation>
-                  <pattern>com.google</pattern>
-                  <shadedPattern>org.apache.pulsar.shade.com.google</shadedPattern>
-                </relocation>
-                <relocation>
                   <pattern>org.apache.commons</pattern>
-                  <shadedPattern>org.apache.pulsar.shade.org.apache.commons</shadedPattern>
+                  <shadedPattern>org.apache.flink.pulsar.shaded.org.apache.commons</shadedPattern>
                 </relocation>
+<!--                <relocation>-->
+<!--                  <pattern>com.fasterxml.jackson</pattern>-->
+<!--                  <shadedPattern>org.apache.flink.shaded.jackson2.com.fasterxml.jackson</shadedPattern>-->
+<!--                </relocation>-->
               </relocations>
               <transformers>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>

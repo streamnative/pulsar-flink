@@ -29,25 +29,11 @@
 
   <packaging>jar</packaging>
 
-  <properties>
-  </properties>
-
   <dependencies>
     <dependency>
       <groupId>org.apache.pulsar</groupId>
       <artifactId>pulsar-client-all</artifactId>
       <version>${pulsar.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.streamnative.connectors</groupId>
-      <artifactId>managed-ledger-shaded</artifactId>
-      <version>${project.version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>*</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>commons-codec</groupId>

@@ -33,7 +33,7 @@
 
   <groupId>io.streamnative.connectors</groupId>
   <artifactId>pulsar-flink-parent</artifactId>
-  <version>2.7.6-rc</version>
+  <version>2.7.6</version>
 
 
   <name>StreamNative :: Pulsar Flink Connector :: Root</name>

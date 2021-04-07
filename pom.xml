@@ -34,7 +34,6 @@
   <artifactId>pulsar-flink-parent</artifactId>
   <version>2.7.7-SNAPSHOT</version>
 
-
   <name>StreamNative :: Pulsar Flink Connector :: Root</name>
   <url>http://pulsar.apache.org</url>
   <inceptionYear>2019</inceptionYear>
@@ -78,7 +77,6 @@
     <flink.binary.version>1.12</flink.binary.version>
     <jackson.version>2.10.5.1</jackson.version>
     <commons-collections.version>3.2.2</commons-collections.version>
-    <commons-codec.version>1.15</commons-codec.version>
     <scala.binary.version>2.11</scala.binary.version>
     <lombok.version>1.18.18</lombok.version>
     <aircompressor.version>0.16</aircompressor.version>
@@ -98,7 +96,6 @@
     <maven.version>3.5.4</maven.version>
     <license-maven-plugin.version>4.0.rc2</license-maven-plugin.version>
     <spotbugs-maven-plugin.version>4.2.2</spotbugs-maven-plugin.version>
-    <maven-javadoc-plugin.version>2.10.3</maven-javadoc-plugin.version>
     <nexus-staging-maven-plugin.version>1.6.8</nexus-staging-maven-plugin.version>
     <pulsar.systemtest.image>apachepulsar/pulsar:${pulsar.version}</pulsar.systemtest.image>
   </properties>
@@ -258,6 +255,7 @@
       <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
     </repository>
   </distributionManagement>
+
   <profiles>
     <profile>
       <id>release</id>
@@ -276,7 +274,6 @@
           </plugin>
           <plugin>
             <artifactId>maven-javadoc-plugin</artifactId>
-            <version>${maven-javadoc-plugin.version}</version>
             <executions>
               <execution>
                 <id>attach-javadocs</id>
@@ -286,7 +283,7 @@
               </execution>
             </executions>
             <configuration>
-              <additionalparam>-Xdoclint:none</additionalparam>
+              <additionalJOption>-Xdoclint:none</additionalJOption>
             </configuration>
           </plugin>
           <plugin>

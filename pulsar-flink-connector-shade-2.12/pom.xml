@@ -24,7 +24,7 @@
     <version>2.7.7-SNAPSHOT</version>
   </parent>
 
-  <artifactId>pulsar-flink-connector-2.12-${flink.binary.version}</artifactId>
+  <artifactId>pulsar-flink-connector-2.12</artifactId>
   <name>StreamNative :: Pulsar Flink Connector :: Scala 2.12</name>
 
   <packaging>jar</packaging>
@@ -41,11 +41,6 @@
       <groupId>io.streamnative.connectors</groupId>
       <artifactId>pulsar-flink-connector-origin-${flink.binary.version}</artifactId>
       <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>commons-codec</groupId>
-      <artifactId>commons-codec</artifactId>
-      <version>${commons-codec.version}</version>
     </dependency>
     <dependency>
       <groupId>commons-collections</groupId>
@@ -101,10 +96,6 @@
                   <pattern>org.apache.commons</pattern>
                   <shadedPattern>org.apache.flink.pulsar.shaded.org.apache.commons</shadedPattern>
                 </relocation>
-<!--                <relocation>-->
-<!--                  <pattern>com.fasterxml.jackson</pattern>-->
-<!--                  <shadedPattern>org.apache.flink.shaded.jackson2.com.fasterxml.jackson</shadedPattern>-->
-<!--                </relocation>-->
               </relocations>
               <transformers>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>

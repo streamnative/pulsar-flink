@@ -14,6 +14,7 @@
 
 package org.apache.flink.streaming.connectors.pulsar;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.api.common.JobStatus;
 import org.apache.flink.api.common.functions.FlatMapFunction;
@@ -32,6 +33,8 @@ import org.apache.flink.formats.json.JsonRowDataSerializationSchema;
 import org.apache.flink.formats.json.TimestampFormat;
 import org.apache.flink.runtime.client.JobCancellationException;
 import org.apache.flink.runtime.jobgraph.JobGraph;
+import org.apache.flink.shaded.guava18.com.google.common.collect.Iterables;
+import org.apache.flink.shaded.guava18.com.google.common.collect.Sets;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -74,12 +77,6 @@ import org.apache.flink.types.Row;
 import org.apache.flink.types.RowKind;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.ExceptionUtils;
-
-import org.apache.flink.shaded.guava18.com.google.common.collect.Iterables;
-import org.apache.flink.shaded.guava18.com.google.common.collect.Sets;
-
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections.MapUtils;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.Message;
@@ -99,7 +96,6 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -148,14 +144,14 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
     public void testRunFailedOnWrongServiceUrl() {
 
         try {
-            Properties props = MapUtils.toProperties(Collections.singletonMap(TOPIC_SINGLE_OPTION_KEY, "tp"));
+            Properties props = new Properties() {{ put(TOPIC_SINGLE_OPTION_KEY, "tp"); }};
 
             StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
             see.setRestartStrategy(RestartStrategies.noRestart());
             see.setParallelism(1);
 
             FlinkPulsarSource<String> source =
-                    new FlinkPulsarSource<String>("sev", "admin", new PulsarPrimitiveSchema<>(String.class), props)
+                    new FlinkPulsarSource<>("sev", "admin", new PulsarPrimitiveSchema<>(String.class), props)
                             .setStartFromEarliest();
 
             DataStream<String> stream = see.addSource(source);
@@ -178,7 +174,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         sendTypedMessages(tp, SchemaType.INT32, messages, Optional.empty());
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
 
-        Properties props = MapUtils.toProperties(Collections.singletonMap(TOPIC_SINGLE_OPTION_KEY, tp));
+        Properties props = new Properties() {{ put(TOPIC_SINGLE_OPTION_KEY, tp); }};
         props.setProperty("pulsar.reader.receiverQueueSize", "1000000");
 
         FlinkPulsarSource<Integer> source =

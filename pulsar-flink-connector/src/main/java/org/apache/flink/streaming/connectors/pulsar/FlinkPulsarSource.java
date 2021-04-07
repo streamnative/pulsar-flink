@@ -14,6 +14,7 @@
 
 package org.apache.flink.streaming.connectors.pulsar;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
@@ -34,6 +35,7 @@ import org.apache.flink.metrics.Counter;
 import org.apache.flink.runtime.state.CheckpointListener;
 import org.apache.flink.runtime.state.FunctionInitializationContext;
 import org.apache.flink.runtime.state.FunctionSnapshotContext;
+import org.apache.flink.shaded.guava18.com.google.common.collect.Sets;
 import org.apache.flink.streaming.api.checkpoint.CheckpointedFunction;
 import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
 import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
@@ -59,11 +61,6 @@ import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
 import org.apache.flink.streaming.util.serialization.PulsarDeserializationSchema;
 import org.apache.flink.util.ExceptionUtils;
 import org.apache.flink.util.SerializedValue;
-
-import org.apache.flink.shaded.guava18.com.google.common.collect.Sets;
-
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections.map.LinkedMap;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
@@ -73,8 +70,10 @@ import org.apache.pulsar.shade.org.apache.commons.lang3.StringUtils;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
@@ -173,7 +172,7 @@ public class FlinkPulsarSource<T>
     // ------------------------------------------------------------------------
 
     /** Data for pending but uncommitted offsets. */
-    private final LinkedMap pendingOffsetsToCommit = new LinkedMap();
+    private final LinkedHashMap<Long, Map<TopicRange, MessageId>> pendingOffsetsToCommit = new LinkedHashMap<>();
 
     /** Fetcher implements Pulsar reads. */
     private transient volatile PulsarFetcher<T> pulsarFetcher;
@@ -831,7 +830,7 @@ public class FlinkPulsarSource<T>
         } else {
             unionOffsetStates.clear();
 
-            PulsarFetcher fetcher = this.pulsarFetcher;
+            PulsarFetcher<T> fetcher = this.pulsarFetcher;
 
             if (fetcher == null) {
                 // the fetcher has not yet been initialized, which means we need to return the
@@ -856,8 +855,13 @@ public class FlinkPulsarSource<T>
                             .build();
                     unionOffsetStates.add(Tuple2.of(topicSubscription, entry.getValue()));
                 }
-                while (pendingOffsetsToCommit.size() > MAX_NUM_PENDING_CHECKPOINTS) {
-                    pendingOffsetsToCommit.remove(0);
+
+                int exceed = pendingOffsetsToCommit.size() - MAX_NUM_PENDING_CHECKPOINTS;
+                Iterator<Long> iterator = pendingOffsetsToCommit.keySet().iterator();
+
+                while (iterator.hasNext() && exceed > 0) {
+                    iterator.next();
+                    iterator.remove();
                 }
             }
         }
@@ -881,18 +885,22 @@ public class FlinkPulsarSource<T>
                 taskIndex, checkpointId);
 
         try {
-            int posInMap = pendingOffsetsToCommit.indexOf(checkpointId);
-            if (posInMap == -1) {
+            if (!pendingOffsetsToCommit.containsKey(checkpointId)) {
                 log.warn("Source {} received confirmation for unknown checkpoint id {}",
                         taskIndex, checkpointId);
                 return;
             }
 
-            Map<TopicRange, MessageId> offset = (Map<TopicRange, MessageId>) pendingOffsetsToCommit.remove(posInMap);
+            Map<TopicRange, MessageId> offset = pendingOffsetsToCommit.get(checkpointId);
 
             // remove older checkpoints in map
-            for (int i = 0; i < posInMap; i++) {
-                pendingOffsetsToCommit.remove(0);
+            Iterator<Long> iterator = pendingOffsetsToCommit.keySet().iterator();
+            while (iterator.hasNext()) {
+                Long key = iterator.next();
+                iterator.remove();
+                if (Objects.equals(key, checkpointId)) {
+                    break;
+                }
             }
 
             if (offset == null || offset.size() == 0) {
@@ -953,7 +961,7 @@ public class FlinkPulsarSource<T>
         return null;
     }
 
-    public LinkedMap getPendingOffsetsToCommit() {
+    public Map<Long, Map<TopicRange, MessageId>> getPendingOffsetsToCommit() {
         return pendingOffsetsToCommit;
     }
 

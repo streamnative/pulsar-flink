@@ -29,6 +29,8 @@ import org.apache.flink.metrics.groups.UnregisteredMetricsGroup;
 import org.apache.flink.runtime.checkpoint.OperatorSubtaskState;
 import org.apache.flink.runtime.state.FunctionInitializationContext;
 import org.apache.flink.runtime.state.StateSnapshotContextSynchronousImpl;
+import org.apache.flink.shaded.guava18.com.google.common.collect.ImmutableMap;
+import org.apache.flink.shaded.guava18.com.google.common.collect.Sets;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
 import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
@@ -54,11 +56,6 @@ import org.apache.flink.util.SerializedValue;
 import org.apache.flink.util.TestLogger;
 import org.apache.flink.util.function.SupplierWithException;
 import org.apache.flink.util.function.ThrowingRunnable;
-
-import org.apache.flink.shaded.guava18.com.google.common.collect.ImmutableMap;
-import org.apache.flink.shaded.guava18.com.google.common.collect.Sets;
-
-import org.apache.commons.collections.MapUtils;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.PulsarClientException;
@@ -589,7 +586,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
         source.open(new Configuration());
     }
 
-    public static Properties dummyProperties = MapUtils.toProperties(Collections.singletonMap("topic", "c"));
+    public static Properties dummyProperties = new Properties() {{ put("topic", "c"); }};
 
     private static String topicName(String topic, int partition) {
         return TopicName.get(topic).getPartition(partition).toString();

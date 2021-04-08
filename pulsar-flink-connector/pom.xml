@@ -24,7 +24,7 @@
     <version>2.7.7-SNAPSHOT</version>
   </parent>
 
-  <artifactId>pulsar-flink-connector-origin-${flink.binary.version}</artifactId>
+  <artifactId>pulsar-flink-connector-origin</artifactId>
   <name>StreamNative :: Pulsar Flink Connector :: Origin</name>
 
   <packaging>jar</packaging>
@@ -246,4 +246,36 @@
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-jar-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>default-jar</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>jar</goal>
+                </goals>
+              </execution>
+              <execution>
+                <id>javadoc-jar</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>jar</goal>
+                </goals>
+                <configuration>
+                  <classifier>javadoc</classifier>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>

@@ -74,7 +74,6 @@
     <!-- use Pulsar stable version -->
     <pulsar.version>2.7.0</pulsar.version>
     <flink.version>1.12.1</flink.version>
-    <flink.binary.version>1.12</flink.binary.version>
     <scala.binary.version>2.11</scala.binary.version>
     <lombok.version>1.18.18</lombok.version>
     <aircompressor.version>0.16</aircompressor.version>

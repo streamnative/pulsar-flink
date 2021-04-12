@@ -15,6 +15,7 @@
 package org.apache.flink.streaming.connectors.pulsar.util;
 
 import org.apache.flink.shaded.guava18.com.google.common.hash.Hashing;
+
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageRouter;
 import org.apache.pulsar.client.api.TopicMetadata;

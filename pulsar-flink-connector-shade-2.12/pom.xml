@@ -27,7 +27,7 @@
   <artifactId>pulsar-flink-connector-2.12</artifactId>
   <name>StreamNative :: Pulsar Flink Connector :: Scala 2.12</name>
 
-  <packaging>pom</packaging>
+  <packaging>jar</packaging>
 
   <properties>
     <scala.version>2.12.7</scala.version>

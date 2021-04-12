@@ -27,7 +27,7 @@
   <artifactId>pulsar-flink-connector-2.11</artifactId>
   <name>StreamNative :: Pulsar Flink Connector :: Scala 2.11</name>
 
-  <packaging>pom</packaging>
+  <packaging>jar</packaging>
 
   <properties>
     <scala.version>2.11.12</scala.version>
@@ -43,5 +43,77 @@
       <version>${project.version}</version>
     </dependency>
   </dependencies>
+
+  <profiles>
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-jar-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>default-jar</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>jar</goal>
+                </goals>
+              </execution>
+              <execution>
+                <id>javadoc-jar</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>jar</goal>
+                </goals>
+                <configuration>
+                  <classifier>javadoc</classifier>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
+  <build>
+    <plugins>
+      <plugin>
+        <!-- Shade all the dependencies to avoid conflicts -->
+        <artifactId>maven-shade-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <createDependencyReducedPom>true</createDependencyReducedPom>
+              <promoteTransitiveDependencies>true</promoteTransitiveDependencies>
+              <minimizeJar>false</minimizeJar>
+              <createSourcesJar>true</createSourcesJar>
+              <artifactSet>
+                <includes>
+                  <include>io.streamnative.connectors:pulsar-flink-connector-origin*</include>
+                </includes>
+              </artifactSet>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>log4j.properties</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.PluginXmlResourceTransformer"/>
+              </transformers>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 </project>
 

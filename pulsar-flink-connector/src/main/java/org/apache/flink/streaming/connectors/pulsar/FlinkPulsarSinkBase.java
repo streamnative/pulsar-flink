@@ -350,9 +350,6 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
         } catch (PulsarClientException e) {
             log.error("Failed to create producer for topic {}", topic);
             throw new RuntimeException(e);
-        } catch (ExecutionException e) {
-            log.error("Failed to getOrCreate a PulsarClient");
-            throw new RuntimeException(e);
         }
     }
 
@@ -503,7 +500,7 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
                 TransactionCoordinatorClientImpl tcClient = CachedPulsarClient.getOrCreate(clientConfigurationData).getTcClient();
                 TxnID transactionalId = transaction.transactionalId;
                 tcClient.commit(transactionalId, transaction.pendingMessages);
-            } catch (ExecutionException executionException) {
+            } catch (PulsarClientException executionException) {
                 log.error("Failed to getOrCreate a PulsarClient");
                 throw new RuntimeException(executionException);
             } catch (TransactionCoordinatorClientException.InvalidTxnStatusException statusException) {
@@ -526,7 +523,7 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
                 TransactionCoordinatorClientImpl tcClient = CachedPulsarClient.getOrCreate(clientConfigurationData).getTcClient();
                 TxnID transactionalId = transaction.transactionalId;
                 tcClient.abort(transactionalId, transaction.pendingMessages);
-            } catch (ExecutionException executionException) {
+            } catch (PulsarClientException executionException) {
                 log.error("Failed to getOrCreate a PulsarClient");
                 throw new RuntimeException(executionException);
             } catch (TransactionCoordinatorClientException.InvalidTxnStatusException statusException) {

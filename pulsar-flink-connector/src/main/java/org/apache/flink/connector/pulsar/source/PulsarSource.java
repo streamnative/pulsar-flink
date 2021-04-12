@@ -39,7 +39,6 @@ import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplitSerial
 import org.apache.flink.connector.pulsar.source.util.PulsarAdminUtils;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 import org.apache.flink.streaming.connectors.pulsar.internal.CachedPulsarClient;
-
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
@@ -48,9 +47,7 @@ import org.apache.pulsar.client.impl.conf.ConsumerConfigurationData;
 import org.apache.pulsar.shade.com.google.common.io.Closer;
 
 import javax.annotation.Nonnull;
-
 import java.util.Collections;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
@@ -173,7 +170,7 @@ public class PulsarSource<OUT>
         if (pulsarClient == null) {
             try {
                 pulsarClient = CachedPulsarClient.getOrCreate(pulsarConfiguration);
-            } catch (ExecutionException e) {
+            } catch (PulsarClientException e) {
                 throw new IllegalStateException("Cannot initialize pulsar client", e);
             }
         }

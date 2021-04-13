@@ -19,6 +19,7 @@ import org.apache.flink.streaming.util.serialization.PulsarDeserializationSchema
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageId;
+import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Reader;
 import org.apache.pulsar.client.api.ReaderBuilder;
 import org.apache.pulsar.client.impl.BatchMessageIdImpl;
@@ -27,7 +28,6 @@ import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -118,9 +118,8 @@ public class ReaderThread<T> extends Thread {
         }
     }
 
-    protected void createActualReader() throws org.apache.pulsar.client.api.PulsarClientException, ExecutionException {
-        ReaderBuilder<T> readerBuilder = CachedPulsarClient
-                .getOrCreate(clientConf)
+    protected void createActualReader() throws PulsarClientException {
+        ReaderBuilder<T> readerBuilder = CachedPulsarClient.getOrCreate(clientConf)
                 .newReader(deserializer.getSchema())
                 .topic(topicRange.getTopic())
                 .startMessageId(startMessageId)
@@ -135,7 +134,7 @@ public class ReaderThread<T> extends Thread {
         reader = readerBuilder.create();
     }
 
-    protected void skipFirstMessageIfNeeded() throws org.apache.pulsar.client.api.PulsarClientException {
+    protected void skipFirstMessageIfNeeded() throws PulsarClientException {
         Message<?> currentMessage = null;
         MessageId currentId;
         boolean failOnDataLoss = this.failOnDataLoss;

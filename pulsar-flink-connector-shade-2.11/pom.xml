@@ -24,7 +24,7 @@
     <version>2.7.7-SNAPSHOT</version>
   </parent>
 
-  <artifactId>pulsar-flink-connector-2.11</artifactId>
+  <artifactId>pulsar-flink-connector_2.11</artifactId>
   <name>StreamNative :: Pulsar Flink Connector :: Scala 2.11</name>
 
   <packaging>jar</packaging>

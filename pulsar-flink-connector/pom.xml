@@ -24,7 +24,7 @@
     <version>2.7.2.-SNAPSHOT</version>
   </parent>
 
-  <artifactId>pulsar-flink-connector-origin-${flink.binary.version}</artifactId>
+  <artifactId>pulsar-flink-connector-origin</artifactId>
   <name>StreamNative :: Pulsar Flink Connector :: Origin</name>
 
   <packaging>jar</packaging>
@@ -34,16 +34,6 @@
       <groupId>org.apache.pulsar</groupId>
       <artifactId>pulsar-client-all</artifactId>
       <version>${pulsar.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>commons-codec</groupId>
-      <artifactId>commons-codec</artifactId>
-      <version>${commons-codec.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>commons-collections</groupId>
-      <artifactId>commons-collections</artifactId>
-      <version>${commons-collections.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.flink</groupId>
@@ -219,4 +209,53 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>com.github.os72</groupId>
+        <artifactId>protoc-jar-maven-plugin</artifactId>
+        <version>${protoc.version}</version>
+        <executions>
+          <execution>
+            <id>generate-protobuf-test-sources</id>
+            <phase>generate-test-sources</phase>
+            <goals>
+              <goal>run</goal>
+            </goals>
+            <configuration>
+              <protocVersion>${protoc.version}</protocVersion>
+              <inputDirectories>
+                <include>src/test/proto</include>
+              </inputDirectories>
+              <outputTargets>
+                <outputTarget>
+                  <type>java</type>
+                  <addSources>test</addSources>
+                  <outputDirectory>${basedir}/target/generated-test-sources</outputDirectory>
+                </outputTarget>
+              </outputTargets>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-deploy-plugin</artifactId>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-source-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 </project>

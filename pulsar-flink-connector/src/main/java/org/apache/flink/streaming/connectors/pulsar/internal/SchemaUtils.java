@@ -21,6 +21,7 @@ import org.apache.flink.table.types.FieldsDataType;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.table.types.utils.TypeConversions;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.schema.GenericRecord;
@@ -39,6 +40,7 @@ import static org.apache.pulsar.shade.com.google.common.base.Preconditions.check
 /**
  * Various utilities to working with Pulsar Schema and Flink type system.
  */
+@Slf4j
 public class SchemaUtils {
 
     public static void uploadPulsarSchema(PulsarAdmin admin, String topic, SchemaInfo schemaInfo) {
@@ -52,11 +54,11 @@ public class SchemaUtils {
                 existingSchema = null;
             } else {
                 throw new RuntimeException(
-                        String.format("Failed to get schema information for %s", TopicName.get(topic).toString()), pae);
+                    String.format("Failed to get schema information for %s", TopicName.get(topic).toString()), pae);
             }
         } catch (Throwable e) {
             throw new RuntimeException(
-                    String.format("Failed to get schema information for %s", TopicName.get(topic).toString()), e);
+                String.format("Failed to get schema information for %s", TopicName.get(topic).toString()), e);
         }
 
         if (existingSchema == null) {
@@ -70,16 +72,16 @@ public class SchemaUtils {
             } catch (PulsarAdminException pae) {
                 if (pae.getStatusCode() == 404) {
                     throw new RuntimeException(
-                            String.format("Create schema for %s get 404", TopicName.get(topic).toString()), pae);
+                        String.format("Create schema for %s get 404", TopicName.get(topic).toString()), pae);
                 } else {
                     throw new RuntimeException(
-                            String.format("Failed to create schema information for %s",
-                                    TopicName.get(topic).toString()), pae);
+                        String.format("Failed to create schema information for %s",
+                            TopicName.get(topic).toString()), pae);
                 }
             } catch (Throwable e) {
                 throw new RuntimeException(
-                        String.format("Failed to create schema information for %s", TopicName.get(topic).toString()),
-                        e);
+                    String.format("Failed to create schema information for %s", TopicName.get(topic).toString()),
+                    e);
             }
         } else if (!existingSchema.equals(schemaInfo) && !compatibleSchema(existingSchema, schemaInfo)) {
             throw new RuntimeException("Writing to a topic which have incompatible schema");
@@ -93,7 +95,7 @@ public class SchemaUtils {
         }
         if (schemaInfo.getType() == SchemaType.KEY_VALUE) {
             return DefaultImplementation.convertKeyValueSchemaInfoDataToString(
-                    DefaultImplementation.decodeKeyValueSchemaInfo(schemaInfo)
+                DefaultImplementation.decodeKeyValueSchemaInfo(schemaInfo)
             );
         }
         return new String(schemaData, StandardCharsets.UTF_8);
@@ -122,10 +124,10 @@ public class SchemaUtils {
 
     public static SchemaInfo emptySchemaInfo() {
         return SchemaInfo.builder()
-                .name("empty")
-                .type(SchemaType.NONE)
-                .schema(new byte[0])
-                .build();
+            .name("empty")
+            .type(SchemaType.NONE)
+            .schema(new byte[0])
+            .build();
     }
 
     private static final Schema NULL_SCHEMA = Schema.create(Schema.Type.NULL);

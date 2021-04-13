@@ -42,11 +42,11 @@ public abstract class PulsarTestBaseWithFlink extends PulsarTestBase {
 
     @ClassRule
     public static MiniClusterWithClientResource flink = new MiniClusterWithClientResource(
-            new MiniClusterResourceConfiguration.Builder()
-                    .setConfiguration(getFlinkConfiguration())
-                    .setNumberTaskManagers(NUM_TMS)
-                    .setNumberSlotsPerTaskManager(TM_SLOTS)
-                    .build());
+        new MiniClusterResourceConfiguration.Builder()
+            .setConfiguration(getFlinkConfiguration())
+            .setNumberTaskManagers(NUM_TMS)
+            .setNumberSlotsPerTaskManager(TM_SLOTS)
+            .build());
 
     @Before
     public void noJobIsRunning() throws Exception {
@@ -70,9 +70,9 @@ public abstract class PulsarTestBaseWithFlink extends PulsarTestBase {
     public static List<JobID> getRunningJobs(ClusterClient<?> client) throws Exception {
         Collection<JobStatusMessage> statusMessages = client.listJobs().get();
         return statusMessages.stream()
-                .filter(status -> !status.getJobState().isGloballyTerminalState())
-                .map(JobStatusMessage::getJobId)
-                .collect(Collectors.toList());
+            .filter(status -> !status.getJobState().isGloballyTerminalState())
+            .map(JobStatusMessage::getJobId)
+            .collect(Collectors.toList());
     }
 
     public static void cancelRunningJobs(ClusterClient<?> client) throws Exception {

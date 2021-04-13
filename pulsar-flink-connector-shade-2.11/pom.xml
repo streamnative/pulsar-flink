@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
 
     Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +24,7 @@
     <version>2.7.2.-SNAPSHOT</version>
   </parent>
 
-  <artifactId>pulsar-flink-connector-2.11-${flink.binary.version}</artifactId>
+  <artifactId>pulsar-flink-connector_2.11</artifactId>
   <name>StreamNative :: Pulsar Flink Connector :: Scala 2.11</name>
 
   <packaging>jar</packaging>
@@ -38,95 +39,28 @@
   <dependencies>
     <dependency>
       <groupId>io.streamnative.connectors</groupId>
-      <artifactId>pulsar-flink-connector-origin-${flink.binary.version}</artifactId>
+      <artifactId>pulsar-flink-connector-origin</artifactId>
       <version>${project.version}</version>
+      <optional>true</optional>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.pulsar</groupId>
+      <artifactId>pulsar-client-all</artifactId>
+      <version>${pulsar.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-json</artifactId>
       <version>${flink.version}</version>
     </dependency>
-
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-avro</artifactId>
       <version>${flink.version}</version>
     </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
-      <version>${jackson.version}</version>
-    </dependency>
   </dependencies>
-  <build>
-    <plugins>
-      <plugin>
-        <!-- Shade all the dependencies to avoid conflicts -->
-        <artifactId>maven-shade-plugin</artifactId>
-        <executions>
-          <execution>
-            <phase>package</phase>
-            <goals>
-              <goal>shade</goal>
-            </goals>
-            <configuration>
-              <createDependencyReducedPom>true</createDependencyReducedPom>
-              <promoteTransitiveDependencies>true</promoteTransitiveDependencies>
-              <minimizeJar>false</minimizeJar>
-              <createSourcesJar>true</createSourcesJar>
 
-              <artifactSet>
-                <includes>
-                  <include>io.streamnative.connectors:flink-protobuf</include>
-                  <include>io.streamnative.connectors:pulsar-flink-connector-origin*</include>
-                  <include>org.apache.pulsar:*</include>
-                  <include>org.apache.flink:flink-avro</include>
-                  <include>org.apache.avro:avro</include>
-                  <include>org.apache.flink:flink-json</include>
-                  <include>com.fasterxml.jackson.core:jackson-*</include>
-                  <include>org.bouncycastle*:*</include>
-                  <include>javax.*:*</include>
-                  <include>org.lz4*:*</include>
-                  <include>commons-collections:commons-collections</include>
-                  <include>org.slf4j:jul-to-slf4j</include>
-                  <include>io.airlift:*</include>
-                </includes>
-              </artifactSet>
-              <filters>
-                <filter>
-                  <artifact>*:*</artifact>
-                  <excludes>
-                    <exclude>META-INF/*.SF</exclude>
-                    <exclude>META-INF/*.DSA</exclude>
-                    <exclude>META-INF/*.RSA</exclude>
-                    <exclude>META-INF/NOTICE.txt</exclude>
-                    <exclude>META-INF/NOTICE</exclude>
-                    <exclude>META-INF/LICENSE.txt</exclude>
-                    <exclude>META-INF/LICENSE</exclude>
-                    <exclude>META-INF/DEPENDENCIES</exclude>
-                  </excludes>
-                </filter>
-              </filters>
-              <relocations>
-                <relocation>
-                  <pattern>com.google</pattern>
-                  <shadedPattern>org.apache.pulsar.shade.com.google</shadedPattern>
-                </relocation>
-                <relocation>
-                  <pattern>org.apache.commons</pattern>
-                  <shadedPattern>org.apache.pulsar.shade.org.apache.commons</shadedPattern>
-                </relocation>
-              </relocations>
-              <transformers>
-                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
-                <transformer implementation="org.apache.maven.plugins.shade.resource.PluginXmlResourceTransformer"/>
-              </transformers>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
   <profiles>
     <profile>
       <id>release</id>
@@ -158,5 +92,45 @@
       </build>
     </profile>
   </profiles>
+
+  <build>
+    <plugins>
+      <plugin>
+        <!-- Shade all the dependencies to avoid conflicts -->
+        <artifactId>maven-shade-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <createDependencyReducedPom>false</createDependencyReducedPom>
+              <promoteTransitiveDependencies>true</promoteTransitiveDependencies>
+              <minimizeJar>false</minimizeJar>
+              <createSourcesJar>true</createSourcesJar>
+              <artifactSet>
+                <includes>
+                  <include>io.streamnative.connectors:pulsar-flink-connector-origin*</include>
+                </includes>
+              </artifactSet>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>log4j.properties</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.PluginXmlResourceTransformer"/>
+              </transformers>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 </project>
 

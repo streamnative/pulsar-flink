@@ -34,6 +34,8 @@ import java.util.Map;
  */
 public class PulsarCatalogSupport {
 
+    private static final String COMMENT = "table.comment";
+    private static final String IS_CATALOG_TOPIC = "is.catalog.topic";
     private PulsarMetadataReader pulsarMetadataReader;
 
     private SchemaTranslator schemaTranslator;
@@ -43,14 +45,14 @@ public class PulsarCatalogSupport {
                                 Map<String, String> caseInsensitiveParams, int indexOfThisSubtask,
                                 int numParallelSubtasks,
                                 SchemaTranslator schemaTranslator) throws
-            PulsarClientException {
+        PulsarClientException {
         this.pulsarMetadataReader = new PulsarMetadataReader(
-                adminUrl,
-                clientConfigurationData,
-                subscriptionName,
-                caseInsensitiveParams,
-                indexOfThisSubtask,
-                numParallelSubtasks
+            adminUrl,
+            clientConfigurationData,
+            subscriptionName,
+            caseInsensitiveParams,
+            indexOfThisSubtask,
+            numParallelSubtasks
         );
         this.schemaTranslator = schemaTranslator;
     }

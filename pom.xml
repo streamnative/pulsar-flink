@@ -26,13 +26,12 @@
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>18</version>
+    <version>23</version>
   </parent>
 
   <groupId>io.streamnative.connectors</groupId>
   <artifactId>pulsar-flink-parent</artifactId>
   <version>2.7.2.-SNAPSHOT</version>
-
 
   <name>StreamNative :: Pulsar Flink Connector :: Root</name>
   <url>http://pulsar.apache.org</url>
@@ -95,9 +94,9 @@
 
     <!-- plugin dependencies -->
     <maven.version>3.5.4</maven.version>
+    <maven-checkstyle-plugin.version>3.1.2</maven-checkstyle-plugin.version>
     <license-maven-plugin.version>4.0.rc2</license-maven-plugin.version>
     <spotbugs-maven-plugin.version>4.2.2</spotbugs-maven-plugin.version>
-    <maven-javadoc-plugin.version>2.10.3</maven-javadoc-plugin.version>
     <nexus-staging-maven-plugin.version>1.6.8</nexus-staging-maven-plugin.version>
     <pulsar.systemtest.image>apachepulsar/pulsar:${pulsar.version}</pulsar.systemtest.image>
   </properties>
@@ -181,6 +180,7 @@
 
       <plugin>
         <artifactId>maven-checkstyle-plugin</artifactId>
+        <version>${maven-checkstyle-plugin.version}</version>
         <executions>
           <execution>
             <id>checkstyle</id>
@@ -256,6 +256,7 @@
       <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
     </repository>
   </distributionManagement>
+
   <profiles>
     <profile>
       <id>release</id>
@@ -274,7 +275,6 @@
           </plugin>
           <plugin>
             <artifactId>maven-javadoc-plugin</artifactId>
-            <version>${maven-javadoc-plugin.version}</version>
             <executions>
               <execution>
                 <id>attach-javadocs</id>
@@ -284,7 +284,7 @@
               </execution>
             </executions>
             <configuration>
-              <additionalparam>-Xdoclint:none</additionalparam>
+              <additionalJOption>-Xdoclint:none</additionalJOption>
             </configuration>
           </plugin>
           <plugin>

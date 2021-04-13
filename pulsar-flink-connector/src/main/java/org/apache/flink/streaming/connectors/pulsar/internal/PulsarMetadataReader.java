@@ -15,7 +15,6 @@
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections.ListUtils;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.MessageId;
@@ -380,24 +379,18 @@ public class PulsarMetadataReader implements AutoCloseable {
     private List<String> getTopicsWithPattern(String topicsPattern) throws PulsarAdminException {
         TopicName dest = TopicName.get(topicsPattern);
         List<String> allNonPartitionedTopics = getNonPartitionedTopics(dest.getNamespace());
-        List<String> nonPartitionedMatch = topicsPatternFilter(allNonPartitionedTopics, dest.toString());
-
         List<String> allPartitionedTopics = admin.topics().getPartitionedTopicList(dest.getNamespace());
-        List<String> partitionedMatch = topicsPatternFilter(allPartitionedTopics, dest.toString());
 
-        return ListUtils.union(nonPartitionedMatch, partitionedMatch);
+        Pattern shortenedTopicsPattern = Pattern.compile(dest.toString().split("://")[1]);
+        return Stream.concat(allNonPartitionedTopics.stream(), allPartitionedTopics.stream())
+            .map(t -> TopicName.get(t).toString())
+            .filter(t -> shortenedTopicsPattern.matcher(t.split("://")[1]).matches())
+            .collect(Collectors.toList());
     }
 
     private List<String> getNonPartitionedTopics(String namespace) throws PulsarAdminException {
         return admin.topics().getList(namespace).stream()
                 .filter(t -> !TopicName.get(t).isPartitioned())
-                .collect(Collectors.toList());
-    }
-
-    private List<String> topicsPatternFilter(List<String> allTopics, String topicsPattern) {
-        Pattern shortenedTopicsPattern = Pattern.compile(topicsPattern.split("\\:\\/\\/")[1]);
-        return allTopics.stream().map(t -> TopicName.get(t).toString())
-                .filter(t -> shortenedTopicsPattern.matcher(t.split("\\:\\/\\/")[1]).matches())
                 .collect(Collectors.toList());
     }
 

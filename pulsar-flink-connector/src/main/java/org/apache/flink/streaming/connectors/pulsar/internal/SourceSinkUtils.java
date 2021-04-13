@@ -14,8 +14,8 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.pulsar.client.api.Range;
+import org.apache.pulsar.shade.org.apache.commons.lang3.StringUtils;
 
 import java.util.Arrays;
 import java.util.List;

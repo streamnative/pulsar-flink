@@ -44,4 +44,4 @@ jobs:
           sudo cp -R protoc/include/* $BASE/include
       - name: Run check and test
         run: |
-          ./tools/retry.sh mvn -B -ntp clean install
+          mvn -B -ntp clean install

@@ -24,7 +24,7 @@ import org.apache.flink.test.util.MiniClusterWithClientResource;
 
 import org.apache.pulsar.shade.org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
-import org.junit.ClassRule;
+import org.junit.Rule;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -43,8 +43,8 @@ public abstract class PulsarTestBaseWithFlink extends PulsarTestBase {
 
     protected ClusterClient<?> client;
 
-    @ClassRule
-    public static MiniClusterWithClientResource flink = new MiniClusterWithClientResource(
+    @Rule
+    public MiniClusterWithClientResource flink = new MiniClusterWithClientResource(
             new MiniClusterResourceConfiguration.Builder()
                     .setConfiguration(getFlinkConfiguration())
                     .setNumberTaskManagers(NUM_TMS)
@@ -86,7 +86,6 @@ public abstract class PulsarTestBaseWithFlink extends PulsarTestBase {
     }
 
     protected String createTableSql(String tableName, String topic, TableSchema tableSchema, String formatType) {
-
         List<String> columns = new ArrayList<>();
         for (TableColumn tableColumn : tableSchema.getTableColumns()) {
             final String column = MessageFormat.format(" `{0}` {1}",

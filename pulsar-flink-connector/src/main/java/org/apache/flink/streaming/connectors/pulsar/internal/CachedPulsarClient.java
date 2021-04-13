@@ -78,9 +78,8 @@ public class CachedPulsarClient {
 
         if (client == null) {
             client = createPulsarClient(config);
+            clientCache.put(key, client);
         }
-
-        clientCache.put(key, client);
 
         return client;
     }

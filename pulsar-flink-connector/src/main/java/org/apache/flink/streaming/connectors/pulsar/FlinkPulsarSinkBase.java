@@ -42,7 +42,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 
@@ -55,7 +54,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * checkpoints are enabled and setFlushOnCheckpoint(true) is set.
  * Otherwise, the producer doesn't provide any reliability guarantees.
  *
- * @param <T> Type of the messages to write into Kafka.
+ * @param <T> Type of the messages to write into pulsar.
  */
 @Slf4j
 abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements CheckpointedFunction {
@@ -202,6 +201,7 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
                 } else if (failedWrite == null && u != null) {
                     failedWrite = u;
                 } else { // failedWrite != null
+                    log.warn("callback error {}", u);
                     // do nothing and wait next checkForError to throw exception
                 }
             };
@@ -260,14 +260,11 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
                     .topic(topic)
                     .batchingMaxPublishDelay(100, TimeUnit.MILLISECONDS)
                     // maximizing the throughput
-                    .batchingMaxMessages(5 * 1024 * 1024)
+                    .batchingMaxBytes(5 * 1024 * 1024)
                     .loadConf(producerConf)
                     .create();
         } catch (PulsarClientException e) {
             log.error("Failed to create producer for topic {}", topic);
-            throw new RuntimeException(e);
-        } catch (ExecutionException e) {
-            log.error("Failed to getOrCreate a PulsarClient");
             throw new RuntimeException(e);
         }
     }

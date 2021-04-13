@@ -30,7 +30,6 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 
 /**
  * Specific reader thread to read flink rows from a Pulsar partition.
@@ -43,31 +42,31 @@ public class RowReaderThread extends ReaderThread<Row> {
     private final boolean useExtendField;
 
     public RowReaderThread(
-            PulsarFetcher owner,
-            PulsarTopicState state,
-            ClientConfigurationData clientConf,
-            Map<String, Object> readerConf,
-            int pollTimeoutMs,
-            SchemaInfo pulsarSchema,
-            PulsarDeserializationSchema<Row> deserializer,
-            ExceptionProxy exceptionProxy,
-            boolean useExtendField) {
+        PulsarFetcher owner,
+        PulsarTopicState state,
+        ClientConfigurationData clientConf,
+        Map<String, Object> readerConf,
+        int pollTimeoutMs,
+        SchemaInfo pulsarSchema,
+        PulsarDeserializationSchema<Row> deserializer,
+        ExceptionProxy exceptionProxy,
+        boolean useExtendField) {
         super(owner, state, clientConf, readerConf,
-                deserializer,
-                pollTimeoutMs, exceptionProxy);
+            deserializer,
+            pollTimeoutMs, exceptionProxy);
         this.schema = SchemaUtils.getPulsarSchema(pulsarSchema);
         this.useExtendField = useExtendField;
     }
 
     @Override
-    protected void createActualReader() throws PulsarClientException, ExecutionException {
+    protected void createActualReader() throws PulsarClientException {
         final ReaderBuilder<?> readerBuilder = CachedPulsarClient
-                .getOrCreate(clientConf)
-                .newReader(schema)
-                .topic(topicRange.getTopic())
-                .startMessageId(startMessageId)
-                .startMessageIdInclusive()
-                .loadConf(readerConf);
+            .getOrCreate(clientConf)
+            .newReader(schema)
+            .topic(topicRange.getTopic())
+            .startMessageId(startMessageId)
+            .startMessageIdInclusive()
+            .loadConf(readerConf);
         if (!topicRange.isFullRange()) {
             readerBuilder.keyHashRange(topicRange.getPulsarRange());
         }

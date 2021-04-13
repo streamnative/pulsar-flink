@@ -25,7 +25,7 @@ import java.util.concurrent.ConcurrentMap;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNotSame;
 
 /**
  * Unit test of {@link CachedPulsarClient}.
@@ -46,7 +46,7 @@ public class CachedPulsarClientTest {
         ClientConfigurationData conf2 = conf1.clone();
         conf2.setTlsTrustCertsFilePath("def");
 
-        assertTrue(conf1 != conf2);
+        assertNotSame(conf1, conf2);
         assertEquals(conf1.getTlsTrustCertsFilePath(), "abc");
         assertEquals(conf2.getTlsTrustCertsFilePath(), "def");
     }
@@ -99,12 +99,12 @@ public class CachedPulsarClientTest {
 
         assertNotEquals(client1, client2);
 
-        ConcurrentMap<ClientConfigurationData, PulsarClientImpl> map1 = CachedPulsarClient.getAsMap();
+        ConcurrentMap<String, PulsarClientImpl> map1 = CachedPulsarClient.getAsMap();
         assertEquals(map1.size(), 2);
 
         CachedPulsarClient.close(conf2);
 
-        ConcurrentMap<ClientConfigurationData, PulsarClientImpl> map2 = CachedPulsarClient.getAsMap();
+        ConcurrentMap<String, PulsarClientImpl> map2 = CachedPulsarClient.getAsMap();
         assertEquals(map2.size(), 1);
 
         assertEquals(map2.values().iterator().next(), client1);

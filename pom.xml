@@ -68,7 +68,7 @@
     <maven.compiler.target>1.8</maven.compiler.target>
     <maven.compiler.source>1.8</maven.compiler.source>
     <redirectTestOutputToFile>true</redirectTestOutputToFile>
-    <testRetryCount>2</testRetryCount>
+    <testRetryCount>3</testRetryCount>
 
     <!-- use Pulsar stable version -->
     <pulsar.version>2.7.0</pulsar.version>
@@ -241,6 +241,7 @@
             <log4j.configuration>file:${project.build.testOutputDirectory}/log4j-tests.properties</log4j.configuration>
             <pulsar.systemtest.image>${pulsar.systemtest.image}</pulsar.systemtest.image>
           </systemPropertyVariables>
+          <rerunFailingTestsCount>${testRetryCount}</rerunFailingTestsCount>
         </configuration>
       </plugin>
     </plugins>

@@ -17,6 +17,7 @@ package org.apache.flink.streaming.connectors.pulsar.internal;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageId;
+import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Reader;
 import org.apache.pulsar.client.api.ReaderBuilder;
 import org.apache.pulsar.client.impl.BatchMessageIdImpl;
@@ -25,7 +26,6 @@ import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -47,6 +47,7 @@ public class ReaderThread<T> extends Thread {
     private boolean failOnDataLoss = true;
 
     protected volatile boolean running = true;
+    protected volatile boolean closed = false;
 
     protected final PulsarDeserializationSchema<T> deserializer;
 
@@ -107,7 +108,7 @@ public class ReaderThread<T> extends Thread {
         } finally {
             if (reader != null) {
                 try {
-                    reader.close();
+                    close();
                 } catch (Throwable e) {
                     log.error("Error while closing Pulsar reader " + e.toString());
                 }
@@ -115,7 +116,7 @@ public class ReaderThread<T> extends Thread {
         }
     }
 
-    protected void createActualReader() throws org.apache.pulsar.client.api.PulsarClientException, ExecutionException {
+    protected void createActualReader() throws PulsarClientException {
         ReaderBuilder<?> readerBuilder = CachedPulsarClient
                 .getOrCreate(clientConf)
                 .newReader()
@@ -132,7 +133,7 @@ public class ReaderThread<T> extends Thread {
         reader = readerBuilder.create();
     }
 
-    protected void skipFirstMessageIfNeeded() throws org.apache.pulsar.client.api.PulsarClientException {
+    protected void skipFirstMessageIfNeeded() throws PulsarClientException {
         Message<?> currentMessage = null;
         MessageId currentId;
         boolean failOnDataLoss = this.failOnDataLoss;
@@ -209,13 +210,22 @@ public class ReaderThread<T> extends Thread {
 
         if (reader != null) {
             try {
-                reader.close();
+                close();
             } catch (IOException e) {
                 log.error("failed to close reader. ", e);
             }
         }
 
         this.interrupt();
+    }
+
+    public void close() throws IOException {
+        if (closed) {
+            return;
+        }
+        closed = true;
+        reader.close();
+        log.info("Reader closed");
     }
 
     public boolean isRunning() {

@@ -51,7 +51,6 @@ import org.apache.pulsar.shade.com.google.common.io.Closer;
 import javax.annotation.Nonnull;
 
 import java.util.Collections;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
@@ -176,7 +175,7 @@ public class PulsarSource<OUT>
         if (pulsarClient == null) {
             try {
                 pulsarClient = CachedPulsarClient.getOrCreate(pulsarConfiguration);
-            } catch (ExecutionException e) {
+            } catch (PulsarClientException e) {
                 throw new IllegalStateException("Cannot initialize pulsar client", e);
             }
         }

@@ -48,6 +48,7 @@ import org.apache.pulsar.client.impl.conf.ConsumerConfigurationData;
 import org.apache.pulsar.shade.com.google.common.io.Closer;
 
 import javax.annotation.Nonnull;
+
 import java.util.Collections;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;

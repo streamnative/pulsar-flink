@@ -418,12 +418,12 @@ public class FlinkPulsarSource<T>
                 ownedTopicStarts.remove(goneTopic);
             }
 
-            log.info("Source {} will start reading %d topics in restored state {}",
+            log.info("Source {} will start reading {} topics in restored state {}",
                     taskIndex, ownedTopicStarts.size(), StringUtils.join(ownedTopicStarts.entrySet()));
         } else {
             ownedTopicStarts.putAll(allTopicOffsets.entrySet().stream()
                     .filter(e -> SourceSinkUtils.belongsTo(e.getKey(), numParallelTasks, taskIndex))
-                    .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue())));
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
 
             if (ownedTopicStarts.isEmpty()) {
                 log.info("Source {} initially has no topics to read from.", taskIndex);

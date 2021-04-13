@@ -24,16 +24,13 @@ Since flink’s API is backward and forward compatible among its mainstream vers
  
 Since the connector marks the flink version in its version naming convention, no need to add the flink version in the connector artifact. All the flink bundled connectors have an extra scala tag for providing right flink dependencies or the compiled classes. We preserve this scala tag only to match the flink style.
  
-The new connector artifact would be `pulsar-flink-connector-${scala.binary.version}` and `pulsar-flink-connector-bundled-${scala.binary.version}`.
+The new connector artifact would be `pulsar-flink-connector-${scala.binary.version}`.
  
 ### Pulsar client would be an optional dependency
  
 In the new connector development specifications, we add a minimal supported pulsar client version constraint to every connector’s `release-1.xx` branches. That means every big flink version would have a target pulsar version. Any legacy pulsar which below the branch minimal supported version wouldn’t be supported by the related connector. But you can use an old supported connector branch which targets an old flink.
  
-We plan to use pulsar `2.5.x` as the minimal supported version for all the maintenance branches. That means some feature on the new pulsar client would have a built-in switch by reading your client version. Every time the connector would release two kinds of packages.
- 
-1. `pulsar-flink-connector-bundled-${scala.binary.version}`: The connector which bundles the latest pulsar client .
-2. `pulsar-flink-connector-${scala.binary.version}`: The connector without a specified pulsar client.
+We plan to use pulsar `2.5.x` as the minimal supported version for all the maintenance branches. That means some feature on the new pulsar client would have a built-in switch by reading your client version. The `pulsar-client-all` would be a dependency for connector. You can override its version in your pom file.
  
 ## Guidance on code maintaining
  

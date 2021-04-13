@@ -14,7 +14,8 @@
 
 package org.apache.flink.streaming.connectors.pulsar.util;
 
-import lombok.extern.slf4j.Slf4j;
+import org.apache.flink.shaded.guava18.com.google.common.hash.Hashing;
+
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageRouter;
 import org.apache.pulsar.client.api.TopicMetadata;
@@ -22,7 +23,6 @@ import org.apache.pulsar.client.api.TopicMetadata;
 /**
  * a messageRouter that route message by key hash.
  */
-@Slf4j
 public class KeyHashMessageRouterImpl implements MessageRouter {
 
     public static final KeyHashMessageRouterImpl INSTANCE = new KeyHashMessageRouterImpl();
@@ -33,6 +33,7 @@ public class KeyHashMessageRouterImpl implements MessageRouter {
 
     @Override
     public int choosePartition(Message<?> msg, TopicMetadata metadata) {
-        return MathUtil.toPositive(MathUtil.murmur2(msg.getKeyBytes())) % metadata.numPartitions();
+        int hashing = Hashing.murmur3_32().hashBytes(msg.getKeyBytes()).asInt();
+        return Math.abs(hashing) % metadata.numPartitions();
     }
 }

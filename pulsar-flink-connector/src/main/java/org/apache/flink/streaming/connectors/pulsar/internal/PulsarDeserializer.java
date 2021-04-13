@@ -29,12 +29,12 @@ import org.apache.flink.table.types.utils.TypeConversions;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.ExceptionUtils;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonParser;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.impl.schema.generic.GenericAvroRecord;
 import org.apache.pulsar.common.schema.SchemaInfo;
+import org.apache.pulsar.shade.com.fasterxml.jackson.core.JsonFactory;
+import org.apache.pulsar.shade.com.fasterxml.jackson.core.JsonParser;
 import org.apache.pulsar.shade.com.google.common.collect.ImmutableSet;
 import org.apache.pulsar.shade.org.apache.avro.Conversions;
 import org.apache.pulsar.shade.org.apache.avro.LogicalType;

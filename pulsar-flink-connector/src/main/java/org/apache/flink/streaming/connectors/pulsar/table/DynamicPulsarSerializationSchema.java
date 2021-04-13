@@ -29,11 +29,11 @@ import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.types.RowKind;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
 import org.apache.pulsar.common.schema.SchemaInfo;
+import org.apache.pulsar.shade.org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.Nullable;
 

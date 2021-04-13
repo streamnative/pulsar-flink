@@ -16,10 +16,10 @@ package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import org.apache.flink.util.Preconditions;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonParser;
 import lombok.Getter;
-import org.apache.commons.lang3.time.FastDateFormat;
+import org.apache.pulsar.shade.com.fasterxml.jackson.core.JsonFactory;
+import org.apache.pulsar.shade.com.fasterxml.jackson.core.JsonParser;
+import org.apache.pulsar.shade.org.apache.commons.lang3.time.FastDateFormat;
 
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;

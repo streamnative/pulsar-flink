@@ -14,8 +14,9 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
-import lombok.extern.slf4j.Slf4j;
 import org.apache.flink.streaming.util.serialization.PulsarDeserializationSchema;
+
+import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.PulsarClientException;

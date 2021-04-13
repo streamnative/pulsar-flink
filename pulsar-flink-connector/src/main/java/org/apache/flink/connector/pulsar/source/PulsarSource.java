@@ -39,6 +39,7 @@ import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplitSerial
 import org.apache.flink.connector.pulsar.source.util.PulsarAdminUtils;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 import org.apache.flink.streaming.connectors.pulsar.internal.CachedPulsarClient;
+
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;

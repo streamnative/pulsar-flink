@@ -6,7 +6,7 @@ Pulsar Flink 连接器使用 [Apache Pulsar](https://pulsar.apache.org) 和 [Apa
 
 - Java 8 或更高版本
 - Flink 1.9.0 或更高版本
-- Pulsar 2.4.0 或更高版本
+- Pulsar 2.5.0 或更高版本
 
 # 基本信息
 
@@ -14,48 +14,35 @@ Pulsar Flink 连接器使用 [Apache Pulsar](https://pulsar.apache.org) 和 [Apa
 
 ## 客户端
 
-目前，支持多个 Flink 版本：
+基于新的版本定义模型我们对当前连接器支持的 Pulsar 和 Flink 的支持做了如下的细分：
 
-- Flink 1.9 - 1.10：在 [`flink-1.9` 分支](https://github.com/streamnative/pulsar-flink/tree/flink-1.9)进行维护。
-- Flink 1.11：在 [`flink-1.11` 分支](https://github.com/streamnative/pulsar-flink/tree/flink-1.11)进行维护。
-- Flink 1.12：在 [`master` 分支](https://github.com/streamnative/pulsar-flink/tree/master)进行维护。
+| Flink 版本 | Pulsar client 版本 (最低版本) | 连接器分支                                                                 |
+|:--------------|:---------------------------------|:---------------------------------------------------------------------------------|
+| 1.9.x         | 2.5.x                            | [`release-1.9`](https://github.com/streamnative/pulsar-flink/tree/release-1.9)   |
+| 1.10.x        | 2.5.x                            | [`release-1.10`](https://github.com/streamnative/pulsar-flink/tree/release-1.10) |
+| 1.11.x        | 2.6.x                            | [`release-1.11`](https://github.com/streamnative/pulsar-flink/tree/release-1.11) |
+| 1.12.x        | 2.7.x                            | [`release-1.12`](https://github.com/streamnative/pulsar-flink/tree/release-1.12) |
+
 
 > **说明**  
-> Flink API 变化较大。master 分支主要覆盖新特性。其他分支主要包括一些 Bug 修复。
+> Flink API 每个版本变化较大。我们只在新版本 Flink 上开发新特性。旧 Flink 版本只做 Bug 修复。
 
-该 JAR 包位于 [Bintray Maven repository of StreamNative](https://dl.bintray.com/streamnative/maven)。
+## 版本定义
 
-对于使用 SBT、Maven、Gradle 的项目，可以设置以下参数到相关项目。
+我们现在将 jar 包发布到 Maven 中央库，你可以直接在 Maven、Gradle 和 SBT 里引用。包含两类连接器，`pulsar-flink-connector_2.11` 是针对 Scala 2.11 运行环境，而 `pulsar-flink-connector_2.12` 是给 Scala 2.12 运行环境使用的。这种命名的方式和 Flink 仓库的连接器保持一致。对于连接器的版本号，我们使用 4 位数字来定义，前三位代表能使用的 Flink 版本号，最后一位是我们自增的迭代版本。
 
-- `FLINK_VERSION`：支持 `1.9`、`1.11`、`1.12`。
-- `SCALA_BINARY_VERSION`：与 Flink 使用的 Scala 版本相关。目前，支持 `2.11`、`2.12`。
-- `PULSAR_FLINK_VERSION`：Pulsar Flink 连接器的版本。通常，使用三位数表示主版本（例如 `2.7.0`）。使用四位数表示分支版本（例如 `2.7.0.1`）。
-
-以下举例说明如何配置用 SBT、Maven、Gradle 的项目。
-
-```
-groupId = io.streamnative.connectors
-artifactId = pulsar-flink-connector-{{SCALA_BINARY_VERSION}}-{{FLINK_VERSION}}
-version = {{PULSAR_FLINK_VERSION}}
-```
+这样的版本命名便于用户选取合适的连接器用于项目中，也便于我们去发版。新版连接器中不再直接包含 `pulsar-client-all`，我们通过依赖的方式将其引入你的项目里，所以你可以修改依赖的 `pulsar-client-all` 版本来达成多版本兼容。
 
 ## Maven 项目
 
-对于 Maven 项目，用户可以在 `pom.xml` 中添加仓库的配置，内容如下：
+对于 Maven 项目，用户可以在 `pom.xml` 中添加连接器依赖，内容如下。其中 `scala.binary.version` 和 Flink 的依赖定义一致，你可以直接在 properties 属性中定义。`${pulsar-flink-connector.version}`可以基于你需要的 Flink 版本去选取，也定义在 properties 属性里。
 
 ```xml
-  <repositories>
-    <repository>
-      <id>central</id>
-      <layout>default</layout>
-      <url>https://repo1.maven.org/maven2</url>
-    </repository>
-    <repository>
-      <id>bintray-streamnative-maven</id>
-      <name>bintray</name>
-      <url>https://dl.bintray.com/streamnative/maven</url>
-    </repository>
-  </repositories>
+<dependency>
+    <groupId>io.streamnative.connectors</groupId>
+    <artifactId>pulsar-flink-connector_${scala.binary.version}</artifactId>
+    <version>${pulsar-flink-connector.version}</version>
+</dependency>
 ```
 
 对于 Maven 项目，想要构建包含库和 Pulsar Flink 连接器所需的所有依赖关系的 JAR 包，用户可以使用以下 [shade](https://imperceptiblethoughts.com/shadow/) 插件定义模板：
@@ -80,6 +67,7 @@ version = {{PULSAR_FLINK_VERSION}}
         <artifactSet>
           <includes>
             <include>io.streamnative.connectors:*</include>
+            <include>org.apache.pulsar:*</include>
             <!-- more libs to include here -->
           </includes>
         </artifactSet>
@@ -105,13 +93,11 @@ version = {{PULSAR_FLINK_VERSION}}
 
 ## Gradle项目
 
-对于 Gradle 项目，用户可以在 `build.gradle` 中添加仓库的配置，内容如下：
+对于 Gradle 项目，用户需要确保 `build.gradle` 中添加了 Maven 中央仓库的配置，内容如下：
 
 ```groovy
 repositories {
-        maven {
-            url 'https://dl.bintray.com/streamnative/maven'
-        }
+    mavenCentral()
 }
 ```
 
@@ -193,19 +179,19 @@ Pulsar Flink 连接器用来从 Pulsar 中读取数据或者将结果写入 Puls
 
 ```
 ./bin/start-scala-shell.sh remote <hostname> <portnumber>
-  --addclasspath pulsar-flink-connector-{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar
+  --addclasspath pulsar-flink-connector_{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar
 ```
 
 有关使用 CLI 提交应用程序的更多信息，参见 [Command-Line Interface](https://ci.apache.org/projects/flink/flink-docs-release-1.12/deployment/cli.html).
 
 ## SQL 客户端
 
-如需使用 [SQL 客户端](https://ci.apache.org/projects/flink/flink-docs-release-1.12/dev/table/sqlClient.html)并编写 SQL 查询、操作 Pulsar 中的数据，用户可以使用 `--addclasspath` 参数直接添加 `pulsar-flink-connector-{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar`。
+如需使用 [SQL 客户端](https://ci.apache.org/projects/flink/flink-docs-release-1.12/dev/table/sqlClient.html)并编写 SQL 查询、操作 Pulsar 中的数据，用户可以使用 `--addclasspath` 参数直接添加 `pulsar-flink-connector_{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar`。
 
 **举例**
 
 ```
-./bin/sql-client.sh embedded --jar pulsar-flink-connector-{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar
+./bin/sql-client.sh embedded --jar pulsar-flink-connector_{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar
 ```
 
 > **说明**
@@ -250,7 +236,7 @@ Properties props = new Properties();
 props.setProperty("topic", "test-source-topic");
 props.setProperty("partition.discovery.interval-millis", "5000");
 
-FlinkPulsarSource<String> source = new FlinkPulsarSource<>(serviceUrl, adminUrl, new PulsarDeserializationSchemaWrapper(new SimpleStringSchema(),DataTypes.STRING()), props);
+FlinkPulsarSource<String> source = new FlinkPulsarSource<>(serviceUrl, adminUrl, PulsarDeserializationSchema.valueOnly(new SimpleStringSchema()), props);
 
 // or setStartFromLatest、setStartFromSpecificOffsets、setStartFromSubscription
 source.setStartFromEarliest(); 
@@ -271,16 +257,17 @@ Pulsar producer 使用 `FlinkPulsarSink` 实例。`FlinkPulsarSink` 实例允许
 
 ```java
 PulsarSerializationSchema<Person> pulsarSerialization = new PulsarSerializationSchemaWrapper.Builder<>(JsonSer.of(Person.class))
-.usePojoMode(Person. class, RecordSchemaType.JSON)
-.setTopicExtractor(person -> null)
-.build();
+    .usePojoMode(Person. class, RecordSchemaType.JSON)
+    .setTopicExtractor(person -> null)
+    .build();
 FlinkPulsarSink<Person> sink = new FlinkPulsarSink(
-  serviceUrl,
-  adminUrl,
-  Optional.of(topic),      // mandatory target topic or use `Optional.empty()` if sink to different topics for each record
-  props,
-  pulsarSerialization,
-  PulsarSinkSemantic.AT_LEAST_ONCE);
+    serviceUrl,
+    adminUrl,
+    Optional.of(topic), // mandatory target topic or use `Optional.empty()` if sink to different topics for each record
+    props,
+    pulsarSerialization,
+    PulsarSinkSemantic.AT_LEAST_ONCE
+);
 
 stream.addSink(sink);
 ```

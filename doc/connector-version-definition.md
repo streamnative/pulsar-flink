@@ -24,7 +24,7 @@ Since flink’s API is backward and forward compatible among its mainstream vers
  
 Since the connector marks the flink version in its version naming convention, no need to add the flink version in the connector artifact. All the flink bundled connectors have an extra scala tag for providing right flink dependencies or the compiled classes. We preserve this scala tag only to match the flink style.
  
-The new connector artifact would be `pulsar-flink-connector-${scala.binary.version}`.
+The new connector artifact would be `pulsar-flink-connector_${scala.binary.version}`.
  
 ### Pulsar client would be an optional dependency
  

@@ -8,7 +8,7 @@ For details about the Chinese document, see [here](doc/README_CN.md).
 
 - Java 8 or higher version
 - Flink 1.9.0 or higher version
-- Pulsar 2.4.0 or higher version
+- Pulsar 2.5.0 or higher version
 
 # Basic information
 
@@ -16,50 +16,34 @@ This section describes basic information about the Pulsar Flink connector.
 
 ## Client
 
-Currently, the following Flink versions are supported.
+We change our project [version definition](doc/connector-version-definition.md), the Flink & Pulsar supporting matrix is here.
 
-- Flink 1.9 - 1.10: they are maintained in the [`flink-1.9` branch](https://github.com/streamnative/pulsar-flink/tree/flink-1.9).
-
-- Flink 1.11: it is maintained in the [`flink-1.11` branch](https://github.com/streamnative/pulsar-flink/tree/flink-1.11).
-
-- Flink 1.12: it is maintained in the [`master` branch](https://github.com/streamnative/pulsar-flink/tree/master).
+| Flink version | Pulsar client version (or above) | Connector branch                                                                 |
+|:--------------|:---------------------------------|:---------------------------------------------------------------------------------|
+| 1.9.x         | 2.5.x                            | [`release-1.9`](https://github.com/streamnative/pulsar-flink/tree/release-1.9)   |
+| 1.10.x        | 2.5.x                            | [`release-1.10`](https://github.com/streamnative/pulsar-flink/tree/release-1.10) |
+| 1.11.x        | 2.6.x                            | [`release-1.11`](https://github.com/streamnative/pulsar-flink/tree/release-1.11) |
+| 1.12.x        | 2.7.x                            | [`release-1.12`](https://github.com/streamnative/pulsar-flink/tree/release-1.12) |
 
 > **Note**  
-> Since Flink's API has changed greatly, we mainly work on new features in the `master` branch and fix bugs in other branches.
+> Since Flink's API changed greatly through different versions, we mainly work on new features for the latest released flink version and fix bugs for old release.
 
-The JAR package is located in the [Bintray Maven repository of StreamNative](https://dl.bintray.com/streamnative/maven).
+## Version definitions
 
-For projects using SBT, Maven, or Gradle, you can set the following parameters for your project.
+Since we have deploy the jar to maven central, you can use this connector by using maven, gradle and sbt, etc. We have two types of connector, the `pulsar-flink-connector_2.11` for scala 2.11 environment, and the `pulsar-flink-connector_2.12` for scala 2.12. This naming style is the same as flink. The version of this project is in a four-part form, the first three part is the relying flink version, and the last part is the patching version for connector.
 
-- `FLINK_VERSION`: currently, versions `1.9`, `1.11`, and `1.12` are available.
-- `SCALA_BINARY_VERSION`: this parameter defines the Scala version used by Flink. Versions `2.11` and `2.12` are available.
-- `PULSAR_FLINK_VERSION`: it is the version of the Pulsar Flink connector. Usually, use a three-digit version (such as version `2.7.0`) for a master release and a four-digit version for a branch release (such as version `2.7.0.1`).
-
-Here is an example about how to configure parameters for projects using SBT, Maven, or Gradle.
-
-```shell
-groupId = io.streamnative.connectors
-artifactId = pulsar-flink-connector-{{SCALA_BINARY_VERSION}}-{{FLINK_VERSION}}
-version = {{PULSAR_FLINK_VERSION}}
-```
+This version definition is simple for user to choose right connector but totally different as before. We don't shade the `pulsar-client-all` to the distro, instead, we just use the maven dependency. You can override the dependent `pulsar-client-all` as long as its version is above the supporting matrix.
 
 ## Maven projects
 
-For Maven projects, you can add the repository configuration to your `pom.xml`, as shown below.
+For Maven projects, add the following dep to your pom. `scala.binary.version` is following the flink dependency style, you can add it in your pom properties field. `${pulsar-flink-connector.version}` can be changed to your desired version, or defined it in pom properties field.
 
 ```xml
-  <repositories>
-    <repository>
-      <id>central</id>
-      <layout>default</layout>
-      <url>https://repo1.maven.org/maven2</url>
-    </repository>
-    <repository>
-      <id>bintray-streamnative-maven</id>
-      <name>bintray</name>
-      <url>https://dl.bintray.com/streamnative/maven</url>
-    </repository>
-  </repositories>
+<dependency>
+    <groupId>io.streamnative.connectors</groupId>
+    <artifactId>pulsar-flink-connector_${scala.binary.version}</artifactId>
+    <version>${pulsar-flink-connector.version}</version>
+</dependency>
 ```
 
 For Maven projects, you can use the following [shade](https://imperceptiblethoughts.com/shadow/) plugin definition template to build an application JAR package that contains all the dependencies required for the client library and Pulsar Flink connector.
@@ -84,6 +68,7 @@ For Maven projects, you can use the following [shade](https://imperceptiblethoug
         <artifactSet>
           <includes>
             <include>io.streamnative.connectors:*</include>
+            <include>org.apache.pulsar:*</include>
             <!-- more libs to include here -->
           </includes>
         </artifactSet>
@@ -109,13 +94,11 @@ For Maven projects, you can use the following [shade](https://imperceptiblethoug
 
 ## Gradle projects
 
-For Gradle projects, you can add the repository configuration to your `build.gradle`, as shown below.
+For Gradle projects, make sure maven central is added to your `build.gradle`, as shown below.
 
 ```groovy
 repositories {
-         maven {
-             url 'https://dl.bintray.com/streamnative/maven'
-         }
+    mavenCentral()
 }
 ```
 
@@ -152,10 +135,10 @@ To build the Pulsar Flink connector for reading data from Pulsar or writing the 
 
 3. Set the Java version.
 
-   Modify `java.version` and `java.binary.version` in `pom.xml`.
+  Modify `java.version` and `java.binary.version` in `pom.xml`.
 
-   > **Note**  
-   > Ensure that the Java version should be identical to the Java version for the Pulsar Flink connector.
+  > **Note**  
+  > Ensure that the Java version should be identical to the Java version for the Pulsar Flink connector.
 
 4. Build the project.
 
@@ -192,25 +175,25 @@ If you have already built a JAR package with dependencies using the above shade 
 
 ## Scala REPL
 
-The Scala REPL is a tool (scala) for evaluating expressions in Scala. Use the `bin/start-scala-shell.sh` command to deploy Pulsar Flink connector on Scala client. You can use the `--addclasspath` to add `pulsar-flink-connector_{{SCALA_BINARY_VERSION}}-{{ PULSAR_FLINK_VERSION}}.jar` package.
+The Scala REPL is a tool (scala) for evaluating expressions in Scala. Use the `bin/start-scala-shell.sh` command to deploy Pulsar Flink connector on Scala client. You can use the `--addclasspath` to add `pulsar-flink-connector_{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar` package.
 
 **Example**
 
 ```
 ./bin/start-scala-shell.sh remote <hostname> <portnumber>
- --addclasspath pulsar-flink-connector-{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar
+ --addclasspath pulsar-flink-connector_{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar
 ```
 
 For more information on submitting applications through the CLI, see [Command-Line Interface](https://ci.apache.org/projects/flink/flink-docs-release-1.12/deployment/cli.html) .
 
 ## SQL client
 
-The [SQL Client](https://ci.apache.org/projects/flink/flink-docs-release-1.12/dev/table/sqlClient.html) is used to write SQL queries for manipulating data in Pulsar, you can use the `-addclasspath` option to add `pulsar-flink-connector-{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar` package.
+The [SQL Client](https://ci.apache.org/projects/flink/flink-docs-release-1.12/dev/table/sqlClient.html) is used to write SQL queries for manipulating data in Pulsar, you can use the `-addclasspath` option to add `pulsar-flink-connector_{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar` package.
 
 **Example**
 
 ```
-./bin/sql-client.sh embedded --jar pulsar-flink-connector-{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar
+./bin/sql-client.sh embedded --jar pulsar-flink-connector_{{SCALA_BINARY_VERSION}}-{{PULSAR_FLINK_VERSION}}.jar
 ```
 
 > **Note**  
@@ -276,16 +259,17 @@ The Pulsar producer uses the `FlinkPulsarSink` instance. It allows to write reco
 
 ```java
 PulsarSerializationSchema<Person> pulsarSerialization = new PulsarSerializationSchemaWrapper.Builder<>(JsonSer.of(Person.class))
-.usePojoMode(Person. class, RecordSchemaType.JSON)
-.setTopicExtractor(person -> null)
-.build();
+    .usePojoMode(Person. class, RecordSchemaType.JSON)
+    .setTopicExtractor(person -> null)
+    .build();
 FlinkPulsarSink<Person> sink = new FlinkPulsarSink(
-  serviceUrl,
-  adminUrl,
-  Optional.of(topic),      // mandatory target topic or use `Optional.empty()` if sink to different topics for each record
-  props,
-  pulsarSerialization,
-  PulsarSinkSemantic.AT_LEAST_ONCE);
+    serviceUrl,
+    adminUrl,
+    Optional.of(topic), // mandatory target topic or use `Optional.empty()` if sink to different topics for each record
+    props,
+    pulsarSerialization,
+    PulsarSinkSemantic.AT_LEAST_ONCE
+);
 
 stream.addSink(sink);
 ```
@@ -299,6 +283,7 @@ PulsarDeserializationSchemaWrapper is a simple implementation of PulsarDeseriali
 ```
 PulsarDeserializationSchemaWrapper(new SimpleStringSchema(),DataTypes.STRING())
 ```
+
 > **Note**  
 > The `DataTypes` type comes from Flink's `table-common` module.
 

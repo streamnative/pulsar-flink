@@ -30,7 +30,7 @@
 
   <groupId>io.streamnative.connectors</groupId>
   <artifactId>pulsar-flink-parent</artifactId>
-  <version>2.7.7-SNAPSHOT</version>
+  <version>1.9.3.0</version>
 
   <name>StreamNative :: Pulsar Flink Connector :: Root</name>
   <url>http://pulsar.apache.org</url>

@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -44,7 +44,7 @@ public class TestMetadataReader extends PulsarMetadataReader {
             int indexOfThisSubtask,
             int numParallelSubtasks,
             List<Set<TopicRange>> mockGetAllTopicsReturnSequence) throws PulsarClientException {
-        super("", new ClientConfigurationData(), "", caseInsensitiveParams, indexOfThisSubtask, numParallelSubtasks);
+        super("http://localhost:8080", new ClientConfigurationData(), "", caseInsensitiveParams, indexOfThisSubtask, numParallelSubtasks);
         this.mockGetAllTopicsReturnSequence = mockGetAllTopicsReturnSequence;
     }
 

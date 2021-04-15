@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -160,7 +160,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         } catch (Exception e) {
             final Optional<Throwable> optionalThrowable = ExceptionUtils.findThrowableWithMessage(e, "authority component is missing");
             assertTrue(optionalThrowable.isPresent());
-            assertTrue(optionalThrowable.get() instanceof PulsarClientException);
+            assertTrue(optionalThrowable.get() instanceof IllegalArgumentException);
         }
     }
 

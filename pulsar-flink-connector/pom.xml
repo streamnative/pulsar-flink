@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
 
     Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,34 +15,38 @@
 
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <parent>
-    <artifactId>pulsar-flink-parent</artifactId>
-    <groupId>io.streamnative.connectors</groupId>
-    <version>2.5.6-SNAPSHOT</version>
-  </parent>
+
   <modelVersion>4.0.0</modelVersion>
 
-  <artifactId>pulsar-flink-connector-${scala.binary.version}-${flink.binary.version}</artifactId>
-  <packaging>jar</packaging>
+  <parent>
+    <groupId>io.streamnative.connectors</groupId>
+    <artifactId>pulsar-flink-parent</artifactId>
+    <version>2.7.7-SNAPSHOT</version>
+  </parent>
 
-  <properties>
-    <flink.version>1.9.0</flink.version>
-    <flink.binary.version>1.9</flink.binary.version>
-  </properties>
+  <artifactId>pulsar-flink-connector-origin</artifactId>
+  <name>StreamNative :: Pulsar Flink Connector :: Origin</name>
+
+  <packaging>jar</packaging>
 
   <dependencies>
     <dependency>
-      <groupId>io.streamnative.connectors</groupId>
-      <artifactId>managed-ledger-shaded</artifactId>
-      <version>${project.version}</version>
+      <groupId>org.apache.pulsar</groupId>
+      <artifactId>pulsar-client-all</artifactId>
+      <version>${pulsar.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-json</artifactId>
+      <version>${flink.version}</version>
+    </dependency>
+
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-table-runtime-blink_${scala.binary.version}</artifactId>
       <version>${flink.version}</version>
       <scope>provided</scope>
     </dependency>
-
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-table-common</artifactId>
@@ -58,22 +63,13 @@
       <optional>true</optional>
     </dependency>
 
-    <dependency>
-      <groupId>org.apache.flink</groupId>
-      <artifactId>flink-json</artifactId>
-      <version>${flink.version}</version>
-      <scope>provided</scope>
-    </dependency>
-
     <!-- test dependencies -->
-
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-metrics-jmx_${scala.binary.version}</artifactId>
       <version>${flink.version}</version>
       <scope>test</scope>
     </dependency>
-
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-streaming-java_${scala.binary.version}</artifactId>
@@ -81,21 +77,33 @@
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
-
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-test-utils_${scala.binary.version}</artifactId>
       <version>${flink.version}</version>
       <scope>test</scope>
     </dependency>
-
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-test-utils-junit</artifactId>
       <version>${flink.version}</version>
       <scope>test</scope>
+      <!-- exclusion log4j2-->
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.logging.log4j</groupId>
+          <artifactId>log4j-slf4j-impl</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.logging.log4j</groupId>
+          <artifactId>log4j-api</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.logging.log4j</groupId>
+          <artifactId>log4j-core</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
-
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-tests</artifactId>
@@ -103,7 +111,6 @@
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
-
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-runtime_${scala.binary.version}</artifactId>
@@ -118,7 +125,6 @@
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
-
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-table-planner_${scala.binary.version}</artifactId>
@@ -126,7 +132,6 @@
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
-
     <!-- Pulsar table descriptor testing -->
     <dependency>
       <groupId>org.apache.flink</groupId>
@@ -135,7 +140,6 @@
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
-
     <!-- Pulsar catalog testing -->
     <dependency>
       <groupId>org.apache.flink</groupId>
@@ -143,85 +147,104 @@
       <version>${flink.version}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-table-planner-blink_${scala.binary.version}</artifactId>
+      <version>${flink.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-log4j12</artifactId>
+      <version>${slf4j.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest-all</artifactId>
+      <version>${hamcrest.version}</version>
+      <type>jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers</artifactId>
+      <version>${testcontainers.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>pulsar</artifactId>
+      <version>${testcontainers.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>${mockito.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.powermock</groupId>
+      <artifactId>powermock-module-junit4</artifactId>
+      <version>${powermock.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.powermock</groupId>
+      <artifactId>powermock-api-mockito2</artifactId>
+      <version>${powermock.version}</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
-  <profiles>
-    <profile>
-      <id>scala-2.11</id>
-      <properties>
-        <scala.version>2.11.12</scala.version>
-        <scala.binary.version>2.11</scala.binary.version>
-      </properties>
-      <activation>
-        <property>
-          <name>!scala-2.12</name>
-        </property>
-      </activation>
-      <build>
-        <plugins>
-          <!-- make sure we don't have any _2.12 dependencies when building
-          for Scala 2.11 -->
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-enforcer-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>enforce-versions</id>
-                <goals>
-                  <goal>enforce</goal>
-                </goals>
-                <configuration>
-                  <rules>
-                    <bannedDependencies>
-                      <excludes>
-                        <exclude>*:*_2.12</exclude>
-                      </excludes>
-                    </bannedDependencies>
-                  </rules>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-    <profile>
-      <id>scala-2.12</id>
-      <properties>
-        <scala.version>2.12.7</scala.version>
-        <scala.binary.version>2.12</scala.binary.version>
-      </properties>
-      <activation>
-        <property>
-          <name>scala-2.12</name>
-        </property>
-      </activation>
-      <build>
-        <plugins>
-          <!-- make sure we don't have any _2.11 dependencies when building
-          for Scala 2.12 -->
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-enforcer-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>enforce-versions</id>
-                <goals>
-                  <goal>enforce</goal>
-                </goals>
-                <configuration>
-                  <rules>
-                    <bannedDependencies>
-                      <excludes>
-                        <exclude>*:*_2.11</exclude>
-                      </excludes>
-                    </bannedDependencies>
-                  </rules>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-  </profiles>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>com.github.os72</groupId>
+        <artifactId>protoc-jar-maven-plugin</artifactId>
+        <version>${protoc.version}</version>
+        <executions>
+          <execution>
+            <id>generate-protobuf-test-sources</id>
+            <phase>generate-test-sources</phase>
+            <goals>
+              <goal>run</goal>
+            </goals>
+            <configuration>
+              <protocVersion>${protoc.version}</protocVersion>
+              <inputDirectories>
+                <include>src/test/proto</include>
+              </inputDirectories>
+              <outputTargets>
+                <outputTarget>
+                  <type>java</type>
+                  <addSources>test</addSources>
+                  <outputDirectory>${basedir}/target/generated-test-sources</outputDirectory>
+                </outputTarget>
+              </outputTargets>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-deploy-plugin</artifactId>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-source-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 </project>

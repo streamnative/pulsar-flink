@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -118,7 +118,8 @@ public class SourceSinkUtils {
     public static Map<String, Object> getReaderParams(Map<String, String> parameters) {
         return parameters.keySet().stream()
                 .filter(k -> k.startsWith(PulsarOptions.PULSAR_READER_OPTION_KEY_PREFIX))
-                .collect(Collectors.toMap(k -> k.substring(PulsarOptions.PULSAR_READER_OPTION_KEY_PREFIX.length()), k -> parameters.get(k)));
+                .collect(Collectors.toMap(k -> k.substring(PulsarOptions.PULSAR_READER_OPTION_KEY_PREFIX.length()),
+                        k -> parameters.get(k)));
     }
 
     public static Map<String, String> toCaceInsensitiveParams(Map<String, String> parameters) {
@@ -129,7 +130,8 @@ public class SourceSinkUtils {
     public static Map<String, Object> getProducerParams(Map<String, String> parameters) {
         return parameters.keySet().stream()
                 .filter(k -> k.startsWith(PulsarOptions.PULSAR_PRODUCER_OPTION_KEY_PREFIX))
-                .collect(Collectors.toMap(k -> k.substring(PulsarOptions.PULSAR_PRODUCER_OPTION_KEY_PREFIX.length()), k -> parameters.get(k)));
+                .collect(Collectors.toMap(k -> k.substring(PulsarOptions.PULSAR_PRODUCER_OPTION_KEY_PREFIX.length()),
+                        k -> parameters.get(k)));
     }
 
     /**

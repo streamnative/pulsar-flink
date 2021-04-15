@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -509,7 +509,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
         private final RuntimeException failureCause;
 
         public FailingPartitionDiscoverer(RuntimeException failureCause) throws PulsarClientException {
-            super("", new ClientConfigurationData(), "", Collections.singletonMap("topic", "foo"), 0, 1);
+            super("http://localhost:8080", new ClientConfigurationData(), "", Collections.singletonMap("topic", "foo"), 0, 1);
             this.failureCause = failureCause;
         }
 
@@ -539,7 +539,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
         private static Set<TopicRange> allPartitions = Sets.newHashSet(new TopicRange("foo"));
 
         public DummyPartitionDiscoverer() throws PulsarClientException {
-            super("", new ClientConfigurationData(), "", Collections.singletonMap("topic", "foo"), 0, 1);
+            super("http://localhost:8080", new ClientConfigurationData(), "", Collections.singletonMap("topic", "foo"), 0, 1);
         }
 
         @Override
@@ -597,7 +597,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
         final PulsarMetadataReader discoverer;
 
         public TestingFlinkPulsarSource(PulsarMetadataReader discoverer) {
-            super("", "", (PulsarDeserializationSchema<T>) null, dummyProperties);
+            super("http://localhost:8080", "", (PulsarDeserializationSchema<T>) null, dummyProperties);
             this.discoverer = discoverer;
         }
 

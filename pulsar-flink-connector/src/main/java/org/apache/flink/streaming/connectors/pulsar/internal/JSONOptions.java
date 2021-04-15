@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -16,10 +16,10 @@ package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import org.apache.flink.util.Preconditions;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonParser;
 import lombok.Getter;
 import org.apache.commons.lang3.time.FastDateFormat;
+import org.apache.pulsar.shade.com.fasterxml.jackson.core.JsonFactory;
+import org.apache.pulsar.shade.com.fasterxml.jackson.core.JsonParser;
 
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;

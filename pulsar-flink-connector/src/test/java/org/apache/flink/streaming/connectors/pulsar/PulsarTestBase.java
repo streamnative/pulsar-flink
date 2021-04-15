@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -22,8 +22,6 @@ import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.streaming.util.TestStreamEnvironment;
 import org.apache.flink.util.TestLogger;
 
-import io.streamnative.tests.pulsar.service.PulsarServiceSpec;
-import io.streamnative.tests.pulsar.service.testcontainers.PulsarStandaloneContainerService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.pulsar.client.admin.PulsarAdmin;
@@ -32,16 +30,27 @@ import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
+import org.apache.pulsar.client.api.SubscriptionMode;
+import org.apache.pulsar.client.api.SubscriptionType;
+import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
+import org.apache.pulsar.client.impl.conf.ConsumerConfigurationData;
 import org.apache.pulsar.common.schema.SchemaType;
-import org.apache.pulsar.shade.com.google.common.collect.Sets;
+import org.apache.pulsar.shade.org.apache.commons.lang3.StringUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.testcontainers.containers.PulsarContainer;
+import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
+import org.testcontainers.utility.DockerImageName;
 
-import java.net.URI;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
+import static java.time.temporal.ChronoUnit.SECONDS;
+import static org.testcontainers.containers.PulsarContainer.BROKER_HTTP_PORT;
 
 /**
  * Start / stop a Pulsar cluster.
@@ -49,13 +58,25 @@ import java.util.UUID;
 @Slf4j
 public abstract class PulsarTestBase extends TestLogger {
 
-    protected static PulsarStandaloneContainerService pulsarService;
+    protected static PulsarContainer pulsarService;
 
     protected static String serviceUrl;
 
     protected static String adminUrl;
 
     protected static String zkUrl;
+
+    protected static Configuration configuration = new Configuration();
+
+    protected static ClientConfigurationData clientConfigurationData = new ClientConfigurationData();
+
+    protected static ConsumerConfigurationData<byte[]> consumerConfigurationData = new ConsumerConfigurationData<>();
+
+    protected static PulsarAdmin pulsarAdmin;
+
+    protected static PulsarClient pulsarClient;
+
+    protected static List<String> topics = new ArrayList<>();
 
     public static String getServiceUrl() {
         return serviceUrl;
@@ -67,38 +88,34 @@ public abstract class PulsarTestBase extends TestLogger {
 
     @BeforeClass
     public static void prepare() throws Exception {
+        adminUrl = System.getenv("PULSAR_ADMIN_URL");
+        serviceUrl = System.getenv("PULSAR_SERVICE_URL");
+        zkUrl = System.getenv("PULSAR_ZK_URL");
 
-        log.info("-------------------------------------------------------------------------");
         log.info("    Starting PulsarTestBase ");
-        log.info("-------------------------------------------------------------------------");
-
-        System.setProperty("pulsar.systemtest.image", "streamnative/pulsar:2.6.0-sn-18-3");
-        PulsarServiceSpec spec = PulsarServiceSpec.builder()
-                .clusterName("standalone-" + UUID.randomUUID())
-                .enableContainerLogging(false)
-                .build();
-        pulsarService = new PulsarStandaloneContainerService(spec);
-        pulsarService.start();
-
-        log.info("Pulsar Service Uris: {}", pulsarService.getServiceUris());
-
-        for (URI uri : pulsarService.getServiceUris()) {
-            if (uri != null && uri.getScheme().equals("pulsar")) {
-                serviceUrl = uri.toString();
-            } else if (uri != null && uri.getScheme().equals("http")) {
-                adminUrl = uri.toString();
-            }
+        if (StringUtils.isNotBlank(adminUrl) && StringUtils.isNotBlank(serviceUrl)) {
+            log.info("    Use extend Pulsar Service ");
+        } else {
+            final String pulsarImage = System.getProperty("pulsar.systemtest.image", "apachepulsar/pulsar:2.7.0");
+            pulsarService = new PulsarContainer(DockerImageName.parse(pulsarImage));
+            pulsarService.addExposedPort(2181);
+            pulsarService.waitingFor(new HttpWaitStrategy()
+                    .forPort(BROKER_HTTP_PORT)
+                    .forStatusCode(200)
+                    .forPath("/admin/v2/namespaces/public/default")
+                    .withStartupTimeout(Duration.of(40, SECONDS)));
+            pulsarService.start();
+            pulsarService.followOutput(new Slf4jLogConsumer(log));
+            serviceUrl = pulsarService.getPulsarBrokerUrl();
+            adminUrl = pulsarService.getHttpServiceUrl();
+            zkUrl = "localhost:" + pulsarService.getMappedPort(2181);
         }
-        zkUrl = pulsarService.getZkUrl();
+        clientConfigurationData.setServiceUrl(serviceUrl);
+        consumerConfigurationData.setSubscriptionMode(SubscriptionMode.NonDurable);
+        consumerConfigurationData.setSubscriptionType(SubscriptionType.Exclusive);
+        consumerConfigurationData.setSubscriptionName("flink-" + UUID.randomUUID());
 
-        try (PulsarAdmin admin = PulsarAdmin.builder().serviceHttpUrl(adminUrl).build()) {
-            admin.namespaces().createNamespace("public/default", Sets.newHashSet("standalone"));
-        }
-
-        log.info("-------------------------------------------------------------------------");
-        log.info("Successfully started pulsar service at cluster " + spec.clusterName());
-        log.info("-------------------------------------------------------------------------");
-
+        log.info("Successfully started pulsar service");
     }
 
     @AfterClass
@@ -108,9 +125,11 @@ public abstract class PulsarTestBase extends TestLogger {
         log.info("-------------------------------------------------------------------------");
 
         TestStreamEnvironment.unsetAsContext();
-
         if (pulsarService != null) {
             pulsarService.stop();
+        }
+        if (pulsarAdmin != null) {
+            pulsarAdmin.close();
         }
 
         log.info("-------------------------------------------------------------------------");
@@ -120,8 +139,10 @@ public abstract class PulsarTestBase extends TestLogger {
 
     protected static Configuration getFlinkConfiguration() {
         Configuration flinkConfig = new Configuration();
-        flinkConfig.setString(TaskManagerOptions.MANAGED_MEMORY_SIZE, "16m");
-        flinkConfig.setString(ConfigConstants.METRICS_REPORTER_PREFIX + "my_reporter." + ConfigConstants.METRICS_REPORTER_CLASS_SUFFIX, JMXReporter.class.getName());
+
+        flinkConfig.setString(TaskManagerOptions.MANAGED_MEMORY_SIZE.key(), "16m");
+        flinkConfig.setString(ConfigConstants.METRICS_REPORTER_PREFIX + "my_reporter." +
+                ConfigConstants.METRICS_REPORTER_CLASS_SUFFIX, JMXReporter.class.getName());
         return flinkConfig;
     }
 

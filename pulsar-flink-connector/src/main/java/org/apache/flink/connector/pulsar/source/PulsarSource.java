@@ -46,13 +46,12 @@ import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.client.impl.conf.ConsumerConfigurationData;
+import org.apache.pulsar.client.util.ExecutorProvider;
 import org.apache.pulsar.shade.com.google.common.io.Closer;
 
 import javax.annotation.Nonnull;
 
 import java.util.Collections;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
@@ -130,9 +129,7 @@ public class PulsarSource<OUT>
         FutureNotifier futureNotifier = new FutureNotifier();
         FutureCompletingBlockingQueue<RecordsWithSplitIds<ParsedMessage<OUT>>> elementsQueue =
                 new FutureCompletingBlockingQueue<>(futureNotifier);
-        ExecutorService listenerExecutor = Executors.newScheduledThreadPool(
-                1,
-                r -> new Thread(r, "Pulsar listener executor"));
+        ExecutorProvider listenerExecutor = new ExecutorProvider(1, r -> new Thread(r, "Pulsar listener executor"));
         Closer splitCloser = Closer.create();
         splitCloser.register(listenerExecutor::shutdownNow);
         Supplier<SplitReader<ParsedMessage<OUT>, PulsarPartitionSplit>> splitReaderSupplier = () -> {

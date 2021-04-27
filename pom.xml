@@ -98,7 +98,7 @@
     <license-maven-plugin.version>4.0.rc2</license-maven-plugin.version>
     <spotbugs-maven-plugin.version>4.2.2</spotbugs-maven-plugin.version>
     <nexus-staging-maven-plugin.version>1.6.8</nexus-staging-maven-plugin.version>
-    <pulsar.systemtest.image>apachepulsar/pulsar:${pulsar.version}</pulsar.systemtest.image>
+    <pulsar.systemtest.image>streamnative/pulsar:${pulsar.version}</pulsar.systemtest.image>
   </properties>
 
   <!-- dependencies for all modules -->

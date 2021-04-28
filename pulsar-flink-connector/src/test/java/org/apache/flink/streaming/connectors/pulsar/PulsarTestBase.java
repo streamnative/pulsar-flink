@@ -25,6 +25,7 @@ import org.apache.flink.connector.pulsar.source.util.PulsarAdminUtils;
 import org.apache.flink.metrics.jmx.JMXReporter;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.streaming.connectors.pulsar.internal.TopicRange;
+import org.apache.flink.streaming.connectors.pulsar.testutils.PulsarContainer;
 import org.apache.flink.streaming.util.TestStreamEnvironment;
 import org.apache.flink.util.TestLogger;
 
@@ -49,7 +50,6 @@ import org.apache.pulsar.shade.org.apache.commons.lang3.RandomStringUtils;
 import org.apache.pulsar.shade.org.apache.commons.lang3.StringUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.testcontainers.containers.PulsarContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
 import org.testcontainers.utility.DockerImageName;
@@ -65,7 +65,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static java.time.temporal.ChronoUnit.SECONDS;
-import static org.testcontainers.containers.PulsarContainer.BROKER_HTTP_PORT;
+import static org.apache.flink.streaming.connectors.pulsar.testutils.PulsarContainer.BROKER_HTTP_PORT;
 
 /**
  * Start / stop a Pulsar cluster.

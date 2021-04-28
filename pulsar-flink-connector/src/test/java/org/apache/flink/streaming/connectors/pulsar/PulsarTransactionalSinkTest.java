@@ -22,6 +22,7 @@ import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 import org.apache.flink.streaming.connectors.pulsar.table.PulsarSinkSemantic;
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper;
 import org.apache.flink.streaming.connectors.pulsar.testutils.IntegerSource;
+import org.apache.flink.streaming.connectors.pulsar.testutils.PulsarContainer;
 import org.apache.flink.streaming.util.TestStreamEnvironment;
 import org.apache.flink.streaming.util.serialization.PulsarSerializationSchemaWrapper;
 import org.apache.flink.table.api.DataTypes;
@@ -43,7 +44,6 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.testcontainers.containers.BindMode;
-import org.testcontainers.containers.PulsarContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
 import org.testcontainers.utility.DockerImageName;
@@ -58,7 +58,7 @@ import java.util.UUID;
 import static java.time.temporal.ChronoUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
-import static org.testcontainers.containers.PulsarContainer.BROKER_HTTP_PORT;
+import static org.apache.flink.streaming.connectors.pulsar.testutils.PulsarContainer.BROKER_HTTP_PORT;
 
 /**
  * Test for pulsar transactional sink that guarantee exactly-once semantic.

@@ -21,6 +21,8 @@
     <module>pulsar-flink-connector</module>
     <module>pulsar-flink-connector-shade-2.11</module>
     <module>pulsar-flink-connector-shade-2.12</module>
+    <module>flink-sql-connector-pulsar-2.11</module>
+    <module>flink-sql-connector-pulsar-2.12</module>
   </modules>
 
   <parent>

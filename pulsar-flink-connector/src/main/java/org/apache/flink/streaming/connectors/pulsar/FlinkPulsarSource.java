@@ -214,6 +214,8 @@ public class FlinkPulsarSource<T>
      */
     private final boolean useMetrics;
 
+    private MessageId recoveryCursorWhenCursorLost;
+
     /** Counter for successful Pulsar offset commits. */
     private transient Counter successfulCommits;
 
@@ -248,6 +250,8 @@ public class FlinkPulsarSource<T>
                 SourceSinkUtils.getCommitMaxRetries(caseInsensitiveParams);
         this.useMetrics =
                 SourceSinkUtils.getUseMetrics(caseInsensitiveParams);
+        this.recoveryCursorWhenCursorLost =
+                SourceSinkUtils.getRecoveryCursorWhenCursorLost(caseInsensitiveParams);
 
         CachedPulsarClient.setCacheSize(SourceSinkUtils.getClientCacheSize(caseInsensitiveParams));
 
@@ -467,10 +471,13 @@ public class FlinkPulsarSource<T>
             allTopicOffsets.entrySet().stream()
                     .filter(e -> !restoredState.containsKey(e.getKey()))
                     .forEach(e -> restoredState.put(e.getKey(), e.getValue()));
-
             restoredState.entrySet().stream()
                     .filter(e -> SourceSinkUtils.belongsTo(e.getKey(), numParallelTasks, taskIndex))
-                    .forEach(e -> ownedTopicStarts.put(e.getKey(), e.getValue()));
+                    .map(e -> {
+                        MessageId cursor = checkAndLoadAvailableCursorState(e.getKey().getTopic(), e.getValue());
+                        return Tuple2.of(e.getKey(), cursor);
+                    })
+                    .forEach(e -> ownedTopicStarts.put(e.f0, e.f1));
 
             Set<TopicRange> goneTopics = Sets.difference(restoredState.keySet(), allTopics).stream()
                     .filter(k -> SourceSinkUtils.belongsTo(k, numParallelTasks, taskIndex))
@@ -754,6 +761,19 @@ public class FlinkPulsarSource<T>
                     StringUtils.join(restoredState.entrySet()));
         } else {
             log.info("Source subtask {} has no restore state", taskIndex);
+        }
+    }
+
+    private MessageId checkAndLoadAvailableCursorState(String topic, MessageId messageId) {
+        try {
+            metadataReader.resetCursor(topic, messageId);
+            return messageId;
+        } catch (RuntimeException e) {
+            if (recoveryCursorWhenCursorLost == null) {
+                throw e;
+            }
+            metadataReader.resetCursor(topic, recoveryCursorWhenCursorLost);
+            return recoveryCursorWhenCursorLost;
         }
     }
 

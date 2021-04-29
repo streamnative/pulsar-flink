@@ -60,6 +60,7 @@ public class PulsarOptions {
     public static final String ENABLE_KEY_HASH_RANGE_KEY = "enable-key-hash-range";
     public static final String KEY_DISABLED_METRICS = "key-disable-metrics";
     public static final String OLD_STATE_VERSION = "old-state-version";
+    public static final String RECOVERY_CURSOR_WHEN_CURSOR_LOST = "recovery-cursor-when-cursor-lost";
 
     public static final String INSTRUCTION_FOR_FAIL_ON_DATA_LOSS_FALSE =
             "Some data may have been lost because they are not available in Pulsar any more; either the\n" +

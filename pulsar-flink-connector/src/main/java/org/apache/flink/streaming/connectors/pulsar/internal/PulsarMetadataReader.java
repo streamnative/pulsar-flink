@@ -32,6 +32,7 @@ import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.shade.com.google.common.collect.Iterables;
 import org.apache.pulsar.shade.com.google.common.collect.Sets;
 
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -417,7 +418,8 @@ public class PulsarMetadataReader implements AutoCloseable {
         try {
             this.admin.topics().resetCursor(topic, subscriptionName, messageId);
         } catch (PulsarAdminException e) {
-            throw new RuntimeException(e);
+            String message = MessageFormat.format("resetCursor fail topic [{0}], subscriptionName [{1}}], messageId [{2}]", topic, subscriptionName, messageId.toString());
+            throw new RuntimeException(message, e);
         }
     }
 }

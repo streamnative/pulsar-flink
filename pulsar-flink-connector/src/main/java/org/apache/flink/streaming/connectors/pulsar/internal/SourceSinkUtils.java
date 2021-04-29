@@ -14,7 +14,9 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
+import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.Range;
+import org.apache.pulsar.client.impl.MessageIdImpl;
 import org.apache.pulsar.shade.org.apache.commons.lang3.StringUtils;
 
 import java.util.Arrays;
@@ -191,5 +193,18 @@ public class SourceSinkUtils {
             return defaultValue;
         }
         return Integer.parseInt(value);
+    }
+
+    public static MessageId getRecoveryCursorWhenCursorLost(Map<String, String> caseInsensitiveParams) {
+        final String value = caseInsensitiveParams.get(PulsarOptions.RECOVERY_CURSOR_WHEN_CURSOR_LOST);
+        if (StringUtils.isBlank(value)){
+            return null;
+        }
+        final String[] split = value.split(":");
+        return new MessageIdImpl(
+                Long.parseLong(split[0]),
+                Long.parseLong(split[1]),
+                Integer.parseInt(split[2])
+        );
     }
 }

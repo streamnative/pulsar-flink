@@ -114,11 +114,18 @@
               <promoteTransitiveDependencies>true</promoteTransitiveDependencies>
               <minimizeJar>false</minimizeJar>
               <createSourcesJar>true</createSourcesJar>
-<!--              <artifactSet>-->
-<!--                <includes>-->
-<!--                  <include>io.streamnative.connectors:pulsar-flink-connector-origin*</include>-->
-<!--                </includes>-->
-<!--              </artifactSet>-->
+              <artifactSet>
+                <includes>
+                  <include>io.streamnative.connectors:pulsar-flink-connector-origin*</include>
+                  <include>org.apache.pulsar:*</include>
+                  <include>org.bouncycastle*:*</include>
+                  <include>org.bouncycastle*:*</include>
+                  <include>javax.*:*</include>
+                  <include>org.lz4*:*</include>
+                  <include>org.slf4j:jul-to-slf4j</include>
+                  <include>io.airlift:*</include>
+                </includes>
+              </artifactSet>
               <filters>
                 <filter>
                   <artifact>*:*</artifact>

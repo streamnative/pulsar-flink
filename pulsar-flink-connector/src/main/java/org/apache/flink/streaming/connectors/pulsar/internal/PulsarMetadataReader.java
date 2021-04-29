@@ -94,7 +94,7 @@ public class PulsarMetadataReader implements AutoCloseable {
     }
 
     private SerializableRange buildRange(Map<String, String> caseInsensitiveParams) {
-        if (numParallelSubtasks <= 0 || indexOfThisSubtask < 0){
+        if (numParallelSubtasks <= 0 || indexOfThisSubtask < 0) {
             return SerializableRange.ofFullRange();
         }
         if (caseInsensitiveParams == null || caseInsensitiveParams.isEmpty() ||
@@ -102,7 +102,7 @@ public class PulsarMetadataReader implements AutoCloseable {
             return SerializableRange.ofFullRange();
         }
         final String enableKeyHashRange = caseInsensitiveParams.get(ENABLE_KEY_HASH_RANGE_KEY);
-        if (!Boolean.parseBoolean(enableKeyHashRange)){
+        if (!Boolean.parseBoolean(enableKeyHashRange)) {
             return SerializableRange.ofFullRange();
         }
         final Range range = SourceSinkUtils.distributeRange(numParallelSubtasks, indexOfThisSubtask);
@@ -388,9 +388,9 @@ public class PulsarMetadataReader implements AutoCloseable {
 
         Pattern shortenedTopicsPattern = Pattern.compile(dest.toString().split("://")[1]);
         return Stream.concat(allNonPartitionedTopics.stream(), allPartitionedTopics.stream())
-            .map(t -> TopicName.get(t).toString())
-            .filter(t -> shortenedTopicsPattern.matcher(t.split("://")[1]).matches())
-            .collect(Collectors.toList());
+                .map(t -> TopicName.get(t).toString())
+                .filter(t -> shortenedTopicsPattern.matcher(t.split("://")[1]).matches())
+                .collect(Collectors.toList());
     }
 
     private List<String> getNonPartitionedTopics(String namespace) throws PulsarAdminException {
@@ -419,6 +419,21 @@ public class PulsarMetadataReader implements AutoCloseable {
             this.admin.topics().resetCursor(topic, subscriptionName, messageId);
         } catch (PulsarAdminException e) {
             String message = MessageFormat.format("resetCursor fail topic [{0}], subscriptionName [{1}}], messageId [{2}]", topic, subscriptionName, messageId.toString());
+            throw new RuntimeException(message, e);
+        }
+    }
+
+    public void validCursorState(String topic, MessageId messageId) {
+        try {
+            PersistentTopicInternalStats stats = this.admin.topics().getInternalStats(topic);
+            long ledgerId = ((MessageIdImpl) messageId).getLedgerId();
+            Set<Long> ledgers = stats.ledgers.stream().map(l -> l.ledgerId).collect(Collectors.toSet());
+            if (!ledgers.contains(ledgerId)) {
+                String message = MessageFormat.format("current Cursor not exist topic [{0}], messageId [{1}]", topic, messageId.toString());
+                throw new RuntimeException(message);
+            }
+        } catch (Exception e) {
+            String message = MessageFormat.format("valid Cursor fail topic [{0}], subscriptionName [{1}}], messageId [{2}]", topic, subscriptionName, messageId.toString());
             throw new RuntimeException(message, e);
         }
     }

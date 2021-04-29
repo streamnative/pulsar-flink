@@ -765,14 +765,16 @@ public class FlinkPulsarSource<T>
     }
 
     private MessageId checkAndLoadAvailableCursorState(String topic, MessageId messageId) {
+        if (MessageId.earliest.equals(messageId) || MessageId.latest.equals(messageId)) {
+            return messageId;
+        }
         try {
-            metadataReader.resetCursor(topic, messageId);
+            metadataReader.validCursorState(topic, messageId);
             return messageId;
         } catch (RuntimeException e) {
             if (recoveryCursorWhenCursorLost == null) {
                 throw e;
             }
-            metadataReader.resetCursor(topic, recoveryCursorWhenCursorLost);
             return recoveryCursorWhenCursorLost;
         }
     }

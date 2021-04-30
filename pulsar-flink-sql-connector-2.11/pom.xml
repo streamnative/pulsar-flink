@@ -24,14 +24,14 @@
     <version>2.7.7-SNAPSHOT</version>
   </parent>
 
-  <artifactId>pulsar-flink-sql-connector_2.12</artifactId>
-  <name>StreamNative :: Pulsar Flink SQL Connector :: Scala 2.12</name>
+  <artifactId>pulsar-flink-sql-connector_2.11</artifactId>
+  <name>StreamNative :: Pulsar Flink Connector :: SQL :: Scala 2.11</name>
 
   <packaging>jar</packaging>
 
   <properties>
-    <scala.version>2.12.7</scala.version>
-    <scala.binary.version>2.12</scala.binary.version>
+    <scala.version>2.11.12</scala.version>
+    <scala.binary.version>2.11</scala.binary.version>
     <license.skip>true</license.skip>
     <spotbugs.skip>true</spotbugs.skip>
   </properties>

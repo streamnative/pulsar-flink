@@ -14,23 +14,30 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
+import org.apache.flink.annotation.VisibleForTesting;
+
+import org.apache.flink.shaded.guava18.com.google.common.cache.Cache;
+import org.apache.flink.shaded.guava18.com.google.common.cache.CacheBuilder;
+import org.apache.flink.shaded.guava18.com.google.common.cache.RemovalListener;
+
+import lombok.SneakyThrows;
+import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.PulsarClientImpl;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
-import org.apache.pulsar.shade.com.google.common.cache.CacheBuilder;
-import org.apache.pulsar.shade.com.google.common.cache.CacheLoader;
-import org.apache.pulsar.shade.com.google.common.cache.LoadingCache;
-import org.apache.pulsar.shade.com.google.common.cache.RemovalListener;
+import org.apache.pulsar.shade.com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
 
 /**
  * Enable the sharing of same PulsarClient among tasks in a same process.
  */
 @Slf4j
+@UtilityClass
 public class CachedPulsarClient {
+
+    private static final ObjectMapper mapper = new ObjectMapper();
 
     private static int cacheSize = 100;
 
@@ -42,78 +49,73 @@ public class CachedPulsarClient {
         return cacheSize;
     }
 
-    private static CacheLoader<ClientConfigurationData, PulsarClientImpl> cacheLoader =
-            new CacheLoader<ClientConfigurationData, PulsarClientImpl>() {
-                @Override
-                public PulsarClientImpl load(ClientConfigurationData key) throws Exception {
-                    return createPulsarClient(key);
-                }
-            };
-
-    private static RemovalListener<ClientConfigurationData, PulsarClientImpl> removalListener = notification -> {
-        ClientConfigurationData config = notification.getKey();
+    private static final RemovalListener<String, PulsarClientImpl> removalListener = notification -> {
+        String config = notification.getKey();
         PulsarClientImpl client = notification.getValue();
-        log.debug("Evicting pulsar client {} with config {}, due to {}",
-                client.toString(), config.toString(), notification.getCause().toString());
+        log.debug("Evicting pulsar client {} with config {}, due to {}", client, config, notification.getCause());
+
         close(config, client);
     };
 
-    private static volatile LoadingCache<ClientConfigurationData, PulsarClientImpl> guavaCache;
+    private static final Cache<String, PulsarClientImpl> clientCache = CacheBuilder.newBuilder()
+        .maximumSize(cacheSize)
+        .removalListener(removalListener)
+        .build();
 
-    private static LoadingCache<ClientConfigurationData, PulsarClientImpl> getGuavaCache() {
-        if (guavaCache != null) {
-            return guavaCache;
-        }
-        synchronized (CachedPulsarClient.class) {
-            if (guavaCache != null) {
-                return guavaCache;
-            }
-            guavaCache = CacheBuilder.newBuilder()
-                    .maximumSize(cacheSize)
-                    .removalListener(removalListener)
-                    .build(cacheLoader);
-            return guavaCache;
-        }
-    }
-
-    private static PulsarClientImpl createPulsarClient(
-            ClientConfigurationData clientConfig) throws PulsarClientException {
+    private static PulsarClientImpl createPulsarClient(ClientConfigurationData clientConfig) throws PulsarClientException {
         PulsarClientImpl client;
         try {
             client = new PulsarClientImpl(clientConfig);
-            log.debug("Created a new instance of PulsarClientImpl for clientConf = {}",
-                    clientConfig.toString());
+            log.debug("Created a new instance of PulsarClientImpl for clientConf = {}", clientConfig);
         } catch (PulsarClientException e) {
-            log.error("Failed to create PulsarClientImpl for clientConf = {}",
-                    clientConfig.toString());
+            log.error("Failed to create PulsarClientImpl for clientConf = {}", clientConfig);
             throw e;
         }
         return client;
     }
 
-    public static PulsarClientImpl getOrCreate(ClientConfigurationData config) throws ExecutionException {
-        return getGuavaCache().get(config);
+    public static synchronized PulsarClientImpl getOrCreate(ClientConfigurationData config) throws PulsarClientException {
+        String key = serializeKey(config);
+        PulsarClientImpl client = clientCache.getIfPresent(key);
+
+        if (client == null) {
+            client = createPulsarClient(config);
+            clientCache.put(key, client);
+        }
+
+        return client;
     }
 
-    private static void close(ClientConfigurationData clientConfig, PulsarClientImpl client) {
-        try {
-            log.info("Closing the Pulsar client with conifg {}", clientConfig.toString());
-            client.close();
-        } catch (PulsarClientException e) {
-            log.warn(String.format("Error while closing the Pulsar client %s", clientConfig.toString()), e);
+    private static void close(String clientConfig, PulsarClientImpl client) {
+        if (client != null) {
+            try {
+                log.info("Closing the Pulsar client with config {}", clientConfig);
+                client.close();
+            } catch (PulsarClientException e) {
+                log.warn(String.format("Error while closing the Pulsar client %s", clientConfig), e);
+            }
         }
     }
 
-    static void close(ClientConfigurationData clientConfig) {
-        getGuavaCache().invalidate(clientConfig);
+    @SneakyThrows
+    private String serializeKey(ClientConfigurationData clientConfig) {
+        return mapper.writeValueAsString(clientConfig);
     }
 
+    @VisibleForTesting
+    static void close(ClientConfigurationData clientConfig) {
+        String key = serializeKey(clientConfig);
+        clientCache.invalidate(key);
+    }
+
+    @VisibleForTesting
     static void clear() {
         log.info("Cleaning up guava cache.");
-        getGuavaCache().invalidateAll();
+        clientCache.invalidateAll();
     }
 
-    static ConcurrentMap<ClientConfigurationData, PulsarClientImpl> getAsMap() {
-        return getGuavaCache().asMap();
+    @VisibleForTesting
+    static ConcurrentMap<String, PulsarClientImpl> getAsMap() {
+        return clientCache.asMap();
     }
 }

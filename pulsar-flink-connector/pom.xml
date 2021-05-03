@@ -213,6 +213,7 @@
               <goal>run</goal>
             </goals>
             <configuration>
+              <protocCommand>protoc</protocCommand>
               <protocVersion>${protoc.version}</protocVersion>
               <inputDirectories>
                 <include>src/test/proto</include>

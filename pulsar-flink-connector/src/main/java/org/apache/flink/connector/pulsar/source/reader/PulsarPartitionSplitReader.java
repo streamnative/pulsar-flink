@@ -46,6 +46,7 @@ import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.impl.ConsumerImpl;
 import org.apache.pulsar.client.impl.PulsarClientImpl;
 import org.apache.pulsar.client.impl.conf.ConsumerConfigurationData;
+import org.apache.pulsar.client.util.ExecutorProvider;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.shade.com.google.common.io.Closer;
 import org.slf4j.Logger;
@@ -66,7 +67,6 @@ import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
@@ -93,7 +93,7 @@ public class PulsarPartitionSplitReader<T> implements SplitReader<ParsedMessage<
     private final long closeTimeout;
     private final OffsetVerification offsetVerification;
     private volatile boolean wakeup;
-    private final ExecutorService listenerExecutor;
+    private final ExecutorProvider listenerExecutor;
 
     public PulsarPartitionSplitReader(
             Configuration configuration,
@@ -101,7 +101,7 @@ public class PulsarPartitionSplitReader<T> implements SplitReader<ParsedMessage<
             PulsarClient client,
             PulsarAdmin pulsarAdmin,
             MessageDeserializer<T> messageDeserializer,
-            ExecutorService listenerExecutor) {
+            ExecutorProvider listenerExecutor) {
         this.consumerConfigurationData = consumerConfigurationData;
         this.client = client;
         this.pulsarAdmin = pulsarAdmin;

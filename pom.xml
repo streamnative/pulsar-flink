@@ -71,7 +71,7 @@
     <testRetryCount>3</testRetryCount>
 
     <!-- use Pulsar stable version -->
-    <pulsar.version>2.7.0</pulsar.version>
+    <pulsar.version>2.7.1.4</pulsar.version>
     <flink.version>1.11.1</flink.version>
     <flink.binary.version>1.11</flink.binary.version>
     <jackson.version>2.10.5.1</jackson.version>
@@ -98,7 +98,7 @@
     <license-maven-plugin.version>4.0.rc2</license-maven-plugin.version>
     <spotbugs-maven-plugin.version>4.2.2</spotbugs-maven-plugin.version>
     <nexus-staging-maven-plugin.version>1.6.8</nexus-staging-maven-plugin.version>
-    <pulsar.systemtest.image>apachepulsar/pulsar:${pulsar.version}</pulsar.systemtest.image>
+    <pulsar.systemtest.image>streamnative/pulsar:${pulsar.version}</pulsar.systemtest.image>
   </properties>
 
   <!-- dependencies for all modules -->
@@ -246,6 +246,18 @@
       </plugin>
     </plugins>
   </build>
+  <repositories>
+    <repository>
+      <id>central</id>
+      <layout>default</layout>
+      <url>https://repo1.maven.org/maven2</url>
+    </repository>
+    <repository>
+      <id>bintray-streamnative-maven</id>
+      <name>bintray</name>
+      <url>https://dl.bintray.com/streamnative/maven</url>
+    </repository>
+  </repositories>
 
   <distributionManagement>
     <snapshotRepository>

@@ -36,12 +36,12 @@
   <version>2.7.7-SNAPSHOT</version>
 
   <name>StreamNative :: Pulsar Flink Connector :: Root</name>
-  <url>http://pulsar.apache.org</url>
+  <url>https://pulsar.apache.org</url>
   <inceptionYear>2019</inceptionYear>
   <licenses>
     <license>
       <name>Apache License, Version 2.0</name>
-      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
       <distribution>repo</distribution>
     </license>
   </licenses>

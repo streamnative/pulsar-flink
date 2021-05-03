@@ -67,7 +67,9 @@ public class PulsarAuthTest {
     public static void prepare() throws Exception {
         log.info("    Starting PulsarTestBase ");
         final String pulsarImage = System.getProperty("pulsar.systemtest.image", "apachepulsar/pulsar:2.7.0");
-        pulsarService = new PulsarContainer(DockerImageName.parse(pulsarImage));
+        DockerImageName pulsar = DockerImageName.parse(pulsarImage)
+                .asCompatibleSubstituteFor("apachepulsar/pulsar");
+        pulsarService = new PulsarContainer(pulsar);
         pulsarService
                 .withClasspathResourceMapping("pulsar/auth-standalone.conf", "/pulsar/conf/standalone.conf",
                         BindMode.READ_ONLY);

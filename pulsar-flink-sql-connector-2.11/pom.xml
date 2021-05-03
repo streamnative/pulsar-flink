@@ -50,11 +50,6 @@
       <version>${pulsar.version}</version>
     </dependency>
     <dependency>
-      <groupId>io.streamnative.connectors</groupId>
-      <artifactId>flink-protobuf</artifactId>
-      <version>${flink-protobuf.version}</version>
-    </dependency>
-    <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-json</artifactId>
       <version>${flink.version}</version>

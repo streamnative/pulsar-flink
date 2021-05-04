@@ -111,7 +111,7 @@ public class SourceSinkUtils {
     }
 
     public static boolean failOnWrite(Map<String, String> parameters) {
-        String b = parameters.getOrDefault(PulsarOptions.FAIL_ON_WRITE_OPTION_KEY, "false");
+        String b = parameters.getOrDefault(PulsarOptions.FAIL_ON_WRITE_OPTION_KEY, "true");
         return Boolean.parseBoolean(b);
     }
 

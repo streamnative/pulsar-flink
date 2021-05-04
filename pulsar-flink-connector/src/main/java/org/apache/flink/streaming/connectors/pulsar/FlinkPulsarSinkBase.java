@@ -43,7 +43,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 
@@ -257,9 +256,6 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
                     .create();
         } catch (PulsarClientException e) {
             log.error("Failed to create producer for topic {}", topic);
-            throw new RuntimeException(e);
-        } catch (ExecutionException e) {
-            log.error("Failed to getOrCreate a PulsarClient");
             throw new RuntimeException(e);
         }
     }

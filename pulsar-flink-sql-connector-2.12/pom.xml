@@ -50,6 +50,11 @@
       <version>${pulsar.version}</version>
     </dependency>
     <dependency>
+      <groupId>io.streamnative.connectors</groupId>
+      <artifactId>flink-protobuf</artifactId>
+      <version>${flink-protobuf.version}</version>
+    </dependency>
+    <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-json</artifactId>
       <version>${flink.version}</version>
@@ -112,6 +117,7 @@
               <artifactSet>
                 <includes>
                   <include>io.streamnative.connectors:pulsar-flink-connector-origin*</include>
+                  <include>io.streamnative.connectors:flink-protobuf</include>
                   <include>org.apache.pulsar:*</include>
                   <include>org.bouncycastle*:*</include>
                   <include>org.bouncycastle*:*</include>

@@ -47,7 +47,7 @@ import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.impl.ConsumerImpl;
 import org.apache.pulsar.client.impl.PulsarClientImpl;
 import org.apache.pulsar.client.impl.conf.ConsumerConfigurationData;
-`import org.apache.pulsar.client.util.ExecutorProvider;
+import org.apache.pulsar.client.util.ExecutorProvider;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.shade.com.google.common.io.Closer;
 import org.slf4j.Logger;

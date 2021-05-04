@@ -117,6 +117,7 @@
               <artifactSet>
                 <includes>
                   <include>io.streamnative.connectors:pulsar-flink-connector-origin*</include>
+                  <include>io.streamnative.connectors:flink-protobuf</include>
                   <include>org.apache.pulsar:*</include>
                   <include>org.bouncycastle*:*</include>
                   <include>org.bouncycastle*:*</include>

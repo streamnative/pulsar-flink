@@ -455,13 +455,13 @@ Flink 社区用户对 Upsert 模式消息队列有很高的需求，主要原因
 
 基于这些需求，我们也实现了对 Upsert Pulsar 的支持。该功能支持用户以 upsert 的方式从 Pulsar Topic 中读取数据和向 Pulsar Topic 中写入数据。
 
-在vSQL DDL 定义中，用户将 `connector` 设置为 `upsert-pulsar`，即可使用 Upsert Pulsar 连接器。
+在 SQL DDL 定义中，用户将 `connector` 设置为 `upsert-pulsar`，即可使用 Upsert Pulsar 连接器。
 
 在配置方面，必须指定 Table 的主键，且`key.fields` 不能使用。
 
 作为 source，Upsert Pulsar 连接器生产 changelog 流，其中每条数据记录代表一个更新或删除事件。更准确地说，如果存在这个 key（，数据记录中的 value 是同一键的最后一个值的 UPDATE。如果不存在相应的 key，则该更新被视为 INSERT）。用表来类比，changelog 流中的数据记录是 UPSERT，也称为 INSERT/UPDATE，因为任何具有相同键的已存在行都会被覆盖。另外，值为空的消息将会被视作为 DELETE 消息。
 
-作为 sink，uUpsert Pulsar 连接器可以消费 changelog 流。它会将 INSERT/UPDATE_AFTER 数据作为正常的 Pulsar 消息写入，并将 DELETE 数据作为 value 为空的 Pulsar 消息写入（表示对应键的消息被删除）。Flink 将根据主键列的值对数据进行分区，从而保证主键上的消息有序，因此同一主键上的更新/删除消息将落在同一分区中。
+作为 sink，Upsert Pulsar 连接器可以消费 changelog 流。它会将 INSERT/UPDATE_AFTER 数据作为正常的 Pulsar 消息写入，并将 DELETE 数据作为 value 为空的 Pulsar 消息写入（表示对应键的消息被删除）。Flink 将根据主键列的值对数据进行分区，从而保证主键上的消息有序，因此同一主键上的更新/删除消息将落在同一分区中。
 
 ## Key-Shared 订阅模式
 

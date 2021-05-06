@@ -140,23 +140,21 @@ public class ReaderThread<T> extends Thread {
         if (!startMessageId.equals(MessageId.earliest)
                 && !startMessageId.equals(MessageId.latest)
                 && ((MessageIdImpl) startMessageId).getEntryId() != -1) {
-            MessageIdImpl lastMessageId = (MessageIdImpl) this.owner.getMetaDataReader().getLastMessageId(reader.getTopic());
+            final PulsarMetadataReader metaDataReader = this.owner.getMetaDataReader();
+            MessageIdImpl lastMessageId = (MessageIdImpl) metaDataReader.getLastMessageId(reader.getTopic());
             if (!messageIdRoughEquals(startMessageId, lastMessageId) && !reader.hasMessageAvailable()) {
                 MessageIdImpl startMsgIdImpl = (MessageIdImpl) startMessageId;
-                long startMsgLedgerId = startMsgIdImpl.getLedgerId();
-                long startMsgEntryId = startMsgIdImpl.getEntryId();
-
                 // startMessageId is bigger than lastMessageId
-                if (startMsgLedgerId > lastMessageId.getLedgerId()
-                    || (startMsgLedgerId == lastMessageId.getLedgerId() && lastMessageId.getEntryId() != -1
-                        && startMsgEntryId > lastMessageId.getEntryId())) {
-                    log.error("the start message id is beyond the last commit message id, with topic:{}, " +
-                            "start msgId:{}, last msgId:{}", reader.getTopic(), startMessageId, lastMessageId);
+                if (!metaDataReader.checkCursorAvailable(reader.getTopic(), startMsgIdImpl)) {
+                    if (failOnDataLoss) {
+                        log.error("the start message id is beyond the last commit message id, with topic:{}", reader.getTopic());
+                        throw new RuntimeException("start message id beyond the last commit");
+                    } else {
+                        log.info("reset message to valid offset {}", startMessageId);
+                        metaDataReader.resetCursor(reader.getTopic(), startMessageId);
+                    }
                 }
-                log.warn("reset message to valid offset");
-                this.owner.getMetaDataReader().resetCursor(reader.getTopic(), startMessageId);
-            } else {
-                failOnDataLoss = false;
+
             }
             while (currentMessage == null && running) {
                 currentMessage = reader.readNext(pollTimeoutMs, TimeUnit.MILLISECONDS);

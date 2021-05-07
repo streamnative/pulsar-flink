@@ -138,7 +138,7 @@ class DynamicPulsarDeserializationSchema implements PulsarDeserializationSchema<
         outputCollector.inputMessage = message;
         outputCollector.physicalKeyRows = keyCollector.buffer;
         outputCollector.outputCollector = collector;
-        if ((message.getData() == null || data.length == 0) && upsertMode) {
+        if ((message.getData() == null || message.getData().length == 0) && upsertMode) {
             // collect tombstone messages in upsert mode by hand
             outputCollector.collect(null);
         } else {

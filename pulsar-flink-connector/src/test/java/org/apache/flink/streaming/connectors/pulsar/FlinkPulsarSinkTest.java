@@ -393,9 +393,7 @@ public class FlinkPulsarSinkTest extends TestLogger {
         }
 
         public long numPendingRecords() {
-            synchronized (pendingRecordsLock) {
-                return pendingRecords;
-            }
+            return pendingRecords.get();
         }
     }
 }

@@ -263,9 +263,7 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
         }
 
         if (flushOnCheckpoint) {
-            synchronized (pendingRecordsLock) {
-                pendingRecords++;
-            }
+            pendingRecords.incrementAndGet();
         }
         builder.sendAsync().whenComplete(sendCallback);
     }

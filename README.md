@@ -124,33 +124,33 @@ To build the Pulsar Flink connector for reading data from Pulsar or writing the 
 
 1. Check out the source code.
 
-  ```bash
-  git clone https://github.com/streamnative/pulsar-flink.git
-  cd pulsar-flink
-  ```
+    ```bash
+    git clone https://github.com/streamnative/pulsar-flink.git
+    cd pulsar-flink
+    ```
 
 2. Install the Docker.
 
-  The Pulsar Flink connector uses [Testcontainers](https://www.testcontainers.org/) for integration test. To run the integration test, ensure to install the Docker. For details about how to install the Docker, see [here](https://docs.docker.com/docker-for-mac/install/).
+    The Pulsar Flink connector uses [Testcontainers](https://www.testcontainers.org/) for integration test. To run the integration test, ensure to install the Docker. For details about how to install the Docker, see [here](https://docs.docker.com/docker-for-mac/install/).
 
 3. Set the Java version.
 
-  Modify `java.version` and `java.binary.version` in `pom.xml`.
+    Modify `java.version` and `java.binary.version` in `pom.xml`.
 
-  > **Note**  
-  > Ensure that the Java version should be identical to the Java version for the Pulsar Flink connector.
+    > **Note**  
+    > Ensure that the Java version should be identical to the Java version for the Pulsar Flink connector.
 
 4. Build the project.
 
-  ```bash
-  mvn clean install -DskipTests
-  ```
+    ```bash
+    mvn clean install -DskipTests
+    ```
 
 5. Run the test.
 
-  ```bash
-  mvn clean install
-  ```
+    ```bash
+    mvn clean install
+    ```
 
 After the Pulsar Flink connector is installed, a JAR package that contains all the dependencies is generated in both the local Maven repository and the `target` directory.
 
@@ -576,11 +576,17 @@ For `FlinkPulsarSource` and `FlinkPulsarSink`, you can use one of the following 
 
 For details about authentication configuration, see [Pulsar Security](https://pulsar.apache.org/docs/en/security-overview/).
 
-## ProtoBuf supports [experimental features\].
+## ProtoBuf
 
-This feature is based on [Flink: New Format of protobuf](https://github.com/apache/flink/pull/14376) and is currently pending merge.
-Example of using protobuf in sql: 
-```
+> **Note**
+>
+> Currently, ProtoBuf is an experimental feature.
+
+This feature is based on this [PR](https://github.com/apache/flink/pull/14376) and is not merged yet. Therefore, it is temporarily placed in this repository as a source code for packaging and dependencies.
+
+**Example**
+
+```sql
 create table pulsar (
                         a INT,
                         b BIGINT,
@@ -606,5 +612,6 @@ create table pulsar (
 
 INSERT INTO pulsar VALUES (1,2,false,0.1,0.01,'haha', ENCODE('1', 'utf-8'), 'IMAGES',1, TIMESTAMP '2020-03-08 13:12:11.123');
 ```
-Requirement: `SimpleTest` class must implement `GeneratedMessageV3`.
-Since the Flink Format: ProtoBuf component has not been merged, it is temporarily placed in this repository as a source code for packaging and dependencies.
+
+The `SimpleTest` class must be `GeneratedMessageV3`.
+

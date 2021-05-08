@@ -33,12 +33,14 @@ import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.shade.com.google.common.collect.Iterables;
 import org.apache.pulsar.shade.com.google.common.collect.Sets;
 
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -413,6 +415,24 @@ public class PulsarMetadataReader implements AutoCloseable {
             return this.admin.topics().getLastMessageId(topic);
         } catch (PulsarAdminException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public boolean checkCursorAvailable(String topic, MessageIdImpl startMessageId) {
+        try {
+            PersistentTopicInternalStats stats = this.admin.topics().getInternalStats(topic);
+            long ledgerId = startMessageId.getLedgerId();
+            // Pulsar's ledger is out of order and cannot be compared by obtaining the last ledger.
+            // Therefore, it is a safer way to check whether the current ledger exists.
+            final Optional<PersistentTopicInternalStats.LedgerInfo> ledgerInfo = stats.ledgers.stream()
+                .filter(l -> l.ledgerId == ledgerId)
+                .findAny();
+            return !ledgerInfo.filter(info -> startMessageId.getEntryId() > info.entries).isPresent();
+        } catch (Exception e) {
+            String message = MessageFormat.format(
+                "valid Cursor fail topic [{0}], messageId [{2}]",
+                topic, startMessageId.toString());
+            throw new RuntimeException(message, e);
         }
     }
 

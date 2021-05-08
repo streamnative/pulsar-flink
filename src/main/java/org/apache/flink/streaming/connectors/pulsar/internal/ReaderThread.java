@@ -48,6 +48,7 @@ public class ReaderThread<T> extends Thread {
     protected final MessageId startMessageId;
 
     protected volatile boolean running = true;
+    protected volatile boolean closed = false;
 
     private final DeserializationSchema<T> deserializer;
 
@@ -144,24 +145,21 @@ public class ReaderThread<T> extends Thread {
         if (!startMessageId.equals(MessageId.earliest)
                 && !startMessageId.equals(MessageId.latest)
                 && ((MessageIdImpl) startMessageId).getEntryId() != -1) {
-            MessageIdImpl lastMessageId = (MessageIdImpl) this.owner.getMetadataReader().getLastMessageId(reader.getTopic());
-
+            PulsarMetadataReader metaDataReader = this.owner.getMetadataReader();
+            MessageIdImpl lastMessageId = (MessageIdImpl) metaDataReader.getLastMessageId(reader.getTopic());
             if (!messageIdRoughEquals(startMessageId, lastMessageId) && !reader.hasMessageAvailable()) {
                 MessageIdImpl startMsgIdImpl = (MessageIdImpl) startMessageId;
-                long startMsgLedgerId = startMsgIdImpl.getLedgerId();
-                long startMsgEntryId = startMsgIdImpl.getEntryId();
-
                 // startMessageId is bigger than lastMessageId
-                if (startMsgLedgerId > lastMessageId.getLedgerId()
-                        || (startMsgLedgerId == lastMessageId.getLedgerId() && startMsgEntryId > lastMessageId.getEntryId())) {
+                if (!metaDataReader.checkCursorAvailable(reader.getTopic(), startMsgIdImpl)) {
                     if (failOnDataLoss) {
                         log.error("the start message id is beyond the last commit message id, with topic:{}", reader.getTopic());
                         throw new RuntimeException("start message id beyond the last commit");
                     } else {
                         log.info("reset message to valid offset {}", startMessageId);
-                        this.owner.getMetadataReader().resetCursor(reader.getTopic(), startMessageId);
+                        metaDataReader.resetCursor(reader.getTopic(), startMessageId);
                     }
                 }
+
             }
 
             while (currentMessage == null && running) {
@@ -210,10 +208,23 @@ public class ReaderThread<T> extends Thread {
         this.running = false;
 
         if (reader != null) {
-            reader.close();
+            try {
+                close();
+            } catch (IOException e) {
+                log.error("failed to close reader. ", e);
+            }
         }
 
         this.interrupt();
+    }
+
+    public void close() throws IOException {
+        if (closed) {
+            return;
+        }
+        closed = true;
+        reader.close();
+        log.info("Reader closed");
     }
 
     public boolean isRunning() {
@@ -226,8 +237,10 @@ public class ReaderThread<T> extends Thread {
                 new IllegalStateException(message + PulsarOptions.INSTRUCTION_FOR_FAIL_ON_DATA_LOSS_TRUE));
     }
 
-    // used to check whether starting position and current message we got actually are equal
-    // we neglect the potential batchIdx deliberately while seeking to MessageIdImpl for batch entry
+    /** used to check whether starting position and current message we got actually are equal
+     * we neglect the potential batchIdx deliberately while seeking to MessageIdImpl for batch entry.
+     *
+     */
     public static boolean messageIdRoughEquals(MessageId l, MessageId r) {
         if (l == null || r == null) {
             return false;

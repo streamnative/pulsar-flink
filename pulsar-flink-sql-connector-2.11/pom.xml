@@ -24,8 +24,8 @@
     <version>1.12.3.0</version>
   </parent>
 
-  <artifactId>pulsar-flink-connector_2.11</artifactId>
-  <name>StreamNative :: Pulsar Flink Connector :: Scala 2.11</name>
+  <artifactId>pulsar-flink-sql-connector_2.11</artifactId>
+  <name>StreamNative :: Pulsar Flink Connector :: SQL :: Scala 2.11</name>
 
   <packaging>jar</packaging>
 
@@ -117,6 +117,14 @@
               <artifactSet>
                 <includes>
                   <include>io.streamnative.connectors:pulsar-flink-connector-origin*</include>
+                  <include>io.streamnative.connectors:flink-protobuf</include>
+                  <include>org.apache.pulsar:*</include>
+                  <include>org.bouncycastle*:*</include>
+                  <include>org.bouncycastle*:*</include>
+                  <include>javax.*:*</include>
+                  <include>org.lz4*:*</include>
+                  <include>org.slf4j:jul-to-slf4j</include>
+                  <include>io.airlift:*</include>
                 </includes>
               </artifactSet>
               <filters>
@@ -124,6 +132,9 @@
                   <artifact>*:*</artifact>
                   <excludes>
                     <exclude>log4j.properties</exclude>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
                   </excludes>
                 </filter>
               </filters>

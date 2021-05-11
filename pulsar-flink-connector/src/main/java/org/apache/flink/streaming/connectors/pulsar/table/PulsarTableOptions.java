@@ -30,6 +30,7 @@ import org.apache.flink.util.ExceptionUtils;
 import org.apache.flink.util.FlinkException;
 import org.apache.flink.util.InstantiationUtil;
 import org.apache.flink.util.Preconditions;
+import org.apache.flink.shaded.guava18.com.google.common.base.CaseFormat;
 
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
@@ -378,7 +379,8 @@ public class PulsarTableOptions {
                     .filter(key -> key.startsWith(PROPERTIES_PREFIX))
                     .forEach(key -> {
                         final String value = tableOptions.get(key);
-                        final String subKey = key.substring((PROPERTIES_PREFIX).length());
+                        String subKey = key.substring((PROPERTIES_PREFIX).length());
+                        subKey = CaseFormat.LOWER_HYPHEN.to(CaseFormat.LOWER_CAMEL, subKey);
                         pulsarProperties.put(subKey, value);
                     });
         }

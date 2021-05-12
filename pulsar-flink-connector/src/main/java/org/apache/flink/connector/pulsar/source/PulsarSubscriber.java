@@ -86,7 +86,7 @@ public abstract class PulsarSubscriber implements Serializable {
         return new TopicListSubscriber(splitDivisionStrategy, topics);
     }
 
-    public static PulsarSubscriber getTopicPatternSubscriber(String namespace, SplitDivisionStrategy splitDivisionStrategy, String... topicPatterns) {
+    public static PulsarSubscriber getTopicPatternSubscriber(String namespace, SplitDivisionStrategy splitDivisionStrategy, Set<String> topicPatterns) {
         return new TopicPatternSubscriber(namespace, splitDivisionStrategy, topicPatterns);
     }
 }

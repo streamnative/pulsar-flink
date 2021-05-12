@@ -53,5 +53,5 @@ public abstract class AbstractPulsarSubscriber extends PulsarSubscriber {
         return new PartitionChange(newPartitions, removedPartitions);
     }
 
-    protected abstract Collection<AbstractPartition> getCurrentPartitions(PulsarAdmin pulsarAdmin) throws PulsarAdminException, InterruptedException, IOException;
+    public abstract Collection<AbstractPartition> getCurrentPartitions(PulsarAdmin pulsarAdmin) throws PulsarAdminException, InterruptedException, IOException;
 }

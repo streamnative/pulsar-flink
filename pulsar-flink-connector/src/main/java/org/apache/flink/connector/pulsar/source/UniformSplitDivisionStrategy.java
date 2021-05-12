@@ -29,7 +29,12 @@ import java.util.List;
 /**
  * Split strategy for keyShared mode.
  */
-public class UniformSplitDivisionStrategy implements SplitDivisionStrategy{
+public class UniformSplitDivisionStrategy implements SplitDivisionStrategy {
+    public static final UniformSplitDivisionStrategy INSTANCE = new UniformSplitDivisionStrategy();
+    private UniformSplitDivisionStrategy() {
+
+    }
+
     @Override
     public Collection<Range> getRanges(String topic, PulsarAdmin pulsarAdmin, SplitEnumeratorContext<PulsarPartitionSplit> context) throws PulsarAdminException {
         int numReaders = context.currentParallelism();

@@ -26,10 +26,12 @@ import java.util.Map;
  * SplitSchedulingStrategy for keyShared mode.
  */
 public class KeySharedSplitSchedulingStrategy implements SplitSchedulingStrategy {
-    Map<SerializableRange, Integer> rangeToReaders;
-    int nextId = 0;
+    public static final KeySharedSplitSchedulingStrategy INSTANCE = new KeySharedSplitSchedulingStrategy();
 
-    public KeySharedSplitSchedulingStrategy() {
+    private Map<SerializableRange, Integer> rangeToReaders;
+    private int nextId = 0;
+
+    private KeySharedSplitSchedulingStrategy() {
         this.rangeToReaders = new HashMap<>();
     }
 

@@ -24,9 +24,14 @@ import java.util.Map;
  * SplitSchedulingStrategy for Hash mode.
  */
 public class HashSplitSchedulingStrategy implements SplitSchedulingStrategy {
+    public static final HashSplitSchedulingStrategy INSTANCE = new HashSplitSchedulingStrategy();
+
+    private HashSplitSchedulingStrategy() {}
+
     @Override
     public int getIndexOfReader(int numReaders, PulsarPartitionSplit split) {
-        return split.getTopic().hashCode() % numReaders;
+        //must use positive hashcode.
+        return ((split.getTopic().hashCode() * 31) & 0x7FFFFFFF) % numReaders;
     }
 
     @Override

@@ -30,17 +30,21 @@ import java.util.Collections;
  * The SplitDivisionStrategy represent no range splitting is required.
  */
 public class NoSplitDivisionStrategy implements SplitDivisionStrategy {
-    public static final NoSplitDivisionStrategy NO_SPLIT = new NoSplitDivisionStrategy();
+    public static final NoSplitDivisionStrategy INSTANCE = new NoSplitDivisionStrategy();
+
+    private NoSplitDivisionStrategy() {
+
+    }
 
     @Override
     public Collection<Range> getRanges(String topic, PulsarAdmin pulsarAdmin, SplitEnumeratorContext<PulsarPartitionSplit> context) throws PulsarAdminException {
-        return  Collections.singletonList(
+        return Collections.singletonList(
                 Range.of(SerializableRange.fullRangeStart, SerializableRange.fullRangeEnd)
         );
     }
 
     private Object readResolve() throws ObjectStreamException {
-        return NO_SPLIT;
+        return INSTANCE;
     }
 
 }

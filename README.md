@@ -363,9 +363,9 @@ SQL supports configuring physical fields, calculated columns, watermark, METADAT
 | topic-pattern                 | null          | Use regular to get the matching topic.                       | No       |
 | service-url                   | null          | Set the Pulsar broker service address.                               | Yes      |
 | admin-url                     | null          | Set the Pulsar administration service address.                                 | Yes      |
-| scan.startup.mode             | latest        | COnfigure the Source's startup mode,. Available options are `earliest`, `latest`, `external-subscription`, and `specific-offsets`. | No       |
+| scan.startup.mode             | latest        | Configure the Source's startup mode. Available options are `earliest`, `latest`, `external-subscription`, and `specific-offsets`. | No       |
 | scan.startup.specific-offsets | null          | This parameter is required when the `specific-offsets` parameter is specified. | No       |
-| scan.startup.sub-name         | null          | This parameter is required for the External subscription mode . | No       |
+| scan.startup.sub-name         | null          | This parameter is required when the `external-subscription` parameter is specified. | No       |
 | discovery topic interval      | null          | Set the time interval for partition discovery, in unit of milliseconds.         | No       |
 | sink.message-router           | key-hash      | Set the routing method for writing messages to the Pulsar partition. Available options are `key-hash`, `round-robin`, and `custom MessageRouter`. | No       |
 | sink.semantic                 | at-least-once | The Sink writes the assurance level of the message. Available options are `at-least-once`, `exactly-once`, and `none`. | No       |

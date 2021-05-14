@@ -16,53 +16,36 @@ package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.api.common.eventtime.TimestampAssigner;
-import org.apache.flink.api.common.eventtime.WatermarkGenerator;
+import org.apache.flink.api.common.eventtime.Watermark;
 import org.apache.flink.api.common.eventtime.WatermarkOutput;
 
 /**
  * A special version of the per-pulsar-partition-state that additionally holds a {@link
- * TimestampAssigner}, {@link WatermarkGenerator}, an immediate {@link WatermarkOutput}, and a
- * deferred {@link WatermarkOutput} for this partition.
+ * TimestampAssigner} and a {@link WatermarkOutput} for this partition.
  *
- * <p>See {@link org.apache.flink.api.common.eventtime.WatermarkOutputMultiplexer} for an
- * explanation
- * of immediate and deferred {@link WatermarkOutput WatermarkOutputs.}.
- *
- * @param <T> The type of records handled by the watermark generator
+ * @param <T> The type of records handled by the timestamp assigner
  */
 @Internal
-public final class PulsarTopicPartitionStateWithWatermarkGenerator<T> extends PulsarTopicState<T> {
+public final class PulsarTopicPartitionStateWithWatermarkOutput<T> extends PulsarTopicState<T> {
 
 	private final TimestampAssigner<T> timestampAssigner;
 
-	private final WatermarkGenerator<T> watermarkGenerator;
-
 	/**
 	 * Refer to {@link org.apache.flink.api.common.eventtime.WatermarkOutputMultiplexer} for
 	 * a description of immediate/deferred output.
 	 */
-	private final WatermarkOutput immediateOutput;
-
-	/**
-	 * Refer to {@link org.apache.flink.api.common.eventtime.WatermarkOutputMultiplexer} for
-	 * a description of immediate/deferred output.
-	 */
-	private final WatermarkOutput deferredOutput;
+	private final WatermarkOutput output;
 
 	// ------------------------------------------------------------------------
 
-	public PulsarTopicPartitionStateWithWatermarkGenerator(
+	public PulsarTopicPartitionStateWithWatermarkOutput(
 			TopicRange topicRange,
 			TimestampAssigner<T> timestampAssigner,
-			WatermarkGenerator<T> watermarkGenerator,
-			WatermarkOutput immediateOutput,
-			WatermarkOutput deferredOutput) {
+			WatermarkOutput output) {
 		super(topicRange);
 
 		this.timestampAssigner = timestampAssigner;
-		this.watermarkGenerator = watermarkGenerator;
-		this.immediateOutput = immediateOutput;
-		this.deferredOutput = deferredOutput;
+		this.output = output;
 	}
 
 	// ------------------------------------------------------------------------
@@ -72,21 +55,16 @@ public final class PulsarTopicPartitionStateWithWatermarkGenerator<T> extends Pu
 		return timestampAssigner.extractTimestamp(record, pulsarEventTimestamp);
 	}
 
-	@Override
-	public void onEvent(T event, long timestamp) {
-		watermarkGenerator.onEvent(event, timestamp, immediateOutput);
-	}
+    @Override
+    public void onWatermark(Watermark watermark) {
+        output.emitWatermark(watermark);
+    }
 
-	@Override
-	public void onPeriodicEmit() {
-		watermarkGenerator.onPeriodicEmit(deferredOutput);
-	}
-
-	// ------------------------------------------------------------------------
+    // ------------------------------------------------------------------------
 
 	@Override
 	public String toString() {
-		return "PulsarTopicPartitionStateWithWatermarkGenerator: partition=" + getTopicRange()
+		return "PulsarTopicPartitionStateWithWatermarkOutput: partition=" + getTopicRange()
 				+ ", offset=" + getOffset();
 	}
 }

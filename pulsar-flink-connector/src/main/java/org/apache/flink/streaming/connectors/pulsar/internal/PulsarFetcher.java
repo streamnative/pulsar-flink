@@ -14,6 +14,7 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
+import org.apache.flink.api.common.eventtime.Watermark;
 import org.apache.flink.api.common.eventtime.WatermarkOutput;
 import org.apache.flink.api.common.eventtime.WatermarkOutputMultiplexer;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
@@ -56,6 +57,7 @@ public class PulsarFetcher<T> {
 
     private static final int NO_TIMESTAMPS_WATERMARKS = 0;
     private static final int WITH_WATERMARK_GENERATOR = 1;
+    private static final int WITH_PULSAR_WATERMARKS   = 2;
 
     // ------------------------------------------------------------------------
 
@@ -84,10 +86,9 @@ public class PulsarFetcher<T> {
 
     /**
      * Optional watermark strategy that will be run per pulsar partition, to exploit per-partition
-     * timestamp characteristics. The watermark strategy is kept in serialized form, to deserialize
-     * it into multiple copies.
+     * timestamp characteristics.
      */
-    private final SerializedValue<WatermarkStrategy<T>> watermarkStrategy;
+    private final WatermarkStrategy<T> watermarkStrategy;
 
     /** User class loader used to deserialize watermark assigners. */
     private final ClassLoader userCodeClassLoader;
@@ -214,12 +215,17 @@ public class PulsarFetcher<T> {
         this.metadataReader = metadataReader;
 
         // figure out what we watermark mode we will be using
-        this.watermarkStrategy = watermarkStrategy;
-
         if (watermarkStrategy == null) {
+            this.watermarkStrategy = null;
             timestampWatermarkMode = NO_TIMESTAMPS_WATERMARKS;
         } else {
-            timestampWatermarkMode = WITH_WATERMARK_GENERATOR;
+            this.watermarkStrategy = watermarkStrategy.deserializeValue(
+                    userCodeClassLoader);
+            if (this.watermarkStrategy instanceof PulsarGeneratedWatermarks) {
+                timestampWatermarkMode = WITH_PULSAR_WATERMARKS;
+            } else {
+                timestampWatermarkMode = WITH_WATERMARK_GENERATOR;
+            }
         }
 
         this.unassignedPartitionsQueue = new ClosableBlockingQueue<>();
@@ -228,8 +234,7 @@ public class PulsarFetcher<T> {
         this.subscribedPartitionStates = createPartitionStateHolders(
                 seedTopicsWithInitialOffsets,
                 timestampWatermarkMode,
-                watermarkStrategy,
-                userCodeClassLoader);
+                this.watermarkStrategy);
 
         // check that all seed partition states have a defined offset
         for (PulsarTopicState<T> state : subscribedPartitionStates) {
@@ -386,6 +391,21 @@ public class PulsarFetcher<T> {
         }
     }
 
+    /**
+     * Emits a Pulsar-generated watermark.
+     * @param partitionState The state of the pulsar partition from which the record was fetched
+     * @param timestamp The timestamp of the watermark
+     */
+    protected void emitWatermark(
+            PulsarTopicState<T> partitionState,
+            long timestamp) {
+        // emit the watermark, using the checkpoint lock to guarantee
+        // atomicity of record emission and offset state update
+        synchronized (checkpointLock) {
+            partitionState.onWatermark(new Watermark(timestamp));
+        }
+    }
+
     public void cancel() throws Exception {
         // single the main thread to exit
         running = false;
@@ -470,8 +490,7 @@ public class PulsarFetcher<T> {
         List<PulsarTopicState<T>> newStates = createPartitionStateHolders(
                 newTopics.stream().collect(Collectors.toMap(t -> t, t -> MessageId.earliest)),
                 timestampWatermarkMode,
-                watermarkStrategy,
-                userCodeClassLoader);
+                watermarkStrategy);
 
         for (PulsarTopicState state : newStates) {
             // the ordering is crucial here; first register the state holder, then
@@ -546,8 +565,7 @@ public class PulsarFetcher<T> {
     private List<PulsarTopicState<T>> createPartitionStateHolders(
             Map<TopicRange, MessageId> partitionsToInitialOffsets,
             int timestampWatermarkMode,
-            SerializedValue<WatermarkStrategy<T>> watermarkStrategy,
-            ClassLoader userCodeClassLoader) throws IOException, ClassNotFoundException {
+            WatermarkStrategy<T> watermarkStrategy) throws IOException, ClassNotFoundException {
 
         // CopyOnWrite as adding discovered partitions could happen in parallel
         // while different threads iterate the partitions list
@@ -556,7 +574,7 @@ public class PulsarFetcher<T> {
         switch (timestampWatermarkMode) {
             case NO_TIMESTAMPS_WATERMARKS: {
                 for (Map.Entry<TopicRange, MessageId> partitionEntry : partitionsToInitialOffsets.entrySet()) {
-                    PulsarTopicState<T> state = new PulsarTopicState(partitionEntry.getKey());
+                    PulsarTopicState<T> state = new PulsarTopicState<>(partitionEntry.getKey());
                     state.setOffset(partitionEntry.getValue());
                     partitionStates.add(state);
                 }
@@ -567,12 +585,8 @@ public class PulsarFetcher<T> {
                 for (Map.Entry<TopicRange, MessageId> partitionEntry : partitionsToInitialOffsets.entrySet()) {
                     final TopicRange topicRange = partitionEntry.getKey();
 
-                    PulsarTopicState<T> state = new PulsarTopicState(partitionEntry.getKey());
-                    WatermarkStrategy<T> deserializedWatermarkStrategy = watermarkStrategy.deserializeValue(
-                            userCodeClassLoader);
-
                     // the format of the ID does not matter, as long as it is unique
-                    final String partitionId = state.getTopicRange().toString();
+                    final String partitionId = topicRange.toString();
                     watermarkOutputMultiplexer.registerNewOutput(partitionId);
                     WatermarkOutput immediateOutput =
                             watermarkOutputMultiplexer.getImmediateOutput(partitionId);
@@ -582,9 +596,8 @@ public class PulsarFetcher<T> {
                     PulsarTopicPartitionStateWithWatermarkGenerator<T> partitionState =
                             new PulsarTopicPartitionStateWithWatermarkGenerator<>(
                                     topicRange,
-                                    state,
-                                    deserializedWatermarkStrategy.createTimestampAssigner(() -> consumerMetricGroup),
-                                    deserializedWatermarkStrategy.createWatermarkGenerator(() -> consumerMetricGroup),
+                                    watermarkStrategy.createTimestampAssigner(() -> consumerMetricGroup),
+                                    watermarkStrategy.createWatermarkGenerator(() -> consumerMetricGroup),
                                     immediateOutput,
                                     deferredOutput);
 
@@ -592,6 +605,30 @@ public class PulsarFetcher<T> {
 
                     partitionStates.add(partitionState);
 
+                }
+
+                return partitionStates;
+            }
+
+            case WITH_PULSAR_WATERMARKS: {
+                for (Map.Entry<TopicRange, MessageId> partitionEntry : partitionsToInitialOffsets.entrySet()) {
+                    final TopicRange topicRange = partitionEntry.getKey();
+
+                    // the format of the ID does not matter, as long as it is unique
+                    final String partitionId = topicRange.toString();
+                    watermarkOutputMultiplexer.registerNewOutput(partitionId);
+                    WatermarkOutput immediateOutput =
+                            watermarkOutputMultiplexer.getImmediateOutput(partitionId);
+
+                    PulsarTopicPartitionStateWithWatermarkOutput<T> partitionState =
+                            new PulsarTopicPartitionStateWithWatermarkOutput<>(
+                                    topicRange,
+                                    watermarkStrategy.createTimestampAssigner(() -> consumerMetricGroup),
+                                    immediateOutput);
+
+                    partitionState.setOffset(partitionEntry.getValue());
+
+                    partitionStates.add(partitionState);
                 }
 
                 return partitionStates;

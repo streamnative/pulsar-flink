@@ -23,9 +23,9 @@ import org.apache.flink.streaming.connectors.pulsar.internal.PulsarGeneratedWate
 public interface PulsarWatermarkStrategy<T> extends WatermarkStrategy<T> {
 
     /**
-     * Creates a watermark strategy based on producer-generated watermarks.
+     * Creates a watermark strategy based on Pulsar-generated watermarks.
      */
-    static <T> WatermarkStrategy<T> forProducerGeneratedWatermarks() {
+    static <T> WatermarkStrategy<T> forPulsarWatermarks() {
         return new PulsarGeneratedWatermarks<>();
     }
 }

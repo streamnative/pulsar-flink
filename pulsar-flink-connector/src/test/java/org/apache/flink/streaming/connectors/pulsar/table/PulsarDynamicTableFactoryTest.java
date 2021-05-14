@@ -530,7 +530,8 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
                 adminUrl,
                 properties,
                 startupOptions,
-                false);
+                false,
+                null);
     }
 
     private static PulsarDynamicTableSink createExpectedSink(

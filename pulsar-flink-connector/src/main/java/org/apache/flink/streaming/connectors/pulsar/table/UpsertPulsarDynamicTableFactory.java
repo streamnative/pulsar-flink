@@ -14,6 +14,7 @@
 
 package org.apache.flink.streaming.connectors.pulsar.table;
 
+import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -59,6 +60,7 @@ import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOpti
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.VALUE_FORMAT;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.createKeyFormatProjection;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.createValueFormatProjection;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.createWatermarkStrategy;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.getPulsarProperties;
 import static org.apache.flink.table.factories.FactoryUtil.FORMAT;
 
@@ -126,6 +128,8 @@ public class UpsertPulsarDynamicTableFactory implements DynamicTableSourceFactor
         startupOptions.startupMode = StartupMode.EARLIEST;
         startupOptions.specificOffsets = Collections.EMPTY_MAP;
 
+        final WatermarkStrategy<RowData> watermarkStrategy = createWatermarkStrategy(tableOptions).orElse(null);
+
         return new PulsarDynamicTableSource(
                 schema.toPhysicalRowDataType(),
                 keyDecodingFormat,
@@ -139,7 +143,8 @@ public class UpsertPulsarDynamicTableFactory implements DynamicTableSourceFactor
                 adminUrl,
                 properties,
                 startupOptions,
-                true);
+                true,
+                watermarkStrategy);
     }
 
     @Override

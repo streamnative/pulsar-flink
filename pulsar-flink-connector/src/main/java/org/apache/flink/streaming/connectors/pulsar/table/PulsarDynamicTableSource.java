@@ -160,7 +160,8 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
             String adminUrl,
             Properties properties,
             PulsarTableOptions.StartupOptions startupOptions,
-            boolean upsertMode) {
+            boolean upsertMode,
+            @Nullable WatermarkStrategy<RowData> watermarkStrategy) {
         this.producedDataType = physicalDataType;
         setTopicInfo(properties, topics, topicPattern);
 
@@ -175,7 +176,7 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
         // Mutable attributes
         this.producedDataType = physicalDataType;
         this.metadataKeys = new ArrayList<>();
-        this.watermarkStrategy = null;
+        this.watermarkStrategy = watermarkStrategy;
         // Pulsar-specific attributes
         Preconditions.checkArgument((topics != null && topicPattern == null) ||
                         (topics == null && topicPattern != null),
@@ -309,10 +310,10 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
                 adminUrl,
                 properties,
                 startupOptions,
-                false);
+                false,
+                watermarkStrategy);
         copy.producedDataType = producedDataType;
         copy.metadataKeys = metadataKeys;
-        copy.watermarkStrategy = watermarkStrategy;
         return copy;
     }
 

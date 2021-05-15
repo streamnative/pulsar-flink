@@ -18,6 +18,7 @@ import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.connectors.pulsar.FlinkPulsarSource;
+import org.apache.flink.streaming.connectors.pulsar.PulsarWatermarkStrategy;
 import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarClientUtils;
 import org.apache.flink.streaming.util.serialization.PulsarDeserializationSchema;
@@ -426,6 +427,14 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
     @Override
     public void applyWatermark(WatermarkStrategy<RowData> watermarkStrategy) {
         this.watermarkStrategy = watermarkStrategy;
+    }
+
+    // SupportsSourceWatermark (1.13+)
+    //@Override
+    public void applySourceWatermark() {
+        if (this.watermarkStrategy == null) {
+            this.watermarkStrategy = PulsarWatermarkStrategy.forPulsarWatermarks();
+        }
     }
 
     // --------------------------------------------------------------------------------------------

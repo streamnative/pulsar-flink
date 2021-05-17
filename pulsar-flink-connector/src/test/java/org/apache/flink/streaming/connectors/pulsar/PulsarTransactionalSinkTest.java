@@ -41,6 +41,7 @@ import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.policies.data.TenantInfo;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.PulsarContainer;
@@ -77,7 +78,9 @@ public class PulsarTransactionalSinkTest {
         log.info("    Starting PulsarTestBase ");
 
         final String pulsarImage = System.getProperty("pulsar.systemtest.image", "apachepulsar/pulsar:2.7.0");
-        pulsarService = new PulsarContainer(DockerImageName.parse(pulsarImage));
+        DockerImageName pulsar = DockerImageName.parse(pulsarImage)
+            .asCompatibleSubstituteFor("apachepulsar/pulsar");
+        pulsarService = new PulsarContainer(pulsar);
         pulsarService.withClasspathResourceMapping("pulsar/txnStandalone.conf", "/pulsar/conf/standalone.conf",
                 BindMode.READ_ONLY);
         pulsarService.waitingFor(new HttpWaitStrategy()
@@ -114,6 +117,7 @@ public class PulsarTransactionalSinkTest {
      * Tests the exactly-once semantic for the simple writes into Pulsar.
      */
     @Test
+    @Ignore("Pulsar 2.7.1 does not support the use of standalone transactions, requires Pulsar 2.8 version")
     public void testExactlyOnceRegularSink() throws Exception {
         admin = PulsarAdmin.builder().serviceHttpUrl(adminUrl).build();
         admin.tenants().createTenant(NamespaceName.SYSTEM_NAMESPACE.getTenant(),

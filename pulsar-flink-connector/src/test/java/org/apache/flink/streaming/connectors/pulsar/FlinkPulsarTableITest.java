@@ -73,8 +73,8 @@ import static org.apache.flink.streaming.connectors.pulsar.SchemaData.fmList;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.fooList;
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.TOPIC_SINGLE_OPTION_KEY;
 import static org.apache.flink.table.utils.TableTestMatchers.deepEqualTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 /**
  * Table API related Integration tests.
@@ -618,7 +618,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         for (int i = 0; i < SchemaData.INTEGER_LIST.size(); i++) {
             Timestamp timestamp = new Timestamp(eventTimes.get(i));
             LocalDateTime localDateTime = timestamp.toLocalDateTime();
-            expected.add(Row.of(SchemaData.INTEGER_LIST.get(i), messageIdList.get(i).toByteArray(), localDateTime,
+            expected.add(Row.of(SchemaData.INTEGER_LIST.get(i), localDateTime,
                     properties.get(i), topic, keys.get(i), sequenceIds.get(i)));
         }
 
@@ -628,7 +628,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
                         + "  `physical_1` INT,\n"
                         // metadata fields are out of order on purpose
                         // offset is ignored because it might not be deterministic
-                        + "  `messageId` BYTES METADATA,\n"
+//                        + "  `messageId` BYTES METADATA,\n"
                         + "  `eventTime` TIMESTAMP(3) METADATA,\n"
                         + "  `properties` MAP<STRING, STRING> METADATA ,\n"
                         + "  `topic` STRING METADATA VIRTUAL,\n"

@@ -49,7 +49,10 @@ public class PulsarOptions {
     public static final String CLIENT_CACHE_SIZE_OPTION_KEY = "clientcachesize";
     public static final String FLUSH_ON_CHECKPOINT_OPTION_KEY = "flushoncheckpoint";
     public static final String FAIL_ON_WRITE_OPTION_KEY = "failonwrite";
+    public static final String TRANSACTION_TIMEOUT = "transaction-timeout";
+    public static final String MAX_BLOCK_TIME_MS = "max-block-time-ms";
     public static final String POLL_TIMEOUT_MS_OPTION_KEY = "polltimeoutms";
+    public static final String SEND_TIMEOUT_MS = "send-timeout-ms";
     public static final String SUBSCRIPTION_ROLE_OPTION_KEY = "subscriptionRolePrefix";
     public static final String COMMIT_MAX_RETRIES = "commitmaxretries";
     public static final String FAIL_ON_DATA_LOSS_OPTION_KEY = "failondataloss";

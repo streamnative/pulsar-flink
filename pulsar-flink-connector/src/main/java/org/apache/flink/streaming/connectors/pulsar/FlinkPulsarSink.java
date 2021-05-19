@@ -17,28 +17,30 @@ package org.apache.flink.streaming.connectors.pulsar;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarClientUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarContextAware;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarSerializationSchema;
+import org.apache.flink.streaming.connectors.pulsar.table.PulsarSinkSemantic;
 
+import lombok.extern.slf4j.Slf4j;
+import org.apache.pulsar.client.api.MessageId;
+import org.apache.pulsar.client.api.MessageRouter;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
+import org.apache.pulsar.client.api.transaction.TxnID;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
- * Write Pojo class to Flink.
+ * Write data to Flink.
  *
- * @param <T> Type of the Pojo class.
+ * @param <T> Type of the record.
  */
+@Slf4j
 public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
-
-    //private final Class<T> recordClazz;
-
-    /**
-     * Type for serialized messages, default use AVRO.
-     */
-    //private final RecordSchemaType schemaType;
 
     private final PulsarSerializationSchema<T> serializationSchema;
 
@@ -47,10 +49,31 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
             Optional<String> defaultTopicName,
             ClientConfigurationData clientConf,
             Properties properties,
-            PulsarSerializationSchema serializationSchema) {
+            PulsarSerializationSchema serializationSchema,
+            MessageRouter messageRouter,
+            PulsarSinkSemantic semantic) {
 
-        super(adminUrl, defaultTopicName, clientConf, properties, serializationSchema);
+        super(adminUrl, defaultTopicName, clientConf, properties, serializationSchema, messageRouter, semantic);
         this.serializationSchema = serializationSchema;
+    }
+
+    public FlinkPulsarSink(
+            String adminUrl,
+            Optional<String> defaultTopicName,
+            ClientConfigurationData clientConf,
+            Properties properties,
+            PulsarSerializationSchema serializationSchema,
+            PulsarSinkSemantic semantic) {
+        this(adminUrl, defaultTopicName, clientConf, properties, serializationSchema, null, semantic);
+    }
+
+    public FlinkPulsarSink(
+            String adminUrl,
+            Optional<String> defaultTopicName,
+            ClientConfigurationData clientConf,
+            Properties properties,
+            PulsarSerializationSchema serializationSchema) {
+        this(adminUrl, defaultTopicName, clientConf, properties, serializationSchema, PulsarSinkSemantic.AT_LEAST_ONCE);
     }
 
     public FlinkPulsarSink(
@@ -64,32 +87,32 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
                 defaultTopicName,
                 PulsarClientUtils.newClientConf(checkNotNull(serviceUrl), properties),
                 properties,
-                serializationSchema
+                serializationSchema,
+                PulsarSinkSemantic.AT_LEAST_ONCE
         );
     }
 
     @Override
-    public void invoke(T value, Context context) throws Exception {
+    public void invoke(PulsarTransactionState<T> transactionState, T value, Context context) throws Exception {
         checkErroneous();
         initializeSendCallback();
 
         //get topic for message
-        String targetTopic = null;
+        String topic = null;
         byte[] key = null;
         if (serializationSchema instanceof PulsarContextAware) {
             @SuppressWarnings("unchecked")
             PulsarContextAware<T> contextAwareSchema =
-                    (PulsarContextAware<T>) serializationSchema;
+                (PulsarContextAware<T>) serializationSchema;
 
-            targetTopic = contextAwareSchema.getTargetTopic(value);
+            topic = contextAwareSchema.getTargetTopic(value);
             key = contextAwareSchema.getKey(value);
         }
-        if (targetTopic == null) {
-            targetTopic = defaultTopic;
+        if (topic == null) {
+            topic = defaultTopic;
         }
-
-        //serialize the message
-        TypedMessageBuilder<byte[]> mb = getProducer(targetTopic).newMessage();
+        TypedMessageBuilder<byte[]> mb = transactionState.isTransactional() ?
+                getProducer(topic).newMessage(transactionState.getTransaction()) : getProducer(topic).newMessage();
         serializationSchema.serialize(value, mb);
 
         if (key != null) {
@@ -101,6 +124,18 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
                 pendingRecords++;
             }
         }
-        mb.sendAsync().whenComplete(sendCallback);
+
+        CompletableFuture<MessageId> messageIdFuture = mb.sendAsync();
+        if (transactionState.isTransactional()) {
+            // in transactional mode, we must sleep some time because pulsar have some bug can result data disorder.
+            // if pulsar-client fix this bug, we can safely remove this.
+            Thread.sleep(10);
+            TxnID transactionalId = transactionState.transactionalId;
+            List<CompletableFuture<MessageId>> futureList;
+            tid2FuturesMap.computeIfAbsent(transactionalId, k -> new ArrayList<>())
+                    .add(messageIdFuture);
+            log.debug("message {} is invoke in txn {}", value, transactionState.transactionalId);
+        }
+        messageIdFuture.whenComplete(sendCallback);
     }
 }

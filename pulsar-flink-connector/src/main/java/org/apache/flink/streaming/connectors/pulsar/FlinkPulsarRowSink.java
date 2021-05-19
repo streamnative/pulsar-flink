@@ -81,7 +81,9 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
                 defaultTopicName,
                 clientConf,
                 properties,
-                new RowSinkSerializationSchema(defaultTopicName.get(), serializationSchema, RecordSchemaType.AVRO, dataType));
+                new RowSinkSerializationSchema(defaultTopicName.get(), serializationSchema, RecordSchemaType.AVRO, dataType),
+null
+            );
         this.dataType = dataType;
         createProjection();
     }
@@ -224,7 +226,7 @@ public class FlinkPulsarRowSink extends FlinkPulsarSinkBase<Row> {
     }
 
     @Override
-    public void invoke(Row value, Context context) throws Exception {
+    public void invoke(PulsarTransactionState<Row> transactionState, Row value, Context context) throws Exception {
         checkErroneous();
         initializeSendCallback();
 

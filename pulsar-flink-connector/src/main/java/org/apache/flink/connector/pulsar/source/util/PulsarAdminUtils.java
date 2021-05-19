@@ -15,8 +15,10 @@
 package org.apache.flink.connector.pulsar.source.util;
 
 import org.apache.pulsar.client.admin.PulsarAdmin;
+import org.apache.pulsar.client.api.Authentication;
 import org.apache.pulsar.client.api.AuthenticationFactory;
 import org.apache.pulsar.client.api.PulsarClientException;
+import org.apache.pulsar.client.impl.auth.AuthenticationDisabled;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.shade.org.apache.commons.lang3.StringUtils;
 
@@ -26,15 +28,16 @@ import org.apache.pulsar.shade.org.apache.commons.lang3.StringUtils;
 public class PulsarAdminUtils {
 
     public static PulsarAdmin newAdminFromConf(String adminUrl, ClientConfigurationData clientConfigurationData) throws PulsarClientException {
-        ClientConfigurationData adminConf = clientConfigurationData.clone();
-        adminConf.setServiceUrl(adminUrl);
-        setAuth(adminConf);
-        return new PulsarAdmin(adminUrl, adminConf);
+        return PulsarAdmin.builder()
+            .serviceHttpUrl(adminUrl)
+            .authentication(getAuth(clientConfigurationData))
+            .build();
     }
 
-    private static void setAuth(ClientConfigurationData conf) throws PulsarClientException {
+    private static Authentication getAuth(ClientConfigurationData conf) throws PulsarClientException {
         if (!StringUtils.isBlank(conf.getAuthPluginClassName()) && !StringUtils.isBlank(conf.getAuthParams())) {
-            conf.setAuthentication(AuthenticationFactory.create(conf.getAuthPluginClassName(), conf.getAuthParams()));
+            return AuthenticationFactory.create(conf.getAuthPluginClassName(), conf.getAuthParams());
         }
+        return AuthenticationDisabled.INSTANCE;
     }
 }

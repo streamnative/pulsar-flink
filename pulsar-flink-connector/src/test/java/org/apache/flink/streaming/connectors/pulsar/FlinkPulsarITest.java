@@ -1447,7 +1447,6 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
                             @Override
                             protected void invoke(PulsarTransactionState<String> stringPulsarTransactionState, String s,
                                                   Context context) throws Exception {
-                                return;
                             }
                         });
 

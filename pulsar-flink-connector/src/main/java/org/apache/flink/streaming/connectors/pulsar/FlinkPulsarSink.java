@@ -131,7 +131,6 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
             // if pulsar-client fix this bug, we can safely remove this.
             Thread.sleep(10);
             TxnID transactionalId = transactionState.transactionalId;
-            List<CompletableFuture<MessageId>> futureList;
             tid2FuturesMap.computeIfAbsent(transactionalId, k -> new ArrayList<>())
                     .add(messageIdFuture);
             log.debug("message {} is invoke in txn {}", value, transactionState.transactionalId);

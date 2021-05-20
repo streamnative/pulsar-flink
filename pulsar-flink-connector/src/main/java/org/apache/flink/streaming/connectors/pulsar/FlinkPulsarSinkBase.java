@@ -577,8 +577,7 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
 
         private final List<MessageId> pendingMessages;
 
-        @Nullable
-        final TxnID transactionalId;
+        protected final TxnID transactionalId;
 
         @VisibleForTesting
         public PulsarTransactionState() {
@@ -598,7 +597,7 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
             return transaction;
         }
 
-        boolean isTransactional() {
+        public boolean isTransactional() {
             return transactionalId != null;
         }
 

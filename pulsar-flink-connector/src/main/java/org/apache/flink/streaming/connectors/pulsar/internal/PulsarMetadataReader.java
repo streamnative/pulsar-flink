@@ -32,6 +32,9 @@ import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.shade.com.google.common.collect.Iterables;
 import org.apache.pulsar.shade.com.google.common.collect.Sets;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -279,8 +282,9 @@ public class PulsarMetadataReader implements AutoCloseable {
                     throw new RuntimeException("Subscription been actively used by other consumers, " +
                             "in this situation, the exactly-once semantics cannot be guaranteed.");
                 } else {
+                    String encodedSubName = URLEncoder.encode(subscriptionName, StandardCharsets.UTF_8.toString());
                     PersistentTopicInternalStats.CursorStats c =
-                            admin.topics().getInternalStats(topic).cursors.get(subscriptionName);
+                            admin.topics().getInternalStats(topic).cursors.get(encodedSubName);
                     String[] ids = c.markDeletePosition.split(":", 2);
                     long ledgerId = Long.parseLong(ids[0]);
                     long entryIdInMarkDelete = Long.parseLong(ids[1]);
@@ -296,7 +300,7 @@ public class PulsarMetadataReader implements AutoCloseable {
                 admin.topics().createSubscription(topic, subscriptionName, defaultPosition);
                 return defaultPosition;
             }
-        } catch (PulsarAdminException e) {
+        } catch (PulsarAdminException | UnsupportedEncodingException e) {
             throw new RuntimeException("Failed to get stats for topic " + topic, e);
         }
     }

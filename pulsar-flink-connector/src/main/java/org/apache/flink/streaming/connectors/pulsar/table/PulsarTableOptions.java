@@ -51,6 +51,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.IntStream;
 
+import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.PULSAR_OPTION_KEY_PREFIX;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarSinkSemantic.AT_LEAST_ONCE;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarSinkSemantic.EXACTLY_ONCE;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarSinkSemantic.NONE;
@@ -381,7 +382,9 @@ public class PulsarTableOptions {
                     .forEach(key -> {
                         final String value = tableOptions.get(key);
                         String subKey = key.substring((PROPERTIES_PREFIX).length());
-                        subKey = CaseFormat.LOWER_HYPHEN.to(CaseFormat.LOWER_CAMEL, subKey);
+                        if (subKey.startsWith(PULSAR_OPTION_KEY_PREFIX)) {
+                            subKey = CaseFormat.LOWER_HYPHEN.to(CaseFormat.LOWER_CAMEL, subKey);
+                        }
                         pulsarProperties.put(subKey, value);
                     });
         }

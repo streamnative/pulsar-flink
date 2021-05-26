@@ -880,7 +880,7 @@ public class FlinkPulsarSource<T>
             case EXTERNAL_SUBSCRIPTION:
                 Map<TopicRange, MessageId> offsetsFromSubs = new HashMap<>();
                 for (TopicRange topic : topics) {
-                    offsetsFromSubs.put(topic, metadataReader.getPositionFromSubscription(topic.getTopic(),
+                    offsetsFromSubs.put(topic, metadataReader.getPositionFromSubscription(topic,
                             subscriptionPosition));
                 }
                 return offsetsFromSubs;

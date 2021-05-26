@@ -208,9 +208,10 @@ public class PulsarMetadataReader implements AutoCloseable {
         // if failOnDataLoss is false, we could continue, and re-create the sub.
         if (!useExternalSubscription || !failOnDataLoss) {
             for (Map.Entry<TopicRange, MessageId> entry : offset.entrySet()) {
+                String subscriptionName = subscriptionNameFrom(entry.getKey());
                 try {
                     log.info("Setting up subscription {} on topic {} at position {}", subscriptionName, entry.getKey(), entry.getValue());
-                    admin.topics().createSubscription(entry.getKey().getTopic(), subscriptionNameFrom(entry.getKey()), entry.getValue());
+                    admin.topics().createSubscription(entry.getKey().getTopic(), subscriptionName, entry.getValue());
                     log.info("Subscription {} on topic {} at position {} finished", subscriptionName, entry.getKey(), entry.getValue());
                 } catch (PulsarAdminException.ConflictException e) {
                     log.info("Subscription {} on topic {} already exists", subscriptionName, entry.getKey());
@@ -249,9 +250,10 @@ public class PulsarMetadataReader implements AutoCloseable {
     public void removeCursor(Set<TopicRange> topics) {
         if (!useExternalSubscription) {
             for (TopicRange topicRange : topics) {
+                String subscriptionName = subscriptionNameFrom(topicRange);
                 try {
                     log.info("Removing subscription {} from topic {}", subscriptionName, topicRange.getTopic());
-                    admin.topics().deleteSubscription(topicRange.getTopic(), subscriptionNameFrom(topicRange));
+                    admin.topics().deleteSubscription(topicRange.getTopic(), subscriptionName);
                     log.info("Successfully removed subscription {} from topic {}", subscriptionName, topicRange.getTopic());
                 } catch (Throwable e) {
                     if (e instanceof PulsarAdminException && ((PulsarAdminException) e).getStatusCode() == 404) {
@@ -269,9 +271,10 @@ public class PulsarMetadataReader implements AutoCloseable {
         return topicRange.isFullRange() ? subscriptionName : subscriptionName + topicRange.getPulsarRange();
     }
 
-    public MessageId getPositionFromSubscription(String topic, MessageId defaultPosition) {
+    public MessageId getPositionFromSubscription(TopicRange topic, MessageId defaultPosition) {
         try {
-            TopicStats topicStats = admin.topics().getStats(topic);
+            String subscriptionName = subscriptionNameFrom(topic);
+            TopicStats topicStats = admin.topics().getStats(topic.getTopic());
             if (topicStats.subscriptions.containsKey(subscriptionName)) {
                 SubscriptionStats subStats = topicStats.subscriptions.get(subscriptionName);
                 if (subStats.consumers.size() != 0) {
@@ -280,7 +283,7 @@ public class PulsarMetadataReader implements AutoCloseable {
                 } else {
                     String encodedSubName = URLEncoder.encode(subscriptionName, StandardCharsets.UTF_8.toString());
                     PersistentTopicInternalStats.CursorStats c =
-                            admin.topics().getInternalStats(topic).cursors.get(encodedSubName);
+                            admin.topics().getInternalStats(topic.getTopic()).cursors.get(encodedSubName);
                     String[] ids = c.markDeletePosition.split(":", 2);
                     long ledgerId = Long.parseLong(ids[0]);
                     long entryIdInMarkDelete = Long.parseLong(ids[1]);
@@ -288,12 +291,12 @@ public class PulsarMetadataReader implements AutoCloseable {
                     // it denotes we haven't read data from the ledger before,
                     // therefore no need to skip the current entry for the next position
                     long entryId = entryIdInMarkDelete == -1 ? -1 : entryIdInMarkDelete + 1;
-                    int partitionIdx = TopicName.getPartitionIndex(topic);
+                    int partitionIdx = TopicName.getPartitionIndex(topic.getTopic());
                     return new MessageIdImpl(ledgerId, entryId, partitionIdx);
                 }
             } else {
                 // create sub on topic
-                admin.topics().createSubscription(topic, subscriptionName, defaultPosition);
+                admin.topics().createSubscription(topic.getTopic(), subscriptionName, defaultPosition);
                 return defaultPosition;
             }
         } catch (PulsarAdminException | UnsupportedEncodingException e) {
@@ -433,9 +436,9 @@ public class PulsarMetadataReader implements AutoCloseable {
         }
     }
 
-    public void resetCursor(String topic, MessageId messageId) {
+    public void resetCursor(TopicRange topicRange, MessageId messageId) {
         try {
-            this.admin.topics().resetCursor(topic, subscriptionName, messageId);
+            this.admin.topics().resetCursor(topicRange.getTopic(), subscriptionNameFrom(topicRange), messageId);
         } catch (PulsarAdminException e) {
             throw new RuntimeException(e);
         }

@@ -267,7 +267,7 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
             if (!ignoreIfNotExists) {
                 throw new TableNotExistException(getName(), tablePath, e);
             }
-        } catch (PulsarAdminException e) {
+        } catch (PulsarAdminException | RuntimeException e) {
             throw new CatalogException(String.format("Failed to drop table %s", tablePath.getFullName()), e);
         }
     }

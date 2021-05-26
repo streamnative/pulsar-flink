@@ -22,6 +22,7 @@ import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Reader;
 import org.apache.pulsar.client.api.ReaderBuilder;
+import org.apache.pulsar.client.api.Watermark;
 import org.apache.pulsar.client.impl.BatchMessageIdImpl;
 import org.apache.pulsar.client.impl.MessageIdImpl;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
@@ -99,10 +100,16 @@ public class ReaderThread<T> extends Thread {
 
             log.info("Starting to read {} with reader thread {}", topicRange, getName());
 
+            Watermark lastWatermark = null;
             while (running) {
                 Message<T> message = reader.readNext(pollTimeoutMs, TimeUnit.MILLISECONDS);
                 if (message != null) {
                     emitRecord(message);
+                }
+                Watermark watermark = reader.getLastWatermark();
+                if (watermark != null && !watermark.equals(lastWatermark)) {
+                    emitWatermark(watermark.getEventTime());
+                    lastWatermark = watermark;
                 }
             }
         } catch (Throwable e) {
@@ -124,6 +131,7 @@ public class ReaderThread<T> extends Thread {
                 .topic(topicRange.getTopic())
                 .startMessageId(startMessageId)
                 .startMessageIdInclusive()
+                .enableWatermarking(true)
                 .loadConf(readerConf);
         log.info("Create a reader at topic {} starting from message {} (inclusive) : config = {}",
                 topicRange, startMessageId, readerConf);
@@ -202,6 +210,10 @@ public class ReaderThread<T> extends Thread {
             return;
         }
         owner.emitRecordsWithTimestamps(record, state, messageId, message.getEventTime());
+    }
+
+    protected void emitWatermark(long timestamp) throws IOException {
+        owner.emitWatermark(state, timestamp);
     }
 
     public void cancel() throws IOException {

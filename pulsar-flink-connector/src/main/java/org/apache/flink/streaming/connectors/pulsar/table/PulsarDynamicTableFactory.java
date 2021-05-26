@@ -14,6 +14,7 @@
 
 package org.apache.flink.streaming.connectors.pulsar.table;
 
+import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.configuration.ConfigOption;
@@ -64,8 +65,10 @@ import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOpti
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.TOPIC_PATTERN;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.VALUE_FIELDS_INCLUDE;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.VALUE_FORMAT;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.WATERMARK_STRATEGY;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.createKeyFormatProjection;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.createValueFormatProjection;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.createWatermarkStrategy;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.getMessageRouter;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.getPulsarProperties;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.validateSinkMessageRouter;
@@ -198,6 +201,8 @@ public class PulsarDynamicTableFactory implements
 
         final String keyPrefix = tableOptions.getOptional(KEY_FIELDS_PREFIX).orElse(null);
 
+        final WatermarkStrategy<RowData> watermarkStrategy = createWatermarkStrategy(tableOptions).orElse(null);
+
         return createPulsarTableSource(
                 physicalDataType,
                 keyDecodingFormat.orElse(null),
@@ -210,7 +215,8 @@ public class PulsarDynamicTableFactory implements
                 serviceUrl,
                 adminUrl,
                 properties,
-                startupOptions);
+                startupOptions,
+                watermarkStrategy);
     }
 
     @Override
@@ -242,6 +248,8 @@ public class PulsarDynamicTableFactory implements
         options.add(SCAN_STARTUP_SUB_NAME);
 
         options.add(PARTITION_DISCOVERY_INTERVAL_MILLIS);
+        options.add(WATERMARK_STRATEGY);
+
         options.add(SINK_SEMANTIC);
         options.add(SINK_MESSAGE_ROUTER);
         options.add(SINK_PARALLELISM);
@@ -328,7 +336,8 @@ public class PulsarDynamicTableFactory implements
             String serviceUrl,
             String adminUrl,
             Properties properties,
-            PulsarTableOptions.StartupOptions startupOptions) {
+            PulsarTableOptions.StartupOptions startupOptions,
+            WatermarkStrategy<RowData> watermarkStrategy) {
         return new PulsarDynamicTableSource(
                 physicalDataType,
                 keyDecodingFormat,
@@ -342,6 +351,7 @@ public class PulsarDynamicTableFactory implements
                 adminUrl,
                 properties,
                 startupOptions,
-                false);
+                false,
+                watermarkStrategy);
     }
 }

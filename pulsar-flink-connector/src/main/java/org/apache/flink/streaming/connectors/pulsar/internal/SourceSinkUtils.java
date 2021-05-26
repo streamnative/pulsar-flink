@@ -96,7 +96,7 @@ public class SourceSinkUtils {
     }
 
     public static int getPollTimeoutMs(Map<String, String> parameters) {
-        String interval = parameters.getOrDefault(PulsarOptions.POLL_TIMEOUT_MS_OPTION_KEY, "120000");
+        String interval = parameters.getOrDefault(PulsarOptions.POLL_TIMEOUT_MS_OPTION_KEY, "1000");
         return Integer.parseInt(interval);
     }
 

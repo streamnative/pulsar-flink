@@ -18,6 +18,7 @@ import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.connectors.pulsar.FlinkPulsarSource;
+import org.apache.flink.streaming.connectors.pulsar.PulsarWatermarkStrategy;
 import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarClientUtils;
 import org.apache.flink.streaming.util.serialization.PulsarDeserializationSchema;
@@ -160,7 +161,8 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
             String adminUrl,
             Properties properties,
             PulsarTableOptions.StartupOptions startupOptions,
-            boolean upsertMode) {
+            boolean upsertMode,
+            @Nullable WatermarkStrategy<RowData> watermarkStrategy) {
         this.producedDataType = physicalDataType;
         setTopicInfo(properties, topics, topicPattern);
 
@@ -175,7 +177,7 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
         // Mutable attributes
         this.producedDataType = physicalDataType;
         this.metadataKeys = new ArrayList<>();
-        this.watermarkStrategy = null;
+        this.watermarkStrategy = watermarkStrategy;
         // Pulsar-specific attributes
         Preconditions.checkArgument((topics != null && topicPattern == null) ||
                         (topics == null && topicPattern != null),
@@ -309,10 +311,10 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
                 adminUrl,
                 properties,
                 startupOptions,
-                false);
+                false,
+                watermarkStrategy);
         copy.producedDataType = producedDataType;
         copy.metadataKeys = metadataKeys;
-        copy.watermarkStrategy = watermarkStrategy;
         return copy;
     }
 
@@ -425,6 +427,14 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
     @Override
     public void applyWatermark(WatermarkStrategy<RowData> watermarkStrategy) {
         this.watermarkStrategy = watermarkStrategy;
+    }
+
+    // SupportsSourceWatermark (1.13+)
+    //@Override
+    public void applySourceWatermark() {
+        if (this.watermarkStrategy == null) {
+            this.watermarkStrategy = PulsarWatermarkStrategy.forPulsarWatermarks();
+        }
     }
 
     // --------------------------------------------------------------------------------------------

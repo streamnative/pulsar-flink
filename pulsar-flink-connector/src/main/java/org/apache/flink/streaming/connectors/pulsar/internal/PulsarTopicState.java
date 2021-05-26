@@ -14,6 +14,7 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
+import org.apache.flink.api.common.eventtime.Watermark;
 import org.apache.flink.shaded.guava18.com.google.common.base.MoreObjects;
 
 import lombok.Getter;
@@ -69,6 +70,10 @@ public class PulsarTopicState<T> {
     }
 
     public void onPeriodicEmit() {
+        // do nothing
+    }
+
+    public void onWatermark(Watermark watermark) {
         // do nothing
     }
 

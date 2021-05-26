@@ -73,7 +73,7 @@
     <testRetryCount>3</testRetryCount>
 
     <!-- use Pulsar stable version -->
-    <pulsar.version>2.7.1.4</pulsar.version>
+    <pulsar.version>2.7.2</pulsar.version>
     <flink.version>1.12.3</flink.version>
     <scala.binary.version>2.11</scala.binary.version>
     <lombok.version>1.18.18</lombok.version>
@@ -97,7 +97,7 @@
     <license-maven-plugin.version>4.0.rc2</license-maven-plugin.version>
     <spotbugs-maven-plugin.version>4.2.2</spotbugs-maven-plugin.version>
     <nexus-staging-maven-plugin.version>1.6.8</nexus-staging-maven-plugin.version>
-    <pulsar.systemtest.image>streamnative/pulsar:${pulsar.version}</pulsar.systemtest.image>
+    <pulsar.systemtest.image>apachepulsar/pulsar:${pulsar.version}</pulsar.systemtest.image>
   </properties>
 
   <!-- dependencies for all modules -->

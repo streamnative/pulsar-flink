@@ -190,8 +190,19 @@ public class PulsarMetadataReader implements AutoCloseable {
     public void deleteTopic(String topicName) throws PulsarAdminException {
         int partitionNum = admin.topics().getPartitionedTopicMetadata(topicName).partitions;
         if (partitionNum > 0) {
+            final Optional<PersistentTopicInternalStats> any = admin.topics().getPartitionedInternalStats(topicName).partitions.entrySet()
+                .stream()
+                .map(Map.Entry::getValue)
+                .filter(p -> !p.cursors.isEmpty())
+                .findAny();
+            if (any.isPresent()) {
+                throw new IllegalStateException(String.format("The topic[%s] cannot be deleted because there are subscribers", topicName));
+            }
             admin.topics().deletePartitionedTopic(topicName, true);
         } else {
+            if (!admin.topics().getInternalStats(topicName).cursors.isEmpty()) {
+                throw new IllegalStateException(String.format("The topic[%s] cannot be deleted because there are subscribers", topicName));
+            }
             admin.topics().delete(topicName, true);
         }
     }

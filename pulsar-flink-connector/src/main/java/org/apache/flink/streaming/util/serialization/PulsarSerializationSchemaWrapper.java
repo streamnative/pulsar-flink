@@ -45,6 +45,7 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
     private final SchemaMode schemaMode;
     private final SerializableFunction<T, String> topicExtractor;
     private final SerializableFunction<T, byte[]> keyExtractor;
+    private final SerializableFunction<T, Optional<Long>> deliverAtExtractor;
 
     private PulsarSerializationSchemaWrapper(SerializationSchema<T> serializationSchema,
                                              RecordSchemaType recordSchemaType,
@@ -53,7 +54,8 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
                                              DataType dataType,
                                              SchemaMode schemaMode,
                                              SerializableFunction<T, String> topicExtractor,
-                                             SerializableFunction<T, byte[]> keyExtractor) {
+                                             SerializableFunction<T, byte[]> keyExtractor,
+                                             SerializableFunction<T, Optional<Long>> deliverAtExtractor) {
         this.serializationSchema = serializationSchema;
         this.recordSchemaType = recordSchemaType;
         this.schema = schema;
@@ -62,6 +64,7 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
         this.schemaMode = checkNotNull(schemaMode);
         this.topicExtractor = topicExtractor;
         this.keyExtractor = keyExtractor;
+        this.deliverAtExtractor = deliverAtExtractor;
     }
 
     @Override
@@ -78,6 +81,9 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
     public void serialize(T element, TypedMessageBuilder<T> messageBuilder) {
         if (keyExtractor != null) {
             messageBuilder.keyBytes(keyExtractor.apply(element));
+        }
+        if (deliverAtExtractor != null) {
+            deliverAtExtractor.apply(element).ifPresent(deliverAt -> messageBuilder.deliverAt(deliverAt));
         }
         messageBuilder.value(element);
     }
@@ -147,6 +153,7 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
         private SchemaMode mode;
         private SerializableFunction<T, String> topicExtractor = (T) -> null;
         private SerializableFunction<T, byte[]> keyExtractor;
+        private SerializableFunction<T, Optional<Long>> deliverAtExtractor;
 
         public Builder(SerializationSchema<T> serializationSchema) {
             this.serializationSchema = serializationSchema;
@@ -199,6 +206,12 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
             return this;
         }
 
+        public PulsarSerializationSchemaWrapper.Builder<T> setDeliverAtExtractor(
+            SerializableFunction<T, Optional<Long>> deliverAtExtractor) {
+            this.deliverAtExtractor = deliverAtExtractor;
+            return this;
+        }
+
         public PulsarSerializationSchemaWrapper<T> build() {
             checkNotNull(mode, "Must set mode " +
                     "use useSpecialMode or useAtomicMode or usePojoMode or useRowMode");
@@ -210,7 +223,8 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
                     dataType,
                     mode,
                     topicExtractor,
-                    keyExtractor);
+                    keyExtractor,
+                    deliverAtExtractor);
         }
     }
 }

@@ -238,7 +238,7 @@ public class PulsarMetadataReader implements AutoCloseable {
         setupCursor(offset, true);
     }
 
-    public void commitCursorToOffset(Map<TopicRange, MessageId> offset) {
+    public void commitOffsetToCursor(Map<TopicRange, MessageId> offset) {
         for (Map.Entry<TopicRange, MessageId> entry : offset.entrySet()) {
             TopicRange tp = entry.getKey();
             try {

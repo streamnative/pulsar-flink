@@ -31,6 +31,8 @@ import org.apache.flink.util.FlinkException;
 import org.apache.flink.util.InstantiationUtil;
 import org.apache.flink.util.Preconditions;
 
+import org.apache.flink.shaded.guava18.com.google.common.base.CaseFormat;
+
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.MessageId;
@@ -49,6 +51,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.IntStream;
 
+import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.PULSAR_OPTION_KEY_PREFIX;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarSinkSemantic.AT_LEAST_ONCE;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarSinkSemantic.EXACTLY_ONCE;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarSinkSemantic.NONE;
@@ -378,7 +381,10 @@ public class PulsarTableOptions {
                     .filter(key -> key.startsWith(PROPERTIES_PREFIX))
                     .forEach(key -> {
                         final String value = tableOptions.get(key);
-                        final String subKey = key.substring((PROPERTIES_PREFIX).length());
+                        String subKey = key.substring((PROPERTIES_PREFIX).length());
+                        if (subKey.startsWith(PULSAR_OPTION_KEY_PREFIX)) {
+                            subKey = CaseFormat.LOWER_HYPHEN.to(CaseFormat.LOWER_CAMEL, subKey);
+                        }
                         pulsarProperties.put(subKey, value);
                     });
         }

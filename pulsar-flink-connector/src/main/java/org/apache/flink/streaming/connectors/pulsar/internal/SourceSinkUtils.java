@@ -14,6 +14,8 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
+import org.apache.flink.shaded.guava18.com.google.common.base.CaseFormat;
+
 import org.apache.pulsar.client.api.Range;
 import org.apache.pulsar.shade.org.apache.commons.lang3.StringUtils;
 
@@ -144,7 +146,7 @@ public class SourceSinkUtils {
 
     public static Map<String, String> toCaceInsensitiveParams(Map<String, String> parameters) {
         return parameters.entrySet().stream()
-                .collect(Collectors.toMap(t -> t.getKey().toLowerCase(Locale.ROOT), t -> t.getValue()));
+            .collect(Collectors.toMap(t -> t.getKey().toLowerCase(Locale.ROOT), t -> t.getValue()));
     }
 
     public static Map<String, Object> getProducerParams(Map<String, String> parameters) {
@@ -187,9 +189,20 @@ public class SourceSinkUtils {
 
     public static int getOldStateVersion(Map<String, String> caseInsensitiveParams, int defaultValue) {
         final String value = caseInsensitiveParams.get(PulsarOptions.OLD_STATE_VERSION);
-        if (StringUtils.isBlank(value)){
+        if (StringUtils.isBlank(value)) {
             return defaultValue;
         }
         return Integer.parseInt(value);
+    }
+
+    public static boolean getFailOnDataLossAndRemoveKey(Map<String, Object> readerConf) {
+        String key = PulsarOptions.FAIL_ON_DATA_LOSS_OPTION_KEY;
+        if (!readerConf.containsKey(key)) {
+            key = CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_HYPHEN, key);
+        }
+        String failOnDataLossVal = readerConf.getOrDefault(key, "true").toString();
+        final boolean value = Boolean.parseBoolean(failOnDataLossVal);
+        readerConf.remove(key);
+        return value;
     }
 }

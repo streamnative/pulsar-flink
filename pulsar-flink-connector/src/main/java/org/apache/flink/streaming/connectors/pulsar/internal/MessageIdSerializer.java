@@ -30,6 +30,7 @@ import java.io.IOException;
 public class MessageIdSerializer extends TypeSerializer<MessageId> {
 
     public static final MessageIdSerializer INSTANCE = new MessageIdSerializer();
+    private static final long serialVersionUID = 3244135548110720111L;
 
     @Override
     public boolean isImmutableType() {

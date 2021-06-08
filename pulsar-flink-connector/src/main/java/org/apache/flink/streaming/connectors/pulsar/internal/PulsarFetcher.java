@@ -421,7 +421,7 @@ public class PulsarFetcher<T> {
             boolean success = false;
             while (running) {
                 try {
-                    metadataReader.commitCursorToOffset(offset);
+                    metadataReader.commitOffsetToCursor(offset);
                     success = true;
                     break;
                 } catch (Exception e) {

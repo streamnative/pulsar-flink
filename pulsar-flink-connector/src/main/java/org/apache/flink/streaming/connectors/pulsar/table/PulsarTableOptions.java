@@ -170,7 +170,13 @@ public class PulsarTableOptions {
             .key("scan.startup.sub-name")
             .stringType()
             .noDefaultValue()
-            .withDescription("Optional sub-name used in case of \"specific-offsets\" startup mode");
+            .withDescription("Optional sub-name used in case of \"external-subscription\" startup mode");
+
+    public static final ConfigOption<String> SCAN_STARTUP_SUB_START_OFFSET = ConfigOptions
+            .key("scan.startup.sub-startOffset")
+            .stringType()
+            .defaultValue("latest")
+            .withDescription("Optional sub-startOffset used in case of \"external-subscription\" startup mode");
 
     public static final ConfigOption<Long> SCAN_STARTUP_TIMESTAMP_MILLIS = ConfigOptions
             .key("scan.startup.timestamp-millis")
@@ -446,6 +452,7 @@ public class PulsarTableOptions {
 
         final Map<String, MessageId> specificOffsets = new HashMap<>();
         final List<String> subName = new ArrayList<>(1);
+        final List<String> subStartOffset = new ArrayList<>(1);
         final StartupMode startupMode = tableOptions.getOptional(SCAN_STARTUP_MODE)
                 .map(modeString -> {
                     switch (modeString) {
@@ -476,6 +483,7 @@ public class PulsarTableOptions {
 
                         case PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_EXTERNAL_SUB:
                             subName.add(tableOptions.get(SCAN_STARTUP_SUB_NAME));
+                            subStartOffset.add(tableOptions.get(SCAN_STARTUP_SUB_START_OFFSET));
                             return StartupMode.EXTERNAL_SUBSCRIPTION;
 
                         default:
@@ -487,6 +495,9 @@ public class PulsarTableOptions {
         options.specificOffsets = specificOffsets;
         if (subName.size() != 0) {
             options.externalSubscriptionName = subName.get(0);
+        }
+        if (subStartOffset.size() != 0) {
+            options.externalSubStartOffset = subStartOffset.get(0);
         }
         return options;
 
@@ -680,6 +691,7 @@ public class PulsarTableOptions {
         public StartupMode startupMode;
         public Map<String, MessageId> specificOffsets;
         public String externalSubscriptionName;
+        public String externalSubStartOffset;
     }
 
     /**

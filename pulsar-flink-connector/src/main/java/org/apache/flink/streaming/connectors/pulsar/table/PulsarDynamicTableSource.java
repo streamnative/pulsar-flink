@@ -249,8 +249,7 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
                 break;
             case EXTERNAL_SUBSCRIPTION:
                 MessageId subscriptionPosition = MessageId.latest;
-                if (CONNECTOR_STARTUP_MODE_VALUE_EARLIEST
-                        .equals(properties.get(CONNECTOR_EXTERNAL_SUB_DEFAULT_OFFSET))) {
+                if (CONNECTOR_STARTUP_MODE_VALUE_EARLIEST.equals(startupOptions.externalSubStartOffset)) {
                     subscriptionPosition = MessageId.earliest;
                 }
                 source.setStartFromSubscription(startupOptions.externalSubscriptionName, subscriptionPosition);

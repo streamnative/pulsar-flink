@@ -189,7 +189,7 @@ public class PulsarDynamicTableFactory implements
         Properties properties = getPulsarProperties(context.getCatalogTable().toProperties());
 
         final PulsarTableOptions.StartupOptions startupOptions = PulsarTableOptions
-                .getStartupOptions(tableOptions, topics);
+                .getStartupOptions(tableOptions);
 
         final DataType physicalDataType = context.getCatalogTable().getSchema().toPhysicalRowDataType();
 

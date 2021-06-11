@@ -62,6 +62,8 @@ import org.apache.flink.util.SerializedValue;
 
 import org.apache.flink.shaded.guava18.com.google.common.collect.Sets;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.PulsarClientException;
@@ -69,6 +71,7 @@ import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.shade.com.google.common.collect.Maps;
 import org.apache.pulsar.shade.org.apache.commons.lang3.StringUtils;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -500,6 +503,14 @@ public class FlinkPulsarSource<T>
                 log.info("Source {} will start reading {} topics from initialized positions: {}",
                         taskIndex, ownedTopicStarts.size(), ownedTopicStarts);
             }
+        }
+
+        try {
+            ObjectMapper m = new ObjectMapper();
+            ObjectWriter w = m.writerWithDefaultPrettyPrinter();
+            log.info("Pulsar source config: {}", w.writeValueAsString(properties));
+        } catch (IOException e) {
+            log.error("Failed to dump source config info", e);
         }
     }
 

@@ -40,6 +40,8 @@ import org.apache.flink.util.SerializableObject;
 
 import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.MessageId;
@@ -271,6 +273,14 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
             topic2Producer = new HashMap<>();
         }
        //super.open(parameters);
+
+        try {
+            ObjectMapper m = new ObjectMapper();
+            ObjectWriter w = m.writerWithDefaultPrettyPrinter();
+            log.info("Pulsar sink config: {}", w.writeValueAsString(properties));
+        } catch (IOException e) {
+            log.error("Failed to dump sink config info", e);
+        }
     }
 
     protected void initializeSendCallback() {

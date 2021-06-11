@@ -63,8 +63,6 @@ import static org.apache.flink.table.types.logical.utils.LogicalTypeChecks.hasRo
  */
 @Slf4j
 public class PulsarTableOptions {
-    private PulsarTableOptions() {
-    }
 
     // --------------------------------------------------------------------------------------------
     // Format options
@@ -456,9 +454,11 @@ public class PulsarTableOptions {
             switch (modeString.get()) {
                 case PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_EARLIEST:
                     options.startupMode = StartupMode.EARLIEST;
+                    break;
 
                 case PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_LATEST:
                     options.startupMode = StartupMode.LATEST;
+                    break;
 
                 case PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_SPECIFIC_OFFSETS:
                     String specificOffsetsStrOpt = tableOptions.get(SCAN_STARTUP_SPECIFIC_OFFSETS);
@@ -478,11 +478,14 @@ public class PulsarTableOptions {
                     });
                     options.startupMode = StartupMode.SPECIFIC_OFFSETS;
                     options.specificOffsets = specificOffsets;
+                    break;
 
                 case PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_EXTERNAL_SUB:
                     options.externalSubscriptionName = tableOptions.get(SCAN_STARTUP_SUB_NAME);
                     options.externalSubStartOffset = tableOptions.get(SCAN_STARTUP_SUB_START_OFFSET);
                     options.startupMode = StartupMode.EXTERNAL_SUBSCRIPTION;
+                    break;
+
                 default:
                     throw new TableException("Unsupported startup mode. Validator should have checked that.");
             }
@@ -687,5 +690,8 @@ public class PulsarTableOptions {
      */
     public enum ValueFieldsStrategy {
         ALL, EXCEPT_KEY
+    }
+
+    private PulsarTableOptions() {
     }
 }

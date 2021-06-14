@@ -487,6 +487,7 @@ Pulsar Flink 连接器也支持 Key-Shared 订阅模式。可以通过配置参�
 | polltimeoutms                        | 120000        | 等待获取下一条消息的超时时间，单位为毫秒。                        | source       |
 | failondataloss                       | true          | 数据丢失时，是否失败。                                       | source       |
 | commitmaxretries                     | 3             | 向 Pulsar 消息偏移 offset 时，最大重试次数。                    | source       |
+| send-delay-millisecond               | 0             | 延迟消息发送(毫秒),仅限于TableApi,StreamApi请参考`PulsarSerializationSchema.setDeliverAtExtractor`           | Sink         |
 | scan.startup.mode                    | latest        | 消费消息的位置。支持 `earliest` 和 `latest`选项。                      | source       |
 | enable-key-hash-range                | false         | 开启 Pulsar Key-Shared 订阅模式。                                    | source       |
 | pulsar.reader.*                      |               | Pulsar reader 的详细配置。有关详细信息，参见 [Pulsar Reader](https://pulsar.apache.org/docs/en/client-libraries-java/#reader)。 | source       |

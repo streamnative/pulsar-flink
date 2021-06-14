@@ -534,6 +534,7 @@ This parameter corresponds to the `FlinkPulsarSource` in StreamAPI, the Properti
 | polltimeoutms | 120000 | Set the timeout for waiting to get the next message, in unit of milliseconds. | source |
 | failondataloss | true | When data is lost, the operation fails. | source |
 | commitmaxretries | 3 | Set the maximum number of retries when an offset is set for Pulsar messages. | source |
+| send-delay-millisecond | 0 | delay millisecond message, just use **TableApi**, **StreamApi** use`PulsarSerializationSchema.setDeliverAtExtractor` | Sink |
 | scan.startup.mode | null | Set the earliest, latest, and the position where subscribers consume news,. It is a required parameter. | source |
 | enable-key-hash-range | false | Enable the Key-Shared subscription mode. | source |
 | pulsar.reader.* | | For details about Pulsar reader configurations, see [Pulsar reader](https://pulsar.apache.org/docs/en/client-libraries-java/#reader). | source |

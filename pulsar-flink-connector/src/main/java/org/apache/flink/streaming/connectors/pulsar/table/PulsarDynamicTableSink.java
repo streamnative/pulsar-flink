@@ -14,10 +14,12 @@
 
 package org.apache.flink.streaming.connectors.pulsar.table;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 import org.apache.flink.streaming.connectors.pulsar.FlinkPulsarSink;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarClientUtils;
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.streaming.util.serialization.PulsarSerializationSchema;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.connector.ChangelogMode;
@@ -194,6 +196,11 @@ public class PulsarDynamicTableSink implements DynamicTableSink, SupportsWriting
         // check if metadata is used at all
         final boolean hasMetadata = metadataKeys.size() > 0;
 
+        final long delayMilliseconds = Optional.ofNullable(this.properties.getProperty(PulsarOptions.SEND_DELAY_MILLISECONDS, "0"))
+            .filter(StringUtils::isNumeric)
+            .map(Long::valueOf)
+            .orElse(0L);
+
         return new DynamicPulsarSerializationSchema(
                 keySerialization,
                 valueSerialization,
@@ -203,7 +210,8 @@ public class PulsarDynamicTableSink implements DynamicTableSink, SupportsWriting
                 metadataPositions,
                 upsertMode,
                 physicalDataType,
-                formatType);
+                formatType,
+                delayMilliseconds);
     }
 
     private SinkFunction<RowData> createPulsarSink(String topic, Properties properties,

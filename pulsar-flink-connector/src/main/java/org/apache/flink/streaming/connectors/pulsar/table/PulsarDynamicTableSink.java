@@ -14,7 +14,6 @@
 
 package org.apache.flink.streaming.connectors.pulsar.table;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 import org.apache.flink.streaming.connectors.pulsar.FlinkPulsarSink;
@@ -35,6 +34,7 @@ import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.table.types.utils.DataTypeUtils;
 import org.apache.flink.util.Preconditions;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.pulsar.client.api.MessageRouter;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 

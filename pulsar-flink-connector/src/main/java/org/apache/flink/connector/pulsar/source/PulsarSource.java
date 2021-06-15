@@ -79,8 +79,8 @@ public class PulsarSource<OUT>
     private final SplitSchedulingStrategy splitSchedulingStrategy;
 
     private final String adminUrl;
-    private PulsarAdmin pulsarAdmin;
-    private PulsarClient pulsarClient;
+    private transient PulsarAdmin pulsarAdmin;
+    private transient PulsarClient pulsarClient;
 
     public PulsarSource(
             PulsarSubscriber subscriber,

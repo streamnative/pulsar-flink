@@ -39,7 +39,6 @@ import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.MessageRouter;
 import org.apache.pulsar.client.impl.MessageIdImpl;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -63,8 +62,6 @@ import static org.apache.flink.table.types.logical.utils.LogicalTypeChecks.hasRo
  */
 @Slf4j
 public class PulsarTableOptions {
-    private PulsarTableOptions() {
-    }
 
     // --------------------------------------------------------------------------------------------
     // Format options
@@ -170,7 +167,13 @@ public class PulsarTableOptions {
             .key("scan.startup.sub-name")
             .stringType()
             .noDefaultValue()
-            .withDescription("Optional sub-name used in case of \"specific-offsets\" startup mode");
+            .withDescription("Optional sub-name used in case of \"external-subscription\" startup mode");
+
+    public static final ConfigOption<String> SCAN_STARTUP_SUB_START_OFFSET = ConfigOptions
+            .key("scan.startup.sub-start-offset")
+            .stringType()
+            .defaultValue("latest")
+            .withDescription("Optional sub-start-offset used in case of \"external-subscription\" startup mode");
 
     public static final ConfigOption<Long> SCAN_STARTUP_TIMESTAMP_MILLIS = ConfigOptions
             .key("scan.startup.timestamp-millis")
@@ -440,53 +443,51 @@ public class PulsarTableOptions {
         return tableOptions.keySet().stream().anyMatch(k -> k.startsWith(PROPERTIES_PREFIX));
     }
 
-    public static StartupOptions getStartupOptions(
-            ReadableConfig tableOptions,
-            List<String> topics) {
-
-        final Map<String, MessageId> specificOffsets = new HashMap<>();
-        final List<String> subName = new ArrayList<>(1);
-        final StartupMode startupMode = tableOptions.getOptional(SCAN_STARTUP_MODE)
-                .map(modeString -> {
-                    switch (modeString) {
-                        case PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_EARLIEST:
-                            return StartupMode.EARLIEST;
-
-                        case PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_LATEST:
-                            return StartupMode.LATEST;
-
-                        case PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_SPECIFIC_OFFSETS:
-                            String specificOffsetsStrOpt = tableOptions.get(SCAN_STARTUP_SPECIFIC_OFFSETS);
-
-                            final Map<Integer, String> offsetList = parseSpecificOffsets(
-                                    specificOffsetsStrOpt,
-                                    SCAN_STARTUP_SPECIFIC_OFFSETS.key());
-                            offsetList.forEach((partition, offset) -> {
-                                try {
-
-                                    final MessageIdImpl messageId = parseMessageId(offset);
-                                    specificOffsets.put(partition.toString(), messageId);
-                                } catch (Exception e) {
-                                    log.error("Failed to decode message id from properties {}",
-                                            ExceptionUtils.stringifyException(e));
-                                    throw new RuntimeException(e);
-                                }
-                            });
-                            return StartupMode.SPECIFIC_OFFSETS;
-
-                        case PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_EXTERNAL_SUB:
-                            subName.add(tableOptions.get(SCAN_STARTUP_SUB_NAME));
-                            return StartupMode.EXTERNAL_SUBSCRIPTION;
-
-                        default:
-                            throw new TableException("Unsupported startup mode. Validator should have checked that.");
-                    }
-                }).orElse(StartupMode.LATEST);
+    public static StartupOptions getStartupOptions(ReadableConfig tableOptions) {
         final StartupOptions options = new StartupOptions();
-        options.startupMode = startupMode;
-        options.specificOffsets = specificOffsets;
-        if (subName.size() != 0) {
-            options.externalSubscriptionName = subName.get(0);
+        final Map<String, MessageId> specificOffsets = new HashMap<>();
+        Optional<String> modeString = tableOptions.getOptional(SCAN_STARTUP_MODE);
+        if (!modeString.isPresent()) {
+            options.startupMode = StartupMode.LATEST;
+        } else {
+            switch (modeString.get()) {
+                case PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_EARLIEST:
+                    options.startupMode = StartupMode.EARLIEST;
+                    break;
+
+                case PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_LATEST:
+                    options.startupMode = StartupMode.LATEST;
+                    break;
+
+                case PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_SPECIFIC_OFFSETS:
+                    String specificOffsetsStrOpt = tableOptions.get(SCAN_STARTUP_SPECIFIC_OFFSETS);
+
+                    final Map<Integer, String> offsetList = parseSpecificOffsets(
+                            specificOffsetsStrOpt,
+                            SCAN_STARTUP_SPECIFIC_OFFSETS.key());
+                    offsetList.forEach((partition, offset) -> {
+                        try {
+                            final MessageIdImpl messageId = parseMessageId(offset);
+                            specificOffsets.put(partition.toString(), messageId);
+                        } catch (Exception e) {
+                            log.error("Failed to decode message id from properties {}",
+                                    ExceptionUtils.stringifyException(e));
+                            throw new RuntimeException(e);
+                        }
+                    });
+                    options.startupMode = StartupMode.SPECIFIC_OFFSETS;
+                    options.specificOffsets = specificOffsets;
+                    break;
+
+                case PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_EXTERNAL_SUB:
+                    options.externalSubscriptionName = tableOptions.get(SCAN_STARTUP_SUB_NAME);
+                    options.externalSubStartOffset = tableOptions.get(SCAN_STARTUP_SUB_START_OFFSET);
+                    options.startupMode = StartupMode.EXTERNAL_SUBSCRIPTION;
+                    break;
+
+                default:
+                    throw new TableException("Unsupported startup mode. Validator should have checked that.");
+            }
         }
         return options;
 
@@ -678,8 +679,9 @@ public class PulsarTableOptions {
     @EqualsAndHashCode
     public static class StartupOptions {
         public StartupMode startupMode;
-        public Map<String, MessageId> specificOffsets;
+        public Map<String, MessageId> specificOffsets = new HashMap<>();
         public String externalSubscriptionName;
+        public String externalSubStartOffset;
     }
 
     /**
@@ -687,5 +689,8 @@ public class PulsarTableOptions {
      */
     public enum ValueFieldsStrategy {
         ALL, EXCEPT_KEY
+    }
+
+    private PulsarTableOptions() {
     }
 }

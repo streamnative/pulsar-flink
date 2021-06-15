@@ -57,7 +57,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_EXTERNAL_SUB_DEFAULT_OFFSET;
 import static org.apache.flink.table.descriptors.PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_EARLIEST;
 
 /**
@@ -249,8 +248,7 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
                 break;
             case EXTERNAL_SUBSCRIPTION:
                 MessageId subscriptionPosition = MessageId.latest;
-                if (CONNECTOR_STARTUP_MODE_VALUE_EARLIEST
-                        .equals(properties.get(CONNECTOR_EXTERNAL_SUB_DEFAULT_OFFSET))) {
+                if (CONNECTOR_STARTUP_MODE_VALUE_EARLIEST.equals(startupOptions.externalSubStartOffset)) {
                     subscriptionPosition = MessageId.earliest;
                 }
                 source.setStartFromSubscription(startupOptions.externalSubscriptionName, subscriptionPosition);

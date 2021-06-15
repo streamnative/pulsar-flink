@@ -41,6 +41,7 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import static org.apache.flink.shaded.guava18.com.google.common.base.Preconditions.checkArgument;
 
@@ -83,6 +84,11 @@ class DynamicPulsarSerializationSchema
 
     private volatile Schema<RowData> schema;
 
+    /**
+     * delay milliseconds message.
+     */
+    private long delayMilliseconds;
+
     DynamicPulsarSerializationSchema(
             @Nullable SerializationSchema<RowData> keySerialization,
             SerializationSchema<RowData> valueSerialization,
@@ -92,7 +98,8 @@ class DynamicPulsarSerializationSchema
             int[] metadataPositions,
             boolean upsertMode,
             DataType valueDataType,
-            String valueFormatType) {
+            String valueFormatType,
+            long delayMilliseconds) {
         if (upsertMode) {
             checkArgument(keySerialization != null && keyFieldGetters.length > 0,
                     "Key must be set in upsert mode for serialization schema.");
@@ -106,6 +113,7 @@ class DynamicPulsarSerializationSchema
         this.upsertMode = upsertMode;
         this.valueDataType = valueDataType;
         this.valueFormatType = valueFormatType;
+        this.delayMilliseconds = delayMilliseconds;
     }
 
     @Override
@@ -123,6 +131,11 @@ class DynamicPulsarSerializationSchema
         if (keySerialization == null && !hasMetadata) {
             messageBuilder.value(consumedRow);
             return;
+        }
+
+        // set delay message.
+        if (delayMilliseconds > 0) {
+            messageBuilder.deliverAfter(delayMilliseconds, TimeUnit.MILLISECONDS);
         }
 
         if (keySerialization != null) {

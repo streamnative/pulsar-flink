@@ -39,7 +39,6 @@ import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.MessageRouter;
 import org.apache.pulsar.client.impl.MessageIdImpl;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -448,7 +447,7 @@ public class PulsarTableOptions {
         final StartupOptions options = new StartupOptions();
         final Map<String, MessageId> specificOffsets = new HashMap<>();
         Optional<String> modeString = tableOptions.getOptional(SCAN_STARTUP_MODE);
-        if(!modeString.isPresent()) {
+        if (!modeString.isPresent()) {
             options.startupMode = StartupMode.LATEST;
         } else {
             switch (modeString.get()) {

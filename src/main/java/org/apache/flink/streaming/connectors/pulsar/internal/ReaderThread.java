@@ -150,13 +150,14 @@ public class ReaderThread<T> extends Thread {
             if (!messageIdRoughEquals(startMessageId, lastMessageId) && !reader.hasMessageAvailable()) {
                 MessageIdImpl startMsgIdImpl = (MessageIdImpl) startMessageId;
                 // startMessageId is bigger than lastMessageId
-                if (!metaDataReader.checkCursorAvailable(reader.getTopic(), startMsgIdImpl)) {
+                if (startMsgIdImpl.compareTo(lastMessageId) > 0) {
                     if (failOnDataLoss) {
                         log.error("the start message id is beyond the last commit message id, with topic:{}", reader.getTopic());
                         throw new RuntimeException("start message id beyond the last commit");
                     } else {
-                        log.info("reset message to valid offset {}", startMessageId);
-                        metaDataReader.resetCursor(reader.getTopic(), startMessageId);
+                        log.info("reset message to valid offset {}", lastMessageId);
+                        reader.seek(lastMessageId);
+                        metaDataReader.resetCursor(reader.getTopic(), lastMessageId);
                     }
                 }
 
@@ -169,9 +170,7 @@ public class ReaderThread<T> extends Thread {
                 }
             }
             if (currentMessage == null) {
-                reportDataLoss(String.format("Cannot read data at offset %s from topic: %s",
-                        startMessageId.toString(),
-                        topic));
+                reportDataLoss(String.format("Cannot read data at offset %s from topic: %s", startMessageId, topic));
             } else {
                 currentId = currentMessage.getMessageId();
                 if (!messageIdRoughEquals(currentId, startMessageId) && failOnDataLoss) {

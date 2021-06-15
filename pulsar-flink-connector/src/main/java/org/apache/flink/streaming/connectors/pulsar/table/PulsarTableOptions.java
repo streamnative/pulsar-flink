@@ -680,7 +680,7 @@ public class PulsarTableOptions {
     @EqualsAndHashCode
     public static class StartupOptions {
         public StartupMode startupMode;
-        public Map<String, MessageId> specificOffsets;
+        public Map<String, MessageId> specificOffsets = new HashMap<>();
         public String externalSubscriptionName;
         public String externalSubStartOffset;
     }

@@ -61,6 +61,7 @@ public class PulsarOptions {
     public static final String KEY_DISABLED_METRICS = "key-disable-metrics";
     public static final String OLD_STATE_VERSION = "old-state-version";
     public static final String FAIL_ON_DATA_LOSS_OPTION_KEY = "failOnDataLoss";
+    public static final String SEND_DELAY_MILLISECONDS = "send-delay-millisecond";
 
     public static final String INSTRUCTION_FOR_FAIL_ON_DATA_LOSS_FALSE =
             "Some data may have been lost because they are not available in Pulsar any more; either the\n" +

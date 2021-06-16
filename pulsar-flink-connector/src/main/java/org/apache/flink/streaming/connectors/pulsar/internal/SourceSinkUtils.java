@@ -205,4 +205,11 @@ public class SourceSinkUtils {
         readerConf.remove(key);
         return value;
     }
+
+    public static boolean getUseEarliestWhenDataLossAndRemoveKey(Map<String, Object> readerConf) {
+        String failOnDataLossVal = readerConf.getOrDefault(PulsarOptions.USE_EARLIEST_WHEN_DATA_LOSS_OPTION_KEY, "false").toString();
+        final boolean value = Boolean.parseBoolean(failOnDataLossVal);
+        readerConf.remove(PulsarOptions.USE_EARLIEST_WHEN_DATA_LOSS_OPTION_KEY);
+        return value;
+    }
 }

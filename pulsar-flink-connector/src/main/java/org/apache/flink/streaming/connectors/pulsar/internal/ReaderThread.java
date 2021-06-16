@@ -47,6 +47,7 @@ public class ReaderThread<T> extends Thread {
     protected final TopicRange topicRange;
     protected final MessageId startMessageId;
     private boolean failOnDataLoss = true;
+    private boolean useEarliestWhenDataLoss = false;
 
     protected volatile boolean running = true;
     protected volatile boolean closed = false;
@@ -83,9 +84,11 @@ public class ReaderThread<T> extends Thread {
             PulsarDeserializationSchema<T> deserializer,
             int pollTimeoutMs,
             ExceptionProxy exceptionProxy,
-            boolean failOnDataLoss) {
+            boolean failOnDataLoss,
+            boolean useEarliestWhenDataLoss) {
         this(owner, state, clientConf, readerConf, deserializer, pollTimeoutMs, exceptionProxy);
         this.failOnDataLoss = failOnDataLoss;
+        this.useEarliestWhenDataLoss = useEarliestWhenDataLoss;
     }
 
     @Override
@@ -150,6 +153,10 @@ public class ReaderThread<T> extends Thread {
                     if (failOnDataLoss) {
                         log.error("the start message id is beyond the last commit message id, with topic:{}", this.topicRange);
                         throw new RuntimeException("start message id beyond the last commit");
+                    } else if (useEarliestWhenDataLoss){
+                        log.info("reset message to earliest");
+                        reader.seek(MessageId.earliest);
+                        metaDataReader.resetCursor(this.topicRange, MessageId.earliest);
                     } else {
                         log.info("reset message to valid offset {}", lastMessageId);
                         reader.seek(lastMessageId);

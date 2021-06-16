@@ -693,7 +693,4 @@ public class PulsarTableOptions {
 
     private PulsarTableOptions() {
     }
-
-    private PulsarTableOptions() {
-    }
 }

@@ -104,6 +104,8 @@ public class PulsarFetcher<T> {
 
     protected final boolean failOnDataLoss;
 
+    protected final boolean useEarliestWhenDataLoss;
+
     protected final DeserializationSchema<T> deserializer;
 
     protected final int pollTimeoutMs;
@@ -240,6 +242,11 @@ public class PulsarFetcher<T> {
         } else {
             failOnDataLoss = true;
         }
+
+        // get defaultOffsetWhenDataLoss from reader conf
+        String useEarliestWhenDataLossVal = readerConf.getOrDefault(PulsarOptions.USE_EARLIEST_WHEN_DATA_LOSS_OPTION_KEY, "false").toString();
+        useEarliestWhenDataLoss = Boolean.parseBoolean(useEarliestWhenDataLossVal);
+        readerConf.remove(PulsarOptions.USE_EARLIEST_WHEN_DATA_LOSS_OPTION_KEY);
     }
 
     public void runFetchLoop() throws Exception {
@@ -566,7 +573,9 @@ public class PulsarFetcher<T> {
                 readerConf,
                 deserializer,
                 pollTimeoutMs,
-                exceptionProxy, failOnDataLoss);
+                exceptionProxy,
+                failOnDataLoss,
+                useEarliestWhenDataLoss);
     }
 
     /**

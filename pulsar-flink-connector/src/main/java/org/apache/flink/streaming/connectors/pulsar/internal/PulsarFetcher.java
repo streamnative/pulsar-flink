@@ -126,6 +126,8 @@ public class PulsarFetcher<T> {
     /** Failed or not when data loss. **/
     private boolean failOnDataLoss = true;
 
+    private boolean useEarliestWhenDataLoss;
+
     // ------------------------------------------------------------------------
     //  Metrics
     // ------------------------------------------------------------------------
@@ -204,6 +206,7 @@ public class PulsarFetcher<T> {
         this.clientConf = clientConf;
         this.readerConf = readerConf == null ? new HashMap<>() : readerConf;
         this.failOnDataLoss = SourceSinkUtils.getFailOnDataLossAndRemoveKey(this.readerConf);
+        this.useEarliestWhenDataLoss = SourceSinkUtils.getUseEarliestWhenDataLossAndRemoveKey(this.readerConf);
         this.pollTimeoutMs = pollTimeoutMs;
         this.commitMaxRetries = commitMaxRetries;
         this.deserializer = deserializer;
@@ -532,7 +535,8 @@ public class PulsarFetcher<T> {
                 deserializer,
                 pollTimeoutMs,
                 exceptionProxy,
-                failOnDataLoss);
+                failOnDataLoss,
+                useEarliestWhenDataLoss);
     }
 
     /**

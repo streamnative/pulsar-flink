@@ -485,7 +485,8 @@ Pulsar Flink 连接器也支持 Key-Shared 订阅模式。可以通过配置参�
 | flushoncheckpoint                    | true          | 在 Flink snapshotState 时，向 Pulsar Topic 中写入消息。                      | sink         |
 | failonwrite                          | false         | Sink 出错时，继续确认消息。                                   | sink         |
 | polltimeoutms                        | 120000        | 等待获取下一条消息的超时时间，单位为毫秒。                        | source       |
-| failondataloss                       | true          | 数据丢失时，是否失败。                                       | source       |
+| pulsar.reader.fail-on-data-loss      | true          | 数据丢失时，是否失败。                                       | source       |
+| pulsar.reader.use-earliest-when-data-loss | false | 数据丢失时，使用earliest重置offset。 | source |
 | commitmaxretries                     | 3             | 向 Pulsar 消息偏移 offset 时，最大重试次数。                    | source       |
 | send-delay-millisecond               | 0             | 延迟消息发送(毫秒),仅限于TableApi,StreamApi请参考`PulsarSerializationSchema.setDeliverAtExtractor`           | Sink         |
 | scan.startup.mode                    | latest        | 消费消息的位置。支持 `earliest` 和 `latest`选项。                      | source       |

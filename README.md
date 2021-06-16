@@ -532,7 +532,8 @@ This parameter corresponds to the `FlinkPulsarSource` in StreamAPI, the Properti
 | flushoncheckpoint | true | Write a message to Pulsar topics. | sink |
 | failonwrite | false | When sink error occurs, continue to confirm the message. | sink |
 | polltimeoutms | 120000 | Set the timeout for waiting to get the next message, in unit of milliseconds. | source |
-| failondataloss | true | When data is lost, the operation fails. | source |
+| pulsar.reader.fail-on-data-loss | true | When data is lost, the operation fails. | source |
+| pulsar.reader.use-earliest-when-data-loss | false | When data is lost, use earliest reset offset. | source |
 | commitmaxretries | 3 | Set the maximum number of retries when an offset is set for Pulsar messages. | source |
 | send-delay-millisecond | 0 | delay millisecond message, just use **TableApi**, **StreamApi** use`PulsarSerializationSchema.setDeliverAtExtractor` | Sink |
 | scan.startup.mode | null | Set the earliest, latest, and the position where subscribers consume news,. It is a required parameter. | source |

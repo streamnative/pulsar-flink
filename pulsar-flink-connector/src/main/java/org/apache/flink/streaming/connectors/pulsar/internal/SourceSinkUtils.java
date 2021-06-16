@@ -14,6 +14,8 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
+import org.apache.flink.shaded.guava18.com.google.common.base.CaseFormat;
+
 import org.apache.pulsar.client.api.Range;
 import org.apache.pulsar.shade.org.apache.commons.lang3.StringUtils;
 
@@ -169,5 +171,23 @@ public class SourceSinkUtils {
             return 0;
         }
         return Integer.parseInt(value);
+    }
+
+    public static boolean getFailOnDataLossAndRemoveKey(Map<String, Object> readerConf) {
+        String key = PulsarOptions.FAIL_ON_DATA_LOSS_OPTION_KEY;
+        if (!readerConf.containsKey(key)) {
+            key = CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_HYPHEN, key);
+        }
+        String failOnDataLossVal = readerConf.getOrDefault(key, "true").toString();
+        final boolean value = Boolean.parseBoolean(failOnDataLossVal);
+        readerConf.remove(key);
+        return value;
+    }
+
+    public static boolean getUseEarliestWhenDataLossAndRemoveKey(Map<String, Object> readerConf) {
+        String failOnDataLossVal = readerConf.getOrDefault(PulsarOptions.USE_EARLIEST_WHEN_DATA_LOSS_OPTION_KEY, "false").toString();
+        final boolean value = Boolean.parseBoolean(failOnDataLossVal);
+        readerConf.remove(PulsarOptions.USE_EARLIEST_WHEN_DATA_LOSS_OPTION_KEY);
+        return value;
     }
 }

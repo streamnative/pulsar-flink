@@ -434,29 +434,28 @@ Flink 1.9升级到1.11之后，有了较大的变化，很多API不兼容。在�
 
 | 参数                                 | 默认值        | 描述                                                         | 生效范围     |
 | ------------------------------------ | ------------- | ------------------------------------------------------------ | ------------ |
-| topic                                | null          | pulsar topic                                                 | source       |
-| topics                               | null          | 半角逗号连接的多个pulsar topic                               | source       |
-| topicspattern                        | null          | java正则匹配多的多个pulsar topic                             | source       |
-| partitiondiscoveryintervalmillis     | -1            | 自动发现增减topic，毫秒。-1表示不开启。                      | source       |
-| clientcachesize                      | 5             | 缓存pulsar client数量                                        | source、sink |
-| flushoncheckpoint                    | true          | 在flink snapshotState时写出消息到pulsar                      | sink         |
-| failonwrite                          | false         | sink出错时，继续确认消息                                     | sink         |
-| polltimeoutms                        | 120000        | 等待获取下一条消息的超时时间，毫秒                           | source       |
-| failondataloss                       | true          | 数据丢失时是否失败                                           | source       |
-| commitmaxretries                     | 3             | 向pulsar消息偏移offset时，最大重试次数                       | source       |
-| use-extend-field                     | false         | 使用PulsarDeserializer解码消息，是否添加拓展字段<br/>仅在flink 1.11生效，flink1.9直接添加拓展字段。 | source       |
-| startup-mode                         | null          | earliest、latest，订阅者消费消息的位置，必填                 | catalog      |
-| table-default-partitions             | 5             | 指定创建topic的分区数量                                      | catalog      |
-| pulsar.reader.*                      |               | pulsar consumer的详细配置，项目可参考[pulsar reader](https://pulsar.apache.org/docs/en/client-libraries-java/#reader) | source       |
-| pulsar.reader.subscriptionRolePrefix | flink-pulsar- | 未指定订阅者时，自动创建订阅者名称的前缀                     | source       |
-| pulsar.reader.receiverQueueSize      | 1000          | 接收队列大小                                                 | source       |
-| pulsar.producer.*                    |               | pulsar consumer的详细配置，项目可参考[pulsar producer](https://pulsar.apache.org/docs/en/client-libraries-java/#producer) | Sink         |
-| pulsar.producer.sendTimeoutMs        | 30000         | 发送消息时的超时时间，毫秒                                   | Sink         |
-| pulsar.producer.blockIfQueueFull     | false         | 生产者写入消息，队列满时，阻塞方法，而不是抛出异常           | Sink         |
-
-`pulsar.reader.*`和`pulsar.producer.*`指定更详细的配置pulsar的行为，*替换为pulsar中的配置名，内容参考表中的链接。
-
-
+| topic                                | null          | Pulsar Topic。                                                 | source       |
+| topics                               | null          | 使用半角逗号（,）连接的多个 Pulsar Topic。                              | source       |
+| topicspattern                        | null          | 使用 Java 正则匹配多的多个 pulsar Topic。                             | source       |
+| partition.discovery.interval-millis  | -1            | 自动发现增减 Topic，单位为毫秒。取值为-1，则表示禁用该功能。                      | source       |
+| clientcachesize                      | 100           | Pulsar 客户端的缓存数量。                                       | source、sink |
+| auth-plugin-classname                | null          | Pulsar 客户端的鉴权类。                                       | source、sink |
+| auth-params                          | null          | Pulsar 客户端的鉴权参数。                                      | source、sink |
+| flushoncheckpoint                    | true          | 在 Flink snapshotState 时，向 Pulsar Topic 中写入消息。                      | sink         |
+| failonwrite                          | false         | Sink 出错时，继续确认消息。                                   | sink         |
+| polltimeoutms                        | 120000        | 等待获取下一条消息的超时时间，单位为毫秒。                        | source       |
+| pulsar.reader.fail-on-data-loss      | true          | 数据丢失时，是否失败。                                       | source       |
+| pulsar.reader.use-earliest-when-data-loss | false | 数据丢失时，使用earliest重置offset。 | source |
+| commitmaxretries                     | 3             | 向 Pulsar 消息偏移 offset 时，最大重试次数。                    | source       |
+| send-delay-millisecond               | 0             | 延迟消息发送(毫秒),仅限于TableApi,StreamApi请参考`PulsarSerializationSchema.setDeliverAtExtractor`           | Sink         |
+| scan.startup.mode                    | latest        | 消费消息的位置。支持 `earliest` 和 `latest`选项。                      | source       |
+| enable-key-hash-range                | false         | 开启 Pulsar Key-Shared 订阅模式。                                    | source       |
+| pulsar.reader.*                      |               | Pulsar reader 的详细配置。有关详细信息，参见 [Pulsar Reader](https://pulsar.apache.org/docs/en/client-libraries-java/#reader)。 | source       |
+| pulsar.reader.subscriptionRolePrefix | flink-pulsar- | 未指定订阅者时，自动创建订阅者名称的前缀。                     | source       |
+| pulsar.reader.receiverQueueSize      | 1000          | 接收队列大小。                                                 | source       |
+| pulsar.producer.*                    |               | Pulsar producer 的详细配置。有关详细信息，参见 [Pulsar Producer](https://pulsar.apache.org/docs/en/client-libraries-java/#producer)。 | Sink         |
+| pulsar.producer.sendTimeoutMs        | 30000         | 发送消息时的超时时间，单位为毫秒。                                 | Sink         |
+| pulsar.producer.blockIfQueueFull     | false         | Producer 写入消息的队列满时，支持阻塞方法，而不是抛出异常。           | Sink         |
 
 在DDL语句中，使用上述参数的格式，有所调整，
 

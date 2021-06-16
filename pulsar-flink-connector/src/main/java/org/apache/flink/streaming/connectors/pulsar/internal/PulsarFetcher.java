@@ -120,6 +120,8 @@ public class PulsarFetcher<T> {
     /** Failed or not when data loss. **/
     private boolean failOnDataLoss = true;
 
+    private boolean useEarliestWhenDataLoss;
+
     public PulsarFetcher(
             SourceContext<T> sourceContext,
             Map<TopicRange, MessageId> seedTopicsWithInitialOffsets,
@@ -174,11 +176,8 @@ public class PulsarFetcher<T> {
         this.runtimeContext = runtimeContext;
         this.clientConf = clientConf;
         this.readerConf = readerConf == null ? new HashMap<>() : readerConf;
-
-        String failOnDataLossVal = this.readerConf.getOrDefault(PulsarOptions.FAIL_ON_DATA_LOSS_OPTION_KEY, "true").toString();
-        this.failOnDataLoss = Boolean.parseBoolean(failOnDataLossVal);
-        this.readerConf.remove(PulsarOptions.FAIL_ON_DATA_LOSS_OPTION_KEY);
-
+        this.failOnDataLoss = SourceSinkUtils.getFailOnDataLossAndRemoveKey(this.readerConf);
+        this.useEarliestWhenDataLoss = SourceSinkUtils.getUseEarliestWhenDataLossAndRemoveKey(this.readerConf);
         this.pollTimeoutMs = pollTimeoutMs;
         this.commitMaxRetries = commitMaxRetries;
         this.deserializer = deserializer;
@@ -558,7 +557,8 @@ public class PulsarFetcher<T> {
                 deserializer,
                 pollTimeoutMs,
                 exceptionProxy,
-                failOnDataLoss);
+                failOnDataLoss,
+                useEarliestWhenDataLoss);
     }
 
     /**

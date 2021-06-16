@@ -25,9 +25,10 @@ import java.util.Set;
 public class PulsarOptions {
 
     // option key prefix for different modules
-    public static final String PULSAR_CLIENT_OPTION_KEY_PREFIX = "pulsar.client.";
-    public static final String PULSAR_PRODUCER_OPTION_KEY_PREFIX = "pulsar.producer.";
-    public static final String PULSAR_READER_OPTION_KEY_PREFIX = "pulsar.reader.";
+    public static final String PULSAR_OPTION_KEY_PREFIX = "pulsar.";
+    public static final String PULSAR_CLIENT_OPTION_KEY_PREFIX = PULSAR_OPTION_KEY_PREFIX + "client.";
+    public static final String PULSAR_PRODUCER_OPTION_KEY_PREFIX = PULSAR_OPTION_KEY_PREFIX + "producer.";
+    public static final String PULSAR_READER_OPTION_KEY_PREFIX = PULSAR_OPTION_KEY_PREFIX + "reader.";
 
     // topic options
     public static final String TOPIC_SINGLE_OPTION_KEY = "topic";
@@ -52,9 +53,11 @@ public class PulsarOptions {
     public static final String POLL_TIMEOUT_MS_OPTION_KEY = "polltimeoutms";
     public static final String SUBSCRIPTION_ROLE_OPTION_KEY = "subscriptionRolePrefix";
     public static final String COMMIT_MAX_RETRIES = "commitmaxretries";
-    public static final String FAIL_ON_DATA_LOSS_OPTION_KEY = "failondataloss";
     public static final String ENABLE_KEY_HASH_RANGE_KEY = "enable-key-hash-range";
     public static final String OLD_STATE_VERSION = "old-state-version";
+    public static final String FAIL_ON_DATA_LOSS_OPTION_KEY = "failOnDataLoss";
+    public static final String USE_EARLIEST_WHEN_DATA_LOSS_OPTION_KEY = "use-earliest-when-data-loss";
+    public static final String SEND_DELAY_MILLISECONDS = "send-delay-millisecond";
 
     public static final String INSTRUCTION_FOR_FAIL_ON_DATA_LOSS_FALSE =
             "Some data may have been lost because they are not available in Pulsar any more; either the\n" +

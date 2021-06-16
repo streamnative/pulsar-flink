@@ -409,7 +409,8 @@ The pulsar-flink connector provides two `DeserializationSchema` decoders:
 | flushoncheckpoint | true | Write a message to pulsar | sink | during flink snapshotState
 | failonwrite | false | When sink error occurs, continue to confirm the message | sink |
 | polltimeoutms | 120000 | The timeout period for waiting to get the next message, milliseconds | source |
-| failondataloss | true | Does it fail when data is lost | source |
+| pulsar.reader.fail-on-data-loss | true | Does it fail when data is lost | source |
+| pulsar.reader.use-earliest-when-data-loss | false | When data is lost, use earliest reset offset. | source |
 | commitmaxretries | 3 | Maximum number of retries when offset to pulsar message | source |
 | startup-mode | null | earliest, latest, the position where subscribers consume news, required | catalog |
 | table-default-partitions | 5 | Specify the number of partitions to create a topic | catalog |

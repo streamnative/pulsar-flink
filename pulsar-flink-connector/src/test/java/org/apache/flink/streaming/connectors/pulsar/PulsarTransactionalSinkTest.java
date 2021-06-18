@@ -117,11 +117,14 @@ public class PulsarTransactionalSinkTest {
      * Tests the exactly-once semantic for the simple writes into Pulsar.
      */
     @Test
-    @Ignore("Pulsar 2.7.1 does not support the use of standalone transactions, requires Pulsar 2.8 version")
     public void testExactlyOnceRegularSink() throws Exception {
         admin = PulsarAdmin.builder().serviceHttpUrl(adminUrl).build();
         admin.tenants().createTenant(NamespaceName.SYSTEM_NAMESPACE.getTenant(),
-                new TenantInfo(Sets.newHashSet("app1"), Sets.newHashSet(CLUSTER_NAME)));
+                TenantInfo.builder()
+                        .adminRoles(Sets.newHashSet("app1"))
+                        .allowedClusters(Sets.newHashSet(CLUSTER_NAME))
+                        .build()
+        );
         admin.namespaces().createNamespace(NamespaceName.SYSTEM_NAMESPACE.toString());
         admin.topics().createPartitionedTopic(TopicName.TRANSACTION_COORDINATOR_ASSIGN.toString(), 16);
 

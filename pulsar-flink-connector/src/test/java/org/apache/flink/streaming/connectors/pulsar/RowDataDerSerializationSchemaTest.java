@@ -61,7 +61,7 @@ import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.impl.schema.AutoConsumeSchema;
-import org.apache.pulsar.common.schema.SchemaInfo;
+import org.apache.pulsar.client.impl.schema.SchemaInfoImpl;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.junit.Test;
 
@@ -292,7 +292,7 @@ public class RowDataDerSerializationSchemaTest extends PulsarTestBase {
 																	 SerializationSchema<T> serializationSchema,
 																	 DeserializationSchema<T> deserializationSchema) {
 		byte[] schemaBytes = avroSchema.toString().getBytes(StandardCharsets.UTF_8);
-		SchemaInfo si = new SchemaInfo();
+		SchemaInfoImpl si = new SchemaInfoImpl();
 		si.setName("Record");
 		si.setSchema(schemaBytes);
 		si.setType(schemaType);

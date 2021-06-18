@@ -1090,7 +1090,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
 
     public static SerializationSchema<RowData> getJsonSerializationSchema(RowType rowType) {
         return new JsonRowDataSerializationSchema(rowType, TimestampFormat.ISO_8601, JsonOptions.MapNullKeyMode.DROP,
-                "" ,true);
+                "" , true);
     }
 
     private class AssertSink extends FlinkPulsarSink<RowData> {

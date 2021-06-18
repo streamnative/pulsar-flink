@@ -68,6 +68,8 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
 
     private PulsarCatalogSupport catalogSupport;
 
+    public static final String DEFAULT_DB = "public/default";
+
     public PulsarCatalog(String adminUrl, String catalogName, Map<String, String> props, String defaultDatabase) {
         super(catalogName, defaultDatabase);
         this.adminUrl = adminUrl;

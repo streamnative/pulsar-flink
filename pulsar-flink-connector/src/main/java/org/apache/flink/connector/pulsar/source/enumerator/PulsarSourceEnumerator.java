@@ -142,7 +142,7 @@ public class PulsarSourceEnumerator implements SplitEnumerator<PulsarPartitionSp
     }
 
     @Override
-    public PulsarSourceEnumeratorState snapshotState() throws Exception {
+    public PulsarSourceEnumeratorState snapshotState(long l) throws Exception {
         return new PulsarSourceEnumeratorState(readerIdToSplitAssignments);
     }
 

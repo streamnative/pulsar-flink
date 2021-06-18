@@ -14,29 +14,30 @@
 
 package org.apache.flink.table.catalog.pulsar.factories;
 
-import org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions;
+import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.table.catalog.Catalog;
 import org.apache.flink.table.catalog.pulsar.PulsarCatalog;
-import org.apache.flink.table.catalog.pulsar.PulsarCatalogValidator;
-import org.apache.flink.table.descriptors.DescriptorProperties;
-import org.apache.flink.table.descriptors.FormatDescriptorValidator;
 import org.apache.flink.table.factories.CatalogFactory;
+import org.apache.flink.table.factories.FactoryUtil;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.PROPERTIES_PREFIX;
-import static org.apache.flink.table.catalog.pulsar.PulsarCatalogValidator.CATALOG_ADMIN_URL;
-import static org.apache.flink.table.catalog.pulsar.PulsarCatalogValidator.CATALOG_DEFAULT_PARTITIONS;
-import static org.apache.flink.table.catalog.pulsar.PulsarCatalogValidator.CATALOG_PULSAR_VERSION;
-import static org.apache.flink.table.catalog.pulsar.PulsarCatalogValidator.CATALOG_SERVICE_URL;
-import static org.apache.flink.table.catalog.pulsar.PulsarCatalogValidator.CATALOG_STARTUP_MODE;
-import static org.apache.flink.table.catalog.pulsar.PulsarCatalogValidator.CATALOG_TYPE_VALUE_PULSAR;
-import static org.apache.flink.table.descriptors.CatalogDescriptorValidator.CATALOG_DEFAULT_DATABASE;
-import static org.apache.flink.table.descriptors.CatalogDescriptorValidator.CATALOG_PROPERTY_VERSION;
-import static org.apache.flink.table.descriptors.CatalogDescriptorValidator.CATALOG_TYPE;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.ADMIN_URL;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.KEY_FIELDS;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.KEY_FIELDS_PREFIX;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.KEY_FORMAT;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.PROPERTIES;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.SCAN_STARTUP_MODE;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.SERVICE_URL;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.SINK_SEMANTIC;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.VALUE_FIELDS_INCLUDE;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.VALUE_FORMAT;
+import static org.apache.flink.table.catalog.pulsar.factories.PulsarCatalogFactoryOptions.DEFAULT_DATABASE;
+import static org.apache.flink.table.catalog.pulsar.factories.PulsarCatalogFactoryOptions.DEFAULT_PARTITIONS;
+import static org.apache.flink.table.catalog.pulsar.factories.PulsarCatalogFactoryOptions.IDENTIFIER;
+import static org.apache.flink.table.catalog.pulsar.factories.PulsarCatalogFactoryOptions.PULSAR_VERSION;
+import static org.apache.flink.table.factories.FactoryUtil.PROPERTY_VERSION;
 
 /**
  * Pulsar {@CatalogFactory}.
@@ -44,46 +45,46 @@ import static org.apache.flink.table.descriptors.CatalogDescriptorValidator.CATA
 public class PulsarCatalogFactory implements CatalogFactory {
 
     @Override
-    public Catalog createCatalog(String name, Map<String, String> properties) {
-        DescriptorProperties dp = getValidateProperties(properties);
-        String defaultDB = dp.getOptionalString(CATALOG_DEFAULT_DATABASE).orElse("public/default");
-        String adminUrl = dp.getString(CATALOG_ADMIN_URL);
-        return new PulsarCatalog(adminUrl, name, dp.asMap(), defaultDB);
+    public String factoryIdentifier() {
+        return IDENTIFIER;
     }
 
     @Override
-    public Map<String, String> requiredContext() {
-        HashMap<String, String> context = new HashMap<>();
-        context.put(CATALOG_TYPE, CATALOG_TYPE_VALUE_PULSAR);
-        context.put(CATALOG_PROPERTY_VERSION, "1");
-        return context;
+    public Catalog createCatalog(Context context) {
+        final FactoryUtil.CatalogFactoryHelper helper =
+                FactoryUtil.createCatalogFactoryHelper(this, context);
+        helper.validate();
+        return new PulsarCatalog(
+                helper.getOptions().get(ADMIN_URL),
+                context.getName(),
+                context.getOptions(),
+                helper.getOptions().get(DEFAULT_DATABASE));
     }
 
     @Override
-    public List<String> supportedProperties() {
-        List<String> props = new ArrayList<String>();
-        props.add(CATALOG_DEFAULT_DATABASE);
-        props.add(CATALOG_PULSAR_VERSION);
-        props.add(CATALOG_SERVICE_URL);
-        props.add(CATALOG_ADMIN_URL);
-        props.add(CATALOG_STARTUP_MODE);
-        props.add(CATALOG_DEFAULT_PARTITIONS);
-        props.add(PulsarTableOptions.KEY_FORMAT.key());
-        props.add(PulsarTableOptions.KEY_FIELDS.key());
-        props.add(PulsarTableOptions.KEY_FIELDS_PREFIX.key());
-        props.add(PulsarTableOptions.VALUE_FORMAT.key());
-        props.add(PulsarTableOptions.VALUE_FIELDS_INCLUDE.key());
-        props.add(PulsarTableOptions.SINK_SEMANTIC.key());
-        props.add(FormatDescriptorValidator.FORMAT);
-        props.add(FormatDescriptorValidator.FORMAT + ".*");
-        props.add(PROPERTIES_PREFIX + "*");
+    public Set<ConfigOption<?>> requiredOptions() {
+        final Set<ConfigOption<?>> options = new HashSet<>();
+        options.add(ADMIN_URL);
+        options.add(SERVICE_URL);
+        return options;
+    }
+
+    @Override
+    public Set<ConfigOption<?>> optionalOptions() {
+        Set<ConfigOption<?>> props = new HashSet<>();
+        props.add(DEFAULT_DATABASE);
+        props.add(PROPERTY_VERSION);
+        props.add(SCAN_STARTUP_MODE);
+        props.add(DEFAULT_PARTITIONS);
+        props.add(KEY_FORMAT);
+        props.add(KEY_FIELDS);
+        props.add(KEY_FIELDS_PREFIX);
+        props.add(VALUE_FORMAT);
+        props.add(VALUE_FIELDS_INCLUDE);
+        props.add(SINK_SEMANTIC);
+        props.add(PULSAR_VERSION);
+        props.add(FactoryUtil.FORMAT);
+        props.add(PROPERTIES);
         return props;
-    }
-
-    private DescriptorProperties getValidateProperties(Map<String, String> properties) {
-        DescriptorProperties dp = new DescriptorProperties();
-        dp.putProperties(properties);
-        new PulsarCatalogValidator().validate(dp);
-        return dp;
     }
 }

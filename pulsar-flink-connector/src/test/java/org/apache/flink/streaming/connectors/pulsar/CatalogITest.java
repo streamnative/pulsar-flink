@@ -15,26 +15,31 @@
 package org.apache.flink.streaming.connectors.pulsar;
 
 import org.apache.flink.client.cli.DefaultCLI;
-import org.apache.flink.client.deployment.DefaultClusterClientServiceLoader;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.CoreOptions;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions;
 import org.apache.flink.streaming.connectors.pulsar.testutils.EnvironmentFileUtil;
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper;
 import org.apache.flink.streaming.connectors.pulsar.testutils.SingletonStreamSink;
+import org.apache.flink.table.api.EnvironmentSettings;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 import org.apache.flink.table.catalog.Catalog;
+import org.apache.flink.table.catalog.CommonCatalogOptions;
 import org.apache.flink.table.catalog.pulsar.PulsarCatalog;
+import org.apache.flink.table.catalog.pulsar.factories.PulsarCatalogFactoryOptions;
 import org.apache.flink.table.client.config.Environment;
-import org.apache.flink.table.client.gateway.SessionContext;
-import org.apache.flink.table.client.gateway.local.ExecutionContext;
+import org.apache.flink.table.client.gateway.context.DefaultContext;
+import org.apache.flink.table.client.gateway.context.ExecutionContext;
+import org.apache.flink.table.client.gateway.context.SessionContext;
+import org.apache.flink.table.factories.FactoryUtil;
 
 import org.apache.flink.shaded.guava18.com.google.common.collect.Iterables;
 import org.apache.flink.shaded.guava18.com.google.common.collect.Sets;
 
-import org.apache.commons.cli.Options;
 import org.apache.commons.io.IOUtils;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
@@ -218,6 +223,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         Thread.sleep(2000);
         SingletonStreamSink.compareWithList(
                 INTEGER_LIST.subList(0, INTEGER_LIST.size() - 1).stream().map(Objects::toString)
+                        .map(s -> "+I[" + s + "]")
                         .collect(Collectors.toList()));
     }
 
@@ -261,6 +267,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
         SingletonStreamSink.compareWithList(
                 INTEGER_LIST.subList(0, INTEGER_LIST.size() - 1).stream().map(Objects::toString)
+                        .map(s -> "+I[" + s + "]")
                         .collect(Collectors.toList()));
     }
 
@@ -308,6 +315,8 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
         ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
         TableEnvironment tableEnv = context.getTableEnvironment();
+        tableEnv.getConfig()
+                .addConfiguration(new Configuration().set(CoreOptions.DEFAULT_PARALLELISM, 1));
 
         tableEnv.useCatalog(pulsarCatalog1);
 
@@ -462,15 +471,16 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         final Environment env = EnvironmentFileUtil.parseModified(
                 file,
                 replaceVars);
+
         final Configuration flinkConfig = new Configuration();
-        return ExecutionContext.builder(
-                env,
-                new SessionContext("test-session", new Environment()),
-                Collections.emptyList(),
-                flinkConfig,
-                new DefaultClusterClientServiceLoader(),
-                new Options(),
-                Collections.singletonList(new DefaultCLI())).build();
+        DefaultContext defaultContext =
+                new DefaultContext(
+                        env,
+                        new ArrayList<>(),
+                        flinkConfig,
+                        Collections.singletonList(new DefaultCLI()));
+        SessionContext sessionContext = SessionContext.create(defaultContext, "test-session");
+        return sessionContext.getExecutionContext();
     }
 
     private Map<String, String> getStreamingConfs() {

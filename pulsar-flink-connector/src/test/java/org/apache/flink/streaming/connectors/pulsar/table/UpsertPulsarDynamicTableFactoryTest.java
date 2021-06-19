@@ -115,17 +115,17 @@ public class UpsertPulsarDynamicTableFactoryTest extends TestLogger {
 //        UPSERT_PULSAR_SINK_PROPERTIES.setProperty("service-url", SERVICE_URL);
     }
 
-    static DecodingFormat<DeserializationSchema<RowData>> keyDecodingFormat =
+    protected static DecodingFormat<DeserializationSchema<RowData>> keyDecodingFormat =
             new TestFormatFactory.DecodingFormatMock(
                     ",", true, ChangelogMode.insertOnly(), Collections.emptyMap());
 
-    static DecodingFormat<DeserializationSchema<RowData>> valueDecodingFormat =
+    protected static DecodingFormat<DeserializationSchema<RowData>> valueDecodingFormat =
             new TestFormatFactory.DecodingFormatMock(
                     ",", true, ChangelogMode.insertOnly(), Collections.emptyMap());
 
-    static EncodingFormat<SerializationSchema<RowData>> keyEncodingFormat =
+    protected static EncodingFormat<SerializationSchema<RowData>> keyEncodingFormat =
             new TestFormatFactory.EncodingFormatMock(",", ChangelogMode.insertOnly());
-    static EncodingFormat<SerializationSchema<RowData>> valueEncodingFormat =
+    protected static EncodingFormat<SerializationSchema<RowData>> valueEncodingFormat =
             new TestFormatFactory.EncodingFormatMock(",", ChangelogMode.insertOnly());
 
 

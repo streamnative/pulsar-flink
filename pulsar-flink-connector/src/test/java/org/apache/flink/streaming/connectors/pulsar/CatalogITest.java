@@ -15,6 +15,7 @@
 package org.apache.flink.streaming.connectors.pulsar;
 
 import org.apache.flink.client.cli.DefaultCLI;
+import org.apache.flink.client.program.ClusterClient;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.CoreOptions;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -83,10 +84,13 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
     private static final String CATALOGS_ENVIRONMENT_FILE = "test-sql-client-pulsar-catalog.yaml";
     private static final String CATALOGS_ENVIRONMENT_FILE_START = "test-sql-client-pulsar-start-catalog.yaml";
 
+    private static ClusterClient<?> clusterClient;
+
     @Before
     public void clearStates() {
         SingletonStreamSink.clear();
         FailingIdentityMapper.failedBefore = false;
+        clusterClient = flink.getClusterClient();
     }
 
     @Test(timeout = 40 * 1000L)
@@ -382,7 +386,6 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
         ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
         TableEnvironment tableEnv = context.getTableEnvironment();
-
         tableEnv.useCatalog(pulsarCatalog1);
 
         String sinkDDL = "create table " + tableSinkName + "(\n" +
@@ -396,12 +399,37 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
                 "  ('oid3', 30, 'cid3'),\n" +
                 "  ('oid4', 10, 'cid4')";
 
-        tableEnv.executeSql(sinkDDL).print();
+        tableEnv.executeSql(sinkDDL).await(10, TimeUnit.SECONDS);
+
         tableEnv.executeSql(insertQ);
 
         List<GenericRecord> result = consumeMessage(tableSinkName, Schema.AUTO_CONSUME(), 4, 10);
 
         assertEquals(4, result.size());
+    }
+
+    @Test(timeout = 40 * 10000L)
+    public void testCreateTopic() throws Exception {
+
+        String tableSinkTopic = newTopic("tableSink");
+        String tableSinkName = TopicName.get(tableSinkTopic).getLocalName();
+        String pulsarCatalog1 = "pulsarcatalog3";
+
+        Map<String, String> conf = getStreamingConfs();
+        conf.put("$VAR_STARTING", "earliest");
+        conf.put("$VAR_FORMAT", "json");
+
+        ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
+        TableEnvironment tableEnv = context.getTableEnvironment();
+        tableEnv.useCatalog(pulsarCatalog1);
+
+        String sinkDDL = "create table " + tableSinkName + "(\n" +
+                "  oid STRING,\n" +
+                "  totalprice INT,\n" +
+                "  customerid STRING\n" +
+                ")";
+        tableEnv.executeSql(sinkDDL).await(10, TimeUnit.SECONDS);
+        assertTrue(Arrays.asList(tableEnv.listTables()).contains(tableSinkName));
     }
 
     @NotNull
@@ -467,12 +495,11 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
                 file,
                 replaceVars);
 
-        final Configuration flinkConfig = new Configuration();
         DefaultContext defaultContext =
                 new DefaultContext(
                         env,
                         new ArrayList<>(),
-                        flinkConfig,
+                        clusterClient.getFlinkConfiguration(),
                         Collections.singletonList(new DefaultCLI()));
         SessionContext sessionContext = SessionContext.create(defaultContext, "test-session");
         return sessionContext.getExecutionContext();

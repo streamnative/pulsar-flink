@@ -16,6 +16,11 @@ package org.apache.flink.streaming.connectors.pulsar;
 
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.client.program.ClusterClient;
+import org.apache.flink.configuration.ConfigConstants;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.TaskManagerOptions;
+import org.apache.flink.configuration.WebOptions;
+import org.apache.flink.metrics.jmx.JMXReporter;
 import org.apache.flink.runtime.client.JobStatusMessage;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
 import org.apache.flink.table.api.TableColumn;
@@ -55,6 +60,18 @@ public abstract class PulsarTestBaseWithFlink extends PulsarTestBase {
     public void noJobIsRunning() throws Exception {
         client = flink.getClusterClient();
         waitUntilNoJobIsRunning(client);
+    }
+
+    protected static Configuration getFlinkConfiguration() {
+        Configuration flinkConfig = new Configuration();
+
+        flinkConfig.setString(TaskManagerOptions.MANAGED_MEMORY_SIZE.key(), "16m");
+        flinkConfig.setString(ConfigConstants.METRICS_REPORTER_PREFIX + "my_reporter." +
+                ConfigConstants.METRICS_REPORTER_CLASS_SUFFIX, JMXReporter.class.getName());
+        flinkConfig.setInteger(ConfigConstants.LOCAL_NUMBER_TASK_MANAGER, NUM_TMS);
+        flinkConfig.setInteger(TaskManagerOptions.NUM_TASK_SLOTS, TM_SLOTS);
+        flinkConfig.setBoolean(WebOptions.SUBMIT_ENABLE, false);
+        return flinkConfig;
     }
 
     public static void waitUntilJobIsRunning(ClusterClient<?> client) throws Exception {

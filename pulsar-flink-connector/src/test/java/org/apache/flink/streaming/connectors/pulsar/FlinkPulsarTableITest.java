@@ -28,6 +28,7 @@ import org.apache.flink.streaming.connectors.pulsar.internal.SimpleSchemaTransla
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper;
 import org.apache.flink.streaming.connectors.pulsar.testutils.PulsarTableTestUtils;
 import org.apache.flink.streaming.connectors.pulsar.testutils.SingletonStreamSink;
+import org.apache.flink.streaming.connectors.pulsar.testutils.TestUtils;
 import org.apache.flink.streaming.util.serialization.PulsarSerializationSchemaWrapper;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.TableColumn;
@@ -36,7 +37,6 @@ import org.apache.flink.table.api.ValidationException;
 import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.test.util.SuccessException;
-import org.apache.flink.test.util.TestUtils;
 import org.apache.flink.types.Row;
 
 import com.google.protobuf.ByteString;
@@ -64,6 +64,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.BOOLEAN_LIST;
@@ -87,6 +88,8 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
     private static final String AVRO_FORMAT = "avro";
 
     private static final String PROTOBUF_FORMAT = "protobuf";
+
+    private static Function<Object, Row> objToRowDataFunction = Row::of;
 
     @Before
     public void clearState() {
@@ -116,18 +119,12 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
 
         tEnv.executeSql(createTableSql(tableName, table, tSchema, "atomic")).print();
 
-        Table t = tEnv.scan(tableName).select("value");
-
-        tEnv.toAppendStream(t, t.getSchema().toRowType())
+        Table t = tEnv.sqlQuery("select `value` from " + tableName);
+        tEnv.toDataStream(t, Boolean.class)
                 .map(new FailingIdentityMapper<>(BOOLEAN_LIST.size()))
                 .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
 
-        try {
-            see.execute("basic functionality");
-        } catch (Exception e) {
-
-        }
-
+        TestUtils.tryExecute(see, "basic functionality");
         SingletonStreamSink.compareWithList(
                 BOOLEAN_LIST.subList(0, BOOLEAN_LIST.size() - 1).stream().map(Objects::toString)
                         .collect(Collectors.toList()));
@@ -162,15 +159,11 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
 
         tEnv.executeSql(createTableSql(tableName, tp, tSchema, "json")).print();
         Table t = tEnv.sqlQuery("select i, f, bar from " + tableName);
-        tEnv.toAppendStream(t, t.getSchema().toRowType())
-                .map(new FailingIdentityMapper<Row>(fooList.size()))
+        tEnv.toDataStream(t, SchemaData.Foo.class)
+                .map(new FailingIdentityMapper<>(fooList.size()))
                 .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
 
-        try {
-            env.execute("count elements from topics");
-        } catch (Exception e) {
-
-        }
+        TestUtils.tryExecute(env, "count elements from topics");
         SingletonStreamSink.compareWithList(
                 fooList.subList(0, fooList.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
     }
@@ -188,12 +181,12 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         TableSchema tSchema = getTableSchema(table);
         tEnv.executeSql(createTableSql(tableName, table, tSchema, "json")).print();
 
-        Table t = tEnv.scan(tableName).select("i, f, bar");
-        tEnv.toAppendStream(t, t.getSchema().toRowType())
-                .map(new FailingIdentityMapper<Row>(fooList.size()))
+        Table t = tEnv.sqlQuery("select i, f, bar from " + tableName);
+        tEnv.toDataStream(t, SchemaData.Foo.class)
+                .map(new FailingIdentityMapper<>(fooList.size()))
                 .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
 
-        TestUtils.tryExecute(see, "test struct in avro");
+        TestUtils.tryExecute(see, "test struct in json");
         SingletonStreamSink.compareWithList(
                 fooList.subList(0, fooList.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
     }
@@ -211,16 +204,11 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         TableSchema tSchema = getTableSchema(table);
         tEnv.executeSql(createTableSql(tableName, table, tSchema, "json")).print();
 
-        Table t = tEnv.scan(tableName).select("l");
-        tEnv.toAppendStream(t, t.getSchema().toRowType())
-                .map(new FailingIdentityMapper<Row>(flList.size()))
+        Table t = tEnv.sqlQuery("select l from " + tableName);
+        tEnv.toDataStream(t, SchemaData.FL.class)
+                .map(new FailingIdentityMapper<>(flList.size()))
                 .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
-
-        try {
-            see.execute("test struct in avro");
-        } catch (Exception e) {
-            log.error("", e);
-        }
+        TestUtils.tryExecute(see, "test struct in json");
         SingletonStreamSink.compareWithList(
                 flList.subList(0, flList.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
     }
@@ -250,16 +238,13 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
 
         tEnv.executeSql(createTableSql(tableName, table, tSchema, "json")).print();
 
-        Table t = tEnv.scan(tableName).select("l");
-        tEnv.toAppendStream(t, t.getSchema().toRowType())
-                .map(new FailingIdentityMapper<Row>(faList.size()))
+        Table t = tEnv.sqlQuery("select l from " + tableName);
+        tEnv.toDataStream(t, SchemaData.FA.class)
+                .map(new FailingIdentityMapper<>(faList.size()))
                 .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
 
-        try {
-            see.execute("test struct in avro");
-        } catch (Exception e) {
+        TestUtils.tryExecute(see, "test struct in avro");
 
-        }
         SingletonStreamSink.compareWithList(
                 faList.subList(0, faList.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
     }
@@ -278,17 +263,13 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
 
         tEnv.executeSql(createTableSql(tableName, table, tSchema, "json")).print();
 
-        Table t = tEnv.scan(tableName).select("m");
-
-        tEnv.toAppendStream(t, t.getSchema().toRowType())
-                .map(new FailingIdentityMapper<Row>(faList.size()))
+        Table t = tEnv.sqlQuery("select m from " + tableName);
+        tEnv.toDataStream(t, SchemaData.FM.class)
+                .map(new FailingIdentityMapper<>(faList.size()))
                 .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
 
-        try {
-            see.execute("test struct in avro");
-        } catch (Exception e) {
+        TestUtils.tryExecute(see, "test struct in avro");
 
-        }
         SingletonStreamSink.compareWithList(
                 fmList.subList(0, fmList.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
     }
@@ -304,7 +285,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
             Assert.fail();
         } catch (ValidationException e) {
             // success
-        } catch (Exception e){
+        } catch (Exception e) {
             log.error("test fail", e);
             Assert.fail(e.getMessage());
         }
@@ -322,7 +303,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         Map<String, String> map = new HashMap<>();
         map.put("protobuf.message-class-name", SimpleTest.class.getCanonicalName());
         String extendParamStr = "";
-        if (map != null && !map.isEmpty()){
+        if (map != null && !map.isEmpty()) {
             extendParamStr = map.entrySet().stream()
                     .map(e -> String.format("'%s' = '%s'", e.getKey(), e.getValue()))
                     .collect(Collectors.joining(",\n"));
@@ -394,7 +375,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         String topic = newTopic();
         final String createTable;
         String extendParamStr = "";
-        if (extend != null && !extend.isEmpty()){
+        if (extend != null && !extend.isEmpty()) {
             extendParamStr = extend.entrySet().stream()
                     .map(e -> String.format("'%s' = '%s'", e.getKey(), e.getValue()))
                     .collect(Collectors.joining(",\n"));

@@ -12,6 +12,8 @@ import java.util.Map;
  */
 public class SchemaInfoWrapper implements Serializable {
 
+    private static final long serialVersionUID = 997809857078533653L;
+
     private String name;
     private byte[] schema;
     private SchemaType type;

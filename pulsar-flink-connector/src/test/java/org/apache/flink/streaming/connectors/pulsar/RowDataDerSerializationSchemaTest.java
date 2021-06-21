@@ -56,12 +56,13 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.generic.IndexedRecord;
 import org.apache.avro.io.Encoder;
 import org.apache.avro.io.EncoderFactory;
+import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.impl.schema.AutoConsumeSchema;
-import org.apache.pulsar.common.schema.SchemaInfo;
+import org.apache.pulsar.client.impl.schema.SchemaInfoImpl;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.junit.Test;
 
@@ -137,7 +138,7 @@ public class RowDataDerSerializationSchemaTest extends PulsarTestBase {
 		final CompletableFuture<byte[]> consumer = autoConsumer(topicName
 		);
 
-		RowData newRowData = deserializationSchema.deserialize(consumer.get(2000, TimeUnit.MILLISECONDS));
+		RowData newRowData = deserializationSchema.deserialize(consumer.get(10000, TimeUnit.MILLISECONDS));
 		assertEquals(rowData, newRowData);
 	}
 
@@ -167,7 +168,7 @@ public class RowDataDerSerializationSchemaTest extends PulsarTestBase {
 				rowData);
 		final CompletableFuture<byte[]> consumer = autoConsumer(topicName);
 
-		RowData newRowData = deserializationSchema.deserialize(consumer.get(2000, TimeUnit.MILLISECONDS));
+		RowData newRowData = deserializationSchema.deserialize(consumer.get(10000, TimeUnit.MILLISECONDS));
 		assertEquals(rowData, newRowData);
 	}
 
@@ -206,7 +207,7 @@ public class RowDataDerSerializationSchemaTest extends PulsarTestBase {
 		sendMessage(topicName, rowDataFlinkSchema, rowData);
 		final CompletableFuture<byte[]> consumer = autoConsumer(topicName);
 
-		RowData newRowData = deserializationSchema.deserialize(consumer.get(2000, TimeUnit.MILLISECONDS));
+		RowData newRowData = deserializationSchema.deserialize(consumer.get(10000, TimeUnit.MILLISECONDS));
 		newRowData = validatePbRow(
 				newRowData, PbRowTypeInformation.generateRowType(SimpleTest.getDescriptor()));
 		assertEquals(9, newRowData.getArity());
@@ -292,7 +293,7 @@ public class RowDataDerSerializationSchemaTest extends PulsarTestBase {
 																	 SerializationSchema<T> serializationSchema,
 																	 DeserializationSchema<T> deserializationSchema) {
 		byte[] schemaBytes = avroSchema.toString().getBytes(StandardCharsets.UTF_8);
-		SchemaInfo si = new SchemaInfo();
+		SchemaInfoImpl si = new SchemaInfoImpl();
 		si.setName("Record");
 		si.setSchema(schemaBytes);
 		si.setType(schemaType);
@@ -301,11 +302,14 @@ public class RowDataDerSerializationSchemaTest extends PulsarTestBase {
 
 	public void sendMessage(String topic, org.apache.pulsar.client.api.Schema<RowData> schema, RowData data)
 			throws Exception {
-		try (
-				PulsarClient pulsarClient = PulsarClient.builder()
+        try (PulsarAdmin admin = getPulsarAdmin()){
+            admin.schemas().createSchema(topic, schema.getSchemaInfo());
+        }
+        try (
+            PulsarClient pulsarClient = PulsarClient.builder()
 						.serviceUrl(serviceUrl)
 						.build();
-				final Producer<RowData> producer = pulsarClient.newProducer(schema)
+            final Producer<RowData> producer = pulsarClient.newProducer(schema)
 						.topic(topic)
 						.create()) {
 			pulsarClient

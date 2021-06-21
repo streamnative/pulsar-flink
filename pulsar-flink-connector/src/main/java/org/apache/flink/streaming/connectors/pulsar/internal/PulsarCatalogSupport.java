@@ -29,6 +29,7 @@ import org.apache.flink.table.types.DataType;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
+import org.apache.pulsar.client.impl.schema.SchemaInfoImpl;
 import org.apache.pulsar.common.naming.NamespaceName;
 import org.apache.pulsar.common.naming.TopicDomain;
 import org.apache.pulsar.common.naming.TopicName;
@@ -115,7 +116,7 @@ public class PulsarCatalogSupport {
 
         // Writing schemaInfo#properties causes the client to fail to consume it when it is a Pulsar native type.
         if (!StringUtils.equals(format, AtomicRowDataFormatFactory.IDENTIFIER)) {
-            schemaInfo.setProperties(extractedProperties(table));
+            ((SchemaInfoImpl) schemaInfo).setProperties(extractedProperties(table));
         }
         pulsarMetadataReader.putSchema(topicName, schemaInfo);
     }

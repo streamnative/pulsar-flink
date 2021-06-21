@@ -30,6 +30,7 @@ import org.apache.flink.table.types.utils.TypeConversions;
 import com.google.protobuf.Descriptors;
 import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.apache.pulsar.client.api.schema.GenericSchema;
+import org.apache.pulsar.client.impl.schema.SchemaInfoImpl;
 import org.apache.pulsar.client.impl.schema.generic.GenericProtobufNativeSchema;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
@@ -98,7 +99,7 @@ public class SimpleSchemaTranslator extends SchemaTranslator {
 
     static GenericSchema<GenericRecord> avroSchema2PulsarSchema(Schema avroSchema) {
         byte[] schemaBytes = avroSchema.toString().getBytes(StandardCharsets.UTF_8);
-        SchemaInfo si = new SchemaInfo();
+        SchemaInfoImpl si = new SchemaInfoImpl();
         si.setName("Avro");
         si.setSchema(schemaBytes);
         si.setType(SchemaType.AVRO);
@@ -215,7 +216,7 @@ public class SimpleSchemaTranslator extends SchemaTranslator {
     }
 
     public static SchemaInfo emptySchemaInfo() {
-        return SchemaInfo.builder()
+        return SchemaInfoImpl.builder()
                 .name("empty")
                 .type(SchemaType.NONE)
                 .schema(new byte[0])

@@ -127,7 +127,7 @@ public class PulsarSource<OUT>
     public SourceReader<OUT, PulsarPartitionSplit> createReader(SourceReaderContext readerContext) {
         FutureCompletingBlockingQueue<RecordsWithSplitIds<ParsedMessage<OUT>>> elementsQueue =
                 new FutureCompletingBlockingQueue<>();
-        ExecutorProvider listenerExecutor = new ExecutorProvider(1, r -> new Thread(r, "Pulsar listener executor"));
+        ExecutorProvider listenerExecutor = new ExecutorProvider(1, "Pulsar listener executor");
         Closer splitCloser = Closer.create();
         splitCloser.register(listenerExecutor::shutdownNow);
         Supplier<SplitReader<ParsedMessage<OUT>, PulsarPartitionSplit>> splitReaderSupplier = () -> {

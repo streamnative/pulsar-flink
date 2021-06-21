@@ -73,7 +73,7 @@
     <testRetryCount>3</testRetryCount>
 
     <!-- use Pulsar stable version -->
-    <pulsar.version>2.7.2</pulsar.version>
+    <pulsar.version>2.8.0</pulsar.version>
     <flink.version>1.13.1</flink.version>
     <scala.binary.version>2.11</scala.binary.version>
     <lombok.version>1.18.18</lombok.version>
@@ -90,6 +90,7 @@
     <mockito.version>3.7.7</mockito.version>
     <hamcrest.version>1.3</hamcrest.version>
     <junit.version>4.13.2</junit.version>
+    <jna.version>5.7.0</jna.version>
 
     <!-- plugin dependencies -->
     <maven.version>3.5.4</maven.version>
@@ -117,7 +118,7 @@
     <dependency>
       <groupId>net.java.dev.jna</groupId>
       <artifactId>jna</artifactId>
-      <version>5.7.0</version>
+      <version>${jna.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -332,7 +333,7 @@
             <configuration>
               <serverId>ossrh</serverId>
               <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-              <autoReleaseAfterClose>false</autoReleaseAfterClose>
+              <autoReleaseAfterClose>true</autoReleaseAfterClose>
             </configuration>
           </plugin>
         </plugins>

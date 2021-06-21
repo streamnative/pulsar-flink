@@ -14,15 +14,12 @@
 
 package org.apache.flink.streaming.connectors.pulsar;
 
-import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.configuration.TaskManagerOptions;
 import org.apache.flink.connector.pulsar.source.BrokerPartition;
 import org.apache.flink.connector.pulsar.source.StartOffsetInitializer;
 import org.apache.flink.connector.pulsar.source.StopCondition;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 import org.apache.flink.connector.pulsar.source.util.PulsarAdminUtils;
-import org.apache.flink.metrics.jmx.JMXReporter;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.streaming.connectors.pulsar.internal.TopicRange;
 import org.apache.flink.streaming.util.TestStreamEnvironment;
@@ -159,15 +156,6 @@ public abstract class PulsarTestBase extends TestLogger {
         log.info("-------------------------------------------------------------------------");
         log.info("    PulsarTestBase finished");
         log.info("-------------------------------------------------------------------------");
-    }
-
-    protected static Configuration getFlinkConfiguration() {
-        Configuration flinkConfig = new Configuration();
-
-        flinkConfig.setString(TaskManagerOptions.MANAGED_MEMORY_SIZE.key(), "16m");
-        flinkConfig.setString(ConfigConstants.METRICS_REPORTER_PREFIX + "my_reporter." +
-                ConfigConstants.METRICS_REPORTER_CLASS_SUFFIX, JMXReporter.class.getName());
-        return flinkConfig;
     }
 
     public static <T> List<MessageId> sendTypedMessages(

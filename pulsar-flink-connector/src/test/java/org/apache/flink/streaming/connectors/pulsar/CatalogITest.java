@@ -15,8 +15,9 @@
 package org.apache.flink.streaming.connectors.pulsar;
 
 import org.apache.flink.client.cli.DefaultCLI;
-import org.apache.flink.client.deployment.DefaultClusterClientServiceLoader;
+import org.apache.flink.client.program.ClusterClient;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.CoreOptions;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.pulsar.testutils.EnvironmentFileUtil;
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper;
@@ -28,13 +29,13 @@ import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 import org.apache.flink.table.catalog.Catalog;
 import org.apache.flink.table.catalog.pulsar.PulsarCatalog;
 import org.apache.flink.table.client.config.Environment;
-import org.apache.flink.table.client.gateway.SessionContext;
-import org.apache.flink.table.client.gateway.local.ExecutionContext;
+import org.apache.flink.table.client.gateway.context.DefaultContext;
+import org.apache.flink.table.client.gateway.context.ExecutionContext;
+import org.apache.flink.table.client.gateway.context.SessionContext;
 
 import org.apache.flink.shaded.guava18.com.google.common.collect.Iterables;
 import org.apache.flink.shaded.guava18.com.google.common.collect.Sets;
 
-import org.apache.commons.cli.Options;
 import org.apache.commons.io.IOUtils;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
@@ -83,10 +84,13 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
     private static final String CATALOGS_ENVIRONMENT_FILE = "test-sql-client-pulsar-catalog.yaml";
     private static final String CATALOGS_ENVIRONMENT_FILE_START = "test-sql-client-pulsar-start-catalog.yaml";
 
+    private static ClusterClient<?> clusterClient;
+
     @Before
     public void clearStates() {
         SingletonStreamSink.clear();
         FailingIdentityMapper.failedBefore = false;
+        clusterClient = flink.getClusterClient();
     }
 
     @Test(timeout = 40 * 1000L)
@@ -222,6 +226,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         Thread.sleep(2000);
         SingletonStreamSink.compareWithList(
                 INTEGER_LIST.subList(0, INTEGER_LIST.size() - 1).stream().map(Objects::toString)
+                        .map(s -> "+I[" + s + "]")
                         .collect(Collectors.toList()));
     }
 
@@ -265,6 +270,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
         SingletonStreamSink.compareWithList(
                 INTEGER_LIST.subList(0, INTEGER_LIST.size() - 1).stream().map(Objects::toString)
+                        .map(s -> "+I[" + s + "]")
                         .collect(Collectors.toList()));
     }
 
@@ -312,6 +318,8 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
         ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
         TableEnvironment tableEnv = context.getTableEnvironment();
+        tableEnv.getConfig()
+                .addConfiguration(new Configuration().set(CoreOptions.DEFAULT_PARALLELISM, 1));
 
         tableEnv.useCatalog(pulsarCatalog1);
 
@@ -382,7 +390,6 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
         ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
         TableEnvironment tableEnv = context.getTableEnvironment();
-
         tableEnv.useCatalog(pulsarCatalog1);
 
         String sinkDDL = "create table " + tableSinkName + "(\n" +
@@ -396,12 +403,37 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
                 "  ('oid3', 30, 'cid3'),\n" +
                 "  ('oid4', 10, 'cid4')";
 
-        tableEnv.executeSql(sinkDDL).print();
+        tableEnv.executeSql(sinkDDL).await(10, TimeUnit.SECONDS);
+
         tableEnv.executeSql(insertQ);
 
         List<GenericRecord> result = consumeMessage(tableSinkName, Schema.AUTO_CONSUME(), 4, 10);
 
         assertEquals(4, result.size());
+    }
+
+    @Test(timeout = 40 * 10000L)
+    public void testCreateTopic() throws Exception {
+
+        String tableSinkTopic = newTopic("tableSink");
+        String tableSinkName = TopicName.get(tableSinkTopic).getLocalName();
+        String pulsarCatalog1 = "pulsarcatalog3";
+
+        Map<String, String> conf = getStreamingConfs();
+        conf.put("$VAR_STARTING", "earliest");
+        conf.put("$VAR_FORMAT", "json");
+
+        ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
+        TableEnvironment tableEnv = context.getTableEnvironment();
+        tableEnv.useCatalog(pulsarCatalog1);
+
+        String sinkDDL = "create table " + tableSinkName + "(\n" +
+                "  oid STRING,\n" +
+                "  totalprice INT,\n" +
+                "  customerid STRING\n" +
+                ")";
+        tableEnv.executeSql(sinkDDL).await(10, TimeUnit.SECONDS);
+        assertTrue(Arrays.asList(tableEnv.listTables()).contains(tableSinkName));
     }
 
     @NotNull
@@ -466,15 +498,15 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         final Environment env = EnvironmentFileUtil.parseModified(
                 file,
                 replaceVars);
-        final Configuration flinkConfig = new Configuration();
-        return ExecutionContext.builder(
-                env,
-                new SessionContext("test-session", new Environment()),
-                Collections.emptyList(),
-                flinkConfig,
-                new DefaultClusterClientServiceLoader(),
-                new Options(),
-                Collections.singletonList(new DefaultCLI())).build();
+
+        DefaultContext defaultContext =
+                new DefaultContext(
+                        env,
+                        new ArrayList<>(),
+                        clusterClient.getFlinkConfiguration(),
+                        Collections.singletonList(new DefaultCLI()));
+        SessionContext sessionContext = SessionContext.create(defaultContext, "test-session");
+        return sessionContext.getExecutionContext();
     }
 
     private Map<String, String> getStreamingConfs() {

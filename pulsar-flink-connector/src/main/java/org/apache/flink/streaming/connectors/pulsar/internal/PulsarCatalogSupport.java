@@ -36,12 +36,13 @@ import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.shade.org.apache.commons.lang3.StringUtils;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static org.apache.flink.table.catalog.config.CatalogConfig.FLINK_PROPERTY_PREFIX;
+import static org.apache.flink.table.catalog.CatalogPropertiesUtil.FLINK_PROPERTY_PREFIX;
 
 /**
  * catalog support.
@@ -87,7 +88,7 @@ public class PulsarCatalogSupport {
         return pulsarMetadataReader.getTopics(databaseName);
     }
 
-    public CatalogTableImpl getTableSchema(ObjectPath tablePath,
+    public CatalogTable getTableSchema(ObjectPath tablePath,
                                            Map<String, String> properties)
         throws PulsarAdminException, IncompatibleSchemaException {
         String topicName = objectPath2TopicName(tablePath);
@@ -163,7 +164,7 @@ public class PulsarCatalogSupport {
         return SchemaUtils.tableSchemaToSchemaInfo(format, physicalRowDataType, options);
     }
 
-    private CatalogTableImpl schemaToCatalogTable(SchemaInfo pulsarSchema,
+    private CatalogTable schemaToCatalogTable(SchemaInfo pulsarSchema,
                                                   ObjectPath tablePath,
                                                   Map<String, String> flinkProperties)
         throws IncompatibleSchemaException {
@@ -182,10 +183,20 @@ public class PulsarCatalogSupport {
             properties.putAll(flinkProperties);
             properties.remove(IS_CATALOG_TOPIC);
             String comment = properties.remove(PulsarCatalogSupport.COMMENT);
-            return new CatalogTableImpl(tableSchema, partitionKeys, properties, comment);
+            return CatalogTable.of(
+                    tableSchema.toSchema(),
+                    comment,
+                    partitionKeys,
+                    properties
+            );
         } else {
             final TableSchema tableSchema = schemaTranslator.pulsarSchemaToTableSchema(pulsarSchema);
-            return new CatalogTableImpl(tableSchema, flinkProperties, "");
+            return CatalogTable.of(
+                    tableSchema.toSchema(),
+                    "",
+                    Collections.emptyList(),
+                    flinkProperties
+            );
         }
     }
 

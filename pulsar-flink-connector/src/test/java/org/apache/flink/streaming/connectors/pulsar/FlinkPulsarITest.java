@@ -26,10 +26,10 @@ import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.formats.atomic.AtomicRowDataDeserializationSchema;
+import org.apache.flink.formats.common.TimestampFormat;
 import org.apache.flink.formats.json.JsonOptions;
 import org.apache.flink.formats.json.JsonRowDataDeserializationSchema;
 import org.apache.flink.formats.json.JsonRowDataSerializationSchema;
-import org.apache.flink.formats.json.TimestampFormat;
 import org.apache.flink.runtime.client.JobCancellationException;
 import org.apache.flink.runtime.jobgraph.JobGraph;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -1090,7 +1090,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
 
     public static SerializationSchema<RowData> getJsonSerializationSchema(RowType rowType) {
         return new JsonRowDataSerializationSchema(rowType, TimestampFormat.ISO_8601, JsonOptions.MapNullKeyMode.DROP,
-                "");
+                "" , true);
     }
 
     private class AssertSink extends FlinkPulsarSink<RowData> {

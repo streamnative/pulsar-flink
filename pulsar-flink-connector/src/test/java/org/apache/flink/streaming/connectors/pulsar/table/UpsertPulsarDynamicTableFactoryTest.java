@@ -16,7 +16,6 @@ package org.apache.flink.streaming.connectors.pulsar.table;
 
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.serialization.SerializationSchema;
-import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.connectors.pulsar.FlinkPulsarSink;
@@ -24,11 +23,10 @@ import org.apache.flink.streaming.connectors.pulsar.FlinkPulsarSource;
 import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
 import org.apache.flink.streaming.connectors.pulsar.util.KeyHashMessageRouterImpl;
 import org.apache.flink.table.api.DataTypes;
-import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.api.ValidationException;
-import org.apache.flink.table.catalog.CatalogTable;
-import org.apache.flink.table.catalog.CatalogTableImpl;
-import org.apache.flink.table.catalog.ObjectIdentifier;
+import org.apache.flink.table.catalog.Column;
+import org.apache.flink.table.catalog.ResolvedSchema;
+import org.apache.flink.table.catalog.UniqueConstraint;
 import org.apache.flink.table.connector.ChangelogMode;
 import org.apache.flink.table.connector.format.DecodingFormat;
 import org.apache.flink.table.connector.format.EncodingFormat;
@@ -38,7 +36,6 @@ import org.apache.flink.table.connector.source.DynamicTableSource;
 import org.apache.flink.table.connector.source.ScanTableSource;
 import org.apache.flink.table.connector.source.SourceFunctionProvider;
 import org.apache.flink.table.data.RowData;
-import org.apache.flink.table.factories.FactoryUtil;
 import org.apache.flink.table.factories.TestFormatFactory;
 import org.apache.flink.table.runtime.connector.sink.SinkRuntimeProviderContext;
 import org.apache.flink.table.runtime.connector.source.ScanRuntimeProviderContext;
@@ -52,6 +49,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -59,9 +57,11 @@ import java.util.Properties;
 import java.util.function.Consumer;
 
 import static org.apache.flink.core.testutils.FlinkMatchers.containsCause;
+import static org.apache.flink.table.factories.utils.FactoryMocks.createTableSink;
+import static org.apache.flink.table.factories.utils.FactoryMocks.createTableSource;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -77,22 +77,28 @@ public class UpsertPulsarDynamicTableFactoryTest extends TestLogger {
 
     private static final String ADMIN_URL = "http://127.0.0.1:8080";
 
-    private static final TableSchema SOURCE_SCHEMA = TableSchema.builder()
-            .field("window_start", DataTypes.STRING().notNull())
-            .field("region", DataTypes.STRING().notNull())
-            .field("view_count", DataTypes.BIGINT())
-            .primaryKey("window_start", "region")
-            .build();
+    private static final ResolvedSchema SOURCE_SCHEMA =
+            new ResolvedSchema(
+                    Arrays.asList(
+                            Column.physical("window_start", DataTypes.STRING().notNull()),
+                            Column.physical("region", DataTypes.STRING().notNull()),
+                            Column.physical("view_count", DataTypes.BIGINT())),
+                    Collections.emptyList(),
+                    UniqueConstraint.primaryKey("name", Arrays.asList("window_start", "region")));
+
 
     private static final int[] SOURCE_KEY_FIELDS = new int[]{0, 1};
 
     private static final int[] SOURCE_VALUE_FIELDS = new int[]{0, 1, 2};
 
-    private static final TableSchema SINK_SCHEMA = TableSchema.builder()
-            .field("region", new AtomicDataType(new VarCharType(false, 100)))
-            .field("view_count", DataTypes.BIGINT())
-            .primaryKey("region")
-            .build();
+    private static final ResolvedSchema SINK_SCHEMA =
+            new ResolvedSchema(
+                    Arrays.asList(
+                            Column.physical(
+                                    "region", new AtomicDataType(new VarCharType(false, 100))),
+                            Column.physical("view_count", DataTypes.BIGINT())),
+                    Collections.emptyList(),
+                    UniqueConstraint.primaryKey("name", Collections.singletonList("region")));
 
     private static final int[] SINK_KEY_FIELDS = new int[]{0};
 
@@ -109,23 +115,28 @@ public class UpsertPulsarDynamicTableFactoryTest extends TestLogger {
 //        UPSERT_PULSAR_SINK_PROPERTIES.setProperty("service-url", SERVICE_URL);
     }
 
+    protected static DecodingFormat<DeserializationSchema<RowData>> keyDecodingFormat =
+            new TestFormatFactory.DecodingFormatMock(
+                    ",", true, ChangelogMode.insertOnly(), Collections.emptyMap());
+
+    protected static DecodingFormat<DeserializationSchema<RowData>> valueDecodingFormat =
+            new TestFormatFactory.DecodingFormatMock(
+                    ",", true, ChangelogMode.insertOnly(), Collections.emptyMap());
+
+    protected static EncodingFormat<SerializationSchema<RowData>> keyEncodingFormat =
+            new TestFormatFactory.EncodingFormatMock(",", ChangelogMode.insertOnly());
+    protected static EncodingFormat<SerializationSchema<RowData>> valueEncodingFormat =
+            new TestFormatFactory.EncodingFormatMock(",", ChangelogMode.insertOnly());
+
+
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
     @Test
     public void testTableSource() {
         final DataType producedDataType = SOURCE_SCHEMA.toPhysicalRowDataType();
-
-        DecodingFormat<DeserializationSchema<RowData>> keyDecodingFormat =
-                new TestFormatFactory.DecodingFormatMock(
-                        ",", true, ChangelogMode.insertOnly(), Collections.emptyMap());
-
-        DecodingFormat<DeserializationSchema<RowData>> valueDecodingFormat =
-                new TestFormatFactory.DecodingFormatMock(
-                        ",", true, ChangelogMode.insertOnly(), Collections.emptyMap());
-
         // Construct table source using options and table source factory
-        final DynamicTableSource actualSource = createActualSource(SOURCE_SCHEMA, getFullSourceOptions());
+        final DynamicTableSource actualSource = createTableSource(SOURCE_SCHEMA, getFullSourceOptions());
 
         final PulsarDynamicTableSource expectedSource = createExpectedScanSource(
                 producedDataType,
@@ -149,13 +160,9 @@ public class UpsertPulsarDynamicTableFactoryTest extends TestLogger {
 
     @Test
     public void testTableSink() {
-        EncodingFormat<SerializationSchema<RowData>> keyEncodingFormat =
-                new TestFormatFactory.EncodingFormatMock(",", ChangelogMode.insertOnly());
-        EncodingFormat<SerializationSchema<RowData>> valueEncodingFormat =
-                new TestFormatFactory.EncodingFormatMock(",", ChangelogMode.insertOnly());
 
         // Construct table sink using options and table sink factory.
-        final DynamicTableSink actualSink = createActualSink(SINK_SCHEMA, getFullSinkOptions());
+        final DynamicTableSink actualSink = createTableSink(SINK_SCHEMA, getFullSinkOptions());
 
         final DynamicTableSink expectedSink = createExpectedSink(
                 SINK_SCHEMA.toPhysicalRowDataType(),
@@ -188,12 +195,7 @@ public class UpsertPulsarDynamicTableFactoryTest extends TestLogger {
         final Map<String, String> modifiedOptions = getModifiedOptions(
                 getFullSinkOptions(),
                 options -> options.put("sink.parallelism", "100"));
-        final DynamicTableSink actualSink = createActualSink(SINK_SCHEMA, modifiedOptions);
-
-        EncodingFormat<SerializationSchema<RowData>> keyEncodingFormat =
-                new TestFormatFactory.EncodingFormatMock(",", ChangelogMode.insertOnly());
-        EncodingFormat<SerializationSchema<RowData>> valueEncodingFormat =
-                new TestFormatFactory.EncodingFormatMock(",", ChangelogMode.insertOnly());
+        final DynamicTableSink actualSink = createTableSink(SINK_SCHEMA, modifiedOptions);
 
         final DynamicTableSink expectedSink = createExpectedSink(
                 SINK_SCHEMA.toPhysicalRowDataType(),
@@ -228,12 +230,12 @@ public class UpsertPulsarDynamicTableFactoryTest extends TestLogger {
                 "The PRIMARY KEY specifies which columns should be read from or write to the Pulsar message key. " +
                 "The PRIMARY KEY also defines records in the 'upsert-pulsar' table should update or delete on which keys.")));
 
-        TableSchema illegalSchema = TableSchema.builder()
-                .field("window_start", DataTypes.STRING())
-                .field("region", DataTypes.STRING())
-                .field("view_count", DataTypes.BIGINT())
-                .build();
-        createActualSource(illegalSchema, getFullSinkOptions());
+        ResolvedSchema illegalSchema =
+                ResolvedSchema.of(
+                        Column.physical("window_start", DataTypes.STRING()),
+                        Column.physical("region", DataTypes.STRING()),
+                        Column.physical("view_count", DataTypes.BIGINT()));
+        createTableSource(illegalSchema, getFullSourceOptions());
     }
 
     @Test
@@ -243,11 +245,11 @@ public class UpsertPulsarDynamicTableFactoryTest extends TestLogger {
                 "The PRIMARY KEY specifies which columns should be read from or write to the Pulsar message key. " +
                 "The PRIMARY KEY also defines records in the 'upsert-pulsar' table should update or delete on which keys.")));
 
-        TableSchema illegalSchema = TableSchema.builder()
-                .field("region", DataTypes.STRING())
-                .field("view_count", DataTypes.BIGINT())
-                .build();
-        createActualSink(illegalSchema, getFullSinkOptions());
+        ResolvedSchema illegalSchema =
+                ResolvedSchema.of(
+                        Column.physical("region", DataTypes.STRING()),
+                        Column.physical("view_count", DataTypes.BIGINT()));
+        createTableSink(illegalSchema, getFullSinkOptions());
     }
 
     @Test
@@ -260,7 +262,7 @@ public class UpsertPulsarDynamicTableFactoryTest extends TestLogger {
                         TestFormatFactory.IDENTIFIER, TestFormatFactory.IDENTIFIER
                 ))));
 
-        createActualSink(SINK_SCHEMA,
+        createTableSink(SINK_SCHEMA,
                 getModifiedOptions(
                         getFullSinkOptions(),
                         options -> options.put(
@@ -279,7 +281,7 @@ public class UpsertPulsarDynamicTableFactoryTest extends TestLogger {
                         TestFormatFactory.IDENTIFIER
                 ))));
 
-        createActualSource(SOURCE_SCHEMA,
+        createTableSource(SOURCE_SCHEMA,
                 getModifiedOptions(
                         getFullSinkOptions(),
                         options -> options.put(
@@ -350,39 +352,6 @@ public class UpsertPulsarDynamicTableFactoryTest extends TestLogger {
                 String.format("value.%s.%s", TestFormatFactory.IDENTIFIER, TestFormatFactory.CHANGELOG_MODE.key()), "I"
         );
         return options;
-    }
-
-    private static DynamicTableSource createActualSource(TableSchema schema, Map<String, String> options) {
-        ObjectIdentifier objectIdentifier = ObjectIdentifier.of(
-                "default",
-                "default",
-                "sourceTable");
-        final CatalogTable sourceTable =
-                new CatalogTableImpl(schema, options, "sinkTable");
-
-        return FactoryUtil.createTableSource(
-                null,
-                objectIdentifier,
-                sourceTable,
-                new Configuration(),
-                Thread.currentThread().getContextClassLoader(),
-                false);
-    }
-
-    private static DynamicTableSink createActualSink(TableSchema schema, Map<String, String> options) {
-        ObjectIdentifier objectIdentifier = ObjectIdentifier.of(
-                "default",
-                "default",
-                "sinkTable");
-        final CatalogTable sinkTable =
-                new CatalogTableImpl(schema, options, "sinkTable");
-        return FactoryUtil.createTableSink(
-                null,
-                objectIdentifier,
-                sinkTable,
-                new Configuration(),
-                Thread.currentThread().getContextClassLoader(),
-                false);
     }
 
     private static PulsarDynamicTableSource createExpectedScanSource(

@@ -15,8 +15,6 @@
 package org.apache.flink.streaming.util.serialization;
 
 import org.apache.flink.api.common.serialization.DeserializationSchema;
-import org.apache.flink.streaming.connectors.pulsar.util.TypeInformationUtils;
-import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.types.DataType;
 
 import org.apache.pulsar.client.api.Schema;
@@ -60,9 +58,6 @@ public class PulsarDeserializationSchemaBuilder<V> implements Serializable {
     }
 
     public PulsarDeserializationSchema<V> build() {
-        if (dataType == null) {
-            dataType = DataTypes.RAW(TypeInformationUtils.getTypesAsRow(recordClass)).bridgedTo(recordClass);
-        }
-        return new PulsarDeserializationSchemaWrapper<>(valueDeserializer, dataType);
+        throw new UnsupportedOperationException("PulsarDeserializationSchemaBuilder is deprecated, use PulsarDeserializationSchema#valueOnly.");
     }
 }

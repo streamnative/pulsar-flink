@@ -55,7 +55,7 @@ public interface PulsarDeserializationSchema<T> extends PulsarContextAware<T>, S
 
             @Override
             public V deserialize(Message<V> message) throws IOException {
-                return valueDeserializer.deserialize(message.getData());
+                return message.getValue();
             }
 
             @Override

@@ -16,7 +16,6 @@ package org.apache.flink.streaming.connectors.pulsar.table;
 
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.serialization.SerializationSchema;
-import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.connectors.pulsar.FlinkPulsarSink;
@@ -24,12 +23,11 @@ import org.apache.flink.streaming.connectors.pulsar.FlinkPulsarSource;
 import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
 import org.apache.flink.streaming.connectors.pulsar.util.KeyHashMessageRouterImpl;
 import org.apache.flink.table.api.DataTypes;
-import org.apache.flink.table.api.TableColumn;
-import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.api.ValidationException;
-import org.apache.flink.table.catalog.CatalogTable;
-import org.apache.flink.table.catalog.CatalogTableImpl;
-import org.apache.flink.table.catalog.ObjectIdentifier;
+import org.apache.flink.table.catalog.Column;
+import org.apache.flink.table.catalog.ResolvedSchema;
+import org.apache.flink.table.catalog.UniqueConstraint;
+import org.apache.flink.table.catalog.WatermarkSpec;
 import org.apache.flink.table.connector.ChangelogMode;
 import org.apache.flink.table.connector.format.DecodingFormat;
 import org.apache.flink.table.connector.format.EncodingFormat;
@@ -39,7 +37,7 @@ import org.apache.flink.table.connector.source.DynamicTableSource;
 import org.apache.flink.table.connector.source.ScanTableSource;
 import org.apache.flink.table.connector.source.SourceFunctionProvider;
 import org.apache.flink.table.data.RowData;
-import org.apache.flink.table.factories.FactoryUtil;
+import org.apache.flink.table.expressions.utils.ResolvedExpressionMock;
 import org.apache.flink.table.factories.TestFormatFactory;
 import org.apache.flink.table.factories.TestFormatFactory.DecodingFormatMock;
 import org.apache.flink.table.factories.TestFormatFactory.EncodingFormatMock;
@@ -68,9 +66,12 @@ import java.util.Properties;
 import java.util.function.Consumer;
 
 import static org.apache.flink.core.testutils.FlinkMatchers.containsCause;
+import static org.apache.flink.table.descriptors.DescriptorProperties.METADATA;
+import static org.apache.flink.table.factories.utils.FactoryMocks.createTableSink;
+import static org.apache.flink.table.factories.utils.FactoryMocks.createTableSource;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -115,20 +116,33 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
     private static final String PROPS_SCAN_OFFSETS =
             MessageId.earliest.toString();
 
-    private static final TableSchema SCHEMA = TableSchema.builder()
-            .add(TableColumn.physical(NAME, DataTypes.STRING()))
-            .add(TableColumn.physical(COUNT, DataTypes.DECIMAL(38, 18)))
-            .add(TableColumn.physical(EVENT_TIME, DataTypes.TIMESTAMP(3)))
-            .add(TableColumn.computed(COMPUTED_COLUMN_NAME, COMPUTED_COLUMN_DATATYPE, COMPUTED_COLUMN_EXPRESSION))
-            .watermark(EVENT_TIME, WATERMARK_EXPRESSION, WATERMARK_DATATYPE)
-            .build();
+    private static final ResolvedSchema SCHEMA =
+            new ResolvedSchema(
+                    Arrays.asList(
+                            Column.physical(NAME, DataTypes.STRING().notNull()),
+                            Column.physical(COUNT, DataTypes.DECIMAL(38, 18)),
+                            Column.physical(EVENT_TIME, DataTypes.TIMESTAMP(3)),
+                            Column.computed(
+                                    COMPUTED_COLUMN_NAME,
+                                    ResolvedExpressionMock.of(
+                                            COMPUTED_COLUMN_DATATYPE, COMPUTED_COLUMN_EXPRESSION))),
+                    Collections.singletonList(
+                            WatermarkSpec.of(
+                                    EVENT_TIME,
+                                    ResolvedExpressionMock.of(
+                                            WATERMARK_DATATYPE, WATERMARK_EXPRESSION))),
+                    null);
 
-    private static final TableSchema SCHEMA_WITH_METADATA = TableSchema.builder()
-            .add(TableColumn.physical(NAME, DataTypes.STRING()))
-            .add(TableColumn.physical(COUNT, DataTypes.DECIMAL(38, 18)))
-            .add(TableColumn.metadata(EVENT_TIME, DataTypes.TIMESTAMP(3), "eventTime"))
-            .add(TableColumn.metadata(METADATA_TOPIC, DataTypes.STRING(), "value.metadata_2"))
-            .build();
+    private static final ResolvedSchema SCHEMA_WITH_METADATA =
+            new ResolvedSchema(
+                    Arrays.asList(
+                            Column.physical(NAME, DataTypes.STRING()),
+                            Column.physical(COUNT, DataTypes.DECIMAL(38, 18)),
+                            Column.metadata(EVENT_TIME, DataTypes.TIMESTAMP(3), "eventTime", false),
+                            Column.metadata(
+                                    METADATA, DataTypes.STRING(), "value.metadata_2", false)),
+                    Collections.emptyList(),
+                    null);
 
     private static final DataType SCHEMA_DATA_TYPE = SCHEMA.toPhysicalRowDataType();
 
@@ -248,7 +262,7 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
         final PulsarDynamicTableSource actualPulsarSource = (PulsarDynamicTableSource) actualSource;
         // initialize stateful testing formats
         actualPulsarSource.applyReadableMetadata(Arrays.asList("eventTime", "value.metadata_2"),
-                SCHEMA_WITH_METADATA.toRowDataType());
+                SCHEMA_WITH_METADATA.toSourceRowDataType());
         actualPulsarSource.getScanRuntimeProvider(ScanRuntimeProviderContext.INSTANCE);
 
         final DecodingFormatMock expectedKeyFormat = new DecodingFormatMock(
@@ -293,7 +307,7 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
                 PULSAR_SOURCE_PROPERTIES,
                 startupOptions
         );
-        expectedPulsarSource.producedDataType = SCHEMA_WITH_METADATA.toRowDataType();
+        expectedPulsarSource.producedDataType = SCHEMA_WITH_METADATA.toSourceRowDataType();
         expectedPulsarSource.metadataKeys = Collections.singletonList("eventTime");
 
         assertEquals(actualSource, expectedPulsarSource);
@@ -457,14 +471,11 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
 
     @Test
     public void testPrimaryKeyValidation() {
-        final TableSchema pkSchema = TableSchema.builder()
-                .field(NAME, DataTypes.STRING().notNull())
-                .field(COUNT, DataTypes.DECIMAL(38, 18))
-                .field(EVENT_TIME, DataTypes.TIMESTAMP(3))
-                .field(COMPUTED_COLUMN_NAME, COMPUTED_COLUMN_DATATYPE, COMPUTED_COLUMN_EXPRESSION)
-                .watermark(EVENT_TIME, WATERMARK_EXPRESSION, WATERMARK_DATATYPE)
-                .primaryKey(NAME)
-                .build();
+        final ResolvedSchema pkSchema =
+                new ResolvedSchema(
+                        SCHEMA.getColumns(),
+                        SCHEMA.getWatermarkSpecs(),
+                        UniqueConstraint.primaryKey(NAME, Collections.singletonList(NAME)));
 
         Map<String, String> options1 = getModifiedOptions(
                 getBasicSourceOptions(),
@@ -483,7 +494,7 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
             createTableSink(pkSchema, getBasicSinkOptions());
             fail();
         } catch (Throwable t) {
-            String error = "The Pulsar table 'default.default.sinkTable' with 'test-format' format" +
+            String error = "The Pulsar table 'default.default.t1' with 'test-format' format" +
                     " doesn't support defining PRIMARY KEY constraint on the table, because it can't" +
                     " guarantee the semantic of primary key.";
             assertEquals(error, t.getCause().getMessage());
@@ -493,7 +504,7 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
             createTableSource(pkSchema, getBasicSinkOptions());
             fail();
         } catch (Throwable t) {
-            String error = "The Pulsar table 'default.default.scanTable' with 'test-format' format" +
+            String error = "The Pulsar table 'default.default.t1' with 'test-format' format" +
                     " doesn't support defining PRIMARY KEY constraint on the table, because it can't" +
                     " guarantee the semantic of primary key.";
             assertEquals(error, t.getCause().getMessage());
@@ -561,36 +572,6 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
                 false,
                 parallelism,
                 KeyHashMessageRouterImpl.INSTANCE);
-    }
-
-    private static DynamicTableSource createTableSource(TableSchema schema, Map<String, String> options) {
-        final ObjectIdentifier objectIdentifier = ObjectIdentifier.of(
-                "default",
-                "default",
-                "scanTable");
-        final CatalogTable catalogTable = new CatalogTableImpl(schema, options, "scanTable");
-        return FactoryUtil.createTableSource(
-                null,
-                objectIdentifier,
-                catalogTable,
-                new Configuration(),
-                Thread.currentThread().getContextClassLoader(),
-                false);
-    }
-
-    private static DynamicTableSink createTableSink(TableSchema schema, Map<String, String> options) {
-        final ObjectIdentifier objectIdentifier = ObjectIdentifier.of(
-                "default",
-                "default",
-                "sinkTable");
-        final CatalogTable catalogTable = new CatalogTableImpl(schema, options, "sinkTable");
-        return FactoryUtil.createTableSink(
-                null,
-                objectIdentifier,
-                catalogTable,
-                new Configuration(),
-                Thread.currentThread().getContextClassLoader(),
-                false);
     }
 
     /**

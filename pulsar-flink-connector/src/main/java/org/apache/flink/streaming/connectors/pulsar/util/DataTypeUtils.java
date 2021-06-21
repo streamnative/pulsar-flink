@@ -14,7 +14,6 @@
 
 package org.apache.flink.streaming.connectors.pulsar.util;
 
-import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.types.AtomicDataType;
 import org.apache.flink.table.types.DataType;
 
@@ -32,9 +31,5 @@ public class DataTypeUtils {
             return Optional.of(conversionClass);
         }
         return Optional.empty();
-    }
-
-    public static DataType toDataType(Class<?> clazz) {
-        return DataTypes.RAW(TypeInformationUtils.getTypesAsRow(clazz));
     }
 }

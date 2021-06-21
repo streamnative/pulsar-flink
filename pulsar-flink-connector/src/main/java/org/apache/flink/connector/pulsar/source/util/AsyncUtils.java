@@ -17,7 +17,7 @@ package org.apache.flink.connector.pulsar.source.util;
 import org.apache.flink.util.function.BiConsumerWithException;
 import org.apache.flink.util.function.FunctionWithException;
 
-import org.apache.pulsar.client.admin.PulsarAdmin;
+import org.apache.pulsar.client.admin.internal.PulsarAdminImpl;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -52,7 +52,7 @@ public class AsyncUtils {
 
         for (int index = 0; index < asyncFutures.size(); index++) {
             try {
-                R result = asyncFutures.get(index).get(PulsarAdmin.DEFAULT_READ_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                R result = asyncFutures.get(index).get(PulsarAdminImpl.DEFAULT_READ_TIMEOUT_SECONDS, TimeUnit.SECONDS);
                 consumer.accept(elements.get(index), result);
             } catch (ExecutionException e) {
                 E cause = exceptionClass.cast(e.getCause());

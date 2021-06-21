@@ -28,6 +28,7 @@ import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.apache.pulsar.client.api.schema.GenericSchema;
+import org.apache.pulsar.client.impl.schema.SchemaInfoImpl;
 import org.apache.pulsar.client.internal.DefaultImplementation;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.protocol.schema.PostSchemaPayload;
@@ -123,15 +124,15 @@ public class SchemaUtils {
 
     static GenericSchema<GenericRecord> avroSchema2PulsarSchema(Schema avroSchema) {
         byte[] schemaBytes = avroSchema.toString().getBytes(StandardCharsets.UTF_8);
-        SchemaInfo si = new SchemaInfo();
+        SchemaInfoImpl si = new SchemaInfoImpl();
         si.setName("Avro");
         si.setSchema(schemaBytes);
         si.setType(SchemaType.AVRO);
         return org.apache.pulsar.client.api.Schema.generic(si);
     }
 
-    public static SchemaInfo emptySchemaInfo() {
-        return SchemaInfo.builder()
+    public static SchemaInfoImpl emptySchemaInfo() {
+        return SchemaInfoImpl.builder()
                 .name("empty")
                 .type(SchemaType.NONE)
                 .schema(new byte[0])
@@ -160,7 +161,7 @@ public class SchemaUtils {
                                             RecordSchemaType recordSchemaType) {
         org.apache.avro.Schema avroSchema = AvroSchemaConverter.convertToSchema(dataType.getLogicalType());
         byte[] schemaBytes = avroSchema.toString().getBytes(StandardCharsets.UTF_8);
-        SchemaInfo si = new SchemaInfo();
+        SchemaInfoImpl si = new SchemaInfoImpl();
         si.setSchema(schemaBytes);
         switch (recordSchemaType) {
             case AVRO:
@@ -247,9 +248,9 @@ public class SchemaUtils {
         }
     }
 
-    public static SchemaInfo getSchemaInfo(SchemaType type, DataType dataType) {
+    public static SchemaInfoImpl getSchemaInfo(SchemaType type, DataType dataType) {
         byte[] schemaBytes = getAvroSchema(dataType).toString().getBytes(StandardCharsets.UTF_8);
-        return SchemaInfo.builder()
+        return SchemaInfoImpl.builder()
                 .name("Record")
                 .schema(schemaBytes)
                 .type(type)

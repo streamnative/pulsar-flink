@@ -132,7 +132,11 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
         try (PulsarAdmin admin = PulsarAdmin.builder().serviceHttpUrl(getAdminUrl()).build()) {
             admin.tenants().createTenant("tn1",
-                    new TenantInfo(Sets.newHashSet(), Sets.newHashSet("standalone")));
+                    TenantInfo.builder()
+                            .adminRoles(Sets.newHashSet())
+                            .allowedClusters(Sets.newHashSet("standalone"))
+                            .build()
+            );
             for (String ns : namespaces) {
                 admin.namespaces().createNamespace(ns);
             }

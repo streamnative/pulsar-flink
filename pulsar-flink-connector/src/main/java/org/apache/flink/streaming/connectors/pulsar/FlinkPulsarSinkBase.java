@@ -499,7 +499,7 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
                 log.debug("transaction {} is recoverAndCommit...", transaction.transactionalId);
                 TransactionCoordinatorClientImpl tcClient = CachedPulsarClient.getOrCreate(clientConfigurationData).getTcClient();
                 TxnID transactionalId = transaction.transactionalId;
-                tcClient.commit(transactionalId, transaction.pendingMessages);
+                tcClient.commit(transactionalId);
             } catch (PulsarClientException executionException) {
                 log.error("Failed to getOrCreate a PulsarClient");
                 throw new RuntimeException(executionException);
@@ -522,7 +522,7 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
                 log.debug("transaction {} is recoverAndAbort...", transaction.transactionalId);
                 TransactionCoordinatorClientImpl tcClient = CachedPulsarClient.getOrCreate(clientConfigurationData).getTcClient();
                 TxnID transactionalId = transaction.transactionalId;
-                tcClient.abort(transactionalId, transaction.pendingMessages);
+                tcClient.abort(transactionalId);
             } catch (PulsarClientException executionException) {
                 log.error("Failed to getOrCreate a PulsarClient");
                 throw new RuntimeException(executionException);

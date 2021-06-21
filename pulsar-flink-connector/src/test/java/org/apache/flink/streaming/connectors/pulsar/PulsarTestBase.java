@@ -111,7 +111,7 @@ public abstract class PulsarTestBase extends TestLogger {
         if (StringUtils.isNotBlank(adminUrl) && StringUtils.isNotBlank(serviceUrl)) {
             log.info("    Use extend Pulsar Service ");
         } else {
-            final String pulsarImage = System.getProperty("pulsar.systemtest.image", "apachepulsar/pulsar:2.7.0");
+            final String pulsarImage = System.getProperty("pulsar.systemtest.image", "apachepulsar/pulsar:2.8.0");
             DockerImageName pulsar = DockerImageName.parse(pulsarImage)
                     .asCompatibleSubstituteFor("apachepulsar/pulsar");
             pulsarService = new PulsarContainer(pulsar);

@@ -290,9 +290,9 @@ public class PulsarMetadataReader implements AutoCloseable {
         try {
             String subscriptionName = subscriptionNameFrom(topic);
             TopicStats topicStats = admin.topics().getStats(topic.getTopic());
-            if (topicStats.subscriptions.containsKey(subscriptionName)) {
-                SubscriptionStats subStats = topicStats.subscriptions.get(subscriptionName);
-                if (subStats.consumers.size() != 0) {
+            if (topicStats.getSubscriptions().containsKey(subscriptionName)) {
+                SubscriptionStats subStats = topicStats.getSubscriptions().get(subscriptionName);
+                if (subStats.getConsumers().size() != 0) {
                     throw new RuntimeException("Subscription been actively used by other consumers, " +
                             "in this situation, the exactly-once semantics cannot be guaranteed.");
                 } else {

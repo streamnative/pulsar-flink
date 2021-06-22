@@ -56,6 +56,7 @@ import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.shade.com.google.common.collect.Maps;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -166,6 +167,8 @@ public class FlinkPulsarSource<T>
      * to seed the partition discoverer.
      */
     private transient volatile TreeMap<String, MessageId> restoredState;
+
+    private transient volatile Set<String> excludeStartMessageIds;
 
     /** Accessor for state in the operator state backend. */
     private transient ListState<Tuple2<String, MessageId>> unionOffsetStates;
@@ -361,6 +364,7 @@ public class FlinkPulsarSource<T>
         this.metadataReader = createMetadataReader();
 
         ownedTopicStarts = new HashMap<>();
+        excludeStartMessageIds = new HashSet<>();
         Set<String> allTopics = metadataReader.discoverTopicChanges();
 
         log.info("Discovered topics : {}", allTopics);
@@ -373,7 +377,10 @@ public class FlinkPulsarSource<T>
 
             restoredState.entrySet().stream()
                     .filter(e -> SourceSinkUtils.belongsTo(e.getKey(), numParallelTasks, taskIndex))
-                    .forEach(e -> ownedTopicStarts.put(e.getKey(), e.getValue()));
+                    .forEach(e -> {
+                        ownedTopicStarts.put(e.getKey(), e.getValue());
+                        excludeStartMessageIds.add(e.getKey());
+                    });
 
             Set<String> goneTopics = Sets.difference(restoredState.keySet(), allTopics).stream()
                     .filter(k -> SourceSinkUtils.belongsTo(k, numParallelTasks, taskIndex))
@@ -473,6 +480,7 @@ public class FlinkPulsarSource<T>
         this.pulsarFetcher = createFetcher(
                 ctx,
                 ownedTopicStarts,
+                excludeStartMessageIds,
                 periodicWatermarkAssigner,
                 punctuatedWatermarkAssigner,
                 streamingRuntime.getProcessingTimeService(),
@@ -494,6 +502,7 @@ public class FlinkPulsarSource<T>
     protected PulsarFetcher<T> createFetcher(
             SourceContext sourceContext,
             Map<String, MessageId> seedTopicsWithInitialOffsets,
+            Set<String> excludeStartMessageIds,
             SerializedValue<AssignerWithPeriodicWatermarks<T>> watermarksPeriodic,
             SerializedValue<AssignerWithPunctuatedWatermarks<T>> watermarksPunctuated,
             ProcessingTimeService processingTimeProvider,
@@ -506,6 +515,7 @@ public class FlinkPulsarSource<T>
         return new PulsarFetcher(
                 sourceContext,
                 seedTopicsWithInitialOffsets,
+                excludeStartMessageIds,
                 watermarksPeriodic,
                 watermarksPunctuated,
                 processingTimeProvider,

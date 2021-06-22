@@ -35,6 +35,7 @@ import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 /**
  * Emit Pulsar message as Row to Flink.
@@ -72,7 +73,7 @@ public class FlinkPulsarRowSource extends FlinkPulsarSource<Row> {
     protected PulsarFetcher<Row> createFetcher(
             SourceContext sourceContext,
             Map<String, MessageId> seedTopicsWithInitialOffsets,
-            SerializedValue<AssignerWithPeriodicWatermarks<Row>> watermarksPeriodic,
+            Set<String> excludeStartMessageIds, SerializedValue<AssignerWithPeriodicWatermarks<Row>> watermarksPeriodic,
             SerializedValue<AssignerWithPunctuatedWatermarks<Row>> watermarksPunctuated,
             ProcessingTimeService processingTimeProvider,
             long autoWatermarkInterval,

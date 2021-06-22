@@ -20,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.Reader;
+import org.apache.pulsar.client.api.ReaderBuilder;
 import org.apache.pulsar.client.impl.BatchMessageIdImpl;
 import org.apache.pulsar.client.impl.MessageIdImpl;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
@@ -46,6 +47,7 @@ public class ReaderThread<T> extends Thread {
     protected final ExceptionProxy exceptionProxy;
     protected final String topic;
     protected final MessageId startMessageId;
+    protected boolean excludeStartMessageId = false;
 
     protected volatile boolean running = true;
     protected volatile boolean closed = false;
@@ -87,10 +89,12 @@ public class ReaderThread<T> extends Thread {
             int pollTimeoutMs,
             ExceptionProxy exceptionProxy,
             boolean failOnDataLoss,
-            boolean useEarliestWhenDataLoss) {
+            boolean useEarliestWhenDataLoss,
+            boolean excludeStartMessageId) {
         this(owner, state, clientConf, readerConf, deserializer, pollTimeoutMs, exceptionProxy);
         this.failOnDataLoss = failOnDataLoss;
         this.useEarliestWhenDataLoss = useEarliestWhenDataLoss;
+        this.excludeStartMessageId = excludeStartMessageId;
     }
 
     @Override
@@ -130,14 +134,16 @@ public class ReaderThread<T> extends Thread {
                 readerConf0.put(entry.getKey(), entry.getValue());
             }
         });
-        reader = CachedPulsarClient
+        final ReaderBuilder<byte[]> readerBuilder = CachedPulsarClient
                 .getOrCreate(clientConf)
                 .newReader()
                 .topic(topic)
                 .startMessageId(startMessageId)
-                .startMessageIdInclusive()
-                .loadConf(readerConf0)
-                .create();
+                .loadConf(readerConf0);
+        if (!excludeStartMessageId) {
+            readerBuilder.startMessageIdInclusive();
+        }
+        reader = readerBuilder.create();
         log.info("Create a reader at topic {} starting from message {} (inclusive) : config = {}",
             topic, startMessageId, readerConf0);
     }
@@ -169,38 +175,6 @@ public class ReaderThread<T> extends Thread {
                     }
                 }
 
-            }
-
-            while (currentMessage == null && running) {
-                currentMessage = reader.readNext(pollTimeoutMs, TimeUnit.MILLISECONDS);
-                if (failOnDataLoss) {
-                    break;
-                }
-            }
-            if (currentMessage == null) {
-                reportDataLoss(String.format("Cannot read data at offset %s from topic: %s", startMessageId, topic));
-            } else {
-                currentId = currentMessage.getMessageId();
-                if (!messageIdRoughEquals(currentId, startMessageId) && failOnDataLoss) {
-                    reportDataLoss(
-                            String.format(
-                                    "Potential Data Loss in reading %s: intended to start at %s, actually we get %s",
-                                    topic, startMessageId.toString(), currentId.toString()));
-                }
-
-                if (startMessageId instanceof BatchMessageIdImpl && currentId instanceof BatchMessageIdImpl) {
-                    // we seek using a batch message id, we can read next directly later
-                } else if (startMessageId instanceof MessageIdImpl && currentId instanceof BatchMessageIdImpl) {
-                    // we seek using a message id, this is supposed to be read by previous task since it's
-                    // inclusive for the checkpoint, so we skip this batch
-                    BatchMessageIdImpl cbmid = (BatchMessageIdImpl) currentId;
-
-                    MessageIdImpl newStart =
-                            new MessageIdImpl(cbmid.getLedgerId(), cbmid.getEntryId() + 1, cbmid.getPartitionIndex());
-                    reader.seek(newStart);
-                } else if (startMessageId instanceof MessageIdImpl && currentId instanceof MessageIdImpl) {
-                    // current entry is a non-batch entry, we can read next directly later
-                }
             }
         }
     }

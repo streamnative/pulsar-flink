@@ -597,7 +597,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
         protected PulsarFetcher<T> createFetcher(
                 SourceContext sourceContext,
                 Map<String, MessageId> seedTopicsWithInitialOffsets,
-                SerializedValue<AssignerWithPeriodicWatermarks<T>> watermarksPeriodic,
+                Set<String> excludeStartMessageIds, SerializedValue<AssignerWithPeriodicWatermarks<T>> watermarksPeriodic,
                 SerializedValue<AssignerWithPunctuatedWatermarks<T>> watermarksPunctuated,
                 ProcessingTimeService processingTimeProvider,
                 long autoWatermarkInterval,
@@ -646,7 +646,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
         protected PulsarFetcher<T> createFetcher(
                 SourceContext sourceContext,
                 Map<String, MessageId> seedTopicsWithInitialOffsets,
-                SerializedValue<AssignerWithPeriodicWatermarks<T>> watermarksPeriodic,
+                Set<String> excludeStartMessageIds, SerializedValue<AssignerWithPeriodicWatermarks<T>> watermarksPeriodic,
                 SerializedValue<AssignerWithPunctuatedWatermarks<T>> watermarksPunctuated,
                 ProcessingTimeService processingTimeProvider,
                 long autoWatermarkInterval,

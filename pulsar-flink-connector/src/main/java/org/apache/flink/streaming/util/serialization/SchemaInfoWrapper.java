@@ -14,6 +14,7 @@
 
 package org.apache.flink.streaming.util.serialization;
 
+import org.apache.pulsar.client.impl.schema.SchemaInfoImpl;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 
@@ -44,7 +45,7 @@ public class SchemaInfoWrapper implements Serializable {
 
     public SchemaInfo getSchemaInfo() {
         if (schemaInfo == null) {
-            schemaInfo = new SchemaInfo(name, schema, type, properties);
+            schemaInfo = new SchemaInfoImpl(name, schema, type, properties);
         }
         return schemaInfo;
     }

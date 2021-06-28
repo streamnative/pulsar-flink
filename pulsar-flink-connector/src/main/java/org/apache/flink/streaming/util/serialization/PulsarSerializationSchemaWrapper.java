@@ -39,7 +39,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationSchema<T>, PulsarContextAware<T> {
     private final SerializationSchema<T> serializationSchema;
     private final RecordSchemaType recordSchemaType;
-    private final Schema<?> schema;
+    private final SchemaInfoWrapper schemaInfoWrapper;
     private final Class<?> clazz;
     private final DataType dataType;
     private final SchemaMode schemaMode;
@@ -50,7 +50,7 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
     private PulsarSerializationSchemaWrapper(SerializationSchema<T> serializationSchema,
                                              RecordSchemaType recordSchemaType,
                                              Class<?> clazz,
-                                             Schema<?> schema,
+                                             SchemaInfoWrapper schemaInfoWrapper,
                                              DataType dataType,
                                              SchemaMode schemaMode,
                                              SerializableFunction<T, String> topicExtractor,
@@ -58,7 +58,7 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
                                              SerializableFunction<T, Optional<Long>> deliverAtExtractor) {
         this.serializationSchema = serializationSchema;
         this.recordSchemaType = recordSchemaType;
-        this.schema = schema;
+        this.schemaInfoWrapper = schemaInfoWrapper;
         this.clazz = clazz;
         this.dataType = dataType;
         this.schemaMode = checkNotNull(schemaMode);
@@ -98,8 +98,8 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
         try {
             switch (schemaMode) {
                 case SPECIAL:
-                    checkNotNull(schema, "The schema cannot be null in SPECIAL mode");
-                    return new FlinkSchema<>(schema.getSchemaInfo(), serializationSchema, null);
+                    checkNotNull(schemaInfoWrapper, "The schema cannot be null in SPECIAL mode");
+                    return new FlinkSchema<>(schemaInfoWrapper.getSchemaInfo(), serializationSchema, null);
                 case ATOMIC:
                     return new FlinkSchema<>(SchemaTranslator.atomicType2PulsarSchema(dataType).getSchemaInfo(),
                             serializationSchema, null);
@@ -114,8 +114,8 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
         } catch (IncompatibleSchemaException e) {
             throw new IllegalStateException(e);
         }
-        if (schema != null) {
-            return new FlinkSchema<>(schema.getSchemaInfo(), serializationSchema, null);
+        if (schemaInfoWrapper != null) {
+            return new FlinkSchema<>(schemaInfoWrapper.getSchemaInfo(), serializationSchema, null);
         }
         try {
             if (dataType instanceof AtomicDataType) {
@@ -147,7 +147,7 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
     public static class Builder<T> {
         private final SerializationSchema<T> serializationSchema;
         private RecordSchemaType recordSchemaType;
-        private Schema<?> schema;
+        private SchemaInfoWrapper schemaInfoWrapper;
         private Class<?> clazz;
         private DataType dataType;
         private SchemaMode mode;
@@ -162,7 +162,7 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
         public PulsarSerializationSchemaWrapper.Builder<T> useSpecialMode(Schema<?> schema) {
             checkArgument(mode == null, "you can only set one schemaMode");
             this.mode = SchemaMode.SPECIAL;
-            this.schema = schema;
+            this.schemaInfoWrapper = new SchemaInfoWrapper(schema.getSchemaInfo());
             return this;
         }
 
@@ -219,7 +219,7 @@ public class PulsarSerializationSchemaWrapper<T> implements PulsarSerializationS
                     serializationSchema,
                     recordSchemaType,
                     clazz,
-                    schema,
+                    schemaInfoWrapper,
                     dataType,
                     mode,
                     topicExtractor,

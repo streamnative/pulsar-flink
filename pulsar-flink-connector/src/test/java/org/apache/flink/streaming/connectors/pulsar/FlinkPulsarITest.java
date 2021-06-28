@@ -980,6 +980,61 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
 
     }
 
+    @Test(timeout = 40 * 1000L)
+    public void testSinkSchemaUseSpecialMode() throws Exception {
+        String tp = newTopic();
+        int parallelism = 3;
+        createTopic(tp, parallelism, adminUrl);
+
+        // launch a consumer asynchronously
+
+        AtomicReference<Throwable> jobError = new AtomicReference<>();
+
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.setParallelism(parallelism);
+        env.enableCheckpointing(100);
+
+        Properties prop = sourceProperties();
+        prop.setProperty(TOPIC_SINGLE_OPTION_KEY, tp);
+
+        PulsarSerializationSchemaWrapper schemaWrapper =
+            new PulsarSerializationSchemaWrapper.Builder<>(new SimpleStringSchema()).useSpecialMode(Schema.BYTES).build();
+        env.addSource(new FlinkPulsarSource<Integer>(serviceUrl, adminUrl, new PulsarPrimitiveSchema<>(Integer.class),
+            prop).setStartFromEarliest())
+            .addSink(new FlinkPulsarSink<>(serviceUrl, adminUrl, Optional.of("XX"), new Properties(), schemaWrapper));
+
+        JobGraph jobGraph = StreamingJobGraphGenerator.createJobGraph(env.getStreamGraph());
+        JobID jobid = jobGraph.getJobID();
+
+        Thread jobRunner = new Thread("program runner thread") {
+            @Override
+            public void run() {
+                try {
+                    //client.setDetached(false);
+                    client.submitJob(jobGraph);
+                } catch (Throwable e) {
+                    jobError.set(e);
+                }
+            }
+        };
+        jobRunner.start();
+
+        Thread.sleep(2000);
+        Throwable failureCause = jobError.get();
+
+        if (failureCause != null) {
+            failureCause.printStackTrace();
+            fail("Test failed prematurely with: " + failureCause.getMessage());
+        }
+
+        client.cancel(jobid);
+        Thread.sleep(3000);
+        jobRunner.join();
+
+        assertEquals(client.getJobStatus(jobid).get(), JobStatus.CANCELED);
+
+    }
+
     public static boolean isCause(
             Class<? extends Throwable> expected,
             Throwable exc) {

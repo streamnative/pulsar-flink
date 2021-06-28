@@ -40,12 +40,12 @@ public class PulsarDeserializationSchemaWrapper<T> implements PulsarDeserializat
 
     @Deprecated
     public PulsarDeserializationSchemaWrapper(DeserializationSchema<T> deSerializationSchema, DataType dataType) {
-        this.deSerializationSchema = checkNotNull(deSerializationSchema);
+        this.deSerializationSchema = ThreadSafeDeserializationSchema.of(checkNotNull(deSerializationSchema));
     }
 
     @Deprecated
     public PulsarDeserializationSchemaWrapper(DeserializationSchema<T> deSerializationSchema) {
-        this.deSerializationSchema = checkNotNull(deSerializationSchema);
+        this.deSerializationSchema = ThreadSafeDeserializationSchema.of(checkNotNull(deSerializationSchema));
     }
 
     @Override

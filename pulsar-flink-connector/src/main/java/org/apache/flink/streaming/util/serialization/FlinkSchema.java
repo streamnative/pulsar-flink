@@ -39,7 +39,7 @@ public class FlinkSchema<T> implements Schema<T>, Serializable {
                        DeserializationSchema<T> deserializer) {
         this.schemaInfo = schemaInfo;
         this.serializer = serializer;
-        this.deserializer = deserializer;
+        this.deserializer = ThreadSafeDeserializationSchema.of(deserializer);
     }
 
     @Override

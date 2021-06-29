@@ -71,6 +71,7 @@ import org.apache.pulsar.shade.org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -191,6 +192,7 @@ public class FlinkPulsarSource<T>
      * to seed the partition discoverer.
      */
     private transient volatile TreeMap<TopicRange, MessageId> restoredState;
+    private transient volatile Set<TopicRange> excludeStartMessageIds;
 
     /**
      * Accessor for state in the operator state backend.
@@ -450,6 +452,7 @@ public class FlinkPulsarSource<T>
         this.metadataReader = createMetadataReader();
 
         ownedTopicStarts = new HashMap<>();
+        excludeStartMessageIds = new HashSet<>();
         Set<TopicRange> allTopics = metadataReader.discoverTopicChanges();
 
         if (specificStartupOffsets == null && specificStartupOffsetsAsBytes != null) {
@@ -470,7 +473,10 @@ public class FlinkPulsarSource<T>
 
             restoredState.entrySet().stream()
                     .filter(e -> SourceSinkUtils.belongsTo(e.getKey(), numParallelTasks, taskIndex))
-                    .forEach(e -> ownedTopicStarts.put(e.getKey(), e.getValue()));
+                    .forEach(e -> {
+                        ownedTopicStarts.put(e.getKey(), e.getValue());
+                        excludeStartMessageIds.add(e.getKey());
+                    });
 
             Set<TopicRange> goneTopics = Sets.difference(restoredState.keySet(), allTopics).stream()
                     .filter(k -> SourceSinkUtils.belongsTo(k, numParallelTasks, taskIndex))
@@ -566,7 +572,8 @@ public class FlinkPulsarSource<T>
                 streamingRuntime.getExecutionConfig().getAutoWatermarkInterval(),
                 getRuntimeContext().getUserCodeClassLoader(),
                 streamingRuntime,
-                useMetrics);
+                useMetrics,
+                excludeStartMessageIds);
 
         if (!running) {
             return;
@@ -580,20 +587,22 @@ public class FlinkPulsarSource<T>
     }
 
     protected PulsarFetcher<T> createFetcher(
-            SourceContext<T> sourceContext,
-            Map<TopicRange, MessageId> seedTopicsWithInitialOffsets,
-            SerializedValue<WatermarkStrategy<T>> watermarkStrategy,
-            ProcessingTimeService processingTimeProvider,
-            long autoWatermarkInterval,
-            ClassLoader userCodeClassLoader,
-            StreamingRuntimeContext streamingRuntime,
-            boolean useMetrics) throws Exception {
+        SourceContext<T> sourceContext,
+        Map<TopicRange, MessageId> seedTopicsWithInitialOffsets,
+        SerializedValue<WatermarkStrategy<T>> watermarkStrategy,
+        ProcessingTimeService processingTimeProvider,
+        long autoWatermarkInterval,
+        ClassLoader userCodeClassLoader,
+        StreamingRuntimeContext streamingRuntime,
+        boolean useMetrics,
+        Set<TopicRange> excludeStartMessageIds) throws Exception {
 
         //readerConf.putIfAbsent(PulsarOptions.SUBSCRIPTION_ROLE_OPTION_KEY, getSubscriptionName());
 
         return new PulsarFetcher<>(
                 sourceContext,
                 seedTopicsWithInitialOffsets,
+                excludeStartMessageIds,
                 watermarkStrategy,
                 processingTimeProvider,
                 autoWatermarkInterval,
@@ -606,7 +615,8 @@ public class FlinkPulsarSource<T>
                 deserializer,
                 metadataReader,
                 streamingRuntime.getMetricGroup().addGroup(PULSAR_SOURCE_METRICS_GROUP),
-                useMetrics);
+                useMetrics
+        );
     }
 
     public void joinDiscoveryLoopThread() throws InterruptedException {

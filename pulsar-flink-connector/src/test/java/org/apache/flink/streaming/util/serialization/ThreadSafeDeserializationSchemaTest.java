@@ -50,18 +50,10 @@ public class ThreadSafeDeserializationSchemaTest {
         Assert.assertEquals(noThreadSafeDeserializationSchema.getCount(), 1000);
     }
 
-    @Test
-    public void isEndOfStream() {
-    }
-
-    @Test
-    public void getProducedType() {
-    }
-
     class NoThreadSafeDeserializationSchema implements DeserializationSchema {
 
-        int count = 0;
-        int tmpCount = 0;
+        private int count = 0;
+        private int tmpCount = 0;
 
         public int getCount() {
             return count;

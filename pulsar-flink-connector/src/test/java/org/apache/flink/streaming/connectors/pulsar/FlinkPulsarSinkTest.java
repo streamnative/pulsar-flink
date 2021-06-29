@@ -21,6 +21,7 @@ import org.apache.flink.core.testutils.MultiShotLatch;
 import org.apache.flink.runtime.state.FunctionSnapshotContext;
 import org.apache.flink.streaming.api.operators.StreamSink;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarSerializationSchemaWrapper;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
 import org.apache.flink.streaming.util.OneInputStreamOperatorTestHarness;
@@ -71,7 +72,7 @@ public class FlinkPulsarSinkTest extends TestLogger {
 
     public static Properties dummyProperties() {
         Properties pros = new Properties();
-        pros.setProperty("failonwrite", "true");
+        pros.setProperty(PulsarOptions.FAIL_ON_WRITE_OPTION_KEY, "true");
         return pros;
     }
 
@@ -255,7 +256,7 @@ public class FlinkPulsarSinkTest extends TestLogger {
     @Test(timeout = 40 * 1000L)//(timeout = 5000)
     public void testDoesNotWaitForPendingRecordsIfFlushingDisabled() throws Throwable {
         Properties props = dummyProperties();
-        props.setProperty("flushoncheckpoint", "false");
+        props.setProperty(PulsarOptions.FLUSH_ON_CHECKPOINT_OPTION_KEY, "false");
 
         final DummyFlinkPulsarSink<String> sink = new DummyFlinkPulsarSink<>(dummyClientConf(), props);
 
@@ -302,7 +303,6 @@ public class FlinkPulsarSinkTest extends TestLogger {
                     properties,
                     new PulsarSerializationSchemaWrapper.Builder<>((SerializationSchema) element -> new byte[0])
                             .useSpecialMode(Schema.STRING)
-                            .setTopic(DUMMY_TOPIC)
                             .build());
 
             this.mockProducer = mock(Producer.class);
@@ -361,7 +361,7 @@ public class FlinkPulsarSinkTest extends TestLogger {
         }
 
         @Override
-        public void producerFlush() throws Exception {
+        public void producerFlush(PulsarTransactionState<T> transaction) throws Exception {
             flushLatch.trigger();
 
             // simply wait until the producer's pending records become zero.

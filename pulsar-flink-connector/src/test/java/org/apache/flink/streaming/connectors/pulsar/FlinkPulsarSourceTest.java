@@ -614,7 +614,8 @@ public class FlinkPulsarSourceTest extends TestLogger {
                 ProcessingTimeService processingTimeProvider,
                 long autoWatermarkInterval,
                 ClassLoader userCodeClassLoader,
-                StreamingRuntimeContext streamingRuntime) throws Exception {
+                StreamingRuntimeContext streamingRuntime,
+                Set<TopicRange> inclusiveStartMessageIds) throws Exception {
             return new TestingFetcher<>(sourceContext, seedTopicsWithInitialOffsets, watermarksPeriodic,
                     watermarksPunctuated, processingTimeProvider, autoWatermarkInterval);
         }
@@ -664,7 +665,8 @@ public class FlinkPulsarSourceTest extends TestLogger {
                 ProcessingTimeService processingTimeProvider,
                 long autoWatermarkInterval,
                 ClassLoader userCodeClassLoader,
-                StreamingRuntimeContext streamingRuntime) throws Exception {
+                StreamingRuntimeContext streamingRuntime,
+                Set<TopicRange> inclusiveStartMessageIds) throws Exception {
             return testFetcherSupplier.get();
         }
 

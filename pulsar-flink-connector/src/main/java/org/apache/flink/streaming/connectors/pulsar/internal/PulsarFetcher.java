@@ -29,6 +29,7 @@ import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.shade.com.google.common.collect.ImmutableList;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,6 +59,7 @@ public class PulsarFetcher<T> {
     protected final SourceContext<T> sourceContext;
 
     protected final Map<TopicRange, MessageId> seedTopicsWithInitialOffsets;
+    protected final Set<TopicRange> excludeStartMessageIds;
 
     /** The lock that guarantees that record emission and state updates are atomic,
      * from the view of taking a checkpoint. */
@@ -139,6 +141,7 @@ public class PulsarFetcher<T> {
         this(
                 sourceContext,
                 seedTopicsWithInitialOffsets,
+                Collections.emptySet(),
                 watermarksPeriodic,
                 watermarksPunctuated,
                 processingTimeProvider,
@@ -156,6 +159,7 @@ public class PulsarFetcher<T> {
     public PulsarFetcher(
             SourceContext<T> sourceContext,
             Map<TopicRange, MessageId> seedTopicsWithInitialOffsets,
+            Set<TopicRange> excludeStartMessageIds,
             SerializedValue<AssignerWithPeriodicWatermarks<T>> watermarksPeriodic,
             SerializedValue<AssignerWithPunctuatedWatermarks<T>> watermarksPunctuated,
             ProcessingTimeService processingTimeProvider,
@@ -171,6 +175,7 @@ public class PulsarFetcher<T> {
 
         this.sourceContext = sourceContext;
         this.seedTopicsWithInitialOffsets = seedTopicsWithInitialOffsets;
+        this.excludeStartMessageIds = excludeStartMessageIds;
         this.checkpointLock = sourceContext.getCheckpointLock();
         this.userCodeClassLoader = userCodeClassLoader;
         this.runtimeContext = runtimeContext;
@@ -558,7 +563,8 @@ public class PulsarFetcher<T> {
                 pollTimeoutMs,
                 exceptionProxy,
                 failOnDataLoss,
-                useEarliestWhenDataLoss);
+                useEarliestWhenDataLoss,
+                excludeStartMessageIds.contains(state.getTopicRange()));
     }
 
     /**

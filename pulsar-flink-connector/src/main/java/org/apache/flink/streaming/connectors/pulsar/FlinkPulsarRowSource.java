@@ -33,6 +33,7 @@ import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.USE_EXTEND_FIELD;
 
@@ -100,7 +101,8 @@ public class FlinkPulsarRowSource extends FlinkPulsarSource<Row> {
             ProcessingTimeService processingTimeProvider,
             long autoWatermarkInterval,
             ClassLoader userCodeClassLoader,
-            StreamingRuntimeContext streamingRuntime) throws Exception {
+            StreamingRuntimeContext streamingRuntime,
+            Set<TopicRange> excludeStartMessageIds) throws Exception {
         boolean useExtendField = Boolean.parseBoolean((String) properties.get(USE_EXTEND_FIELD));
         return new PulsarRowFetcher(
                 sourceContext,

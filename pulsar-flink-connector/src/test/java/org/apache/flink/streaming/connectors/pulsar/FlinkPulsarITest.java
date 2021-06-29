@@ -547,7 +547,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
                 -20, -21, -22, 1, 2, 3, 10, 11, 12), Optional.empty());
 
         Map<String, Set<Integer>> expectedData = new HashMap<>();
-        expectedData.put(topic, new HashSet<>(Arrays.asList(2, 3, 10, 11, 12)));
+        expectedData.put(topic, new HashSet<>(Arrays.asList(1, 2, 3, 10, 11, 12)));
 
         Map<String, MessageId> offset = new HashMap<>();
         offset.put(topic, mids.get(3));
@@ -564,7 +564,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         DataStream stream = see.addSource(
                 new FlinkPulsarSource<>(serviceUrl, adminUrl, deserializationSchema, sourceProps)
                         .setStartFromSpecificOffsets(offset));
-        stream.flatMap(new CheckAllMessageExist(expectedData, 5, 1)).setParallelism(1);
+        stream.flatMap(new CheckAllMessageExist(expectedData, 6, 1)).setParallelism(1);
 
         TestUtils.tryExecute(see, "start from specific");
     }
@@ -583,7 +583,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         admin.topics().createSubscription(TopicName.get(topic).toString(), subName, mids.get(3));
 
         Map<String, Set<Integer>> expectedData = new HashMap<>();
-        expectedData.put(topic, new HashSet<>(Arrays.asList(2, 3, 10, 11, 12)));
+        expectedData.put(topic, new HashSet<>(Arrays.asList(1, 2, 3, 10, 11, 12)));
 
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.setParallelism(1);
@@ -597,7 +597,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         DataStream stream =
                 see.addSource(new FlinkPulsarSource<>(serviceUrl, adminUrl, deserializationSchema, sourceProps)
                         .setStartFromSubscription(subName));
-        stream.flatMap(new CheckAllMessageExist(expectedData, 5, 1)).setParallelism(1);
+        stream.flatMap(new CheckAllMessageExist(expectedData, 6, 1)).setParallelism(1);
 
         TestUtils.tryExecute(see, "start from specific");
 

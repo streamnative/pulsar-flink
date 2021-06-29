@@ -46,6 +46,7 @@ public class ReaderThread<T> extends Thread {
     protected final ExceptionProxy exceptionProxy;
     protected final TopicRange topicRange;
     protected final MessageId startMessageId;
+    protected boolean excludeMessageId = false;
     private boolean failOnDataLoss = true;
     private boolean useEarliestWhenDataLoss = false;
 
@@ -85,10 +86,12 @@ public class ReaderThread<T> extends Thread {
             int pollTimeoutMs,
             ExceptionProxy exceptionProxy,
             boolean failOnDataLoss,
-            boolean useEarliestWhenDataLoss) {
+            boolean useEarliestWhenDataLoss,
+            boolean excludeMessageId) {
         this(owner, state, clientConf, readerConf, deserializer, pollTimeoutMs, exceptionProxy);
         this.failOnDataLoss = failOnDataLoss;
         this.useEarliestWhenDataLoss = useEarliestWhenDataLoss;
+        this.excludeMessageId = excludeMessageId;
     }
 
     @Override
@@ -98,7 +101,7 @@ public class ReaderThread<T> extends Thread {
         try {
             createActualReader();
 
-            skipFirstMessageIfNeeded();
+            handleUnAvailedCursor();
 
             log.info("Starting to read {} with reader thread {}", topicRange, getName());
 
@@ -126,10 +129,12 @@ public class ReaderThread<T> extends Thread {
                 .newReader(deserializer.getSchema())
                 .topic(topicRange.getTopic())
                 .startMessageId(startMessageId)
-                .startMessageIdInclusive()
                 .loadConf(readerConf);
         log.info("Create a reader at topic {} starting from message {} (inclusive) : config = {}",
                 topicRange, startMessageId, readerConf);
+        if (!excludeMessageId){
+            readerBuilder.startMessageIdInclusive();
+        }
         if (!topicRange.isFullRange()) {
              readerBuilder.keyHashRange(topicRange.getPulsarRange());
         }
@@ -137,9 +142,7 @@ public class ReaderThread<T> extends Thread {
         reader = readerBuilder.create();
     }
 
-    protected void skipFirstMessageIfNeeded() throws PulsarClientException {
-        Message<?> currentMessage = null;
-        MessageId currentId;
+    protected void handleUnAvailedCursor() throws PulsarClientException {
         boolean failOnDataLoss = this.failOnDataLoss;
         if (!startMessageId.equals(MessageId.earliest)
                 && !startMessageId.equals(MessageId.latest)
@@ -153,7 +156,7 @@ public class ReaderThread<T> extends Thread {
                     if (failOnDataLoss) {
                         log.error("the start message id is beyond the last commit message id, with topic:{}", this.topicRange);
                         throw new RuntimeException("start message id beyond the last commit");
-                    } else if (useEarliestWhenDataLoss){
+                    } else if (useEarliestWhenDataLoss) {
                         log.info("reset message to earliest");
                         reader.seek(MessageId.earliest);
                         metaDataReader.resetCursor(this.topicRange, MessageId.earliest);
@@ -164,40 +167,6 @@ public class ReaderThread<T> extends Thread {
                     }
                 }
 
-            }
-            while (currentMessage == null && running) {
-                currentMessage = reader.readNext(pollTimeoutMs, TimeUnit.MILLISECONDS);
-                if (failOnDataLoss) {
-                    break;
-                }
-            }
-            if (currentMessage == null) {
-                reportDataLoss(String.format("Cannot read data at offset %s from topic: %s",
-                        startMessageId.toString(),
-                        topicRange));
-            } else {
-                currentId = currentMessage.getMessageId();
-                state.setOffset(currentId);
-                if (!messageIdRoughEquals(currentId, startMessageId) && failOnDataLoss) {
-                    reportDataLoss(
-                            String.format(
-                                    "Potential Data Loss in reading %s: intended to start at %s, actually we get %s",
-                                    topicRange, startMessageId.toString(), currentId.toString()));
-                }
-
-                if (startMessageId instanceof BatchMessageIdImpl && currentId instanceof BatchMessageIdImpl) {
-                    // we seek using a batch message id, we can read next directly later
-                } else if (startMessageId instanceof MessageIdImpl && currentId instanceof BatchMessageIdImpl) {
-                    // we seek using a message id, this is supposed to be read by previous task since it's
-                    // inclusive for the checkpoint, so we skip this batch
-                    BatchMessageIdImpl cbmid = (BatchMessageIdImpl) currentId;
-
-                    MessageIdImpl newStart =
-                            new MessageIdImpl(cbmid.getLedgerId(), cbmid.getEntryId() + 1, cbmid.getPartitionIndex());
-                    reader.seek(newStart);
-                } else if (startMessageId instanceof MessageIdImpl && currentId instanceof MessageIdImpl) {
-                    // current entry is a non-batch entry, we can read next directly later
-                }
             }
         }
     }

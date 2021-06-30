@@ -18,6 +18,7 @@ import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.util.serialization.FlinkSchema;
 import org.apache.flink.streaming.util.serialization.PulsarDeserializationSchema;
+import org.apache.flink.streaming.util.serialization.ThreadSafeDeserializationSchema;
 import org.apache.flink.table.data.GenericRowData;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.types.DeserializationException;
@@ -78,8 +79,8 @@ class DynamicPulsarDeserializationSchema implements PulsarDeserializationSchema<
                     keyDeserialization != null && keyProjection.length > 0,
                     "Key must be set in upsert mode for deserialization schema.");
         }
-        this.keyDeserialization = keyDeserialization;
-        this.valueDeserialization = valueDeserialization;
+        this.keyDeserialization = ThreadSafeDeserializationSchema.of(keyDeserialization);
+        this.valueDeserialization = ThreadSafeDeserializationSchema.of(valueDeserialization);
         this.hasMetadata = hasMetadata;
         this.outputCollector = new OutputProjectionCollector(
                 physicalArity,
@@ -116,22 +117,14 @@ class DynamicPulsarDeserializationSchema implements PulsarDeserializationSchema<
         // shortcut in case no output projection is required,
         // also not for a cartesian product with the keys
         if (keyDeserialization == null && !hasMetadata) {
-            // Because the Pulsar Source is designed to be multi-threaded,
-            // Flink's internal design of the Source is single-threaded,
-            // so, DeserializationSchema instances are oriented to single-threaded,
-            // and thread safety issues exist when they are accessed by multiple threads at the same time. Cause the message deserialization to fail.
-            synchronized (valueDeserialization) {
-                valueDeserialization.deserialize(message.getData(), collector);
-            }
+            valueDeserialization.deserialize(message.getData(), collector);
             return;
         }
         BufferingCollector keyCollector = new BufferingCollector();
 
         // buffer key(s)
         if (keyDeserialization != null) {
-            synchronized (keyDeserialization) {
-                keyDeserialization.deserialize(message.getKeyBytes(), keyCollector);
-            }
+            keyDeserialization.deserialize(message.getKeyBytes(), keyCollector);
         }
 
         // project output while emitting values
@@ -142,9 +135,7 @@ class DynamicPulsarDeserializationSchema implements PulsarDeserializationSchema<
             // collect tombstone messages in upsert mode by hand
             outputCollector.collect(null);
         } else {
-            synchronized (valueDeserialization) {
-                valueDeserialization.deserialize(message.getData(), outputCollector);
-            }
+            valueDeserialization.deserialize(message.getData(), outputCollector);
         }
         keyCollector.buffer.clear();
     }

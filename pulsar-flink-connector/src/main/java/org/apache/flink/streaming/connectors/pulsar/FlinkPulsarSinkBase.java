@@ -26,7 +26,6 @@ import org.apache.flink.streaming.connectors.pulsar.internal.PulsarSerialization
 import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.SourceSinkUtils;
 import org.apache.flink.util.ExceptionUtils;
-import org.apache.flink.util.SerializableObject;
 
 import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
 
@@ -43,6 +42,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
@@ -73,11 +73,8 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
 
     protected boolean failOnWrite;
 
-    /** Lock for accessing the pending records. */
-    protected final SerializableObject pendingRecordsLock = new SerializableObject();
-
     /** Number of unacknowledged records. */
-    protected long pendingRecords = 0L;
+    protected AtomicLong pendingRecords = new AtomicLong();
 
     protected final boolean forcedTopic;
 
@@ -85,7 +82,7 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
 
     protected final PulsarSerializationSchema<T> serializationSchema;
 
-    protected transient volatile Throwable failedWrite;
+    protected transient volatile Throwable asyncException;
 
     protected transient PulsarAdmin admin;
 
@@ -156,20 +153,13 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
 
         if (flushOnCheckpoint) {
             producerFlush();
-            synchronized (pendingRecordsLock) {
-                if (pendingRecords != 0) {
-                    throw new IllegalStateException("Pending record count must be zero at this point " + pendingRecords);
-                }
-                checkErroneous();
-            }
+            checkErroneous();
         }
     }
 
     @Override
     public void initializeState(FunctionInitializationContext context) throws Exception {
     }
-
-    //protected abstract Schema<?> getPulsarSchema();
 
     @Override
     public void open(Configuration parameters) throws Exception {
@@ -196,10 +186,10 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
         }
         if (failOnWrite) {
             this.sendCallback = (t, u) -> {
-                if (failedWrite == null && u == null) {
+                if (asyncException == null && u == null) {
                     acknowledgeMessage();
-                } else if (failedWrite == null && u != null) {
-                    failedWrite = u;
+                } else if (asyncException == null && u != null) {
+                    asyncException = u;
                 } else { // failedWrite != null
                     log.warn("callback error {}", u);
                     // do nothing and wait next checkForError to throw exception
@@ -207,7 +197,7 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
             };
         } else {
             this.sendCallback = (t, u) -> {
-                if (failedWrite == null && u != null) {
+                if (asyncException == null && u != null) {
                     log.error("Error while sending message to Pulsar: {}", ExceptionUtils.stringifyException(u));
                 }
                 acknowledgeMessage();
@@ -241,13 +231,6 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
         }
     }
 
-    /*    */
-
-    /**
-     * To determine how to generate schema for pulsar producer
-     * @return the schema that our producer use.
-     *//*
-    protected abstract Schema<T> buildSchema();*/
     protected Producer<byte[]> createProducer(
             ClientConfigurationData clientConf,
             Map<String, Object> producerConf,
@@ -279,16 +262,11 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
                 }
             }
         }
-        synchronized (pendingRecordsLock) {
-            while (pendingRecords > 0) {
-                try {
-                    pendingRecordsLock.wait();
-                } catch (InterruptedException e) {
-                    // this can be interrupted when the Task has been cancelled.
-                    // by throwing an exception, we ensure that this checkpoint doesn't get confirmed
-                    throw new RuntimeException("Flushing got interrupted while checkpointing", e);
-                }
-            }
+
+        long pendingRecordsCount = pendingRecords.get();
+        if (pendingRecordsCount != 0) {
+            throw new IllegalStateException(
+                "Pending record count must be zero at this point: " + pendingRecordsCount);
         }
     }
 
@@ -310,22 +288,17 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
     }
 
     protected void checkErroneous() throws Exception {
-        Throwable e = failedWrite;
+        Throwable e = asyncException;
         if (e != null) {
             // prevent double throwing
-            failedWrite = null;
+            asyncException = null;
             throw new Exception("Failed to send data to Pulsar: " + e.getMessage(), e);
         }
     }
 
     private void acknowledgeMessage() {
         if (flushOnCheckpoint) {
-            synchronized (pendingRecordsLock) {
-                pendingRecords--;
-                if (pendingRecords == 0) {
-                    pendingRecordsLock.notifyAll();
-                }
-            }
+            pendingRecords.decrementAndGet();
         }
     }
 }

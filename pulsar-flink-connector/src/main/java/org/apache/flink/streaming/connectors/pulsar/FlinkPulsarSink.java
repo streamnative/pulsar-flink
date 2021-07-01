@@ -97,9 +97,7 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
         }
 
         if (flushOnCheckpoint) {
-            synchronized (pendingRecordsLock) {
-                pendingRecords++;
-            }
+            pendingRecords.incrementAndGet();
         }
         mb.sendAsync().whenComplete(sendCallback);
     }

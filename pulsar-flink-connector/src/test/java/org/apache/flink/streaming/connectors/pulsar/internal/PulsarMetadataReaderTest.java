@@ -34,6 +34,7 @@ public class PulsarMetadataReaderTest extends PulsarTestBase {
 
     private PulsarMetadataReader pulsarMetadataReader;
 
+    private String nonPersistTopic = TopicName.get("non-persistent", "public", "default", "NON-PERSIST-TOPIC").toString();
     private String nonPartitionTopic = TopicName.get("NON-P-TOPIC").toString();
     private String onePartitionTopic = TopicName.get("ONE-P-TOPIC").toString();
 
@@ -70,12 +71,17 @@ public class PulsarMetadataReaderTest extends PulsarTestBase {
         // non-partitioned topic it doesn't exist
         createNonPartitionTopic(nonPartitionTopic);
         Assert.assertFalse(pulsarMetadataReader.topicExists(nonPartitionTopic));
+
+        // non-persist topic it exit
+        getPulsarAdmin().topics().createPartitionedTopic(nonPersistTopic, 1);
+        Assert.assertTrue(pulsarMetadataReader.topicExists(nonPersistTopic));
     }
 
     @After
     public void clearTopic() throws PulsarAdminException {
         pulsarMetadataReader.deleteTopic(nonPartitionTopic);
         pulsarMetadataReader.deleteTopic(onePartitionTopic);
+        pulsarMetadataReader.deleteTopic(nonPersistTopic);
     }
 
     private void createNonPartitionTopic(String topicName) throws PulsarAdminException {

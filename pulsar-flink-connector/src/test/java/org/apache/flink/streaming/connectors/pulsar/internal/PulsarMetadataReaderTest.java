@@ -17,10 +17,9 @@ package org.apache.flink.streaming.connectors.pulsar.internal;
 import org.apache.flink.streaming.connectors.pulsar.PulsarTestBase;
 
 import org.apache.pulsar.client.admin.PulsarAdminException;
-import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
-import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.common.naming.TopicName;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -35,53 +34,51 @@ public class PulsarMetadataReaderTest extends PulsarTestBase {
 
     private PulsarMetadataReader pulsarMetadataReader;
 
-    private String partitionEq0Topic = "PA0_TOPIC";
-    private String partitionEq1Topic = "PA1_TOPIC";
+    private String nonPartitionTopic = TopicName.get("NON-P-TOPIC").toString();
+    private String onePartitionTopic = TopicName.get("ONE-P-TOPIC").toString();
 
     @Before
     public void init() throws PulsarClientException {
         Map<String, String> caseInsensitiveParams = new HashMap<>();
-        caseInsensitiveParams.put(PulsarOptions.TOPIC_MULTI_OPTION_KEY, partitionEq0Topic + "," + partitionEq1Topic);
+        caseInsensitiveParams.put(PulsarOptions.TOPIC_MULTI_OPTION_KEY, nonPartitionTopic + "," + onePartitionTopic);
         pulsarMetadataReader = new PulsarMetadataReader(adminUrl, clientConfigurationData, "subscribeName", caseInsensitiveParams, 0, 0);
     }
 
     @Test
-    public void getTopicPartitionsAll() throws PulsarAdminException, PulsarClientException {
+    public void getTopicPartitionsAll() throws PulsarAdminException {
 
-        createPartitionsEq0Topic(partitionEq0Topic);
+        createNonPartitionTopic(nonPartitionTopic);
 
         Set<TopicRange> topicPartitionsAll = pulsarMetadataReader.getTopicPartitionsAll();
         List<TopicRange> topicRanges = topicPartitionsAll.stream().collect(Collectors.toList());
         for (TopicRange topicRange : topicRanges) {
-            if (topicRange.getTopic().contains(partitionEq0Topic)) {
-                Assert.assertEquals(topicRange.getTopic(), TopicName.get(partitionEq0Topic).toString());
+            if (topicRange.getTopic().contains(nonPartitionTopic)) {
+                Assert.assertEquals(topicRange.getTopic(), nonPartitionTopic);
             } else {
-                Assert.assertEquals(topicRange.getTopic(), TopicName.get(partitionEq1Topic) + PulsarOptions.PARTITION_SUFFIX + 0);
+                Assert.assertEquals(topicRange.getTopic(), onePartitionTopic + PulsarOptions.PARTITION_SUFFIX + 0);
             }
         }
 
-        Assert.assertFalse(pulsarMetadataReader.topicExists(TopicName.get(partitionEq0Topic).toString()));
-        Assert.assertTrue(pulsarMetadataReader.topicExists(TopicName.get(partitionEq1Topic).toString()));
-
-        pulsarMetadataReader.deleteTopic(TopicName.get(partitionEq0Topic).toString());
-        pulsarMetadataReader.deleteTopic(TopicName.get(partitionEq1Topic).toString());
+        Assert.assertFalse(pulsarMetadataReader.topicExists(nonPartitionTopic));
+        Assert.assertTrue(pulsarMetadataReader.topicExists(onePartitionTopic));
     }
 
     @Test
-    public void topicExists() throws PulsarAdminException, PulsarClientException {
-        String topicName = "not-exit-topic";
-        Assert.assertFalse(pulsarMetadataReader.topicExists(topicName));
+    public void topicExists() throws PulsarAdminException {
+        Assert.assertFalse(pulsarMetadataReader.topicExists(nonPartitionTopic));
 
-        // partitions == 0 it doesn't exist
-        createPartitionsEq0Topic(topicName);
-        Assert.assertFalse(pulsarMetadataReader.topicExists(topicName));
-
-        pulsarMetadataReader.deleteTopic(topicName);
+        // non-partitioned topic it doesn't exist
+        createNonPartitionTopic(nonPartitionTopic);
+        Assert.assertFalse(pulsarMetadataReader.topicExists(nonPartitionTopic));
     }
 
-    private void createPartitionsEq0Topic(String topicName) throws PulsarClientException {
-        PulsarClient client = PulsarClient.builder().serviceUrl(serviceUrl).build();
-        client.newProducer(Schema.STRING).topic(topicName).create();
+    @After
+    public void clearTopic() throws PulsarAdminException {
+        pulsarMetadataReader.deleteTopic(nonPartitionTopic);
+        pulsarMetadataReader.deleteTopic(onePartitionTopic);
     }
 
+    private void createNonPartitionTopic(String topicName) throws PulsarAdminException {
+        getPulsarAdmin().topics().createNonPartitionedTopic(topicName);
+    }
 }

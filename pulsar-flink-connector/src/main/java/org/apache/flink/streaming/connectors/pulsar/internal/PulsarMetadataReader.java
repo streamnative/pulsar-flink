@@ -380,7 +380,7 @@ public class PulsarMetadataReader implements AutoCloseable {
                     // multi thread may cause concurrent creation
                 }
             }
-            // pulsar still has the situation of getting 0 partitions, case: client.newProducer(Schema.STRING).topic(topicName).create()
+            // pulsar still has the situation of getting 0 partitions, non-partitions topic.
             if (partNum == 0) {
                 allTopics.add(topic);
             } else {

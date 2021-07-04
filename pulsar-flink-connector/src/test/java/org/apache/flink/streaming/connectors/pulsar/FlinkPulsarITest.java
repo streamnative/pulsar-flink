@@ -173,7 +173,6 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
         List<Integer> messages =
                 IntStream.range(0, 50).mapToObj(t -> Integer.valueOf(t)).collect(Collectors.toList());
 
-        sendTypedMessages(tp, SchemaType.INT32, messages, Optional.empty());
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
 
         Properties props = new Properties() {{ put(TOPIC_SINGLE_OPTION_KEY, tp); }};

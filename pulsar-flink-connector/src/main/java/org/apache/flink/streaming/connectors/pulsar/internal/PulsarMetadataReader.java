@@ -25,6 +25,8 @@ import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.client.impl.schema.BytesSchema;
 import org.apache.pulsar.common.naming.NamespaceName;
 import org.apache.pulsar.common.naming.TopicName;
+import org.apache.pulsar.common.partition.PartitionedTopicMetadata;
+import org.apache.pulsar.common.policies.data.PartitionedTopicInternalStats;
 import org.apache.pulsar.common.policies.data.PersistentTopicInternalStats;
 import org.apache.pulsar.common.policies.data.SubscriptionStats;
 import org.apache.pulsar.common.policies.data.TopicStats;
@@ -178,19 +180,21 @@ public class PulsarMetadataReader implements AutoCloseable {
     }
 
     public boolean topicExists(String topicName) throws PulsarAdminException {
-        int partitionNum = admin.topics().getPartitionedTopicMetadata(topicName).partitions;
-        if (partitionNum > 0) {
-            return true;
-        } else {
-            admin.topics().getStats(topicName);
+        try {
+            PartitionedTopicMetadata partitionedTopicMetadata = admin.topics().getPartitionedTopicMetadata(topicName);
+            if (partitionedTopicMetadata.partitions > 0) {
+                return true;
+            }
+        } catch (PulsarAdminException.NotFoundException e) {
         }
-        return true;
+        return false;
     }
 
     public void deleteTopic(String topicName) throws PulsarAdminException {
-        int partitionNum = admin.topics().getPartitionedTopicMetadata(topicName).partitions;
-        if (partitionNum > 0) {
-            final Optional<PersistentTopicInternalStats> any = admin.topics().getPartitionedInternalStats(topicName).partitions.entrySet()
+
+        try {
+            PartitionedTopicInternalStats partitionedInternalStats = admin.topics().getPartitionedInternalStats(topicName);
+            final Optional<PersistentTopicInternalStats> any = partitionedInternalStats.partitions.entrySet()
                 .stream()
                 .map(Map.Entry::getValue)
                 .filter(p -> !p.cursors.isEmpty())
@@ -199,10 +203,8 @@ public class PulsarMetadataReader implements AutoCloseable {
                 throw new IllegalStateException(String.format("The topic[%s] cannot be deleted because there are subscribers", topicName));
             }
             admin.topics().deletePartitionedTopic(topicName, true);
-        } else {
-            if (!admin.topics().getInternalStats(topicName).cursors.isEmpty()) {
-                throw new IllegalStateException(String.format("The topic[%s] cannot be deleted because there are subscribers", topicName));
-            }
+        } catch (PulsarAdminException.NotFoundException e) {
+            log.warn("topic<{}> is not exit, try delete force it", topicName);
             admin.topics().delete(topicName, true);
         }
     }
@@ -357,17 +359,34 @@ public class PulsarMetadataReader implements AutoCloseable {
                 .collect(Collectors.toSet());
     }
 
+    /**
+     * Get topic partitions all, If the topic does not exist, it is created automatically ont partition to topic.
+     *
+     * @return allTopicPartitions
+     * @throws PulsarAdminException pulsarAdminException
+     */
     public Set<TopicRange> getTopicPartitionsAll() throws PulsarAdminException {
         List<TopicRange> topics = getTopics();
         HashSet<TopicRange> allTopics = new HashSet<>();
         for (TopicRange topic : topics) {
-            int partNum = admin.topics().getPartitionedTopicMetadata(topic.getTopic()).partitions;
+            int partNum = 1;
+            try {
+                partNum = admin.topics().getPartitionedTopicMetadata(topic.getTopic()).partitions;
+            } catch (PulsarAdminException.NotFoundException e) {
+                log.info("topic<{}> is not exit, auto create <{}> partition to <{}>", topic.getTopic(), partNum, topic.getTopic());
+                try {
+                    createTopic(topic.getTopic(), partNum);
+                } catch (PulsarAdminException.ConflictException conflictException) {
+                    // multi thread may cause concurrent creation
+                }
+            }
+            // pulsar still has the situation of getting 0 partitions, non-partitions topic.
             if (partNum == 0) {
                 allTopics.add(topic);
             } else {
                 for (int i = 0; i < partNum; i++) {
                     final TopicRange topicRange =
-                            new TopicRange(topic.getTopic() + PulsarOptions.PARTITION_SUFFIX + i, topic.getPulsarRange());
+                        new TopicRange(topic.getTopic() + PulsarOptions.PARTITION_SUFFIX + i, topic.getPulsarRange());
                     allTopics.add(topicRange);
                 }
             }

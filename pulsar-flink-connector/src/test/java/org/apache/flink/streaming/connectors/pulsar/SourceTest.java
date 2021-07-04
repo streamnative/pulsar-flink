@@ -85,7 +85,7 @@ public class SourceTest extends PulsarTestBaseWithFlink {
                 return see.addSource(pulsarSource)
                     .executeAndCollect(limit);
             } catch (Exception e) {
-                throw new RuntimeException(e);
+                throw new IllegalStateException(e);
             }
         });
         return future;

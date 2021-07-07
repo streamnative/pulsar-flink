@@ -45,7 +45,7 @@ public class SourceTest extends PulsarTestBaseWithFlink {
         String topic = newTopic();
         PulsarAdmin admin = getPulsarAdmin();
         admin.topics().createSubscription(topic, subscriptionName, MessageId.earliest);
-        final List<String> data = IntStream.range(0, 100).boxed().map(Objects::toString).collect(Collectors.toList());
+        final List<String> data = generateRange(0, 100);
         sendTypedMessages(topic, SchemaType.STRING, data, Optional.empty());
         List<String> expected = collectData(topic, data.size() - 1).get(50, TimeUnit.SECONDS);
         expected.sort(Comparator.comparingInt(Integer::valueOf));
@@ -57,17 +57,37 @@ public class SourceTest extends PulsarTestBaseWithFlink {
         String topic = newTopic();
         PulsarAdmin admin = getPulsarAdmin();
 
-        List<String> data = IntStream.range(100, 200).boxed().map(Objects::toString).collect(Collectors.toList());
+        List<String> data = generateRange(100, 200);
         sendTypedMessages(topic, SchemaType.STRING, data, Optional.empty());
         admin.topics().createSubscription(topic, subscriptionName, MessageId.latest);
 
         final CompletableFuture<List<String>> future = collectData(topic, data.size() - 1);
         Thread.sleep(5000);
-        data = IntStream.range(0, 100).boxed().map(Objects::toString).collect(Collectors.toList());
+        data = generateRange(0, 100);
         sendTypedMessages(topic, SchemaType.STRING, data, Optional.empty());
         List<String> expected = future.get(50, TimeUnit.SECONDS);
         expected.sort(Comparator.comparingInt(Integer::valueOf));
         Assert.assertEquals(expected, data.subList(0, data.size() - 1));
+    }
+
+    @Test
+    public void testStartFromSubscription3() throws Exception {
+        String topic = newTopic();
+        PulsarAdmin admin = getPulsarAdmin();
+
+        List<String> data = generateRange(0, 100);
+        sendTypedMessages(topic, SchemaType.STRING, data, Optional.empty());
+        admin.topics().createSubscription(topic, subscriptionName, MessageId.latest);
+        data = generateRange(100, 200);
+        sendTypedMessages(topic, SchemaType.STRING, data, Optional.empty());
+        List<String> expected = collectData(topic, data.size() - 1)
+                .get(50, TimeUnit.SECONDS);
+        expected.sort(Comparator.comparingInt(Integer::valueOf));
+        Assert.assertEquals(expected, data.subList(0, data.size() - 1));
+    }
+
+    private List<String> generateRange(int startInclusive, int endExclusive) {
+        return IntStream.range(startInclusive, endExclusive).boxed().map(Objects::toString).collect(Collectors.toList());
     }
 
     private CompletableFuture<List<String>> collectData(String topic, int limit) {

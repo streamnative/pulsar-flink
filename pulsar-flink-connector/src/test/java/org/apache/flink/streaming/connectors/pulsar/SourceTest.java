@@ -33,9 +33,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.FAIL_ON_DATA_LOSS_OPTION_KEY;
-import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.PULSAR_READER_OPTION_KEY_PREFIX;
-
 public class SourceTest extends PulsarTestBaseWithFlink {
 
     private String subscriptionName = "test";
@@ -47,9 +44,9 @@ public class SourceTest extends PulsarTestBaseWithFlink {
         admin.topics().createSubscription(topic, subscriptionName, MessageId.earliest);
         final List<String> data = generateRange(0, 100);
         sendTypedMessages(topic, SchemaType.STRING, data, Optional.empty());
-        List<String> expected = collectData(topic, data.size() - 1).get(50, TimeUnit.SECONDS);
-        expected.sort(Comparator.comparingInt(Integer::valueOf));
-        Assert.assertEquals(expected, data.subList(0, data.size() - 1));
+        List<String> actual = collectData(topic, data.size() - 1).get(50, TimeUnit.SECONDS);
+        actual.sort(Comparator.comparingInt(Integer::valueOf));
+        Assert.assertEquals(data.subList(0, data.size() - 1), actual);
     }
 
     @Test
@@ -60,14 +57,13 @@ public class SourceTest extends PulsarTestBaseWithFlink {
         List<String> data = generateRange(100, 200);
         sendTypedMessages(topic, SchemaType.STRING, data, Optional.empty());
         admin.topics().createSubscription(topic, subscriptionName, MessageId.latest);
-
+        admin.topics().resetCursor(topic, subscriptionName, admin.topics().getLastMessageId(topic), true);
         final CompletableFuture<List<String>> future = collectData(topic, data.size() - 1);
-        Thread.sleep(5000);
+        Thread.sleep(10000);
         data = generateRange(0, 100);
         sendTypedMessages(topic, SchemaType.STRING, data, Optional.empty());
-        List<String> expected = future.get(50, TimeUnit.SECONDS);
-        expected.sort(Comparator.comparingInt(Integer::valueOf));
-        Assert.assertEquals(expected, data.subList(0, data.size() - 1));
+        List<String> actual = future.get(50, TimeUnit.SECONDS);
+        Assert.assertEquals(data.subList(0, data.size() - 1), actual);
     }
 
     @Test
@@ -78,12 +74,12 @@ public class SourceTest extends PulsarTestBaseWithFlink {
         List<String> data = generateRange(0, 100);
         sendTypedMessages(topic, SchemaType.STRING, data, Optional.empty());
         admin.topics().createSubscription(topic, subscriptionName, MessageId.latest);
+        admin.topics().resetCursor(topic, subscriptionName, admin.topics().getLastMessageId(topic), true);
         data = generateRange(100, 200);
         sendTypedMessages(topic, SchemaType.STRING, data, Optional.empty());
-        List<String> expected = collectData(topic, data.size() - 1)
-                .get(50, TimeUnit.SECONDS);
-        expected.sort(Comparator.comparingInt(Integer::valueOf));
-        Assert.assertEquals(expected, data.subList(0, data.size() - 1));
+        List<String> actual = collectData(topic, data.size() - 1)
+            .get(50, TimeUnit.SECONDS);
+        Assert.assertEquals(data.subList(0, data.size() - 1), actual);
     }
 
     private List<String> generateRange(int startInclusive, int endExclusive) {
@@ -96,8 +92,6 @@ public class SourceTest extends PulsarTestBaseWithFlink {
         see.enableCheckpointing(1000);
         final Properties properties = new Properties();
         properties.setProperty("topic", topic);
-        properties.setProperty("pulsar.producer.blockIfQueueFull", "true");
-        properties.setProperty(PULSAR_READER_OPTION_KEY_PREFIX + FAIL_ON_DATA_LOSS_OPTION_KEY, "false");
         final FlinkPulsarSource<String> pulsarSource = new FlinkPulsarSource<>(serviceUrl, adminUrl, new SimpleStringSchema(), properties);
         pulsarSource.setStartFromSubscription(subscriptionName);
         final CompletableFuture<List<String>> future = CompletableFuture.supplyAsync(() -> {

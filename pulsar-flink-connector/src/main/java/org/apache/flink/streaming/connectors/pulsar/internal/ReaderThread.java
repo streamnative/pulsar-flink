@@ -14,6 +14,7 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
+import org.apache.flink.streaming.connectors.pulsar.util.MessageIdUtils;
 import org.apache.flink.streaming.util.serialization.PulsarDeserializationSchema;
 
 import lombok.extern.slf4j.Slf4j;
@@ -148,8 +149,10 @@ public class ReaderThread<T> extends Thread {
             final PulsarMetadataReader metaDataReader = this.owner.getMetaDataReader();
             MessageIdImpl lastMessageId = (MessageIdImpl) metaDataReader.getLastMessageId(topicRange.getTopic());
             MessageIdImpl startMsgIdImpl = (MessageIdImpl) startMessageId;
+            // Because the topic has processed all the messages,
+            // this will make the messageId to be read greater than the lastMessageId.
             // startMessageId is bigger than lastMessageId
-            if (startMsgIdImpl.compareTo(lastMessageId) > 0) {
+            if (MessageIdUtils.prev(startMsgIdImpl).compareTo(lastMessageId) > 0) {
                 if (failOnDataLoss) {
                     log.error("the start message id is beyond the last commit message id, with topic:{}", this.topicRange);
                     throw new RuntimeException("start message id beyond the last commit");

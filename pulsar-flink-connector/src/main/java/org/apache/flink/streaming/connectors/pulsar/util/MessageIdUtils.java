@@ -81,11 +81,7 @@ public class MessageIdUtils {
 
         @Override
         public MessageId next(BatchMessageIdImpl current) {
-            if (current.getBatchSize() < 0 || current.getBatchIndex() + 1 > current.getBatchSize()) {
-                return new BatchMessageIdImpl(current.getLedgerId(), current.getEntryId() + 1, current.getPartitionIndex(), -1);
-
-            }
-            return new BatchMessageIdImpl(current.getLedgerId(), current.getEntryId(), current.getPartitionIndex(), current.getPartitionIndex() + 1);
+            return new MessageIdImpl(current.getLedgerId(), current.getEntryId() + 1, current.getPartitionIndex());
         }
 
         @Override

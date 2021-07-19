@@ -13,15 +13,10 @@
 # limitations under the License.
 #
 
-set -e
+version=${1#v}
+if [[ "x$version" == "x" ]]; then
+  echo "You need to provide a version number for building pulsar-flink"
+  exit 1
+fi
 
-readonly PROJECT_DIR=$(
-  cd $(dirname "$0")
-  pwd
-)
-readonly TARGET_DIR=${PROJECT_DIR}/target
-readonly PROFILE=${1}
-
-cd ${PROJECT_DIR}
-
-mvn -B -ntp -q clean license:check install checkstyle:check spotbugs:check -P${PROFILE}
+mvn versions:set -DnewVersion=${version}

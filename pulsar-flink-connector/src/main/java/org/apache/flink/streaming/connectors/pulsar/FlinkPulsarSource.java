@@ -494,7 +494,6 @@ public class FlinkPulsarSource<T>
             ownedTopicStarts.putAll(allTopicOffsets.entrySet().stream()
                     .filter(e -> SourceSinkUtils.belongsTo(e.getKey(), numParallelTasks, taskIndex))
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
-
             if (ownedTopicStarts.isEmpty()) {
                 log.info("Source {} initially has no topics to read from.", taskIndex);
             } else {

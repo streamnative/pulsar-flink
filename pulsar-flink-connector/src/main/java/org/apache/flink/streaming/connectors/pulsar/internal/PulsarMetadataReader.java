@@ -245,7 +245,7 @@ public class PulsarMetadataReader implements AutoCloseable {
             TopicRange tp = entry.getKey();
             try {
                 log.info("Committing offset {} to topic {}", entry.getValue(), tp);
-                admin.topics().resetCursor(tp.getTopic(), subscriptionNameFrom(tp), entry.getValue());
+                admin.topics().resetCursor(tp.getTopic(), subscriptionNameFrom(tp), entry.getValue(), true);
                 log.info("Successfully committed offset {} to topic {}", entry.getValue(), tp);
             } catch (Throwable e) {
                 if (e instanceof PulsarAdminException &&

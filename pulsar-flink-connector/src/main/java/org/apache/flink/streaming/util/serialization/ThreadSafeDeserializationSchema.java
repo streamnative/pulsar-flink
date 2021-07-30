@@ -16,6 +16,7 @@ package org.apache.flink.streaming.util.serialization;
 
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.util.Collector;
 
 import java.io.IOException;
 
@@ -45,6 +46,11 @@ public class ThreadSafeDeserializationSchema<T> implements DeserializationSchema
     @Override
     public synchronized T deserialize(byte[] bytes) throws IOException {
         return deserializationSchema.deserialize(bytes);
+    }
+
+    @Override
+    public synchronized void deserialize(byte[] message, Collector<T> out) throws IOException {
+        deserializationSchema.deserialize(message, out);
     }
 
     @Override

@@ -1219,7 +1219,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
                         .max(Comparator.comparing(a -> a.readPosition))
                         .orElse(null);
                     if (cursor != null) {
-                        String[] le = cursor.readPosition.split(":");
+                        String[] le = cursor.markDeletePosition.split(":");
                         long ledgerId = Long.parseLong(le[0]);
                         long entryId = Long.parseLong(le[1]);
                         mid = new MessageIdImpl(ledgerId, entryId, index);

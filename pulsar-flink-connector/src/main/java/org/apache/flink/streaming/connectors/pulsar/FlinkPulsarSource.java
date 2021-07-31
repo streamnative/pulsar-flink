@@ -257,6 +257,9 @@ public class FlinkPulsarSource<T>
             throw new IllegalArgumentException("ServiceUrl must be supplied in the client configuration");
         }
         this.oldStateVersion = SourceSinkUtils.getOldStateVersion(caseInsensitiveParams, oldStateVersion);
+
+        // setup auth parameters based on ClientConfigurationData and Properties
+        PulsarClientUtils.setupAuthIfNeed(clientConfigurationData, properties);
     }
 
     public FlinkPulsarSource(

@@ -214,6 +214,9 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
         if (this.clientConfigurationData.getServiceUrl() == null) {
             throw new IllegalArgumentException("ServiceUrl must be supplied in the client configuration");
         }
+
+        // setup auth parameters based on ClientConfigurationData and Properties
+        PulsarClientUtils.setupAuthIfNeed(clientConfigurationData, properties);
     }
 
     public FlinkPulsarSinkBase(

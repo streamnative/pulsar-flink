@@ -16,7 +16,7 @@
 
 version=${1#v}
 if [[ "x$version" == "x" ]]; then
-  echo "You need to provide a version number for building sn-pulsar-plugins"
+  echo "You need to provide a version number for building pulsar-flink"
   exit 1
 fi
 

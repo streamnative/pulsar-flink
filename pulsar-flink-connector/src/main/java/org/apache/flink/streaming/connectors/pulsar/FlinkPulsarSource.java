@@ -63,6 +63,7 @@ import org.apache.flink.util.SerializedValue;
 import org.apache.flink.shaded.guava18.com.google.common.collect.Sets;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.pulsar.client.api.CryptoKeyReader;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
@@ -101,6 +102,76 @@ public class FlinkPulsarSource<T>
         implements ResultTypeQueryable<T>,
         CheckpointListener,
         CheckpointedFunction {
+
+    public static class Builder<T> {
+        private String adminUrl;
+        private Properties properties;
+        private String serviceUrl;
+        ClientConfigurationData clientConf;
+        PulsarDeserializationSchema<T> deserializer;
+        private CryptoKeyReader cryptoKeyReader;
+
+        public Builder<T> withAdminUrl(final String adminUrl) {
+            this.adminUrl = adminUrl;
+            return this;
+        }
+
+        public Builder<T> withProperties(final Properties properties) {
+            this.properties = properties;
+            return this;
+        }
+
+        public Builder<T> withServiceUrl(final String serviceUrl) {
+            this.serviceUrl = serviceUrl;
+            return this;
+        }
+
+        public Builder<T> withCryptoKeyReader(final CryptoKeyReader cryptoKeyReader) {
+            this.cryptoKeyReader = cryptoKeyReader;
+            return this;
+        }
+
+        public Builder<T> withClientConfigurationData(final ClientConfigurationData clientConf){
+            this.clientConf = clientConf;
+            return this;
+        }
+
+        public Builder<T> withPulsarDeserializionSchema(final PulsarDeserializationSchema<T> deserializer){
+            if (this.deserializer != null){
+                throw new IllegalStateException("Deserializer was already set.");
+            }
+            this.deserializer = deserializer;
+            return this;
+        }
+
+        public Builder<T> withDeserializionSchema(final DeserializationSchema<T> deserializer){
+            if (this.deserializer != null){
+                throw new IllegalStateException("Deserializer was already set.");
+            }
+            this.deserializer = PulsarDeserializationSchema.valueOnly(deserializer);
+            return this;
+        }
+
+        public FlinkPulsarSource<T> build(){
+            if (adminUrl == null){
+                throw new IllegalStateException("Admin URL must be set.");
+            }
+            if (properties == null){
+                throw new IllegalStateException("Properties must be set.");
+            }
+            if ((serviceUrl != null && clientConf != null)){
+                throw new IllegalStateException("Please specify either service URL plus properties or client conf but not both.");
+            }
+            if (serviceUrl != null){
+                clientConf = PulsarClientUtils.newClientConf(serviceUrl, properties);
+            }
+            if (clientConf == null){
+                throw new IllegalStateException("Client conf mustn't be null. Either provide a client conf or a service URL plus properties.");
+            }
+            return new FlinkPulsarSource<>(this);
+        }
+
+    }
 
     /** The maximum number of pending non-committed checkpoints to track, to avoid memory leaks. */
     public static final int MAX_NUM_PENDING_CHECKPOINTS = 100;
@@ -229,15 +300,14 @@ public class FlinkPulsarSource<T>
 
     private transient int numParallelTasks;
 
-    public FlinkPulsarSource(
-            String adminUrl,
-            ClientConfigurationData clientConf,
-            PulsarDeserializationSchema<T> deserializer,
-            Properties properties) {
-        this.adminUrl = checkNotNull(adminUrl);
-        this.clientConfigurationData = checkNotNull(clientConf);
-        this.deserializer = deserializer;
-        this.properties = properties;
+    private final CryptoKeyReader cryptoKeyReader;
+
+    public FlinkPulsarSource(final Builder<T> builder) {
+        this.adminUrl = checkNotNull(builder.adminUrl);
+        this.clientConfigurationData = checkNotNull(builder.clientConf);
+        this.deserializer = builder.deserializer;
+        this.properties = builder.properties;
+        this.cryptoKeyReader = builder.cryptoKeyReader;
         this.caseInsensitiveParams =
                 SourceSinkUtils.validateStreamSourceOptions(Maps.fromProperties(properties));
         this.readerConf =
@@ -257,6 +327,18 @@ public class FlinkPulsarSource<T>
             throw new IllegalArgumentException("ServiceUrl must be supplied in the client configuration");
         }
         this.oldStateVersion = SourceSinkUtils.getOldStateVersion(caseInsensitiveParams, oldStateVersion);
+    }
+
+    public FlinkPulsarSource(
+            String adminUrl,
+            ClientConfigurationData clientConf,
+            PulsarDeserializationSchema<T> deserializer,
+            Properties properties) {
+        this(new Builder<T>()
+            .withAdminUrl(adminUrl)
+            .withClientConfigurationData(clientConf)
+            .withPulsarDeserializionSchema(deserializer)
+            .withProperties(properties));
     }
 
     public FlinkPulsarSource(
@@ -595,27 +677,25 @@ public class FlinkPulsarSource<T>
         StreamingRuntimeContext streamingRuntime,
         boolean useMetrics,
         Set<TopicRange> excludeStartMessageIds) throws Exception {
-
-        //readerConf.putIfAbsent(PulsarOptions.SUBSCRIPTION_ROLE_OPTION_KEY, getSubscriptionName());
-
-        return new PulsarFetcher<>(
-                sourceContext,
-                seedTopicsWithInitialOffsets,
-                excludeStartMessageIds,
-                watermarkStrategy,
-                processingTimeProvider,
-                autoWatermarkInterval,
-                userCodeClassLoader,
-                streamingRuntime,
-                clientConfigurationData,
-                readerConf,
-                pollTimeoutMs,
-                commitMaxRetries,
-                deserializer,
-                metadataReader,
-                streamingRuntime.getMetricGroup().addGroup(PULSAR_SOURCE_METRICS_GROUP),
-                useMetrics
-        );
+        return new PulsarFetcher.Builder()
+            .withSourceContext(sourceContext)
+            .withSeedTopicsWithInitialOffsets(seedTopicsWithInitialOffsets)
+            .withExcludeStartMessageIds(excludeStartMessageIds)
+            .withWatermarkStrategy(watermarkStrategy)
+            .withProcessingTimeProvider(processingTimeProvider)
+            .withAutoWatermarkInterval(autoWatermarkInterval)
+            .withUserCodeClassLoader(userCodeClassLoader)
+            .withRuntimeContext(streamingRuntime)
+            .withClientConf(clientConfigurationData)
+            .withReaderConf(readerConf)
+            .withPollTimeoutMs(pollTimeoutMs)
+            .withCommitMaxRetries(commitMaxRetries)
+            .withDeserializer(deserializer)
+            .withMetadataReader(metadataReader)
+            .withConsumerMetricGroup(streamingRuntime.getMetricGroup().addGroup(PULSAR_SOURCE_METRICS_GROUP))
+            .withUseMetrics(useMetrics)
+            .withCryptoKeyReader(cryptoKeyReader)
+            .build();
     }
 
     public void joinDiscoveryLoopThread() throws InterruptedException {

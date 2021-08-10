@@ -14,67 +14,42 @@
 
 package org.apache.flink.formats.protobufnative;
 
+import org.apache.flink.api.common.serialization.DeserializationSchema;
+import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.table.data.RowData;
+import org.apache.flink.table.runtime.typeutils.InternalTypeInfo;
+import org.apache.flink.table.types.logical.RowType;
+import org.apache.flink.util.function.SerializableSupplier;
+
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.flink.api.common.serialization.DeserializationSchema;
-import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.streaming.connectors.pulsar.internal.PulsarClientUtils;
-import org.apache.flink.table.data.RowData;
-import org.apache.flink.table.types.logical.RowType;
-import org.apache.pulsar.client.admin.PulsarAdmin;
-import org.apache.pulsar.client.admin.PulsarAdminException;
-import org.apache.pulsar.client.api.PulsarClientException;
-import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
-import org.apache.pulsar.client.impl.schema.generic.GenericProtobufNativeSchema;
-import org.apache.pulsar.common.naming.TopicName;
-import org.apache.pulsar.common.schema.SchemaInfo;
 
 import java.io.IOException;
 
 @Slf4j
-public class PulsarProtobufNativeRowDataDeserializationSchema implements DeserializationSchema<RowData>{
+public class PulsarProtobufNativeRowDataDeserializationSchema implements DeserializationSchema<RowData> {
 
-    private String topic;
-    private String adminUrl;
-    private String serviceUrl;
+    private SerializableSupplier<Descriptors.Descriptor> loadDescriptor;
     private RowType rowType;
     private TypeInformation<RowData> rowDataTypeInfo;
 
     //TODO maybe add nested ProtobufRowDataDeserializationSchema structured by Descriptor?
     private transient Descriptors.Descriptor descriptor;
-    /** Runtime instance that performs the actual work. */
+    /**
+     * Runtime instance that performs the actual work.
+     */
     private transient PulsarProtobufToRowDataConverters.ProtobufToRowDataConverter runtimeConverter;
 
-    //TOOD add class-based-schema support?
-    public PulsarProtobufNativeRowDataDeserializationSchema(String topic, String adminUrl, String serviceUrl, RowType rowType, TypeInformation<RowData> rowDataTypeInfo) {
-        this.topic = topic;
-        this.adminUrl = adminUrl;
-        this.serviceUrl = serviceUrl;
-        this.rowDataTypeInfo = rowDataTypeInfo;
+    public PulsarProtobufNativeRowDataDeserializationSchema(SerializableSupplier<Descriptors.Descriptor> loadDescriptor, RowType rowType) {
+        this.loadDescriptor = loadDescriptor;
         this.rowType = rowType;
+        this.rowDataTypeInfo = InternalTypeInfo.of(rowType);
     }
 
     @Override
     public void open(InitializationContext context) throws Exception {
-        PulsarAdmin pulsarAdmin;
-        try {
-            ClientConfigurationData clientConf = new ClientConfigurationData();
-            clientConf.setServiceUrl(serviceUrl);
-            pulsarAdmin = PulsarClientUtils.newAdminFromConf(adminUrl, clientConf);
-        } catch (PulsarClientException e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
-        }
-
-        try {
-            //TODO add cache ?
-            SchemaInfo schemaInfo = pulsarAdmin.schemas().getSchemaInfo(TopicName.get(topic).toString());
-            this.descriptor = ((GenericProtobufNativeSchema) GenericProtobufNativeSchema.of(schemaInfo)).getProtobufNativeSchema();
-        } catch (PulsarAdminException e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
-        }
+        this.descriptor = loadDescriptor.get();
         this.runtimeConverter = PulsarProtobufToRowDataConverters.createRowConverter(rowType);
     }
 

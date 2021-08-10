@@ -14,12 +14,11 @@
 
 package org.apache.flink.formats.protobufnative;
 
-import lombok.extern.slf4j.Slf4j;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
-import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.ReadableConfig;
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarClientUtils;
 import org.apache.flink.table.connector.ChangelogMode;
 import org.apache.flink.table.connector.format.DecodingFormat;
 import org.apache.flink.table.connector.source.DynamicTableSource;
@@ -29,14 +28,28 @@ import org.apache.flink.table.factories.DynamicTableFactory;
 import org.apache.flink.table.factories.FactoryUtil;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.logical.RowType;
+import org.apache.flink.util.function.SerializableSupplier;
+
+import com.google.protobuf.Descriptors;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.pulsar.client.admin.PulsarAdmin;
+import org.apache.pulsar.client.admin.PulsarAdminException;
+import org.apache.pulsar.client.api.PulsarClientException;
+import org.apache.pulsar.client.impl.schema.generic.GenericProtobufNativeSchema;
+import org.apache.pulsar.common.naming.TopicName;
+import org.apache.pulsar.common.schema.SchemaInfo;
 
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Properties;
 import java.util.Set;
 
-import static org.apache.flink.formats.json.JsonOptions.validateDecodingFormatOptions;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.ADMIN_URL;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.SERVICE_URL;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.PROPERTIES;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.TOPIC;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.TOPIC_PATTERN;
 
 /**
  * Support {@link org.apache.pulsar.client.impl.schema.ProtobufNativeSchema} based pulsar schema SchemaRegistry.
@@ -49,23 +62,37 @@ public class PulsarProtobufNativeFormatFactory implements DeserializationFormatF
     @Override
     public DecodingFormat<DeserializationSchema<RowData>> createDecodingFormat(DynamicTableFactory.Context context, ReadableConfig formatOptions) {
         FactoryUtil.validateFactoryOptions(this, formatOptions);
-        validateDecodingFormatOptions(formatOptions);
-
         ReadableConfig tableConf = Configuration.fromMap(context.getCatalogTable().getOptions());
 
-        //TODO support multi topic ?
-        String topic = context.getCatalogTable().getOptions().get(TOPIC.key());
+        validateTopic(tableConf);
+        String topic = tableConf.get(TOPIC).get(0);
         String adminUrl = tableConf.get(ADMIN_URL);
-        String serviceUrl = tableConf.get(SERVICE_URL);
+        Optional<Map<String, String>> stringMap = tableConf.getOptional(PROPERTIES);
+        Properties properties = stringMap.map((map) -> {
+            final Properties prop = new Properties();
+            prop.putAll(map);
+            return prop;
+        }).orElse(new Properties());
+
+        SerializableSupplier<Descriptors.Descriptor> loadDescriptor = () -> {
+            SchemaInfo schemaInfo = null;
+            try {
+                PulsarAdmin admin = PulsarClientUtils.newAdminFromConf(adminUrl, properties);
+                schemaInfo = admin.schemas().getSchemaInfo(TopicName.get(topic).toString());
+            } catch (PulsarClientException e) {
+                throw new RuntimeException(e);
+            } catch (PulsarAdminException e) {
+                throw new RuntimeException(e);
+            }
+            return ((GenericProtobufNativeSchema) GenericProtobufNativeSchema.of(schemaInfo)).getProtobufNativeSchema();
+        };
 
         return new DecodingFormat<DeserializationSchema<RowData>>() {
             @Override
             public DeserializationSchema<RowData> createRuntimeDecoder(
-                    DynamicTableSource.Context context, DataType producedDataType) {
+                DynamicTableSource.Context context, DataType producedDataType) {
                 final RowType rowType = (RowType) producedDataType.getLogicalType();
-                final TypeInformation<RowData> rowDataTypeInfo =
-                        context.createTypeInformation(producedDataType);
-                return new PulsarProtobufNativeRowDataDeserializationSchema(topic, adminUrl, serviceUrl, rowType, rowDataTypeInfo);
+                return new PulsarProtobufNativeRowDataDeserializationSchema(loadDescriptor, rowType);
             }
 
             @Override
@@ -73,6 +100,16 @@ public class PulsarProtobufNativeFormatFactory implements DeserializationFormatF
                 return ChangelogMode.insertOnly();
             }
         };
+    }
+
+    private void validateTopic(ReadableConfig tableConf) {
+        final Optional<List<String>> topicOptional = tableConf.getOptional(TOPIC);
+        if (!topicOptional.isPresent() && tableConf.getOptional(TOPIC_PATTERN).isPresent()) {
+            throw new IllegalArgumentException(IDENTIFIER + "  format only support single topic, not support topic pattern.");
+        }
+        if (topicOptional.isPresent() && topicOptional.get().size() != 1) {
+            throw new IllegalArgumentException(IDENTIFIER + "  format only support single topic, not support multiple topics.");
+        }
     }
 
     @Override

@@ -14,9 +14,6 @@
 
 package org.apache.flink.formats.protobufnative;
 
-import com.google.protobuf.ByteString;
-import com.google.protobuf.DynamicMessage;
-import com.google.protobuf.EnumValue;
 import org.apache.flink.table.data.GenericArrayData;
 import org.apache.flink.table.data.GenericMapData;
 import org.apache.flink.table.data.GenericRowData;
@@ -27,12 +24,15 @@ import org.apache.flink.table.types.logical.MapType;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.table.types.logical.utils.LogicalTypeUtils;
 
+import com.google.protobuf.ByteString;
+import com.google.protobuf.DynamicMessage;
+import com.google.protobuf.EnumValue;
+
 import java.io.Serializable;
 import java.lang.reflect.Array;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 
 public class PulsarProtobufToRowDataConverters {
 
@@ -85,6 +85,7 @@ public class PulsarProtobufToRowDataConverters {
             case BOOLEAN: // boolean
             case INTEGER: // int
             case BIGINT: // long
+            case FLOAT:  // float
             case DOUBLE: // double
                 return object -> object;
             case CHAR:

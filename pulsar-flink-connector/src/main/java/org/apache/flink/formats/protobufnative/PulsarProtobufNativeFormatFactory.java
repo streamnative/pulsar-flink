@@ -19,6 +19,7 @@ import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarClientUtils;
+import org.apache.flink.table.catalog.ObjectIdentifier;
 import org.apache.flink.table.connector.ChangelogMode;
 import org.apache.flink.table.connector.format.DecodingFormat;
 import org.apache.flink.table.connector.source.DynamicTableSource;
@@ -28,6 +29,7 @@ import org.apache.flink.table.factories.DynamicTableFactory;
 import org.apache.flink.table.factories.FactoryUtil;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.logical.RowType;
+import org.apache.flink.util.StringUtils;
 import org.apache.flink.util.function.SerializableSupplier;
 
 import com.google.protobuf.Descriptors;
@@ -64,8 +66,7 @@ public class PulsarProtobufNativeFormatFactory implements DeserializationFormatF
         FactoryUtil.validateFactoryOptions(this, formatOptions);
         ReadableConfig tableConf = Configuration.fromMap(context.getCatalogTable().getOptions());
 
-        validateTopic(tableConf);
-        String topic = tableConf.get(TOPIC).get(0);
+        String topic = extractTopicName(context);
         String adminUrl = tableConf.get(ADMIN_URL);
         Optional<Map<String, String>> stringMap = tableConf.getOptional(PROPERTIES);
         Properties properties = stringMap.map((map) -> {
@@ -102,12 +103,24 @@ public class PulsarProtobufNativeFormatFactory implements DeserializationFormatF
         };
     }
 
+    private String extractTopicName(DynamicTableFactory.Context context) {
+        validateTopic(context.getConfiguration());
+        final List<String> topics = context.getConfiguration().getOptional(TOPIC).orElse(Collections.emptyList());
+        String topic = topics.isEmpty() ? null : topics.get(0);
+        // Maybe catalog mode
+        if (StringUtils.isNullOrWhitespaceOnly(topic)) {
+            final ObjectIdentifier table = context.getObjectIdentifier();
+            topic = TopicName.get(table.getDatabaseName() + "/" + table.getObjectName()).toString();
+        }
+        return topic;
+    }
+
     private void validateTopic(ReadableConfig tableConf) {
         final Optional<List<String>> topicOptional = tableConf.getOptional(TOPIC);
         if (!topicOptional.isPresent() && tableConf.getOptional(TOPIC_PATTERN).isPresent()) {
             throw new IllegalArgumentException(IDENTIFIER + "  format only support single topic, not support topic pattern.");
         }
-        if (topicOptional.isPresent() && topicOptional.get().size() != 1) {
+        if (topicOptional.isPresent() && topicOptional.get().size() > 1) {
             throw new IllegalArgumentException(IDENTIFIER + "  format only support single topic, not support multiple topics.");
         }
     }

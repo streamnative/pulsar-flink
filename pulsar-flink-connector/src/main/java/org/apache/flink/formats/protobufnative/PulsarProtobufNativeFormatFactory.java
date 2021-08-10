@@ -35,14 +35,11 @@ import org.apache.flink.util.function.SerializableSupplier;
 import com.google.protobuf.Descriptors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdmin;
-import org.apache.pulsar.client.admin.PulsarAdminException;
-import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.schema.generic.GenericProtobufNativeSchema;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.schema.SchemaInfo;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
@@ -80,9 +77,7 @@ public class PulsarProtobufNativeFormatFactory implements DeserializationFormatF
             try {
                 PulsarAdmin admin = PulsarClientUtils.newAdminFromConf(adminUrl, properties);
                 schemaInfo = admin.schemas().getSchemaInfo(TopicName.get(topic).toString());
-            } catch (PulsarClientException e) {
-                throw new RuntimeException(e);
-            } catch (PulsarAdminException e) {
+            } catch (Exception e) {
                 throw new RuntimeException(e);
             }
             return ((GenericProtobufNativeSchema) GenericProtobufNativeSchema.of(schemaInfo)).getProtobufNativeSchema();
@@ -104,9 +99,9 @@ public class PulsarProtobufNativeFormatFactory implements DeserializationFormatF
     }
 
     private String extractTopicName(DynamicTableFactory.Context context) {
-        validateTopic(context.getConfiguration());
-        final List<String> topics = context.getConfiguration().getOptional(TOPIC).orElse(Collections.emptyList());
-        String topic = topics.isEmpty() ? null : topics.get(0);
+
+        validateTopic(context.getCatalogTable().getOptions());
+        String topic = context.getCatalogTable().getOptions().get(TOPIC.key());
         // Maybe catalog mode
         if (StringUtils.isNullOrWhitespaceOnly(topic)) {
             final ObjectIdentifier table = context.getObjectIdentifier();
@@ -115,12 +110,12 @@ public class PulsarProtobufNativeFormatFactory implements DeserializationFormatF
         return topic;
     }
 
-    private void validateTopic(ReadableConfig tableConf) {
-        final Optional<List<String>> topicOptional = tableConf.getOptional(TOPIC);
-        if (!topicOptional.isPresent() && tableConf.getOptional(TOPIC_PATTERN).isPresent()) {
+    private void validateTopic(Map<String, String> tableConf) {
+        final String topic = tableConf.get(TOPIC.key());
+        if (!StringUtils.isNullOrWhitespaceOnly(topic) && tableConf.get(TOPIC_PATTERN.key()) != null) {
             throw new IllegalArgumentException(IDENTIFIER + "  format only support single topic, not support topic pattern.");
         }
-        if (topicOptional.isPresent() && topicOptional.get().size() > 1) {
+        if (topic.contains(",")) {
             throw new IllegalArgumentException(IDENTIFIER + "  format only support single topic, not support multiple topics.");
         }
     }

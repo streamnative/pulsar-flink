@@ -36,6 +36,10 @@ public class PulsarClientUtils {
             .build();
 	}
 
+    public static PulsarAdmin newAdminFromConf(String adminUrl, Properties properties) throws PulsarClientException {
+        return newAdminFromConf(adminUrl, newClientConf(adminUrl, properties));
+    }
+
 	private static Authentication getAuth(ClientConfigurationData conf) throws PulsarClientException {
 		if (!StringUtils.isBlank(conf.getAuthPluginClassName()) && !StringUtils.isBlank(conf.getAuthParams())) {
 			return AuthenticationFactory.create(conf.getAuthPluginClassName(), conf.getAuthParams());

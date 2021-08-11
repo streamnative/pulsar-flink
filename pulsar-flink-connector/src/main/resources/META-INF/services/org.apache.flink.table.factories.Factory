@@ -15,3 +15,4 @@
 org.apache.flink.streaming.connectors.pulsar.table.PulsarDynamicTableFactory
 org.apache.flink.streaming.connectors.pulsar.table.UpsertPulsarDynamicTableFactory
 org.apache.flink.formats.atomic.AtomicRowDataFormatFactory
+org.apache.flink.formats.protobufnative.PulsarProtobufNativeFormatFactory

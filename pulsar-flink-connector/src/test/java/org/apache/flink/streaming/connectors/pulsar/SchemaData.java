@@ -14,13 +14,17 @@
 
 package org.apache.flink.streaming.connectors.pulsar;
 
+import com.google.protobuf.Descriptors;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.apache.pulsar.client.impl.schema.ProtobufNativeSchemaUtils;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -48,6 +52,8 @@ public class SchemaData {
     public static List<Foo> fooList;
     public static List<FL> flList;
     public static List<FM> fmList;
+    public static byte[] protobufData;
+    public static Descriptors.Descriptor descriptor;
 
     static {
         localDateList = INTEGER_LIST.stream()
@@ -83,6 +89,9 @@ public class SchemaData {
                 new FM(Collections.singletonMap("b", new Bar(false, "b"))),
                 new FM(Collections.singletonMap("c", new Bar(true, "a")))
         );
+        String schema =  "{\"fileDescriptorSet\":\"CpUDChJzaW1wbGVfdGVzdDEucHJvdG8SK29yZy5hcGFjaGUuZmxpbmsuZm9ybWF0cy5wcm90b2J1Zi50ZXN0cHJvdG8ioAIKC1NpbXBsZVRlc3QxEg0KAWEYASABKAU6AjEwEg4KAWIYAiABKAM6AzEwMBIJCgFjGAMgASgIEgkKAWQYBCABKAISCQoBZRgFIAEoARIMCgFmGAYgASgJOgFmEgkKAWcYByABKAwSSgoBaBgIIAEoDjI/Lm9yZy5hcGFjaGUuZmxpbmsuZm9ybWF0cy5wcm90b2J1Zi50ZXN0cHJvdG8uU2ltcGxlVGVzdDEuQ29ycHVzEhAKCGZfYWJjXzdkGAkgASgFIloKBkNvcnB1cxINCglVTklWRVJTQUwQABIHCgNXRUIQARIKCgZJTUFHRVMQAhIJCgVMT0NBTBADEggKBE5FV1MQBBIMCghQUk9EVUNUUxAFEgkKBVZJREVPEAdCLworb3JnLmFwYWNoZS5mbGluay5mb3JtYXRzLnByb3RvYnVmLnRlc3Rwcm90b1AB\",\"rootMessageTypeName\":\"org.apache.flink.formats.protobuf.testproto.SimpleTest1\",\"rootFileDescriptorName\":\"simple_test1.proto\"}";
+        descriptor = ProtobufNativeSchemaUtils.deserialize(schema.getBytes(StandardCharsets.UTF_8));
+        protobufData = Base64.getDecoder().decode("CAEQAhgAJc3MzD0pexSuR+F6hD8yBGhhaGE6AQFAAkgB");
     }
 
 

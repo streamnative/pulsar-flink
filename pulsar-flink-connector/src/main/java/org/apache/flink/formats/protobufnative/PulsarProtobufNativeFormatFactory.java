@@ -19,6 +19,7 @@ import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarClientUtils;
+import org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions;
 import org.apache.flink.table.catalog.ObjectIdentifier;
 import org.apache.flink.table.connector.ChangelogMode;
 import org.apache.flink.table.connector.format.DecodingFormat;
@@ -41,12 +42,10 @@ import org.apache.pulsar.common.schema.SchemaInfo;
 
 import java.util.Collections;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.ADMIN_URL;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.PROPERTIES;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.TOPIC;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.TOPIC_PATTERN;
 
@@ -65,12 +64,7 @@ public class PulsarProtobufNativeFormatFactory implements DeserializationFormatF
 
         String topic = extractTopicName(context);
         String adminUrl = tableConf.get(ADMIN_URL);
-        Optional<Map<String, String>> stringMap = tableConf.getOptional(PROPERTIES);
-        Properties properties = stringMap.map((map) -> {
-            final Properties prop = new Properties();
-            prop.putAll(map);
-            return prop;
-        }).orElse(new Properties());
+        Properties properties = PulsarTableOptions.getPulsarProperties(context.getCatalogTable().getOptions());
 
         SerializableSupplier<Descriptors.Descriptor> loadDescriptor = () -> {
             SchemaInfo schemaInfo = null;

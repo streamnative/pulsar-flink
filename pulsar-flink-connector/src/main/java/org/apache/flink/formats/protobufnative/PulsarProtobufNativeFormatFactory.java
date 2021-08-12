@@ -115,7 +115,7 @@ public class PulsarProtobufNativeFormatFactory implements DeserializationFormatF
         if (!StringUtils.isNullOrWhitespaceOnly(topic) && tableConf.get(TOPIC_PATTERN.key()) != null) {
             throw new IllegalArgumentException(IDENTIFIER + "  format only support single topic, not support topic pattern.");
         }
-        if (topic.contains(",")) {
+        if (null != topic && topic.contains(",")) {
             throw new IllegalArgumentException(IDENTIFIER + "  format only support single topic, not support multiple topics.");
         }
     }

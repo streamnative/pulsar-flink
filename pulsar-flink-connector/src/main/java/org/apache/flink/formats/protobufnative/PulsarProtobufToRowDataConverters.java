@@ -25,11 +25,13 @@ import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.table.types.logical.utils.LogicalTypeUtils;
 
 import com.google.protobuf.ByteString;
+import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.EnumValue;
 
 import java.io.Serializable;
 import java.lang.reflect.Array;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -136,17 +138,36 @@ public class PulsarProtobufToRowDataConverters {
     private static PulsarProtobufToRowDataConverters.ProtobufToRowDataConverter createMapConverter(MapType type) {
 
         final PulsarProtobufToRowDataConverters.ProtobufToRowDataConverter keyConverter =
-                createConverter(type.getKeyType());
+                createNullableConverter(type.getKeyType());
         final PulsarProtobufToRowDataConverters.ProtobufToRowDataConverter valueConverter =
                 createNullableConverter(type.getValueType());
 
         return object -> {
-            final Map<?, ?> map = (Map<?, ?>) object;
             Map<Object, Object> result = new HashMap<>();
-            for (Map.Entry<?, ?> entry : map.entrySet()) {
-                Object key = keyConverter.convert(entry.getKey());
-                Object value = valueConverter.convert(entry.getValue());
-                result.put(key, value);
+            if (object instanceof Collection) {
+                final Collection<DynamicMessage> messages = (Collection<DynamicMessage>) object;
+                for (DynamicMessage message : messages) {
+                    final Map<Descriptors.FieldDescriptor, Object> allFields = message.getAllFields();
+                    Object key = null;
+                    Object value = null;
+                    for (Map.Entry<Descriptors.FieldDescriptor, Object> objectEntry : allFields.entrySet()) {
+                        final Descriptors.FieldDescriptor fieldDescriptor = objectEntry.getKey();
+                        if ("key".equals(fieldDescriptor.getJsonName())) {
+                            key = keyConverter.convert(objectEntry.getValue());
+                        }
+                        if ("value".equals(fieldDescriptor.getJsonName())) {
+                            value = valueConverter.convert(objectEntry.getValue());
+                        }
+                    }
+                    result.put(key, value);
+                }
+            } else {
+                final Map<?, ?> map = (Map<?, ?>) object;
+                for (Map.Entry<?, ?> entry : map.entrySet()) {
+                    Object key = keyConverter.convert(entry.getKey());
+                    Object value = valueConverter.convert(entry.getValue());
+                    result.put(key, value);
+                }
             }
             return new GenericMapData(result);
         };

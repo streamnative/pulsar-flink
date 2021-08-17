@@ -30,11 +30,15 @@ import com.google.protobuf.EnumValue;
 
 import java.io.Serializable;
 import java.lang.reflect.Array;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class PulsarProtobufToRowDataConverters {
+
+    protected static final String PROTOBUF_MAP_KEY_NAME = "key";
+    protected static final String PROTOBUF_MAP_VALUE_NAME = "value";
 
     /**
      * Runtime converter that converts protobuf data structures into objects of Flink Table & SQL
@@ -136,16 +140,20 @@ public class PulsarProtobufToRowDataConverters {
     private static PulsarProtobufToRowDataConverters.ProtobufToRowDataConverter createMapConverter(MapType type) {
 
         final PulsarProtobufToRowDataConverters.ProtobufToRowDataConverter keyConverter =
-                createConverter(type.getKeyType());
+                createNullableConverter(type.getKeyType());
         final PulsarProtobufToRowDataConverters.ProtobufToRowDataConverter valueConverter =
                 createNullableConverter(type.getValueType());
 
         return object -> {
-            final Map<?, ?> map = (Map<?, ?>) object;
             Map<Object, Object> result = new HashMap<>();
-            for (Map.Entry<?, ?> entry : map.entrySet()) {
-                Object key = keyConverter.convert(entry.getKey());
-                Object value = valueConverter.convert(entry.getValue());
+            final Collection<DynamicMessage> messages = (Collection<DynamicMessage>) object;
+            for (DynamicMessage message : messages) {
+                Object key = keyConverter.convert(
+                        message.getField(message.getDescriptorForType().findFieldByName(PROTOBUF_MAP_KEY_NAME))
+                );
+                Object value = valueConverter.convert(
+                        message.getField(message.getDescriptorForType().findFieldByName(PROTOBUF_MAP_VALUE_NAME))
+                );
                 result.put(key, value);
             }
             return new GenericMapData(result);

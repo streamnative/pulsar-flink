@@ -336,7 +336,7 @@ public class SimpleSchemaTranslator extends SchemaTranslator {
         }
     }
 
-    private static DataType proto2SqlType(Descriptors.Descriptor descriptor) throws
+    public static DataType proto2SqlType(Descriptors.Descriptor descriptor) throws
             IncompatibleSchemaException {
         List<DataTypes.Field> fields = new ArrayList<>();
         List<Descriptors.FieldDescriptor> protoFields = descriptor.getFields();

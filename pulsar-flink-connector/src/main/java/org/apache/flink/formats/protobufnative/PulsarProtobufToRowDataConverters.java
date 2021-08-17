@@ -25,7 +25,6 @@ import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.table.types.logical.utils.LogicalTypeUtils;
 
 import com.google.protobuf.ByteString;
-import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import com.google.protobuf.EnumValue;
 
@@ -37,6 +36,9 @@ import java.util.List;
 import java.util.Map;
 
 public class PulsarProtobufToRowDataConverters {
+
+    protected static final String PROTOBUF_MAP_KEY_NAME = "key";
+    protected static final String PROTOBUF_MAP_VALUE_NAME = "value";
 
     /**
      * Runtime converter that converts protobuf data structures into objects of Flink Table & SQL
@@ -144,30 +146,15 @@ public class PulsarProtobufToRowDataConverters {
 
         return object -> {
             Map<Object, Object> result = new HashMap<>();
-            if (object instanceof Collection) {
-                final Collection<DynamicMessage> messages = (Collection<DynamicMessage>) object;
-                for (DynamicMessage message : messages) {
-                    final Map<Descriptors.FieldDescriptor, Object> allFields = message.getAllFields();
-                    Object key = null;
-                    Object value = null;
-                    for (Map.Entry<Descriptors.FieldDescriptor, Object> objectEntry : allFields.entrySet()) {
-                        final Descriptors.FieldDescriptor fieldDescriptor = objectEntry.getKey();
-                        if ("key".equals(fieldDescriptor.getJsonName())) {
-                            key = keyConverter.convert(objectEntry.getValue());
-                        }
-                        if ("value".equals(fieldDescriptor.getJsonName())) {
-                            value = valueConverter.convert(objectEntry.getValue());
-                        }
-                    }
-                    result.put(key, value);
-                }
-            } else {
-                final Map<?, ?> map = (Map<?, ?>) object;
-                for (Map.Entry<?, ?> entry : map.entrySet()) {
-                    Object key = keyConverter.convert(entry.getKey());
-                    Object value = valueConverter.convert(entry.getValue());
-                    result.put(key, value);
-                }
+            final Collection<DynamicMessage> messages = (Collection<DynamicMessage>) object;
+            for (DynamicMessage message : messages) {
+                Object key = keyConverter.convert(
+                        message.getField(message.getDescriptorForType().findFieldByName(PROTOBUF_MAP_KEY_NAME))
+                );
+                Object value = valueConverter.convert(
+                        message.getField(message.getDescriptorForType().findFieldByName(PROTOBUF_MAP_VALUE_NAME))
+                );
+                result.put(key, value);
             }
             return new GenericMapData(result);
         };

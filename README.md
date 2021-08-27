@@ -8,7 +8,7 @@ For details about the Chinese document, see [here](doc/README_CN.md).
 
 - Java 8 or higher version
 - Flink 1.9.0 or higher version
-- Pulsar 2.5.0 or higher version
+- Pulsar 2.7.0 or higher version
 
 # Basic information
 
@@ -30,9 +30,9 @@ We change our project [version definition](doc/connector-version-definition.md),
 
 ## Version definitions
 
-Since we have deploy the jar to maven central, you can use this connector by using maven, gradle and sbt, etc. We have two types of connector, the `pulsar-flink-connector_2.11` for scala 2.11 environment, and the `pulsar-flink-connector_2.12` for scala 2.12. This naming style is the same as flink. The version of this project is in a four-part form, the first three part is the relying flink version, and the last part is the patching version for connector.
+Since the JAR package to Maven central, you can use this connector by using Maven, Gradle, or sbt. There are two types of connector, the `pulsar-flink-connector_2.11` for Scala 2.11, and the `pulsar-flink-connector_2.12` for Scala 2.12. This naming style is the same as Flink. The version of this project is in a four-part form, the first three part is the relying Flink version, and the last part is the patching version for connector.
 
-This version definition is simple for user to choose right connector but totally different as before. We don't shade the `pulsar-client-all` to the distro, instead, we just use the maven dependency. You can override the dependent `pulsar-client-all` as long as its version is above the supporting matrix.
+This version definition is simple for users to choose right connector. We do not shade the `pulsar-client-all` to the Distro. Instead, we just use the Maven dependency. You can override the dependent `pulsar-client-all` as long as its version is higher than the one listed in the supporting matrix.
 
 ## Maven projects
 

@@ -14,8 +14,11 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
+import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.formats.atomic.AtomicRowDataFormatFactory;
+import org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.catalog.CatalogBaseTable;
 import org.apache.flink.table.catalog.CatalogTable;
@@ -25,6 +28,7 @@ import org.apache.flink.table.catalog.exceptions.CatalogException;
 import org.apache.flink.table.descriptors.DescriptorProperties;
 import org.apache.flink.table.descriptors.Schema;
 import org.apache.flink.table.types.DataType;
+import org.apache.flink.table.types.utils.DataTypeUtils;
 
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.PulsarClientException;
@@ -72,6 +76,13 @@ public class PulsarCatalogSupport {
         this.schemaTranslator = schemaTranslator;
     }
 
+    @VisibleForTesting
+    protected PulsarCatalogSupport(PulsarMetadataReader metadataReader,
+                                SchemaTranslator schemaTranslator) {
+        this.pulsarMetadataReader = metadataReader;
+        this.schemaTranslator = schemaTranslator;
+    }
+
     public List<String> listNamespaces() throws PulsarAdminException {
         return pulsarMetadataReader.listNamespaces();
     }
@@ -89,11 +100,11 @@ public class PulsarCatalogSupport {
     }
 
     public CatalogTable getTableSchema(ObjectPath tablePath,
-                                           Map<String, String> properties)
+                                       Configuration configuration)
         throws PulsarAdminException, IncompatibleSchemaException {
         String topicName = objectPath2TopicName(tablePath);
         final SchemaInfo pulsarSchema = pulsarMetadataReader.getPulsarSchema(topicName);
-        return schemaToCatalogTable(pulsarSchema, tablePath, properties);
+        return schemaToCatalogTable(pulsarSchema, tablePath, configuration);
     }
 
     public boolean topicExists(ObjectPath tablePath) throws PulsarAdminException {
@@ -108,11 +119,12 @@ public class PulsarCatalogSupport {
         pulsarMetadataReader.createTopic(topicName, defaultNumPartitions);
     }
 
-    public void putSchema(ObjectPath tablePath, CatalogBaseTable table, String format)
+    public void putSchema(ObjectPath tablePath, CatalogBaseTable table, Configuration configuration)
         throws PulsarAdminException, IncompatibleSchemaException {
         String topicName = objectPath2TopicName(tablePath);
         final TableSchema schema = table.getSchema();
-        final SchemaInfo schemaInfo = tableSchemaToPulsarSchema(format, schema, table.getOptions());
+        String format = configuration.get(PulsarTableOptions.VALUE_FORMAT);
+        final SchemaInfo schemaInfo = tableSchemaToPulsarSchema(format, schema, configuration);
 
         // Writing schemaInfo#properties causes the client to fail to consume it when it is a Pulsar native type.
         if (!StringUtils.equals(format, AtomicRowDataFormatFactory.IDENTIFIER)) {
@@ -158,15 +170,18 @@ public class PulsarCatalogSupport {
     }
 
     private SchemaInfo tableSchemaToPulsarSchema(String format, TableSchema schema,
-                                                 Map<String, String> options) throws IncompatibleSchemaException {
+                                                 Configuration configuration) throws IncompatibleSchemaException {
         // The exclusion logic for the key is not handled correctly here when the user sets the key-related fields using pulsar
         final DataType physicalRowDataType = schema.toPhysicalRowDataType();
-        return SchemaUtils.tableSchemaToSchemaInfo(format, physicalRowDataType, options);
+        final int[] valueProjection =
+                PulsarTableOptions.createValueFormatProjection(configuration, physicalRowDataType);
+        DataType physicalValueDataType = DataTypeUtils.projectRow(physicalRowDataType, valueProjection);
+        return SchemaUtils.tableSchemaToSchemaInfo(format, physicalValueDataType, configuration);
     }
 
     private CatalogTable schemaToCatalogTable(SchemaInfo pulsarSchema,
-                                                  ObjectPath tablePath,
-                                                  Map<String, String> flinkProperties)
+                                              ObjectPath tablePath,
+                                              Configuration configuration)
         throws IncompatibleSchemaException {
         boolean isCatalogTopic = Boolean.parseBoolean(pulsarSchema.getProperties().get(IS_CATALOG_TOPIC));
         if (isCatalogTopic) {
@@ -180,7 +195,7 @@ public class PulsarCatalogSupport {
             List<String> partitionKeys = tableSchemaProps.getPartitionKeys();
             // remove the schema from properties
             properties = CatalogTableImpl.removeRedundant(properties, tableSchema, partitionKeys);
-            properties.putAll(flinkProperties);
+            properties.putAll(configuration.toMap());
             properties.remove(IS_CATALOG_TOPIC);
             String comment = properties.remove(PulsarCatalogSupport.COMMENT);
             return CatalogTable.of(
@@ -195,7 +210,7 @@ public class PulsarCatalogSupport {
                     tableSchema.toSchema(),
                     "",
                     Collections.emptyList(),
-                    flinkProperties
+                    configuration.toMap()
             );
         }
     }

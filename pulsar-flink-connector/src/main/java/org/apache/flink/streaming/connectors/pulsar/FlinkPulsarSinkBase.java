@@ -273,13 +273,14 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
             topic2Producer = new HashMap<>();
         }
        //super.open(parameters);
-
-        try {
-            ObjectMapper m = new ObjectMapper();
-            ObjectWriter w = m.writerWithDefaultPrettyPrinter();
-            log.info("Pulsar sink config: {}", w.writeValueAsString(properties));
-        } catch (IOException e) {
-            log.error("Failed to dump sink config info", e);
+        if (log.isInfoEnabled()) {
+            try {
+                ObjectMapper m = new ObjectMapper();
+                ObjectWriter w = m.writerWithDefaultPrettyPrinter();
+                log.info("Pulsar sink config: {}", w.writeValueAsString(properties));
+            } catch (IOException e) {
+                log.error("Failed to dump sink config info", e);
+            }
         }
     }
 

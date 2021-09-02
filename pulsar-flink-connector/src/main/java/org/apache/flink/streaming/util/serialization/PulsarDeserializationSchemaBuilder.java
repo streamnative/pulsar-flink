@@ -31,8 +31,8 @@ import java.io.Serializable;
  */
 @Deprecated
 public class PulsarDeserializationSchemaBuilder<V> implements Serializable {
-
     private static final long serialVersionUID = 697009857078533653L;
+
     private DeserializationSchema<V> valueDeserializer;
 
     private DataType dataType;

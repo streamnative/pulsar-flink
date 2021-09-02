@@ -28,9 +28,9 @@ import java.io.IOException;
  * MessageId Serializer for flink state.
  */
 public class MessageIdSerializer extends TypeSerializer<MessageId> {
+    private static final long serialVersionUID = 3244135548110720111L;
 
     public static final MessageIdSerializer INSTANCE = new MessageIdSerializer();
-    private static final long serialVersionUID = 3244135548110720111L;
 
     @Override
     public boolean isImmutableType() {

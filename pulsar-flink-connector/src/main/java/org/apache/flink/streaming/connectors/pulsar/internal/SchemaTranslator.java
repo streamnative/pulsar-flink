@@ -39,7 +39,6 @@ import java.io.Serializable;
  * schema translator.
  */
 public abstract class SchemaTranslator implements Serializable {
-
     private static final long serialVersionUID = 4491277247723885491L;
 
     public abstract SchemaInfo tableSchemaToPulsarSchema(TableSchema schema) throws IncompatibleSchemaException;

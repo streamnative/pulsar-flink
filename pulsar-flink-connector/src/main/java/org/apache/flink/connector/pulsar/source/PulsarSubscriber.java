@@ -40,8 +40,8 @@ import java.util.Set;
 @PublicEvolving
 public abstract class PulsarSubscriber implements Serializable {
     private static final long serialVersionUID = 8927776146926596795L;
-    protected SplitEnumeratorContext<PulsarPartitionSplit> context;
 
+    protected SplitEnumeratorContext<PulsarPartitionSplit> context;
     public void setContext(SplitEnumeratorContext<PulsarPartitionSplit> context) {
         this.context = context;
     }

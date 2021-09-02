@@ -54,18 +54,19 @@ public class PulsarClientUtils {
 	}
 
 	public static void setupAuthIfNeed(ClientConfigurationData conf, Properties properties) {
-	    if (!StringUtils.isBlank(conf.getAuthPluginClassName()) && !StringUtils.isBlank(conf.getAuthParams())) {
+	    if (!StringUtils.isBlank(conf.getAuthPluginClassName())
+                && (!StringUtils.isBlank(conf.getAuthParams()) || conf.getAuthParamMap() != null)) {
 	        // User has set up auth with ClientConfigurationData, which has the highest priority.
-        } else {
-	        if (properties != null &&
-                !StringUtils.isBlank(properties.getProperty(PulsarOptions.AUTH_PLUGIN_CLASSNAME_KEY)) &&
-                !StringUtils.isBlank(properties.getProperty(PulsarOptions.AUTH_PARAMS_KEY))) {
+	    } else {
+	        if (properties != null
+                    && !StringUtils.isBlank(properties.getProperty(PulsarOptions.AUTH_PLUGIN_CLASSNAME_KEY))
+                    && !StringUtils.isBlank(properties.getProperty(PulsarOptions.AUTH_PARAMS_KEY))) {
 	            // User only set up auth with Properties. Copy the properties to ClientConfigurationData.
                 conf.setAuthParams(properties.getProperty(PulsarOptions.AUTH_PARAMS_KEY));
                 conf.setAuthPluginClassName(properties.getProperty(PulsarOptions.AUTH_PLUGIN_CLASSNAME_KEY));
-            } else {
+	        } else {
 	            // User does not enable authentication.
-            }
-        }
-    }
+	        }
+	    }
+	}
 }

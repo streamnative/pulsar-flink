@@ -15,6 +15,7 @@
 package org.apache.flink.table.catalog.pulsar.factories;
 
 import org.apache.flink.configuration.ConfigOption;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.table.catalog.Catalog;
 import org.apache.flink.table.catalog.pulsar.PulsarCatalog;
 import org.apache.flink.table.factories.CatalogFactory;
@@ -28,6 +29,7 @@ import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOpti
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.KEY_FIELDS_PREFIX;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.KEY_FORMAT;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.PROPERTIES;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.PROPERTIES_PREFIX;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.SCAN_STARTUP_MODE;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.SERVICE_URL;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.SINK_SEMANTIC;
@@ -53,11 +55,11 @@ public class PulsarCatalogFactory implements CatalogFactory {
     public Catalog createCatalog(Context context) {
         final FactoryUtil.CatalogFactoryHelper helper =
                 FactoryUtil.createCatalogFactoryHelper(this, context);
-        helper.validate();
+        helper.validateExcept(PROPERTIES_PREFIX);
         return new PulsarCatalog(
                 helper.getOptions().get(ADMIN_URL),
                 context.getName(),
-                context.getOptions(),
+                (Configuration) helper.getOptions(),
                 helper.getOptions().get(DEFAULT_DATABASE));
     }
 

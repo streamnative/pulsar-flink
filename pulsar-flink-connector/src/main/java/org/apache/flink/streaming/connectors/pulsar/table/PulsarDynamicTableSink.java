@@ -209,7 +209,7 @@ public class PulsarDynamicTableSink implements DynamicTableSink, SupportsWriting
                 hasMetadata,
                 metadataPositions,
                 upsertMode,
-                physicalDataType,
+                DataTypeUtils.projectRow(physicalDataType, valueProjection),
                 formatType,
                 delayMilliseconds);
     }

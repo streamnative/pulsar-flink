@@ -14,6 +14,7 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.formats.avro.typeutils.AvroSchemaConverter;
 import org.apache.flink.formats.protobuf.PbFormatOptions;
 import org.apache.flink.streaming.connectors.pulsar.config.RecordSchemaType;
@@ -40,7 +41,6 @@ import org.apache.pulsar.shade.org.apache.commons.lang3.StringUtils;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Map;
 
 import static org.apache.avro.Schema.Type.RECORD;
 import static org.apache.pulsar.shade.com.google.common.base.Preconditions.checkNotNull;
@@ -217,7 +217,7 @@ public class SchemaUtils {
     }
 
     public static SchemaInfo tableSchemaToSchemaInfo(String format, DataType dataType,
-                                                     Map<String, String> options)
+                                                     Configuration configuration)
             throws IncompatibleSchemaException {
         switch (StringUtils.lowerCase(format)) {
             case "json":
@@ -225,7 +225,7 @@ public class SchemaUtils {
             case "avro":
                 return getSchemaInfo(SchemaType.AVRO, dataType);
             case "protobuf":
-                final String messageClassName = options.get(PbFormatOptions.MESSAGE_CLASS_NAME.key());
+                final String messageClassName = configuration.get(PbFormatOptions.MESSAGE_CLASS_NAME);
                 return getProtobufSchemaInfo(messageClassName, SchemaUtils.class.getClassLoader());
             case "atomic":
                 org.apache.pulsar.client.api.Schema pulsarSchema =

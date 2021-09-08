@@ -14,12 +14,12 @@
 
 package org.apache.flink.table.catalog.pulsar;
 
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.connectors.pulsar.internal.IncompatibleSchemaException;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarCatalogSupport;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.streaming.connectors.pulsar.internal.SimpleSchemaTranslator;
 import org.apache.flink.streaming.connectors.pulsar.table.PulsarDynamicTableFactory;
-import org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions;
 import org.apache.flink.table.catalog.CatalogBaseTable;
 import org.apache.flink.table.catalog.CatalogDatabase;
 import org.apache.flink.table.catalog.CatalogDatabaseImpl;
@@ -39,7 +39,6 @@ import org.apache.flink.table.catalog.exceptions.TableNotExistException;
 import org.apache.flink.table.catalog.exceptions.TableNotPartitionedException;
 import org.apache.flink.table.catalog.stats.CatalogColumnStatistics;
 import org.apache.flink.table.catalog.stats.CatalogTableStatistics;
-import org.apache.flink.table.descriptors.FormatDescriptorValidator;
 import org.apache.flink.table.expressions.Expression;
 import org.apache.flink.table.factories.Factory;
 
@@ -54,7 +53,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.PROPERTIES_PREFIX;
-import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CONNECTOR;
 
 /**
  * Expose a Pulsar instance as a database catalog.
@@ -64,14 +62,14 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
 
     private String adminUrl;
 
-    private Map<String, String> properties;
+    private Configuration configuration;
 
     private PulsarCatalogSupport catalogSupport;
 
-    public PulsarCatalog(String adminUrl, String catalogName, Map<String, String> props, String defaultDatabase) {
+    public PulsarCatalog(String adminUrl, String catalogName, Configuration configuration, String defaultDatabase) {
         super(catalogName, defaultDatabase);
         this.adminUrl = adminUrl;
-        this.properties = new HashMap<>(props);
+        this.configuration = configuration;
         log.info("Created Pulsar Catalog {}", catalogName);
     }
 
@@ -85,9 +83,11 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
         if (catalogSupport == null) {
             try {
                 final ClientConfigurationData clientConf = new ClientConfigurationData();
-                clientConf.setAuthParams(properties.get(PROPERTIES_PREFIX + PulsarOptions.AUTH_PARAMS_KEY));
+                clientConf.setAuthParams(
+                        configuration.getString(PROPERTIES_PREFIX + PulsarOptions.AUTH_PARAMS_KEY, null));
                 clientConf.setAuthPluginClassName(
-                        properties.get(PROPERTIES_PREFIX + PulsarOptions.AUTH_PLUGIN_CLASSNAME_KEY));
+                        configuration.getString(PROPERTIES_PREFIX + PulsarOptions.AUTH_PLUGIN_CLASSNAME_KEY, null));
+
                 catalogSupport = new PulsarCatalogSupport(adminUrl, clientConf, "",
                         new HashMap<>(), -1, -1, new SimpleSchemaTranslator(false));
             } catch (PulsarClientException e) {
@@ -163,7 +163,7 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
             return super.getTable(tablePath);
         }
         try {
-            return catalogSupport.getTableSchema(tablePath, properties);
+            return catalogSupport.getTableSchema(tablePath, configuration);
         } catch (PulsarAdminException.NotFoundException e) {
             throw new TableNotExistException(getName(), tablePath, e);
         } catch (PulsarAdminException | IncompatibleSchemaException e) {
@@ -191,8 +191,8 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
         if (tablePath.getObjectName().startsWith("_tmp_table_")) {
             super.createTable(tablePath, table, ignoreIfExists);
         }
-        final String key = CONNECTOR + "." + PulsarOptions.DEFAULT_PARTITIONS;
-        int defaultNumPartitions = Integer.parseInt(properties.getOrDefault(key, "5"));
+
+        int defaultNumPartitions = configuration.getInteger(PulsarOptions.DEFAULT_PARTITIONS, 5);
         String databaseName = tablePath.getDatabaseName();
         Boolean databaseExists;
         try {
@@ -207,7 +207,7 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
 
         try {
             catalogSupport.createTopic(tablePath, defaultNumPartitions, table);
-            catalogSupport.putSchema(tablePath, table, getFormat());
+            catalogSupport.putSchema(tablePath, table, configuration);
         } catch (PulsarAdminException e) {
             if (e.getStatusCode() == 409) {
                 throw new TableAlreadyExistException(getName(), tablePath, e);
@@ -217,11 +217,6 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
         } catch (IncompatibleSchemaException e) {
             throw new CatalogException("Failed to translate Flink type to Pulsar", e);
         }
-    }
-
-    private String getFormat() {
-        return Optional.ofNullable(properties.get(FormatDescriptorValidator.FORMAT))
-                .orElseGet(() -> properties.get(PulsarTableOptions.VALUE_FORMAT.key()));
     }
 
     // ------------------------------------------------------------------------

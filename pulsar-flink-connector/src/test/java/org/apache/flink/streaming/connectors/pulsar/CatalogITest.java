@@ -155,8 +155,8 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
             assertTrue(
                     Sets.symmetricDifference(
-                            Sets.newHashSet(tableEnv.listTables()),
-                            Sets.newHashSet(Iterables.concat(topics, partitionedTopics)))
+                                    Sets.newHashSet(tableEnv.listTables()),
+                                    Sets.newHashSet(Iterables.concat(topics, partitionedTopics)))
                             .isEmpty());
 
         } finally {
@@ -339,7 +339,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
         String tableSinkTopic = newTopic("tableSink");
         String tableSinkName = TopicName.get(tableSinkTopic).getLocalName();
-        String pulsarCatalog1 = "pulsarcatalog3";
+        String useCatalog = "pulsarcatalog4";
 
         Map<String, String> conf = getStreamingConfs();
         conf.put("$VAR_STARTING", "earliest");
@@ -347,15 +347,17 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
         ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
         TableEnvironment tableEnv = context.getTableEnvironment();
+        tableEnv.useCatalog(useCatalog);
 
-        tableEnv.useCatalog(pulsarCatalog1);
-
-        String sinkDDL = "create table " + tableSinkName + "(\n" +
-                " id int,\n" +
-                " compute as id + 1,\n" +
-                " log_ts timestamp(3),\n" +
-                " ts as log_ts + INTERVAL '1' SECOND,\n" +
-                " watermark for ts as log_ts" +
+        String sinkDDL = "CREATE TABLE " + tableSinkName + " (\n" +
+                "  `physical_1` STRING,\n" +
+                "  `physical_2` INT,\n" +
+                "  `eventTime` TIMESTAMP(3) METADATA,  \n" +
+                "  `properties` MAP<STRING, STRING> METADATA,\n" +
+                "  `topic` STRING METADATA VIRTUAL,\n" +
+                "  `sequenceId` BIGINT METADATA VIRTUAL,\n" +
+                "  `key` STRING ,\n" +
+                "  `physical_3` BOOLEAN\n" +
                 ")";
 
         tableEnv.executeSql(sinkDDL).print();
@@ -363,7 +365,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
         ExecutionContext context2 = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
         TableEnvironment tableEnv2 = context2.getTableEnvironment();
-        tableEnv2.useCatalog(pulsarCatalog1);
+        tableEnv2.useCatalog(useCatalog);
         final TableSchema schema2 = tableEnv2.executeSql("DESCRIBE " + tableSinkName).getTableSchema();
 
         assertEquals(schema, schema2);

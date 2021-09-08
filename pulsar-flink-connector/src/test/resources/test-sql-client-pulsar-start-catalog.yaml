@@ -59,6 +59,20 @@ catalogs:
       startup:
         mode: "$VAR_STARTING"
     format: "$VAR_FORMAT"
+  - name: pulsarcatalog4
+    type: pulsar
+    default-database: public/default
+    service-url: "$VAR_SERVICEURL"
+    admin-url: "$VAR_ADMINURL"
+    scan:
+      startup:
+        mode: "$VAR_STARTING"
+    format: "$VAR_FORMAT"
+    value:
+      fields-include: EXCEPT_KEY
+    key:
+      format: string
+      fields: key
   - name: inmemorycatalog
     type: generic_in_memory
     default-database: mydatabase

@@ -94,9 +94,9 @@ public class PulsarTableOptions {
     public static final ConfigOption<ValueFieldsStrategy> VALUE_FIELDS_INCLUDE = ConfigOptions
             .key("value.fields-include")
             .enumType(ValueFieldsStrategy.class)
-            .defaultValue(ValueFieldsStrategy.ALL)
+            .defaultValue(ValueFieldsStrategy.EXCEPT_KEY)
             .withDescription("Defines a strategy how to deal with key columns in the data type of "
-                    + "the value format. By default, '" + ValueFieldsStrategy.ALL + "' physical "
+                    + "the value format. By default, '" + ValueFieldsStrategy.EXCEPT_KEY + "' physical "
                     + "columns of the table schema will be included in the value format which "
                     + "means that key columns appear in the data type for both the key and value "
                     + "format.");

@@ -26,6 +26,7 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.ValueFieldsStrategy.ALL;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.createKeyFormatProjection;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.createValueFormatProjection;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -152,6 +153,12 @@ public class PulsarOptionsTest {
 		final DataType dataType = schema.toPhysicalRowDataType();
 
 		try {
+			createValueFormatProjection(config, dataType);
+		} catch (ValidationException e) {
+			fail();
+		}
+		try {
+			config.set(PulsarTableOptions.VALUE_FIELDS_INCLUDE, ALL);
 			createValueFormatProjection(config, dataType);
 			fail();
 		} catch (ValidationException e) {

@@ -89,7 +89,7 @@ public class UpsertPulsarDynamicTableFactoryTest extends TestLogger {
 
     private static final int[] SOURCE_KEY_FIELDS = new int[]{0, 1};
 
-    private static final int[] SOURCE_VALUE_FIELDS = new int[]{0, 1, 2};
+    private static final int[] SOURCE_VALUE_FIELDS = new int[]{2};
 
     private static final ResolvedSchema SINK_SCHEMA =
             new ResolvedSchema(
@@ -102,7 +102,7 @@ public class UpsertPulsarDynamicTableFactoryTest extends TestLogger {
 
     private static final int[] SINK_KEY_FIELDS = new int[]{0};
 
-    private static final int[] SINK_VALUE_FIELDS = new int[]{0, 1};
+    private static final int[] SINK_VALUE_FIELDS = new int[]{1};
 
     private static final Properties UPSERT_PULSAR_SOURCE_PROPERTIES = new Properties();
     private static final Properties UPSERT_PULSAR_SINK_PROPERTIES = new Properties();

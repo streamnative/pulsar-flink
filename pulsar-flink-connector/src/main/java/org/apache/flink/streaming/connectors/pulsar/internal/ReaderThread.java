@@ -40,80 +40,6 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class ReaderThread<T> extends Thread {
 
-    public static class Builder<T> {
-        private PulsarFetcher<T> owner;
-        private PulsarTopicState<T> state;
-        private ClientConfigurationData clientConf;
-        private Map<String, Object> readerConf;
-        private PulsarDeserializationSchema<T> deserializer;
-        private int pollTimeoutMs;
-        private ExceptionProxy exceptionProxy;
-        private boolean failOnDataLoss;
-        private boolean useEarliestWhenDataLoss;
-        private boolean excludeMessageId;
-        private CryptoKeyReader cryptoKeyReader;
-
-        public Builder<T> withOwner(final PulsarFetcher<T> owner) {
-            this.owner = owner;
-            return this;
-        }
-
-        public Builder<T> withState(final PulsarTopicState<T> state) {
-            this.state = state;
-            return this;
-        }
-
-        public Builder<T> withClientConf(final ClientConfigurationData clientConf) {
-            this.clientConf = clientConf;
-            return this;
-        }
-
-        public Builder<T> withReaderConf(final Map<String, Object> readerConf) {
-            this.readerConf = readerConf;
-            return this;
-        }
-
-        public Builder<T> withDeserializer(final PulsarDeserializationSchema<T> deserializer) {
-            this.deserializer = deserializer;
-            return this;
-        }
-
-        public Builder<T> withPollTimeoutMs(final int pollTimeoutMs) {
-            this.pollTimeoutMs = pollTimeoutMs;
-            return this;
-        }
-
-        public Builder<T> withExceptionProxy(final ExceptionProxy exceptionProxy) {
-            this.exceptionProxy = exceptionProxy;
-            return this;
-        }
-
-        public Builder<T> withFailOnDataLoss(final boolean failOnDataLoss) {
-            this.failOnDataLoss = failOnDataLoss;
-            return this;
-        }
-
-        public Builder<T> withUseEarliestWhenDataLoss(final boolean useEarliestWhenDataLoss) {
-            this.useEarliestWhenDataLoss = useEarliestWhenDataLoss;
-            return this;
-        }
-
-        public Builder<T> withExcludeMessageId(final boolean excludeMessageId) {
-            this.excludeMessageId = excludeMessageId;
-            return this;
-        }
-
-        public Builder<T> withCryptoKeyReader(final CryptoKeyReader cryptoKeyReader) {
-            this.cryptoKeyReader = cryptoKeyReader;
-            return this;
-        }
-
-        public ReaderThread<T> build(){
-            return new ReaderThread<>(this);
-        }
-
-    }
-
     protected final PulsarFetcher<T> owner;
     protected final PulsarTopicState<T> state;
     protected final ClientConfigurationData clientConf;
@@ -142,7 +68,8 @@ public class ReaderThread<T> extends Thread {
             Map<String, Object> readerConf,
             PulsarDeserializationSchema<T> deserializer,
             int pollTimeoutMs,
-            ExceptionProxy exceptionProxy) {
+            ExceptionProxy exceptionProxy,
+            final CryptoKeyReader cryptoKeyReader) {
         this.owner = owner;
         this.state = state;
         this.clientConf = clientConf;
@@ -153,7 +80,7 @@ public class ReaderThread<T> extends Thread {
 
         this.topicRange = state.getTopicRange();
         this.startMessageId = state.getOffset();
-        this.cryptoKeyReader = null;
+        this.cryptoKeyReader = cryptoKeyReader;
     }
 
     public ReaderThread(
@@ -166,27 +93,12 @@ public class ReaderThread<T> extends Thread {
             ExceptionProxy exceptionProxy,
             boolean failOnDataLoss,
             boolean useEarliestWhenDataLoss,
-            boolean excludeMessageId) {
-        this(owner, state, clientConf, readerConf, deserializer, pollTimeoutMs, exceptionProxy);
+            boolean excludeMessageId,
+            final CryptoKeyReader cryptoKeyReader) {
+        this(owner, state, clientConf, readerConf, deserializer, pollTimeoutMs, exceptionProxy, cryptoKeyReader);
         this.failOnDataLoss = failOnDataLoss;
         this.useEarliestWhenDataLoss = useEarliestWhenDataLoss;
         this.excludeMessageId = excludeMessageId;
-    }
-
-    private ReaderThread(final Builder<T> builder){
-        this.owner = builder.owner;
-        this.state = builder.state;
-        this.clientConf = builder.clientConf;
-        this.readerConf = builder.readerConf;
-        this.deserializer = builder.deserializer;
-        this.pollTimeoutMs = builder.pollTimeoutMs;
-        this.exceptionProxy = builder.exceptionProxy;
-        this.topicRange =  state.getTopicRange();
-        this.startMessageId =  state.getOffset();
-        this.failOnDataLoss = builder.failOnDataLoss;
-        this.useEarliestWhenDataLoss = builder.useEarliestWhenDataLoss;
-        this.excludeMessageId = builder.excludeMessageId;
-        this.cryptoKeyReader = builder.cryptoKeyReader;
     }
 
     @Override

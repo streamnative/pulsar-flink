@@ -56,119 +56,6 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 @Slf4j
 public class PulsarFetcher<T> {
 
-    public static class Builder<T> {
-        private SourceContext<T> sourceContext;
-        private Map<TopicRange, MessageId> seedTopicsWithInitialOffsets;
-        private SerializedValue<WatermarkStrategy<T>> watermarkStrategy;
-        private ProcessingTimeService processingTimeProvider;
-        private long autoWatermarkInterval;
-        private ClassLoader userCodeClassLoader;
-        private StreamingRuntimeContext runtimeContext;
-        private ClientConfigurationData clientConf;
-        private Map<String, Object> readerConf;
-        private int pollTimeoutMs;
-        private PulsarDeserializationSchema<T> deserializer;
-        private PulsarMetadataReader metadataReader;
-        private MetricGroup consumerMetricGroup;
-        private boolean useMetrics;
-        private Set<TopicRange> excludeStartMessageIds = Collections.emptySet();
-        private int commitMaxRetries = 3;
-        private CryptoKeyReader cryptoKeyReader;
-
-        public Builder<T> withSourceContext(final SourceContext<T> sourceContext) {
-            this.sourceContext = sourceContext;
-            return this;
-        }
-
-        public Builder<T> withSeedTopicsWithInitialOffsets(final Map<TopicRange, MessageId> seedTopicsWithInitialOffsets) {
-            this.seedTopicsWithInitialOffsets = seedTopicsWithInitialOffsets;
-            return this;
-        }
-
-        public Builder<T> withWatermarkStrategy(final SerializedValue<WatermarkStrategy<T>> watermarkStrategy) {
-            this.watermarkStrategy = watermarkStrategy;
-            return this;
-        }
-
-        public Builder<T> withProcessingTimeProvider(final ProcessingTimeService processingTimeProvider) {
-            this.processingTimeProvider = processingTimeProvider;
-            return this;
-        }
-
-        public Builder<T> withAutoWatermarkInterval(final long autoWatermarkInterval) {
-            this.autoWatermarkInterval = autoWatermarkInterval;
-            return this;
-        }
-
-        public Builder<T> withUserCodeClassLoader(final ClassLoader userCodeClassLoader) {
-            this.userCodeClassLoader = userCodeClassLoader;
-            return this;
-        }
-
-        public Builder<T> withRuntimeContext(final StreamingRuntimeContext runtimeContext) {
-            this.runtimeContext = runtimeContext;
-            return this;
-        }
-
-        public Builder<T> withClientConf(final ClientConfigurationData clientConf) {
-            this.clientConf = clientConf;
-            return this;
-        }
-
-        public Builder<T> withReaderConf(final Map<String, Object> readerConf) {
-            this.readerConf = readerConf;
-            return this;
-        }
-
-        public Builder<T> withPollTimeoutMs(final int pollTimeoutMs) {
-            this.pollTimeoutMs = pollTimeoutMs;
-            return this;
-        }
-
-        public Builder<T> withDeserializer(final PulsarDeserializationSchema<T> deserializer) {
-            this.deserializer = deserializer;
-            return this;
-        }
-
-        public Builder<T> withMetadataReader(final PulsarMetadataReader metadataReader) {
-            this.metadataReader = metadataReader;
-            return this;
-        }
-
-        public Builder<T> withConsumerMetricGroup(final MetricGroup consumerMetricGroup) {
-            this.consumerMetricGroup = consumerMetricGroup;
-            return this;
-        }
-
-        public Builder<T> withUseMetrics(final boolean useMetrics) {
-            this.useMetrics = useMetrics;
-            return this;
-        }
-
-        public Builder<T> withExcludeStartMessageIds(final Set<TopicRange> excludeStartMessageIds) {
-            this.excludeStartMessageIds = excludeStartMessageIds;
-            return this;
-        }
-
-        public Builder<T> withCommitMaxRetries(final int commitMaxRetries) {
-            this.commitMaxRetries = commitMaxRetries;
-            return this;
-        }
-
-        public Builder<T> withCryptoKeyReader(final CryptoKeyReader cryptoKeyReader) {
-            this.cryptoKeyReader = cryptoKeyReader;
-            return this;
-        }
-
-        public PulsarFetcher<T> build() throws Exception {
-            return new PulsarFetcher<T>(this);
-        }
-    }
-
-    public static<T> Builder<T> builder(){
-        return new Builder<>();
-    }
-
     private static final int NO_TIMESTAMPS_WATERMARKS = 0;
     private static final int WITH_WATERMARK_GENERATOR = 1;
 
@@ -293,7 +180,8 @@ public class PulsarFetcher<T> {
                 deserializer,
                 metadataReader,
                 consumerMetricGroup,
-                useMetrics
+                useMetrics,
+                null
         );
     }
 
@@ -313,53 +201,31 @@ public class PulsarFetcher<T> {
         PulsarDeserializationSchema<T> deserializer,
         PulsarMetadataReader metadataReader,
         MetricGroup consumerMetricGroup,
-        boolean useMetrics) throws Exception {
+        boolean useMetrics,
+        final CryptoKeyReader cryptoKeyReader) throws Exception {
 
-        this(new Builder<T>()
-            .withSourceContext(sourceContext)
-            .withUseMetrics(useMetrics)
-            .withConsumerMetricGroup(consumerMetricGroup)
-            .withSeedTopicsWithInitialOffsets(seedTopicsWithInitialOffsets)
-            .withExcludeStartMessageIds(excludeStartMessageIds)
-            .withUserCodeClassLoader(userCodeClassLoader)
-            .withRuntimeContext(runtimeContext)
-            .withClientConf(clientConf)
-            .withReaderConf(readerConf)
-            .withPollTimeoutMs(pollTimeoutMs)
-            .withCommitMaxRetries(commitMaxRetries)
-            .withDeserializer(deserializer)
-            .withMetadataReader(metadataReader)
-            .withWatermarkStrategy(watermarkStrategy)
-            .withProcessingTimeProvider(processingTimeProvider)
-            .withAutoWatermarkInterval(autoWatermarkInterval)
-        );
-
-    }
-
-    private PulsarFetcher(final Builder<T> builder) throws Exception {
-
-        this.sourceContext = builder.sourceContext;
+        this.sourceContext = sourceContext;
         this.watermarkOutput = new SourceContextWatermarkOutputAdapter<>(sourceContext);
         this.watermarkOutputMultiplexer = new WatermarkOutputMultiplexer(watermarkOutput);
-        this.useMetrics = builder.useMetrics;
-        this.consumerMetricGroup = checkNotNull(builder.consumerMetricGroup);
-        this.seedTopicsWithInitialOffsets = builder.seedTopicsWithInitialOffsets;
-        this.excludeStartMessageIds = builder.excludeStartMessageIds;
+        this.useMetrics = useMetrics;
+        this.consumerMetricGroup = checkNotNull(consumerMetricGroup);
+        this.seedTopicsWithInitialOffsets = seedTopicsWithInitialOffsets;
+        this.excludeStartMessageIds = excludeStartMessageIds;
         this.checkpointLock = sourceContext.getCheckpointLock();
-        this.userCodeClassLoader = builder.userCodeClassLoader;
-        this.runtimeContext = builder.runtimeContext;
-        this.clientConf = builder.clientConf;
-        this.readerConf = builder.readerConf == null ? new HashMap<>() : builder.readerConf;
+        this.userCodeClassLoader = userCodeClassLoader;
+        this.runtimeContext = runtimeContext;
+        this.clientConf = clientConf;
+        this.readerConf = readerConf == null ? new HashMap<>() : readerConf;
         this.failOnDataLoss = SourceSinkUtils.getFailOnDataLossAndRemoveKey(this.readerConf);
         this.useEarliestWhenDataLoss = SourceSinkUtils.getUseEarliestWhenDataLossAndRemoveKey(this.readerConf);
-        this.pollTimeoutMs = builder.pollTimeoutMs;
-        this.commitMaxRetries = builder.commitMaxRetries;
-        this.deserializer = builder.deserializer;
-        this.metadataReader = builder.metadataReader;
-        this.cryptoKeyReader = builder.cryptoKeyReader;
+        this.pollTimeoutMs = pollTimeoutMs;
+        this.commitMaxRetries = commitMaxRetries;
+        this.deserializer = deserializer;
+        this.metadataReader = metadataReader;
+        this.cryptoKeyReader = cryptoKeyReader;
 
         // figure out what we watermark mode we will be using
-        this.watermarkStrategy = builder.watermarkStrategy;
+        this.watermarkStrategy = watermarkStrategy;
 
         if (watermarkStrategy == null) {
             timestampWatermarkMode = NO_TIMESTAMPS_WATERMARKS;
@@ -394,13 +260,13 @@ public class PulsarFetcher<T> {
         }
 
         // if we have periodic watermarks, kick off the interval scheduler
-        if (timestampWatermarkMode == WITH_WATERMARK_GENERATOR && builder.autoWatermarkInterval > 0) {
+        if (timestampWatermarkMode == WITH_WATERMARK_GENERATOR && autoWatermarkInterval > 0) {
             PeriodicWatermarkEmitter<T> periodicEmitter = new PeriodicWatermarkEmitter<>(
                     checkpointLock,
                     subscribedPartitionStates,
                     watermarkOutputMultiplexer,
-                    builder.processingTimeProvider,
-                    builder.autoWatermarkInterval);
+                    processingTimeProvider,
+                    autoWatermarkInterval);
 
             periodicEmitter.start();
         }
@@ -673,20 +539,18 @@ public class PulsarFetcher<T> {
     }
 
     protected ReaderThread<T> createReaderThread(ExceptionProxy exceptionProxy, PulsarTopicState state) {
-
-        return new ReaderThread.Builder<T>()
-            .withOwner(this)
-            .withState(state)
-            .withClientConf(clientConf)
-            .withReaderConf(readerConf)
-            .withDeserializer(deserializer)
-            .withPollTimeoutMs(pollTimeoutMs)
-            .withExceptionProxy(exceptionProxy)
-            .withFailOnDataLoss(failOnDataLoss)
-            .withUseEarliestWhenDataLoss(useEarliestWhenDataLoss)
-            .withExcludeMessageId(excludeStartMessageIds.contains(state.getTopicRange()))
-            .withCryptoKeyReader(cryptoKeyReader)
-            .build();
+        return new ReaderThread<>(
+                this,
+                state,
+                clientConf,
+                readerConf,
+                deserializer,
+                pollTimeoutMs,
+                exceptionProxy,
+                failOnDataLoss,
+                useEarliestWhenDataLoss,
+                excludeStartMessageIds.contains(state.getTopicRange()),
+                cryptoKeyReader);
     }
 
     /**

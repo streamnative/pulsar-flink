@@ -89,64 +89,6 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 @Slf4j
 abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, FlinkPulsarSinkBase.PulsarTransactionState<T>, Void> implements CheckpointedFunction {
 
-    public static class Config<T> {
-        private String adminUrl;
-        private Optional<String> defaultTopicName;
-        private ClientConfigurationData clientConf;
-        private Properties properties;
-        private PulsarSerializationSchema<T> serializationSchema;
-        private MessageRouter messageRouter;
-        private PulsarSinkSemantic semantic = PulsarSinkSemantic.AT_LEAST_ONCE;
-        private CryptoKeyReader cryptoKeyReader;
-        private Set<String> encryptionKeys = new HashSet<>();
-
-        public Config<T> withAdminUrl(final String adminUrl) {
-            this.adminUrl = adminUrl;
-            return this;
-        }
-
-        public Config<T> withDefaultTopicName(final String defaultTopicName) {
-            this.defaultTopicName = Optional.ofNullable(defaultTopicName);
-            return this;
-        }
-
-        public Config<T> withClientConf(ClientConfigurationData clientConf) {
-            this.clientConf = clientConf;
-            return this;
-        }
-
-        public Config<T> withProperties(final Properties properties) {
-            this.properties = properties;
-            return this;
-        }
-
-        public Config<T> withSerializationSchema(final PulsarSerializationSchema<T> serializationSchema) {
-            this.serializationSchema = serializationSchema;
-            return this;
-        }
-
-        public Config<T> withMessageRouter(final MessageRouter messageRouter) {
-            this.messageRouter = messageRouter;
-            return this;
-        }
-
-        public Config<T> withSemantic(final PulsarSinkSemantic semantic) {
-            this.semantic = semantic;
-            return this;
-        }
-
-        public Config<T> withCryptoKeyReader(final CryptoKeyReader cryptoKeyReader) {
-            this.cryptoKeyReader = cryptoKeyReader;
-            return this;
-        }
-
-        public Config<T> withEncryptionKeys(final Set<String> encryptionKeys) {
-            this.encryptionKeys = encryptionKeys;
-            return this;
-        }
-
-    }
-
     protected String adminUrl;
 
     protected ClientConfigurationData clientConfigurationData;
@@ -215,32 +157,39 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
             Properties properties,
             PulsarSerializationSchema<T> serializationSchema,
             MessageRouter messageRouter) {
-        this(adminUrl, defaultTopicName, clientConf, properties, serializationSchema, messageRouter, PulsarSinkSemantic.AT_LEAST_ONCE);
+        this(adminUrl, defaultTopicName, clientConf, properties, serializationSchema, messageRouter, PulsarSinkSemantic.AT_LEAST_ONCE, null, new HashSet<>());
     }
 
-    public FlinkPulsarSinkBase(final Config<T> config) {
+    public FlinkPulsarSinkBase(
+            String adminUrl,
+            Optional<String> defaultTopicName,
+            ClientConfigurationData clientConf,
+            Properties properties,
+            PulsarSerializationSchema<T> serializationSchema,
+            MessageRouter messageRouter,
+            PulsarSinkSemantic semantic,
+            final CryptoKeyReader cryptoKeyReader,
+            final Set<String> encryptionKeys) {
         super(new TransactionStateSerializer(), VoidSerializer.INSTANCE);
 
-        this.adminUrl = checkNotNull(config.adminUrl);
-        this.semantic = config.semantic;
-        this.cryptoKeyReader = config.cryptoKeyReader;
-        this.encryptionKeys = config.encryptionKeys;
+        this.adminUrl = checkNotNull(adminUrl);
+        this.semantic = semantic;
 
-        if (config.defaultTopicName.isPresent()) {
+        if (defaultTopicName.isPresent()) {
             this.forcedTopic = true;
-            this.defaultTopic = config.defaultTopicName.get();
+            this.defaultTopic = defaultTopicName.get();
         } else {
             this.forcedTopic = false;
             this.defaultTopic = null;
         }
 
-        this.serializationSchema = config.serializationSchema;
+        this.serializationSchema = serializationSchema;
 
-        this.messageRouter = config.messageRouter;
+        this.messageRouter = messageRouter;
 
-        this.clientConfigurationData = config.clientConf;
+        this.clientConfigurationData = clientConf;
 
-        this.properties = checkNotNull(config.properties);
+        this.properties = checkNotNull(properties);
 
         this.caseInsensitiveParams =
                 SourceSinkUtils.toCaceInsensitiveParams(Maps.fromProperties(properties));
@@ -274,40 +223,9 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
         if (this.clientConfigurationData.getServiceUrl() == null) {
             throw new IllegalArgumentException("ServiceUrl must be supplied in the client configuration");
         }
-    }
 
-    public FlinkPulsarSinkBase(
-        String adminUrl,
-        Optional<String> defaultTopicName,
-        ClientConfigurationData clientConf,
-        Properties properties,
-        PulsarSerializationSchema<T> serializationSchema,
-        MessageRouter messageRouter,
-        PulsarSinkSemantic semantic) {
-        this(new Config<T>()
-            .withAdminUrl(adminUrl)
-            .withDefaultTopicName(defaultTopicName.orElse(null))
-            .withClientConf(clientConf)
-            .withProperties(properties)
-            .withSerializationSchema(serializationSchema)
-            .withMessageRouter(messageRouter)
-            .withSemantic(semantic)
-        );
-    }
-
-    public FlinkPulsarSinkBase(
-            String serviceUrl,
-            String adminUrl,
-            Optional<String> defaultTopicName,
-            Properties properties,
-            PulsarSerializationSchema serializationSchema,
-            MessageRouter messageRouter) {
-        this(adminUrl,
-                defaultTopicName,
-                PulsarClientUtils.newClientConf(checkNotNull(serviceUrl), properties),
-                properties,
-                serializationSchema,
-                messageRouter);
+        this.cryptoKeyReader = cryptoKeyReader;
+        this.encryptionKeys = encryptionKeys;
     }
 
     @Override

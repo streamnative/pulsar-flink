@@ -107,6 +107,10 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
             return this;
         }
 
+        private Optional<String> getDefaultTopicName() {
+            return Optional.ofNullable(defaultTopicName);
+        }
+
         public FlinkPulsarSink<T>  build(){
             if (adminUrl == null) {
                 throw new IllegalStateException("Admin URL must be set.");
@@ -140,17 +144,7 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
     private final PulsarSerializationSchema<T> serializationSchema;
 
     private FlinkPulsarSink(final Builder<T> builder) {
-        super(
-            new FlinkPulsarSinkBase.Config<T>()
-                .withAdminUrl(builder.adminUrl)
-                .withDefaultTopicName(builder.defaultTopicName)
-                .withClientConf(builder.clientConf)
-                .withProperties(builder.properties)
-                .withSerializationSchema(builder.serializationSchema)
-                .withMessageRouter(builder.messageRouter)
-                .withSemantic(builder.semantic)
-                .withCryptoKeyReader(builder.cryptoKeyReader)
-                .withEncryptionKeys(builder.encryptionKeys));
+        super(builder.adminUrl, builder.getDefaultTopicName(), builder.clientConf, builder.properties, builder.serializationSchema, builder.messageRouter, builder.semantic, builder.cryptoKeyReader, builder.encryptionKeys);
         this.serializationSchema = builder.serializationSchema;
     }
 

@@ -677,25 +677,28 @@ public class FlinkPulsarSource<T>
         StreamingRuntimeContext streamingRuntime,
         boolean useMetrics,
         Set<TopicRange> excludeStartMessageIds) throws Exception {
-        return new PulsarFetcher.Builder()
-            .withSourceContext(sourceContext)
-            .withSeedTopicsWithInitialOffsets(seedTopicsWithInitialOffsets)
-            .withExcludeStartMessageIds(excludeStartMessageIds)
-            .withWatermarkStrategy(watermarkStrategy)
-            .withProcessingTimeProvider(processingTimeProvider)
-            .withAutoWatermarkInterval(autoWatermarkInterval)
-            .withUserCodeClassLoader(userCodeClassLoader)
-            .withRuntimeContext(streamingRuntime)
-            .withClientConf(clientConfigurationData)
-            .withReaderConf(readerConf)
-            .withPollTimeoutMs(pollTimeoutMs)
-            .withCommitMaxRetries(commitMaxRetries)
-            .withDeserializer(deserializer)
-            .withMetadataReader(metadataReader)
-            .withConsumerMetricGroup(streamingRuntime.getMetricGroup().addGroup(PULSAR_SOURCE_METRICS_GROUP))
-            .withUseMetrics(useMetrics)
-            .withCryptoKeyReader(cryptoKeyReader)
-            .build();
+
+        //readerConf.putIfAbsent(PulsarOptions.SUBSCRIPTION_ROLE_OPTION_KEY, getSubscriptionName());
+
+        return new PulsarFetcher<>(
+                sourceContext,
+                seedTopicsWithInitialOffsets,
+                excludeStartMessageIds,
+                watermarkStrategy,
+                processingTimeProvider,
+                autoWatermarkInterval,
+                userCodeClassLoader,
+                streamingRuntime,
+                clientConfigurationData,
+                readerConf,
+                pollTimeoutMs,
+                commitMaxRetries,
+                deserializer,
+                metadataReader,
+                streamingRuntime.getMetricGroup().addGroup(PULSAR_SOURCE_METRICS_GROUP),
+                useMetrics,
+                cryptoKeyReader
+        );
     }
 
     public void joinDiscoveryLoopThread() throws InterruptedException {

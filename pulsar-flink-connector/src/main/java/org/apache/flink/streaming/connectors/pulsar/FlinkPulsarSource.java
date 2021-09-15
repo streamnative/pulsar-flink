@@ -88,8 +88,11 @@ import java.util.stream.Collectors;
 import static org.apache.flink.streaming.connectors.pulsar.internal.metrics.PulsarSourceMetrics.COMMITS_FAILED_METRICS_COUNTER;
 import static org.apache.flink.streaming.connectors.pulsar.internal.metrics.PulsarSourceMetrics.COMMITS_SUCCEEDED_METRICS_COUNTER;
 import static org.apache.flink.streaming.connectors.pulsar.internal.metrics.PulsarSourceMetrics.PULSAR_SOURCE_METRICS_GROUP;
+import static org.apache.flink.util.InstantiationUtil.isSerializable;
 import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
+import static org.apache.flink.util.Preconditions.checkState;
+
 
 /**
  * Pulsar data source.
@@ -168,6 +171,7 @@ public class FlinkPulsarSource<T>
             if (clientConf == null){
                 throw new IllegalStateException("Client conf mustn't be null. Either provide a client conf or a service URL plus properties.");
             }
+            checkState(isSerializable(cryptoKeyReader));
             return new FlinkPulsarSource<>(this);
         }
 

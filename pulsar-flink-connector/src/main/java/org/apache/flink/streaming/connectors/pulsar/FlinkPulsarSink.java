@@ -35,7 +35,9 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+import static org.apache.flink.util.InstantiationUtil.isSerializable;
 import static org.apache.flink.util.Preconditions.checkNotNull;
+import static org.apache.flink.util.Preconditions.checkState;
 
 /**
  * Write data to Flink.
@@ -136,6 +138,8 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
             if ((cryptoKeyReader == null) != (encryptionKeys.isEmpty())){
                 throw new IllegalStateException("Set crypto key reader and encryption keys in conjunction.");
             }
+            checkState(isSerializable(cryptoKeyReader));
+            checkState(isSerializable(encryptionKeys));
             return new FlinkPulsarSink<>(this);
         }
 

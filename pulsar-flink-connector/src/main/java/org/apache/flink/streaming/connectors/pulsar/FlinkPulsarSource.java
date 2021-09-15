@@ -302,7 +302,7 @@ public class FlinkPulsarSource<T>
 
     private final CryptoKeyReader cryptoKeyReader;
 
-    public FlinkPulsarSource(final Builder<T> builder) {
+    private FlinkPulsarSource(final Builder<T> builder) {
         this.adminUrl = checkNotNull(builder.adminUrl);
         this.clientConfigurationData = checkNotNull(builder.clientConf);
         this.deserializer = builder.deserializer;

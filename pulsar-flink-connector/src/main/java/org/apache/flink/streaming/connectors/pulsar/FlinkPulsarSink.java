@@ -139,7 +139,7 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
 
     private final PulsarSerializationSchema<T> serializationSchema;
 
-    public FlinkPulsarSink(final Builder<T> builder) {
+    private FlinkPulsarSink(final Builder<T> builder) {
         super(
             new FlinkPulsarSinkBase.Config<T>()
                 .withAdminUrl(builder.adminUrl)

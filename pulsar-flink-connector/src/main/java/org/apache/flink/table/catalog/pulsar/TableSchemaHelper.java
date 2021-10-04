@@ -76,9 +76,6 @@ public final class TableSchemaHelper {
             .properties(propertyMap)
             .build();
 
-        System.out.println("table schema: " + table.getSchema().toString());
-        System.out.println("stored metadata: " + tableInfo.toString());
-
         return tableInfo;
     }
 

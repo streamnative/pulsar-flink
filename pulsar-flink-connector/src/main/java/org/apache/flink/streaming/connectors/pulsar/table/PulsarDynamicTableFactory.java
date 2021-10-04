@@ -490,11 +490,6 @@ public class PulsarDynamicTableFactory implements
     }
 
     private DynamicTableSink createDynamicTableSinkUpsert(Context context) {
-        System.out.println("nengnengneng creating upsert pulsar topic sink");
-        System.out.println("nengnengneng " + context.getObjectIdentifier());
-        System.out.println("nengnengneng " + context.getCatalogTable().getSchema());
-        System.out.println("nengneegneng " + context.getCatalogTable().toProperties());
-
         FactoryUtil.TableFactoryHelper helper = FactoryUtil.createTableFactoryHelper(this, context);
 
         ReadableConfig tableOptions = helper.getOptions();
@@ -507,14 +502,13 @@ public class PulsarDynamicTableFactory implements
             VALUE_FORMAT);
 
         // Validate the option data type.
-        helper.validateExcept(PulsarTableOptions.PROPERTIES_PREFIX);
+        helper.validateExcept(PROPERTIES_PREFIX);
         TableSchema schema = context.getCatalogTable().getSchema();
         validateTableOptionsUpsert(tableOptions, keyEncodingFormat, valueEncodingFormat, schema);
 
         Tuple2<int[], int[]> keyValueProjections = createKeyValueProjectionsUpsert(context.getCatalogTable());
         final String keyPrefix = tableOptions.getOptional(KEY_FIELDS_PREFIX).orElse(null);
         Properties properties = getPulsarProperties(context.getCatalogTable().toProperties());
-        System.out.println("nengnengneng: properties: " + properties);
         Integer parallelism = tableOptions.get(SINK_PARALLELISM);
 
         String adminUrl = tableOptions.get(ADMIN_URL);

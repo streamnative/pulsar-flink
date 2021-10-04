@@ -49,7 +49,7 @@ public class PulsarCatalogFactory implements CatalogFactory {
         DescriptorProperties dp = getValidateProperties(properties);
         String defaultDB = dp.getOptionalString(CATALOG_DEFAULT_DATABASE).orElse("public/default");
         String adminUrl = dp.getString(CATALOG_ADMIN_URL);
-        return new PulsarCatalog(adminUrl, name, Configuration.fromMap(dp.asMap()), defaultDB);
+        return new PulsarCatalog(adminUrl, name, dp.asMap(), defaultDB);
     }
 
     @Override

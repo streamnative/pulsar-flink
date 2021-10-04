@@ -14,6 +14,7 @@
 
 package org.apache.flink.table.catalog.pulsar;
 
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.connectors.pulsar.internal.IncompatibleSchemaException;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarCatalogSupport;
 import org.apache.flink.streaming.connectors.pulsar.internal.SimpleSchemaTranslator;

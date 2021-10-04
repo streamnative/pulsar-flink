@@ -14,6 +14,10 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
+import org.apache.flink.annotation.VisibleForTesting;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.formats.atomic.AtomicRowDataFormatFactory;
+import org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.catalog.CatalogBaseTable;
 import org.apache.flink.table.catalog.CatalogTable;
@@ -22,6 +26,8 @@ import org.apache.flink.table.catalog.ObjectPath;
 import org.apache.flink.table.catalog.exceptions.CatalogException;
 import org.apache.flink.table.catalog.pulsar.TableSchemaSerDe;
 import org.apache.flink.table.descriptors.DescriptorProperties;
+import org.apache.flink.table.types.DataType;
+import org.apache.flink.table.types.utils.DataTypeUtils;
 
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.PulsarClientException;
@@ -60,7 +66,6 @@ public class PulsarCatalogSupport {
 
     private SchemaTranslator schemaTranslator;
 
-
     private final String adminUrl;
     private final String serviceUrl;
     private final ClientConfigurationData clientConf;
@@ -72,8 +77,6 @@ public class PulsarCatalogSupport {
                                 int numParallelSubtasks,
                                 SchemaTranslator schemaTranslator) throws
         PulsarClientException, PulsarAdminException {
-        System.out.println("nengnengneng catalog inherited properties: ");
-        properties.forEach((key, value) -> System.out.println("\t key:" + key + ": " + value));
         this.properties = properties;
 
         this.adminUrl = properties.get(PulsarOptions.ADMIN_URL_OPTION_KEY);
@@ -97,6 +100,19 @@ public class PulsarCatalogSupport {
         if (!pulsarMetadataReader.tenantExists(FLINK_CATALOG_TENANT)) {
             pulsarMetadataReader.createTenant(FLINK_CATALOG_TENANT);
         }
+    }
+
+    @VisibleForTesting
+    protected PulsarCatalogSupport(PulsarMetadataReader metadataReader,
+                                SchemaTranslator schemaTranslator) {
+        this.pulsarMetadataReader = metadataReader;
+        this.schemaTranslator = schemaTranslator;
+
+        // TODO: initialize the value
+        this.properties = new HashMap<>();
+        this.adminUrl = "";
+        this.serviceUrl = "";
+        this.clientConf = new ClientConfigurationData();
     }
 
     public static boolean isNativeFlinkDatabase(String name) {

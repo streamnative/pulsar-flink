@@ -16,6 +16,7 @@ package org.apache.flink.streaming.connectors.pulsar.table;
 
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.formats.protobuf.PbFormatOptions;
 import org.apache.flink.formats.protobuf.serialize.PbRowDataSerializationSchema;
 import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils;
@@ -38,7 +39,6 @@ import org.apache.pulsar.shade.org.apache.commons.lang3.StringUtils;
 import javax.annotation.Nullable;
 
 import java.io.Serializable;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -222,19 +222,19 @@ class DynamicPulsarSerializationSchema
         if (StringUtils.isBlank(valueFormatType)) {
             return new FlinkSchema<>(Schema.BYTES.getSchemaInfo(), valueSerialization, null);
         }
-        Map<String, String> options = new HashMap<>();
-        hackPbSerializationSchema(options);
-        SchemaInfo schemaInfo = SchemaUtils.tableSchemaToSchemaInfo(valueFormatType, valueDataType, options);
+        Configuration configuration = new Configuration();
+        hackPbSerializationSchema(configuration);
+        SchemaInfo schemaInfo = SchemaUtils.tableSchemaToSchemaInfo(valueFormatType, valueDataType, configuration);
         return new FlinkSchema<>(schemaInfo, valueSerialization, null);
     }
 
-    private void hackPbSerializationSchema(Map<String, String> options) {
+    private void hackPbSerializationSchema(Configuration configuration) {
         // reflect read PbRowSerializationSchema#messageClassName
         if (valueSerialization instanceof PbRowDataSerializationSchema) {
             try {
                 final String messageClassName =
                         (String) FieldUtils.readDeclaredField(valueSerialization, "messageClassName", true);
-                options.put(PbFormatOptions.MESSAGE_CLASS_NAME.key(), messageClassName);
+                configuration.set(PbFormatOptions.MESSAGE_CLASS_NAME, messageClassName);
             } catch (IllegalAccessException e) {
                 e.printStackTrace();
             }

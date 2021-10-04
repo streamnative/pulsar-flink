@@ -54,7 +54,7 @@ import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOption
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarSinkSemantic.AT_LEAST_ONCE;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarSinkSemantic.EXACTLY_ONCE;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarSinkSemantic.NONE;
-import static org.apache.flink.table.factories.FactoryUtil.FORMAT_SUFFIX;
+import static org.apache.flink.table.factories.FactoryUtil.FORMAT;
 import static org.apache.flink.table.types.logical.utils.LogicalTypeChecks.hasRoot;
 
 /**
@@ -76,16 +76,17 @@ public class PulsarTableOptions {
     // --------------------------------------------------------------------------------------------
 
     public static final ConfigOption<String> KEY_FORMAT = ConfigOptions
-            .key("key" + FORMAT_SUFFIX)
+            .key("key." + FORMAT.key())
             .stringType()
             .noDefaultValue()
             .withDescription("Defines the format identifier for encoding key data. "
                     + "The identifier is used to discover a suitable format factory.");
 
     public static final ConfigOption<String> VALUE_FORMAT = ConfigOptions
-            .key("value" + FORMAT_SUFFIX)
+            .key("value." + FORMAT.key())
             .stringType()
             .noDefaultValue()
+            .withFallbackKeys(FORMAT.key())
             .withDescription("Defines the format identifier for encoding value data. "
                     + "The identifier is used to discover a suitable format factory.");
 
@@ -101,9 +102,9 @@ public class PulsarTableOptions {
     public static final ConfigOption<ValueFieldsStrategy> VALUE_FIELDS_INCLUDE = ConfigOptions
             .key("value.fields-include")
             .enumType(ValueFieldsStrategy.class)
-            .defaultValue(ValueFieldsStrategy.ALL)
+            .defaultValue(ValueFieldsStrategy.EXCEPT_KEY)
             .withDescription("Defines a strategy how to deal with key columns in the data type of "
-                    + "the value format. By default, '" + ValueFieldsStrategy.ALL + "' physical "
+                    + "the value format. By default, '" + ValueFieldsStrategy.EXCEPT_KEY + "' physical "
                     + "columns of the table schema will be included in the value format which "
                     + "means that key columns appear in the data type for both the key and value "
                     + "format.");

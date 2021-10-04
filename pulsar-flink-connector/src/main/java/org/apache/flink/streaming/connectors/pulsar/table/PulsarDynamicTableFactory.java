@@ -397,7 +397,7 @@ public class PulsarDynamicTableFactory implements
         String topicPattern = tableOptions.get(TOPIC_PATTERN);
 
         // Validate the option data type.
-        helper.validateExcept(PulsarTableOptions.PROPERTIES_PREFIX);
+        helper.validateExcept(PROPERTIES_PREFIX);
         TableSchema schema = context.getCatalogTable().getSchema();
         validateTableOptionsUpsert(tableOptions, keyDecodingFormat, valueDecodingFormat, schema);
 
@@ -515,7 +515,7 @@ public class PulsarDynamicTableFactory implements
         final String keyPrefix = tableOptions.getOptional(KEY_FIELDS_PREFIX).orElse(null);
         Properties properties = getPulsarProperties(context.getCatalogTable().toProperties());
         System.out.println("nengnengneng: properties: " + properties);
-        Integer parallelism = tableOptions.get(FactoryUtil.SINK_PARALLELISM);
+        Integer parallelism = tableOptions.get(SINK_PARALLELISM);
 
         String adminUrl = tableOptions.get(ADMIN_URL);
         String serverUrl = tableOptions.get(SERVICE_URL);

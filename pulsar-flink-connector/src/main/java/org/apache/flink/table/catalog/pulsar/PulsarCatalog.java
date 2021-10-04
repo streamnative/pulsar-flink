@@ -56,7 +56,6 @@ import java.util.Optional;
 @Slf4j
 public class PulsarCatalog extends GenericInMemoryCatalog {
     // TODO: implement the Catalog class directly, currently rely on GenericInMemoryCatalog to support function
-    private final String catalogName;
 
     private final String adminUrl;
 
@@ -67,10 +66,9 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
     public static final String DEFAULT_DB = "public/default";
 
     public PulsarCatalog(String adminUrl, String catalogName, Map<String, String> props, String defaultDatabase) {
-        super(catalogName, props.getOrDefault("default-database", DEFAULT_DB));
+        super(catalogName, defaultDatabase);
 
         this.adminUrl = adminUrl;
-        this.catalogName = catalogName;
         this.properties = new HashMap<>(props);
         log.info("Created Pulsar Catalog {}", catalogName);
     }

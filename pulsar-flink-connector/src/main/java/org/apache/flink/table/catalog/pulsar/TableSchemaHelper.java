@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-public final class TableSchemaSerDe {
+public final class TableSchemaHelper {
 
     public static SchemaInfo serialize(CatalogBaseTable table) throws IOException {
         // handle table meta data
@@ -97,7 +97,7 @@ public final class TableSchemaSerDe {
             schemaWrapper = (FlinkTableSchemaWrapper) ois.readObject();
         }
 
-        TableSchema.Builder tableSchemaBuilder = org.apache.flink.table.api.TableSchema.builder();
+        TableSchema.Builder tableSchemaBuilder = TableSchema.builder();
         // watermark
         schemaWrapper.watermarkSpecs
             .forEach(t -> tableSchemaBuilder.watermark(new WatermarkSpec(t.f0, t.f1, t.f2)));

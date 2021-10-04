@@ -398,11 +398,12 @@ public class PulsarTableOptions {
                         // any config in camel case will be change to all lower case
                         if (subKey.equals("pulsar.producer.blockIfQueueFull") ||
                             subKey.equals("pulsar.producer.sendTimeoutMs")) {
-                            // do nothing
+                            pulsarProperties.put(subKey, value);
                         } else if (subKey.startsWith(PULSAR_OPTION_KEY_PREFIX)) {
                             subKey = CaseFormat.LOWER_HYPHEN.to(CaseFormat.LOWER_CAMEL, subKey);
+                            pulsarProperties.put(subKey, value);
                         }
-                        pulsarProperties.put(subKey, value);
+
                     });
         }
         pulsarProperties.computeIfAbsent(PARTITION_DISCOVERY_INTERVAL_MILLIS.key(), tableOptions::get);

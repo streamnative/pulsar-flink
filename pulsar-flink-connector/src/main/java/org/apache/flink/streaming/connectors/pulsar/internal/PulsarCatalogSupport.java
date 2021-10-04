@@ -15,19 +15,14 @@
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import org.apache.flink.annotation.VisibleForTesting;
-import org.apache.flink.configuration.Configuration;
-import org.apache.flink.formats.atomic.AtomicRowDataFormatFactory;
-import org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.catalog.CatalogBaseTable;
 import org.apache.flink.table.catalog.CatalogTable;
 import org.apache.flink.table.catalog.CatalogTableImpl;
 import org.apache.flink.table.catalog.ObjectPath;
 import org.apache.flink.table.catalog.exceptions.CatalogException;
-import org.apache.flink.table.catalog.pulsar.TableSchemaSerDe;
+import org.apache.flink.table.catalog.pulsar.TableSchemaHelper;
 import org.apache.flink.table.descriptors.DescriptorProperties;
-import org.apache.flink.table.types.DataType;
-import org.apache.flink.table.types.utils.DataTypeUtils;
 
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.PulsarClientException;
@@ -53,10 +48,6 @@ public class PulsarCatalogSupport {
 
     private static final String TABLE_PREFIX = "table_";
 
-    private static final String VIEW_PREFIX = "view_";
-
-    private static final String UDF_PREFIX = "udf_";
-
     private static final String TABLE_COMMENT = "table.comment";
     private static final String IS_CATALOG_TOPIC = "is.catalog.topic";
 
@@ -66,8 +57,6 @@ public class PulsarCatalogSupport {
 
     private SchemaTranslator schemaTranslator;
 
-    private final String adminUrl;
-    private final String serviceUrl;
     private final ClientConfigurationData clientConf;
 
     public PulsarCatalogSupport(String adminUrl,
@@ -79,8 +68,6 @@ public class PulsarCatalogSupport {
         PulsarClientException, PulsarAdminException {
         this.properties = properties;
 
-        this.adminUrl = properties.get(PulsarOptions.ADMIN_URL_OPTION_KEY);
-        this.serviceUrl = properties.get(PulsarOptions.SERVICE_URL_OPTION_KEY);
         this.clientConf = new ClientConfigurationData();
         clientConf.setAuthParams(properties.get(PROPERTIES_PREFIX + PulsarOptions.AUTH_PARAMS_KEY));
         clientConf.setAuthPluginClassName(
@@ -110,8 +97,6 @@ public class PulsarCatalogSupport {
 
         // TODO: initialize the value
         this.properties = new HashMap<>();
-        this.adminUrl = "";
-        this.serviceUrl = "";
         this.clientConf = new ClientConfigurationData();
     }
 
@@ -169,7 +154,7 @@ public class PulsarCatalogSupport {
         if (isNativeFlinkDatabase(tablePath.getDatabaseName())) {
             final SchemaInfo metadataSchema = pulsarMetadataReader.getPulsarSchema(topicName);
             try {
-                return TableSchemaSerDe.deserialize(metadataSchema, generateDefaultTableOptions());
+                return TableSchemaHelper.deserialize(metadataSchema, generateDefaultTableOptions());
             } catch (Exception e) {
                 e.printStackTrace();
                 throw new CatalogException("Failed to fetch metadata for flink table: " + tablePath.getObjectName());
@@ -222,7 +207,7 @@ public class PulsarCatalogSupport {
 
         // use pulsar schema to store flink table information
         try {
-            pulsarMetadataReader.uploadSchema(topicName, TableSchemaSerDe.serialize(table));
+            pulsarMetadataReader.uploadSchema(topicName, TableSchemaHelper.serialize(table));
         } catch  (Exception e) {
             // delete topic if table info cannot be persisted
             try {
@@ -262,7 +247,8 @@ public class PulsarCatalogSupport {
     }
 
     private String objectNameToTopicName(ObjectPath objectPath) {
-        String database, topic;
+        String database;
+        String topic;
 
         if (isNativeFlinkDatabase(objectPath.getDatabaseName())) {
             database = FLINK_CATALOG_TENANT + "/" + objectPath.getDatabaseName();

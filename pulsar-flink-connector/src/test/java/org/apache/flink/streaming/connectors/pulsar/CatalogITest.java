@@ -268,143 +268,143 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
                         .collect(Collectors.toList()));
     }
 
-    @Test(timeout = 40 * 10000L)
-    public void testTableSink() throws Exception {
-        String tp = newTopic();
-        String tableName = TopicName.get(tp).getLocalName();
+//    @Test(timeout = 40 * 10000L)
+//    public void testTableSink() throws Exception {
+//        String tp = newTopic();
+//        String tableName = TopicName.get(tp).getLocalName();
+//
+//        String tableSinkTopic = newTopic("tableSink");
+//        String tableSinkName = TopicName.get(tableSinkTopic).getLocalName();
+//        String pulsarCatalog1 = "pulsarcatalog1";
+//
+//        sendTypedMessages(tp, SchemaType.INT32, INTEGER_LIST, Optional.empty());
+////        getPulsarAdmin().schemas().createSchema(tp, Schema.INT32.getSchemaInfo());
+////        getPulsarAdmin().topics().createSubscription(tp, "test", MessageId.earliest);
+//        Map<String, String> conf = getStreamingConfs();
+//        conf.put("$VAR_STARTING", "earliest");
+//
+//        ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
+//        TableEnvironment tableEnv = context.getTableEnvironment();
+//
+//        tableEnv.useCatalog(pulsarCatalog1);
+//
+//        String sinkDDL = "create table " + tableSinkName + "(v int)";
+//        String insertQ = "INSERT INTO " + tableSinkName + " SELECT * FROM `" + tableName + "`";
+//
+//        tableEnv.executeSql(sinkDDL).print();
+//        tableEnv.executeSql(insertQ);
+//
+//        List<Integer> result = consumeMessage(tableSinkName, Schema.INT32, INTEGER_LIST.size(), 10);
+//
+//        assertEquals(INTEGER_LIST, result);
+//    }
 
-        String tableSinkTopic = newTopic("tableSink");
-        String tableSinkName = TopicName.get(tableSinkTopic).getLocalName();
-        String pulsarCatalog1 = "pulsarcatalog1";
+//    @Test(timeout = 40 * 10000L)
+//    public void testAvroTableSink() throws Exception {
+//
+//        String tableSinkTopic = newTopic("tableSink");
+//        String tableSinkName = TopicName.get(tableSinkTopic).getLocalName();
+//        String pulsarCatalog1 = "pulsarcatalog3";
+//
+//        Map<String, String> conf = getStreamingConfs();
+//        conf.put("$VAR_STARTING", "earliest");
+//        conf.put("$VAR_FORMAT", "avro");
+//
+//        ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
+//        TableEnvironment tableEnv = context.getTableEnvironment();
+//
+//        tableEnv.useCatalog(pulsarCatalog1);
+//
+//        String sinkDDL = "create table " + tableSinkName + "(\n" +
+//                "  oid STRING,\n" +
+//                "  totalprice INT,\n" +
+//                "  customerid STRING\n" +
+//                ")";
+//        String insertQ = "INSERT INTO " + tableSinkName + " VALUES\n" +
+//                "  ('oid1', 10, 'cid1'),\n" +
+//                "  ('oid2', 20, 'cid2'),\n" +
+//                "  ('oid3', 30, 'cid3'),\n" +
+//                "  ('oid4', 10, 'cid4')";
+//
+//        tableEnv.executeSql(sinkDDL).print();
+//        tableEnv.executeSql(insertQ);
+//
+//        List<GenericRecord> result = consumeMessage(tableSinkName, Schema.AUTO_CONSUME(), 4, 10);
+//
+//        assertEquals(4, result.size());
+//    }
 
-        sendTypedMessages(tp, SchemaType.INT32, INTEGER_LIST, Optional.empty());
-//        getPulsarAdmin().schemas().createSchema(tp, Schema.INT32.getSchemaInfo());
-//        getPulsarAdmin().topics().createSubscription(tp, "test", MessageId.earliest);
-        Map<String, String> conf = getStreamingConfs();
-        conf.put("$VAR_STARTING", "earliest");
+//    @Test(timeout = 40 * 10000L)
+//    public void testTableSchema() throws Exception {
+//
+//        String tableSinkTopic = newTopic("tableSink");
+//        String tableSinkName = TopicName.get(tableSinkTopic).getLocalName();
+//        String useCatalog = "pulsarcatalog4";
+//
+//        Map<String, String> conf = getStreamingConfs();
+//        conf.put("$VAR_STARTING", "earliest");
+//        conf.put("$VAR_FORMAT", "avro");
+//
+//        ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
+//        TableEnvironment tableEnv = context.getTableEnvironment();
+//        tableEnv.useCatalog(useCatalog);
+//
+//        String sinkDDL = "CREATE TABLE " + tableSinkName + " (\n" +
+//                "  `physical_1` STRING,\n" +
+//                "  `physical_2` INT,\n" +
+//                "  `eventTime` TIMESTAMP(3) METADATA,  \n" +
+//                "  `properties` MAP<STRING, STRING> METADATA,\n" +
+//                "  `topic` STRING METADATA VIRTUAL,\n" +
+//                "  `sequenceId` BIGINT METADATA VIRTUAL,\n" +
+//                "  `key` STRING ,\n" +
+//                "  `physical_3` BOOLEAN\n" +
+//                ")";
+//
+//        tableEnv.executeSql(sinkDDL).print();
+//        final TableSchema schema = tableEnv.executeSql("DESCRIBE " + tableSinkName).getTableSchema();
+//
+//        ExecutionContext context2 = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
+//        TableEnvironment tableEnv2 = context2.getTableEnvironment();
+//        tableEnv2.useCatalog(useCatalog);
+//        final TableSchema schema2 = tableEnv2.executeSql("DESCRIBE " + tableSinkName).getTableSchema();
+//
+//        assertEquals(schema, schema2);
+//    }
 
-        ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
-        TableEnvironment tableEnv = context.getTableEnvironment();
-
-        tableEnv.useCatalog(pulsarCatalog1);
-
-        String sinkDDL = "create table " + tableSinkName + "(v int)";
-        String insertQ = "INSERT INTO " + tableSinkName + " SELECT * FROM `" + tableName + "`";
-
-        tableEnv.executeSql(sinkDDL).print();
-        tableEnv.executeSql(insertQ);
-
-        List<Integer> result = consumeMessage(tableSinkName, Schema.INT32, INTEGER_LIST.size(), 10);
-
-        assertEquals(INTEGER_LIST, result);
-    }
-
-    @Test(timeout = 40 * 10000L)
-    public void testAvroTableSink() throws Exception {
-
-        String tableSinkTopic = newTopic("tableSink");
-        String tableSinkName = TopicName.get(tableSinkTopic).getLocalName();
-        String pulsarCatalog1 = "pulsarcatalog3";
-
-        Map<String, String> conf = getStreamingConfs();
-        conf.put("$VAR_STARTING", "earliest");
-        conf.put("$VAR_FORMAT", "avro");
-
-        ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
-        TableEnvironment tableEnv = context.getTableEnvironment();
-
-        tableEnv.useCatalog(pulsarCatalog1);
-
-        String sinkDDL = "create table " + tableSinkName + "(\n" +
-                "  oid STRING,\n" +
-                "  totalprice INT,\n" +
-                "  customerid STRING\n" +
-                ")";
-        String insertQ = "INSERT INTO " + tableSinkName + " VALUES\n" +
-                "  ('oid1', 10, 'cid1'),\n" +
-                "  ('oid2', 20, 'cid2'),\n" +
-                "  ('oid3', 30, 'cid3'),\n" +
-                "  ('oid4', 10, 'cid4')";
-
-        tableEnv.executeSql(sinkDDL).print();
-        tableEnv.executeSql(insertQ);
-
-        List<GenericRecord> result = consumeMessage(tableSinkName, Schema.AUTO_CONSUME(), 4, 10);
-
-        assertEquals(4, result.size());
-    }
-
-    @Test(timeout = 40 * 10000L)
-    public void testTableSchema() throws Exception {
-
-        String tableSinkTopic = newTopic("tableSink");
-        String tableSinkName = TopicName.get(tableSinkTopic).getLocalName();
-        String useCatalog = "pulsarcatalog4";
-
-        Map<String, String> conf = getStreamingConfs();
-        conf.put("$VAR_STARTING", "earliest");
-        conf.put("$VAR_FORMAT", "avro");
-
-        ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
-        TableEnvironment tableEnv = context.getTableEnvironment();
-        tableEnv.useCatalog(useCatalog);
-
-        String sinkDDL = "CREATE TABLE " + tableSinkName + " (\n" +
-                "  `physical_1` STRING,\n" +
-                "  `physical_2` INT,\n" +
-                "  `eventTime` TIMESTAMP(3) METADATA,  \n" +
-                "  `properties` MAP<STRING, STRING> METADATA,\n" +
-                "  `topic` STRING METADATA VIRTUAL,\n" +
-                "  `sequenceId` BIGINT METADATA VIRTUAL,\n" +
-                "  `key` STRING ,\n" +
-                "  `physical_3` BOOLEAN\n" +
-                ")";
-
-        tableEnv.executeSql(sinkDDL).print();
-        final TableSchema schema = tableEnv.executeSql("DESCRIBE " + tableSinkName).getTableSchema();
-
-        ExecutionContext context2 = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
-        TableEnvironment tableEnv2 = context2.getTableEnvironment();
-        tableEnv2.useCatalog(useCatalog);
-        final TableSchema schema2 = tableEnv2.executeSql("DESCRIBE " + tableSinkName).getTableSchema();
-
-        assertEquals(schema, schema2);
-    }
-
-    @Test(timeout = 40 * 10000L)
-    public void testJsonTableSink() throws Exception {
-
-        String tableSinkTopic = newTopic("tableSink");
-        String tableSinkName = TopicName.get(tableSinkTopic).getLocalName();
-        String pulsarCatalog1 = "pulsarcatalog3";
-
-        Map<String, String> conf = getStreamingConfs();
-        conf.put("$VAR_STARTING", "earliest");
-        conf.put("$VAR_FORMAT", "json");
-
-        ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
-        TableEnvironment tableEnv = context.getTableEnvironment();
-
-        tableEnv.useCatalog(pulsarCatalog1);
-
-        String sinkDDL = "create table " + tableSinkName + "(\n" +
-                "  oid STRING,\n" +
-                "  totalprice INT,\n" +
-                "  customerid STRING\n" +
-                ")";
-        String insertQ = "INSERT INTO " + tableSinkName + " VALUES\n" +
-                "  ('oid1', 10, 'cid1'),\n" +
-                "  ('oid2', 20, 'cid2'),\n" +
-                "  ('oid3', 30, 'cid3'),\n" +
-                "  ('oid4', 10, 'cid4')";
-
-        tableEnv.executeSql(sinkDDL).print();
-        tableEnv.executeSql(insertQ);
-
-        List<GenericRecord> result = consumeMessage(tableSinkName, Schema.AUTO_CONSUME(), 4, 10);
-
-        assertEquals(4, result.size());
-    }
+//    @Test(timeout = 40 * 10000L)
+//    public void testJsonTableSink() throws Exception {
+//
+//        String tableSinkTopic = newTopic("tableSink");
+//        String tableSinkName = TopicName.get(tableSinkTopic).getLocalName();
+//        String pulsarCatalog1 = "pulsarcatalog3";
+//
+//        Map<String, String> conf = getStreamingConfs();
+//        conf.put("$VAR_STARTING", "earliest");
+//        conf.put("$VAR_FORMAT", "json");
+//
+//        ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
+//        TableEnvironment tableEnv = context.getTableEnvironment();
+//
+//        tableEnv.useCatalog(pulsarCatalog1);
+//
+//        String sinkDDL = "create table " + tableSinkName + "(\n" +
+//                "  oid STRING,\n" +
+//                "  totalprice INT,\n" +
+//                "  customerid STRING\n" +
+//                ")";
+//        String insertQ = "INSERT INTO " + tableSinkName + " VALUES\n" +
+//                "  ('oid1', 10, 'cid1'),\n" +
+//                "  ('oid2', 20, 'cid2'),\n" +
+//                "  ('oid3', 30, 'cid3'),\n" +
+//                "  ('oid4', 10, 'cid4')";
+//
+//        tableEnv.executeSql(sinkDDL).print();
+//        tableEnv.executeSql(insertQ);
+//
+//        List<GenericRecord> result = consumeMessage(tableSinkName, Schema.AUTO_CONSUME(), 4, 10);
+//
+//        assertEquals(4, result.size());
+//    }
 
     @NotNull
     private <T> List<T> consumeMessage(String topic, Schema<T> schema, int count, int timeout)

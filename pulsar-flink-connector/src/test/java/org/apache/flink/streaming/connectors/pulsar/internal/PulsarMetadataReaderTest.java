@@ -48,7 +48,8 @@ public class PulsarMetadataReaderTest extends PulsarTestBase {
     @Test
     public void getTopicPartitionsAll() throws PulsarAdminException {
 
-        createNonPartitionTopic(nonPartitionTopic);
+        createTopic(nonPartitionTopic, 0);
+        createTopic(onePartitionTopic, 1);
 
         Set<TopicRange> topicPartitionsAll = pulsarMetadataReader.getTopicPartitionsAll();
         List<TopicRange> topicRanges = topicPartitionsAll.stream().collect(Collectors.toList());
@@ -69,7 +70,7 @@ public class PulsarMetadataReaderTest extends PulsarTestBase {
         Assert.assertFalse(pulsarMetadataReader.topicExists(nonPartitionTopic));
 
         // non-partitioned topic it doesn't exist
-        createNonPartitionTopic(nonPartitionTopic);
+        createTopic(nonPartitionTopic, 0);
         Assert.assertFalse(pulsarMetadataReader.topicExists(nonPartitionTopic));
 
         // non-persist topic it exit
@@ -84,7 +85,11 @@ public class PulsarMetadataReaderTest extends PulsarTestBase {
         pulsarMetadataReader.deleteTopic(nonPersistTopic);
     }
 
-    private void createNonPartitionTopic(String topicName) throws PulsarAdminException {
-        getPulsarAdmin().topics().createNonPartitionedTopic(topicName);
+    private void createTopic(String topicName, int partition) throws PulsarAdminException {
+        if (partition == 0) {
+            getPulsarAdmin().topics().createNonPartitionedTopic(topicName);
+        } else {
+            getPulsarAdmin().topics().createPartitionedTopic(topicName, partition);
+        }
     }
 }

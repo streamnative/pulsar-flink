@@ -14,7 +14,6 @@
 
 package org.apache.flink.table.catalog.pulsar;
 
-import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.connectors.pulsar.internal.IncompatibleSchemaException;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarCatalogSupport;
 import org.apache.flink.streaming.connectors.pulsar.internal.SimpleSchemaTranslator;
@@ -82,9 +81,8 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
     public void open() throws CatalogException {
         if (catalogSupport == null) {
             try {
-                catalogSupport = new PulsarCatalogSupport(adminUrl, properties,"",
-                    new HashMap<>(), -1, -1, new SimpleSchemaTranslator(false));
-            } catch (PulsarClientException|PulsarAdminException e) {
+                catalogSupport = new PulsarCatalogSupport(adminUrl, properties,"", new HashMap<>(), -1, -1, new SimpleSchemaTranslator(false));
+            } catch (PulsarClientException | PulsarAdminException e) {
                 throw new CatalogException("Failed to create Pulsar admin using " + adminUrl, e);
             }
         }

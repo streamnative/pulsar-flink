@@ -14,7 +14,6 @@
 
 package org.apache.flink.table.catalog.pulsar.factories;
 
-import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions;
 import org.apache.flink.table.catalog.Catalog;
 import org.apache.flink.table.catalog.pulsar.PulsarCatalog;

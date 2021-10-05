@@ -12,15 +12,15 @@
  * limitations under the License.
  */
 
-
 package org.apache.flink.table.catalog.pulsar;
 
-import lombok.Data;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.tuple.Tuple4;
 import org.apache.flink.table.api.TableColumn;
 import org.apache.flink.table.catalog.exceptions.CatalogException;
 import org.apache.flink.table.types.DataType;
+
+import lombok.Data;
 
 import java.io.Serializable;
 import java.util.List;

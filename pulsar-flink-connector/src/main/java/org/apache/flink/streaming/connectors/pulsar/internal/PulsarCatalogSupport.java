@@ -121,7 +121,7 @@ public class PulsarCatalogSupport {
     public boolean databaseExists(String name) throws PulsarAdminException {
         if (isNativeFlinkDatabase(name)) {
             return pulsarMetadataReader.namespaceExists(FLINK_CATALOG_TENANT + "/" + name);
-        } else{
+        } else {
             return pulsarMetadataReader.namespaceExists(name);
         }
     }

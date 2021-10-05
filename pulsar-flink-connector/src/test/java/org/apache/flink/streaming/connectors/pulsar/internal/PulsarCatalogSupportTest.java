@@ -16,22 +16,9 @@ package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions;
-import org.apache.flink.table.api.DataTypes;
-import org.apache.flink.table.api.TableColumn;
-import org.apache.flink.table.api.TableSchema;
-import org.apache.flink.table.catalog.CatalogBaseTable;
-import org.apache.flink.table.catalog.ObjectPath;
-
-import org.apache.pulsar.client.admin.PulsarAdminException;
-import org.apache.pulsar.common.schema.SchemaInfo;
-import org.junit.Assert;
-import org.junit.Test;
 
 import java.util.Collections;
 
-import static org.mockito.Mockito.verify;
-import static org.powermock.api.mockito.PowerMockito.mock;
-import static org.powermock.api.mockito.PowerMockito.when;
 
 /**
  * unit test for PulsarCatalogSupport.

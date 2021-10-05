@@ -16,7 +16,6 @@ package org.apache.flink.table.catalog.pulsar;
 
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.tuple.Tuple4;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.api.constraints.UniqueConstraint;
 import org.apache.flink.table.catalog.CatalogBaseTable;
@@ -25,9 +24,12 @@ import org.apache.flink.table.api.WatermarkSpec;
 import org.apache.flink.table.catalog.CatalogTableImpl;
 import org.apache.flink.table.runtime.util.JsonUtils;
 import org.apache.flink.table.types.DataType;
+
 import org.apache.pulsar.client.impl.schema.SchemaInfoImpl;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
+
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.type.TypeReference;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

@@ -19,7 +19,6 @@ import org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions;
 
 import java.util.Collections;
 
-
 /**
  * unit test for PulsarCatalogSupport.
  */

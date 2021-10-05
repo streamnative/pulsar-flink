@@ -81,7 +81,7 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
     public void open() throws CatalogException {
         if (catalogSupport == null) {
             try {
-                catalogSupport = new PulsarCatalogSupport(adminUrl, properties,"", new HashMap<>(), -1, -1, new SimpleSchemaTranslator(false));
+                catalogSupport = new PulsarCatalogSupport(adminUrl, properties, "", new HashMap<>(), -1, -1, new SimpleSchemaTranslator(false));
             } catch (PulsarClientException | PulsarAdminException e) {
                 throw new CatalogException("Failed to create Pulsar admin using " + adminUrl, e);
             }

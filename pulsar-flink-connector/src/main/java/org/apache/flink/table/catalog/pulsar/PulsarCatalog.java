@@ -14,10 +14,8 @@
 
 package org.apache.flink.table.catalog.pulsar;
 
-import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.connectors.pulsar.internal.IncompatibleSchemaException;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarCatalogSupport;
-import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.streaming.connectors.pulsar.internal.SimpleSchemaTranslator;
 import org.apache.flink.streaming.connectors.pulsar.table.PulsarDynamicTableFactory;
 import org.apache.flink.table.catalog.CatalogBaseTable;
@@ -45,31 +43,32 @@ import org.apache.flink.table.factories.Factory;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.PulsarClientException;
-import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.PROPERTIES_PREFIX;
-
 /**
  * Expose a Pulsar instance as a database catalog.
  */
 @Slf4j
 public class PulsarCatalog extends GenericInMemoryCatalog {
+    // TODO: implement the Catalog class directly, currently rely on GenericInMemoryCatalog to support function
 
-    private String adminUrl;
+    private final String adminUrl;
 
-    private Configuration configuration;
+    private final Map<String, String> properties;
 
     private PulsarCatalogSupport catalogSupport;
 
-    public PulsarCatalog(String adminUrl, String catalogName, Configuration configuration, String defaultDatabase) {
+    public static final String DEFAULT_DB = "public/default";
+
+    public PulsarCatalog(String adminUrl, String catalogName, Map<String, String> props, String defaultDatabase) {
         super(catalogName, defaultDatabase);
+
         this.adminUrl = adminUrl;
-        this.configuration = configuration;
+        this.properties = new HashMap<>(props);
         log.info("Created Pulsar Catalog {}", catalogName);
     }
 
@@ -82,15 +81,8 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
     public void open() throws CatalogException {
         if (catalogSupport == null) {
             try {
-                final ClientConfigurationData clientConf = new ClientConfigurationData();
-                clientConf.setAuthParams(
-                        configuration.getString(PROPERTIES_PREFIX + PulsarOptions.AUTH_PARAMS_KEY, null));
-                clientConf.setAuthPluginClassName(
-                        configuration.getString(PROPERTIES_PREFIX + PulsarOptions.AUTH_PLUGIN_CLASSNAME_KEY, null));
-
-                catalogSupport = new PulsarCatalogSupport(adminUrl, clientConf, "",
-                        new HashMap<>(), -1, -1, new SimpleSchemaTranslator(false));
-            } catch (PulsarClientException e) {
+                catalogSupport = new PulsarCatalogSupport(adminUrl, properties, "", new HashMap<>(), -1, -1, new SimpleSchemaTranslator(false));
+            } catch (PulsarClientException | PulsarAdminException e) {
                 throw new CatalogException("Failed to create Pulsar admin using " + adminUrl, e);
             }
         }
@@ -108,7 +100,7 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
     @Override
     public List<String> listDatabases() throws CatalogException {
         try {
-            return catalogSupport.listNamespaces();
+            return catalogSupport.listDatabases();
         } catch (PulsarAdminException e) {
             throw new CatalogException(String.format("Failed to list all databases in %s", getName()), e);
         }
@@ -116,6 +108,7 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
 
     @Override
     public CatalogDatabase getDatabase(String databaseName) throws DatabaseNotExistException, CatalogException {
+        // TODO: correctly fetch the stored database metadata
         Map<String, String> properties = new HashMap<>();
         return new CatalogDatabaseImpl(properties, databaseName);
     }
@@ -123,7 +116,7 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
     @Override
     public boolean databaseExists(String databaseName) throws CatalogException {
         try {
-            return catalogSupport.namespaceExists(databaseName);
+            return catalogSupport.databaseExists(databaseName);
         } catch (PulsarAdminException e) {
             return false;
         } catch (Exception e) {
@@ -134,9 +127,10 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
 
     @Override
     public void createDatabase(String name, CatalogDatabase database, boolean ignoreIfExists)
-            throws DatabaseAlreadyExistException, CatalogException {
+        throws DatabaseAlreadyExistException, CatalogException {
         try {
-            catalogSupport.createNamespace(name);
+            // TODO: store database metadata: properties, comment, description
+            catalogSupport.createDatabase(name);
         } catch (PulsarAdminException.ConflictException e) {
             if (!ignoreIfExists) {
                 throw new DatabaseAlreadyExistException(getName(), name, e);
@@ -149,7 +143,7 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
     @Override
     public List<String> listTables(String databaseName) throws DatabaseNotExistException, CatalogException {
         try {
-            return catalogSupport.getTopics(databaseName);
+            return catalogSupport.listTables(databaseName);
         } catch (PulsarAdminException.NotFoundException e) {
             throw new DatabaseNotExistException(getName(), databaseName, e);
         } catch (PulsarAdminException e) {
@@ -163,7 +157,7 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
             return super.getTable(tablePath);
         }
         try {
-            return catalogSupport.getTableSchema(tablePath, configuration);
+            return catalogSupport.getTable(tablePath);
         } catch (PulsarAdminException.NotFoundException e) {
             throw new TableNotExistException(getName(), tablePath, e);
         } catch (PulsarAdminException | IncompatibleSchemaException e) {
@@ -177,7 +171,7 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
             return super.tableExists(tablePath);
         }
         try {
-            return catalogSupport.topicExists(tablePath);
+            return catalogSupport.tableExists(tablePath);
         } catch (PulsarAdminException.NotFoundException e) {
             return false;
         } catch (PulsarAdminException e) {
@@ -187,27 +181,24 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
 
     @Override
     public void createTable(ObjectPath tablePath, CatalogBaseTable table, boolean ignoreIfExists)
-            throws TableAlreadyExistException, DatabaseNotExistException, CatalogException {
+        throws TableAlreadyExistException, DatabaseNotExistException, CatalogException {
         if (tablePath.getObjectName().startsWith("_tmp_table_")) {
             super.createTable(tablePath, table, ignoreIfExists);
         }
 
-        int defaultNumPartitions = configuration.getInteger(PulsarOptions.DEFAULT_PARTITIONS, 5);
-        String databaseName = tablePath.getDatabaseName();
-        Boolean databaseExists;
+        boolean databaseExists;
         try {
-            databaseExists = catalogSupport.namespaceExists(databaseName);
+            databaseExists = catalogSupport.databaseExists(tablePath.getDatabaseName());
         } catch (PulsarAdminException e) {
-            throw new CatalogException(String.format("Failed to check existence of databases %s", databaseName), e);
+            throw new CatalogException(String.format("Failed to check existence of databases %s", tablePath.getDatabaseName()), e);
         }
 
         if (!databaseExists) {
-            throw new DatabaseNotExistException(getName(), databaseName);
+            throw new DatabaseNotExistException(getName(), tablePath.getDatabaseName());
         }
 
         try {
-            catalogSupport.createTopic(tablePath, defaultNumPartitions, table);
-            catalogSupport.putSchema(tablePath, table, configuration);
+            catalogSupport.createTable(tablePath, table);
         } catch (PulsarAdminException e) {
             if (e.getStatusCode() == 409) {
                 throw new TableAlreadyExistException(getName(), tablePath, e);
@@ -226,13 +217,13 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
 
     @Override
     public void dropDatabase(String name, boolean ignoreIfNotExists, boolean cascade)
-            throws DatabaseNotExistException, DatabaseNotEmptyException, CatalogException {
+        throws DatabaseNotExistException, DatabaseNotEmptyException, CatalogException {
         throw new UnsupportedOperationException();
     }
 
     @Override
     public void alterDatabase(String name, CatalogDatabase newDatabase, boolean ignoreIfNotExists)
-            throws DatabaseNotExistException, CatalogException {
+        throws DatabaseNotExistException, CatalogException {
         throw new UnsupportedOperationException();
     }
 
@@ -243,21 +234,21 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
 
     @Override
     public void alterTable(ObjectPath tablePath, CatalogBaseTable newTable, boolean ignoreIfNotExists)
-            throws TableNotExistException, CatalogException {
+        throws TableNotExistException, CatalogException {
         throw new UnsupportedOperationException();
     }
 
     @Override
     public void renameTable(ObjectPath tablePath, String newTableName, boolean ignoreIfNotExists)
-            throws TableNotExistException, TableAlreadyExistException, CatalogException {
+        throws TableNotExistException, TableAlreadyExistException, CatalogException {
         throw new UnsupportedOperationException();
     }
 
     @Override
     public void dropTable(ObjectPath tablePath, boolean ignoreIfNotExists)
-            throws TableNotExistException, CatalogException {
+        throws TableNotExistException, CatalogException {
         try {
-            catalogSupport.deleteTopic(tablePath);
+            catalogSupport.dropTable(tablePath, ignoreIfNotExists);
         } catch (PulsarAdminException.NotFoundException e) {
             if (!ignoreIfNotExists) {
                 throw new TableNotExistException(getName(), tablePath, e);
@@ -269,25 +260,25 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
 
     @Override
     public List<CatalogPartitionSpec> listPartitions(ObjectPath tablePath)
-            throws TableNotExistException, TableNotPartitionedException, CatalogException {
+        throws TableNotExistException, TableNotPartitionedException, CatalogException {
         throw new UnsupportedOperationException();
     }
 
     @Override
     public List<CatalogPartitionSpec> listPartitions(ObjectPath tablePath, CatalogPartitionSpec partitionSpec)
-            throws TableNotExistException, TableNotPartitionedException, CatalogException {
+        throws TableNotExistException, TableNotPartitionedException, CatalogException {
         throw new UnsupportedOperationException();
     }
 
     @Override
     public List<CatalogPartitionSpec> listPartitionsByFilter(ObjectPath tablePath, List<Expression> expressions)
-            throws TableNotExistException, TableNotPartitionedException, CatalogException {
+        throws TableNotExistException, TableNotPartitionedException, CatalogException {
         throw new UnsupportedOperationException();
     }
 
     @Override
     public CatalogPartition getPartition(ObjectPath tablePath, CatalogPartitionSpec partitionSpec)
-            throws PartitionNotExistException, CatalogException {
+        throws PartitionNotExistException, CatalogException {
         throw new UnsupportedOperationException();
     }
 
@@ -299,14 +290,14 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
     @Override
     public void createPartition(ObjectPath tablePath, CatalogPartitionSpec partitionSpec, CatalogPartition partition,
                                 boolean ignoreIfExists)
-            throws TableNotExistException, TableNotPartitionedException, PartitionSpecInvalidException,
-            PartitionAlreadyExistsException, CatalogException {
+        throws TableNotExistException, TableNotPartitionedException, PartitionSpecInvalidException,
+        PartitionAlreadyExistsException, CatalogException {
         throw new UnsupportedOperationException();
     }
 
     @Override
     public void dropPartition(ObjectPath tablePath, CatalogPartitionSpec partitionSpec, boolean ignoreIfNotExists)
-            throws PartitionNotExistException, CatalogException {
+        throws PartitionNotExistException, CatalogException {
         throw new UnsupportedOperationException();
     }
 
@@ -318,26 +309,26 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
 
     @Override
     public CatalogTableStatistics getTableStatistics(ObjectPath tablePath)
-            throws TableNotExistException, CatalogException {
+        throws TableNotExistException, CatalogException {
         return CatalogTableStatistics.UNKNOWN;
     }
 
     @Override
     public CatalogColumnStatistics getTableColumnStatistics(ObjectPath tablePath)
-            throws TableNotExistException, CatalogException {
+        throws TableNotExistException, CatalogException {
         return CatalogColumnStatistics.UNKNOWN;
     }
 
     @Override
     public CatalogTableStatistics getPartitionStatistics(ObjectPath tablePath, CatalogPartitionSpec partitionSpec)
-            throws PartitionNotExistException, CatalogException {
+        throws PartitionNotExistException, CatalogException {
         return CatalogTableStatistics.UNKNOWN;
     }
 
     @Override
     public CatalogColumnStatistics getPartitionColumnStatistics(ObjectPath tablePath,
                                                                 CatalogPartitionSpec partitionSpec)
-            throws PartitionNotExistException, CatalogException {
+        throws PartitionNotExistException, CatalogException {
         return CatalogColumnStatistics.UNKNOWN;
     }
 
@@ -356,14 +347,14 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
     @Override
     public void alterPartitionStatistics(ObjectPath tablePath, CatalogPartitionSpec partitionSpec,
                                          CatalogTableStatistics partitionStatistics, boolean ignoreIfNotExists)
-            throws PartitionNotExistException, CatalogException {
+        throws PartitionNotExistException, CatalogException {
         throw new UnsupportedOperationException();
     }
 
     @Override
     public void alterPartitionColumnStatistics(ObjectPath tablePath, CatalogPartitionSpec partitionSpec,
                                                CatalogColumnStatistics columnStatistics, boolean ignoreIfNotExists)
-            throws PartitionNotExistException, CatalogException {
+        throws PartitionNotExistException, CatalogException {
         throw new UnsupportedOperationException();
     }
 }

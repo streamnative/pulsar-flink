@@ -63,6 +63,14 @@ import static org.apache.flink.table.types.logical.utils.LogicalTypeChecks.hasRo
 @Slf4j
 public class PulsarTableOptions {
 
+
+    public static final ConfigOption<String> CONNECTOR = ConfigOptions
+        .key("connector")
+        .stringType()
+        .defaultValue("pulsar")
+        .withDescription("Defines the connector mode used for connecting to pulsar cluster. "
+            + "currently suport: pulsar, upsert-pulsar");
+
     // --------------------------------------------------------------------------------------------
     // Format options
     // --------------------------------------------------------------------------------------------
@@ -386,10 +394,16 @@ public class PulsarTableOptions {
                     .forEach(key -> {
                         final String value = tableOptions.get(key);
                         String subKey = key.substring((PROPERTIES_PREFIX).length());
-                        if (subKey.startsWith(PULSAR_OPTION_KEY_PREFIX)) {
+                        // TODO: this part need to be fixed, currently
+                        // any config in camel case will be change to all lower case
+                        if (subKey.equals("pulsar.producer.blockIfQueueFull") ||
+                            subKey.equals("pulsar.producer.sendTimeoutMs")) {
+                            pulsarProperties.put(subKey, value);
+                        } else if (subKey.startsWith(PULSAR_OPTION_KEY_PREFIX)) {
                             subKey = CaseFormat.LOWER_HYPHEN.to(CaseFormat.LOWER_CAMEL, subKey);
+                            pulsarProperties.put(subKey, value);
                         }
-                        pulsarProperties.put(subKey, value);
+
                     });
         }
         pulsarProperties.computeIfAbsent(PARTITION_DISCOVERY_INTERVAL_MILLIS.key(), tableOptions::get);

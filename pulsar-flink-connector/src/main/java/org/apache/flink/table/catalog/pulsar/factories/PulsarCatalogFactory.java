@@ -14,7 +14,6 @@
 
 package org.apache.flink.table.catalog.pulsar.factories;
 
-import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions;
 import org.apache.flink.table.catalog.Catalog;
 import org.apache.flink.table.catalog.pulsar.PulsarCatalog;
@@ -49,7 +48,7 @@ public class PulsarCatalogFactory implements CatalogFactory {
         DescriptorProperties dp = getValidateProperties(properties);
         String defaultDB = dp.getOptionalString(CATALOG_DEFAULT_DATABASE).orElse("public/default");
         String adminUrl = dp.getString(CATALOG_ADMIN_URL);
-        return new PulsarCatalog(adminUrl, name, Configuration.fromMap(dp.asMap()), defaultDB);
+        return new PulsarCatalog(adminUrl, name, dp.asMap(), defaultDB);
     }
 
     @Override

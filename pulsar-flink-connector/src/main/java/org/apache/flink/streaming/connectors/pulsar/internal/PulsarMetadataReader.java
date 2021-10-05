@@ -28,7 +28,9 @@ import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.partition.PartitionedTopicMetadata;
 import org.apache.pulsar.common.policies.data.PartitionedTopicInternalStats;
 import org.apache.pulsar.common.policies.data.PersistentTopicInternalStats;
+import org.apache.pulsar.common.policies.data.RetentionPolicies;
 import org.apache.pulsar.common.policies.data.SubscriptionStats;
+import org.apache.pulsar.common.policies.data.TenantInfoImpl;
 import org.apache.pulsar.common.policies.data.TopicStats;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.shade.com.google.common.collect.Iterables;
@@ -81,13 +83,13 @@ public class PulsarMetadataReader implements AutoCloseable {
     private final SerializableRange range;
 
     public PulsarMetadataReader(
-            String adminUrl,
-            ClientConfigurationData clientConf,
-            String subscriptionName,
-            Map<String, String> caseInsensitiveParams,
-            int indexOfThisSubtask,
-            int numParallelSubtasks,
-            boolean useExternalSubscription) throws PulsarClientException {
+        String adminUrl,
+        ClientConfigurationData clientConf,
+        String subscriptionName,
+        Map<String, String> caseInsensitiveParams,
+        int indexOfThisSubtask,
+        int numParallelSubtasks,
+        boolean useExternalSubscription) throws PulsarClientException {
 
         this.adminUrl = adminUrl;
         this.subscriptionName = subscriptionName;
@@ -104,7 +106,7 @@ public class PulsarMetadataReader implements AutoCloseable {
             return SerializableRange.ofFullRange();
         }
         if (caseInsensitiveParams == null || caseInsensitiveParams.isEmpty() ||
-                !caseInsensitiveParams.containsKey(ENABLE_KEY_HASH_RANGE_KEY)) {
+            !caseInsensitiveParams.containsKey(ENABLE_KEY_HASH_RANGE_KEY)) {
             return SerializableRange.ofFullRange();
         }
         final String enableKeyHashRange = caseInsensitiveParams.get(ENABLE_KEY_HASH_RANGE_KEY);
@@ -116,12 +118,12 @@ public class PulsarMetadataReader implements AutoCloseable {
     }
 
     public PulsarMetadataReader(
-            String adminUrl,
-            ClientConfigurationData clientConf,
-            String subscriptionName,
-            Map<String, String> caseInsensitiveParams,
-            int indexOfThisSubtask,
-            int numParallelSubtasks) throws PulsarClientException {
+        String adminUrl,
+        ClientConfigurationData clientConf,
+        String subscriptionName,
+        Map<String, String> caseInsensitiveParams,
+        int indexOfThisSubtask,
+        int numParallelSubtasks) throws PulsarClientException {
 
         this(adminUrl, clientConf, subscriptionName, caseInsensitiveParams, indexOfThisSubtask, numParallelSubtasks, false);
     }
@@ -141,6 +143,20 @@ public class PulsarMetadataReader implements AutoCloseable {
         } else {
             throw new ClosedException();
         }
+    }
+
+    public void createTenant(String tenant) throws PulsarAdminException {
+        Set<String> clusters = new HashSet<>(admin.clusters().getClusters());
+        admin.tenants().createTenant(tenant, TenantInfoImpl.builder().allowedClusters(clusters).build());
+    }
+
+    public boolean tenantExists(String tenant) throws PulsarAdminException {
+        try {
+            admin.tenants().getTenantInfo(tenant);
+        } catch (PulsarAdminException.NotFoundException e) {
+            return false;
+        }
+        return true;
     }
 
     public List<String> listNamespaces() throws PulsarAdminException {
@@ -164,6 +180,8 @@ public class PulsarMetadataReader implements AutoCloseable {
     public void createNamespace(String ns) throws PulsarAdminException {
         String nsName = NamespaceName.get(ns).toString();
         admin.namespaces().createNamespace(nsName);
+        // retain the topic infinitely to store the metadata
+        admin.namespaces().setRetention(nsName, new RetentionPolicies(-1, -1));
     }
 
     public void deleteNamespace(String ns) throws PulsarAdminException {
@@ -209,12 +227,20 @@ public class PulsarMetadataReader implements AutoCloseable {
         }
     }
 
-    public void createTopic(String topicName, int defaultPartitionNum) throws PulsarAdminException, IncompatibleSchemaException {
-        admin.topics().createPartitionedTopic(topicName, defaultPartitionNum);
+    public void createTopic(String topicName, int partitionNum) throws PulsarAdminException, IncompatibleSchemaException {
+        if (partitionNum > 1) {
+            admin.topics().createPartitionedTopic(topicName, partitionNum);
+        } else {
+            admin.topics().createNonPartitionedTopic(topicName);
+        }
     }
 
-    public void putSchema(String topicName, SchemaInfo schemaInfo) throws IncompatibleSchemaException {
+    public void uploadSchema(String topicName, SchemaInfo schemaInfo) throws IncompatibleSchemaException {
         SchemaUtils.uploadPulsarSchema(admin, topicName, schemaInfo);
+    }
+
+    public void deleteSchema(String topicName) {
+        SchemaUtils.deletePulsarSchema(admin, topicName);
     }
 
     public void setupCursor(Map<TopicRange, MessageId> offset, boolean failOnDataLoss) {
@@ -230,7 +256,7 @@ public class PulsarMetadataReader implements AutoCloseable {
                     log.info("Subscription {} on topic {} already exists", subscriptionName, entry.getKey());
                 } catch (PulsarAdminException e) {
                     throw new RuntimeException(
-                            String.format("Failed to set up cursor for %s ", entry.getKey().toString()), e);
+                        String.format("Failed to set up cursor for %s ", entry.getKey().toString()), e);
                 }
             }
         }
@@ -249,12 +275,12 @@ public class PulsarMetadataReader implements AutoCloseable {
                 log.info("Successfully committed offset {} to topic {}", entry.getValue(), tp);
             } catch (Throwable e) {
                 if (e instanceof PulsarAdminException &&
-                        (((PulsarAdminException) e).getStatusCode() == 404 ||
-                                ((PulsarAdminException) e).getStatusCode() == 412)) {
+                    (((PulsarAdminException) e).getStatusCode() == 404 ||
+                        ((PulsarAdminException) e).getStatusCode() == 412)) {
                     log.info("Cannot commit cursor since the topic {} has been deleted during execution", tp);
                 } else {
                     throw new RuntimeException(
-                            String.format("Failed to commit cursor for %s", tp), e);
+                        String.format("Failed to commit cursor for %s", tp), e);
                 }
             }
         }
@@ -277,7 +303,7 @@ public class PulsarMetadataReader implements AutoCloseable {
                         log.info("Cannot remove cursor since the topic {} has been deleted during execution", topicRange.getTopic());
                     } else {
                         throw new RuntimeException(
-                                String.format("Failed to remove cursor for %s", topicRange.toString()), e);
+                            String.format("Failed to remove cursor for %s", topicRange.toString()), e);
                     }
                 }
             }
@@ -296,11 +322,11 @@ public class PulsarMetadataReader implements AutoCloseable {
                 SubscriptionStats subStats = topicStats.getSubscriptions().get(subscriptionName);
                 if (subStats.getConsumers().size() != 0) {
                     throw new RuntimeException("Subscription been actively used by other consumers, " +
-                            "in this situation, the exactly-once semantics cannot be guaranteed.");
+                        "in this situation, the exactly-once semantics cannot be guaranteed.");
                 } else {
                     String encodedSubName = URLEncoder.encode(subscriptionName, StandardCharsets.UTF_8.toString());
                     PersistentTopicInternalStats.CursorStats c =
-                            admin.topics().getInternalStats(topic.getTopic()).cursors.get(encodedSubName);
+                        admin.topics().getInternalStats(topic.getTopic()).cursors.get(encodedSubName);
                     String[] ids = c.markDeletePosition.split(":", 2);
                     long ledgerId = Long.parseLong(ids[0]);
                     long entryIdInMarkDelete = Long.parseLong(ids[1]);
@@ -328,10 +354,10 @@ public class PulsarMetadataReader implements AutoCloseable {
 
             if (schemas.size() != 1) {
                 throw new IncompatibleSchemaException(
-                        String.format("Topics to read must share identical schema, however we got %d distinct schemas [%s]",
-                                schemas.size(),
-                                String.join(",", schemas.stream().map(SchemaInfo::toString).collect(Collectors.toList()))),
-                        null);
+                    String.format("Topics to read must share identical schema, however we got %d distinct schemas [%s]",
+                        schemas.size(),
+                        String.join(",", schemas.stream().map(SchemaInfo::toString).collect(Collectors.toList()))),
+                    null);
             }
             return Iterables.getFirst(schemas, SchemaUtils.emptySchemaInfo());
         } else {
@@ -347,7 +373,7 @@ public class PulsarMetadataReader implements AutoCloseable {
                 return BytesSchema.of().getSchemaInfo();
             } else {
                 throw new RuntimeException(
-                        String.format("Failed to get schema information for %s", TopicName.get(topic).toString()), e);
+                    String.format("Failed to get schema information for %s", TopicName.get(topic).toString()), e);
             }
         }
     }
@@ -355,8 +381,8 @@ public class PulsarMetadataReader implements AutoCloseable {
     public Set<TopicRange> getTopicPartitions() throws PulsarAdminException {
         Set<TopicRange> topics = getTopicPartitionsAll();
         return topics.stream()
-                .filter(t -> SourceSinkUtils.belongsTo(t, numParallelSubtasks, indexOfThisSubtask))
-                .collect(Collectors.toSet());
+            .filter(t -> SourceSinkUtils.belongsTo(t, numParallelSubtasks, indexOfThisSubtask))
+            .collect(Collectors.toSet());
     }
 
     /**
@@ -404,15 +430,15 @@ public class PulsarMetadataReader implements AutoCloseable {
                     return Collections.singletonList(topicRange);
                 } else if (key.equals("topics")) {
                     return Arrays.asList(e.getValue().split(",")).stream()
-                            .filter(s -> !s.isEmpty())
-                            .map(t -> TopicName.get(t).toString())
-                            .map(t -> new TopicRange(t, range.getPulsarRange()))
-                            .collect(Collectors.toList());
+                        .filter(s -> !s.isEmpty())
+                        .map(t -> TopicName.get(t).toString())
+                        .map(t -> new TopicRange(t, range.getPulsarRange()))
+                        .collect(Collectors.toList());
                 } else { // topicspattern
                     return getTopicsWithPattern(e.getValue())
-                            .stream()
-                            .map(t -> new TopicRange(t, range.getPulsarRange()))
-                            .collect(Collectors.toList());
+                        .stream()
+                        .map(t -> new TopicRange(t, range.getPulsarRange()))
+                        .collect(Collectors.toList());
                 }
             }
         }
@@ -433,8 +459,8 @@ public class PulsarMetadataReader implements AutoCloseable {
 
     private List<String> getNonPartitionedTopics(String namespace) throws PulsarAdminException {
         return admin.topics().getList(namespace).stream()
-                .filter(t -> !TopicName.get(t).isPartitioned())
-                .collect(Collectors.toList());
+            .filter(t -> !TopicName.get(t).isPartitioned())
+            .collect(Collectors.toList());
     }
 
     /**

@@ -457,7 +457,7 @@ Flink 社区用户对 Upsert 模式消息队列有很高的需求，主要原因
 
 在 SQL DDL 定义中，用户将 `connector` 设置为 `upsert-pulsar`，即可使用 Upsert Pulsar 连接器。
 
-在配置方面，必须指定 Table 的主键，且`key.fields` 不能使用。
+**在配置方面，必须指定 Table 的主键，且`key.fields`、`key.fields-prefix` 不能使用。**
 
 作为 source，Upsert Pulsar 连接器生产 changelog 流，其中每条数据记录代表一个更新或删除事件。更准确地说，如果存在这个 key（，数据记录中的 value 是同一键的最后一个值的 UPDATE。如果不存在相应的 key，则该更新被视为 INSERT）。用表来类比，changelog 流中的数据记录是 UPSERT，也称为 INSERT/UPDATE，因为任何具有相同键的已存在行都会被覆盖。另外，值为空的消息将会被视作为 DELETE 消息。
 
@@ -511,7 +511,7 @@ Pulsar Flink 连接器也支持 Key-Shared 订阅模式。可以通过配置参�
 
 对于配置了认证的 Pulsar 实例，可以使用与常规 Pulsar 客户端相类似的方式设置 Pulsar Flink 连接器。
 
-对于 `FlinkPulsarSource` 和 `FlinkPulsarSink`，支持通过以下两种方式设置认证。
+1. 对于 `FlinkPulsarSource` 和 `FlinkPulsarSink`，支持通过以下两种方式设置认证。
 
 - 构造参数 `Properties` 参数。
 
@@ -528,6 +528,31 @@ Pulsar Flink 连接器也支持 Key-Shared 订阅模式。可以通过配置参�
   conf.setAuthPluginClassName(className);
   conf.setAuthParams(params);
   ```
+2. 对于通过 SQL 或者 Table 使用 Pulsar 认证，需要设置 `properties.auth-plugin-classname`、`properties.auth-params` 参数。
+
+```sql
+CREATE TABLE pulsar (
+                       `physical_1` STRING,
+                       `physical_2` INT,
+                       `eventTime` TIMESTAMP(3) METADATA,
+                       `properties` MAP<STRING, STRING> METADATA ,
+                       `topic` STRING METADATA VIRTUAL,
+                       `sequenceId` BIGINT METADATA VIRTUAL,
+                       `key` STRING ,
+                       `physical_3` BOOLEAN
+) WITH (
+     'connector' = 'pulsar',
+     'topic' = 'persistent://public/default/topic82547611',
+     'key.format' = 'raw',
+     'key.fields' = 'key',
+     'value.format' = 'avro',
+     'service-url' = 'pulsar://localhost:6650',
+     'admin-url' = 'http://localhost:8080',
+     'scan.startup.mode' = 'earliest',
+     'properties.auth-plugin-classname' = 'org.apache.pulsar.client.impl.auth.AuthenticationToken',
+     'properties.auth-params' = 'token:xxxxxxxxxx',
+     )
+```
 
 有关认证的详细信息，参见 [Pulsar Security](https://pulsar.apache.org/docs/en/security-overview/)。
 

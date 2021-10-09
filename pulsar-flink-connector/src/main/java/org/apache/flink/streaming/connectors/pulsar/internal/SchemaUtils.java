@@ -233,7 +233,7 @@ public class SchemaUtils {
                 return pulsarSchema.getSchemaInfo();
             default:
                 throw new UnsupportedOperationException(
-                        "Generic schema is not supported on schema type " + dataType + "'");
+                        "Generic schema is not supported on format '" + format + "' schema type '" + dataType + "'");
         }
     }
 

@@ -24,6 +24,7 @@ We change our project [version definition](doc/connector-version-definition.md),
 | 1.10.x        | 2.5.x                            | [`release-1.10`](https://github.com/streamnative/pulsar-flink/tree/release-1.10) |
 | 1.11.x        | 2.6.x                            | [`release-1.11`](https://github.com/streamnative/pulsar-flink/tree/release-1.11) |
 | 1.12.x        | 2.7.x                            | [`release-1.12`](https://github.com/streamnative/pulsar-flink/tree/release-1.12) |
+| 1.13.x        | 2.8.x                            | [`release-1.13`](https://github.com/streamnative/pulsar-flink/tree/release-1.13) |
 
 > **Note**  
 > Since Flink's API changed greatly through different versions, we mainly work on new features for the latest released flink version and fix bugs for old release.

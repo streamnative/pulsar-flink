@@ -265,8 +265,7 @@ FlinkPulsarSink<Person> sink = new FlinkPulsarSink(
     adminUrl,
     Optional.of(topic), // mandatory target topic or use `Optional.empty()` if sink to different topics for each record
     props,
-    pulsarSerialization,
-    PulsarSinkSemantic.AT_LEAST_ONCE
+    pulsarSerialization
 );
 
 stream.addSink(sink);

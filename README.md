@@ -461,7 +461,7 @@ Based on these requirements, we support Upsert Pulsar. With this feature, users 
 
 In the SQL DDL definition, you can set the connector to `upsert-pulsar` to use the Upsert Pulsar connector.
 
-**In terms of configuration, the primary key of the Table must be specified, and `key.fields`, `key.fields-prefix`cannot be used.**
+**In terms of configuration, the primary key of the Table must be specified, and `key.fields`, `key.fields-prefix` cannot be used.**
 
 As a source, the Upsert Pulsar connector produces changelog streams, where each data record represents an update or deletion event. More precisely, the value in a data record is interpreted as a UPDATE of the last value of the same key, if this key exists (If the corresponding key does not exist, the UPDATE is considered as an INSERT.). Using the table analogy, data records in the changelog stream are interpreted as UPSERT, also known as INSERT/UPDATE, because any existing row with the same key is overwritten. Also, a message with a null value is treated as a DELETE message.
 

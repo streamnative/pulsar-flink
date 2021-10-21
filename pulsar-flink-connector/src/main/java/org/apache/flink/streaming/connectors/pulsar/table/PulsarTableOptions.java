@@ -390,21 +390,17 @@ public class PulsarTableOptions {
 
         if (hasPulsarClientProperties(tableOptions)) {
             tableOptions.keySet().stream()
-                    .filter(key -> key.startsWith(PROPERTIES_PREFIX))
-                    .forEach(key -> {
-                        final String value = tableOptions.get(key);
-                        String subKey = key.substring((PROPERTIES_PREFIX).length());
-                        // TODO: this part need to be fixed, currently
-                        // any config in camel case will be change to all lower case
-                        if (subKey.equals("pulsar.producer.blockIfQueueFull") ||
-                            subKey.equals("pulsar.producer.sendTimeoutMs")) {
-                            pulsarProperties.put(subKey, value);
-                        } else if (subKey.startsWith(PULSAR_OPTION_KEY_PREFIX)) {
-                            subKey = CaseFormat.LOWER_HYPHEN.to(CaseFormat.LOWER_CAMEL, subKey);
-                            pulsarProperties.put(subKey, value);
-                        }
-
-                    });
+                .filter(key -> key.startsWith(PROPERTIES_PREFIX))
+                .forEach(key -> {
+                    // TODO: this part need to be fixed, currently
+                    // any config in camel case will be change to all lower case
+                    final String value = tableOptions.get(key);
+                    String subKey = key.substring((PROPERTIES_PREFIX).length());
+                    if (subKey.startsWith(PULSAR_OPTION_KEY_PREFIX)) {
+                        subKey = CaseFormat.LOWER_HYPHEN.to(CaseFormat.LOWER_CAMEL, subKey);
+                    }
+                    pulsarProperties.put(subKey, value);
+                });
         }
         pulsarProperties.computeIfAbsent(PARTITION_DISCOVERY_INTERVAL_MILLIS.key(), tableOptions::get);
         return pulsarProperties;

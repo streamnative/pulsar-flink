@@ -301,7 +301,7 @@ Pulsar 在内部维护着自己的 Schema 信息，所以我们的消息在写�
 
 ### 容错
 
-启用 Flink 的 checkpoint 功能后，`FlinkPulsarSink` 可以实现 `at-least-once`、`exactly-once` 的交货保证。
+启用 Flink 的 checkpoint 功能后，`FlinkPulsarSink` 可以实现 `at-least-once`、`exactly-once` 的交付保证。
 
 除了启用 Flink 的 checkpoint 功能之外，用户还应该配置 `setLogFailuresOnly(boolean)` 和 `setFlushOnCheckpoint(boolean)` 参数。
 

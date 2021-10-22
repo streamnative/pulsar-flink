@@ -24,6 +24,7 @@ import org.apache.flink.table.catalog.exceptions.CatalogException;
 import org.apache.flink.table.catalog.pulsar.TableSchemaHelper;
 import org.apache.flink.table.descriptors.DescriptorProperties;
 
+import org.apache.flink.table.factories.FactoryUtil;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
@@ -168,15 +169,19 @@ public class PulsarCatalogSupport {
     private Map<String, String> generateDefaultTableOptions() {
         // TODO refine all options needed to pass as table default
         Map<String, String> defaultTableOptions = new HashMap<>();
+        defaultTableOptions.put("type", properties.get("type"));
         defaultTableOptions.put(PulsarOptions.SERVICE_URL_OPTION_KEY, properties.get(PulsarOptions.SERVICE_URL_OPTION_KEY));
         defaultTableOptions.put(PulsarOptions.ADMIN_URL_OPTION_KEY, properties.get(PulsarOptions.ADMIN_URL_OPTION_KEY));
 
-        if (properties.get(PulsarOptions.AUTH_PARAMS_KEY) != null) {
-            defaultTableOptions.put(PulsarOptions.AUTH_PARAMS_KEY, properties.get(PulsarOptions.AUTH_PARAMS_KEY));
+        if (properties.get(FactoryUtil.FORMAT.key()) != null) {
+            defaultTableOptions.put(FactoryUtil.FORMAT.key(), properties.get(FactoryUtil.FORMAT.key()));
         }
-        if (properties.get(PulsarOptions.AUTH_PLUGIN_CLASSNAME_KEY) != null) {
-            defaultTableOptions.put(PulsarOptions.AUTH_PLUGIN_CLASSNAME_KEY, properties.get(PulsarOptions.AUTH_PLUGIN_CLASSNAME_KEY));
-        }
+
+        // move all properties.XXX config to default table config
+        properties.forEach((key, value) -> {
+            if (key.startsWith(PROPERTIES_PREFIX)) {
+                defaultTableOptions.put(key, value);
+            }});
 
         return defaultTableOptions;
     }

@@ -23,8 +23,8 @@ import org.apache.flink.table.catalog.ObjectPath;
 import org.apache.flink.table.catalog.exceptions.CatalogException;
 import org.apache.flink.table.catalog.pulsar.TableSchemaHelper;
 import org.apache.flink.table.descriptors.DescriptorProperties;
-
 import org.apache.flink.table.factories.FactoryUtil;
+
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
@@ -177,7 +177,7 @@ public class PulsarCatalogSupport {
             defaultTableOptions.put(FactoryUtil.FORMAT.key(), properties.get(FactoryUtil.FORMAT.key()));
         }
 
-        // move all properties.XXX config to default table config
+        // move all configs with properties prefix to default table config
         properties.forEach((key, value) -> {
             if (key.startsWith(PROPERTIES_PREFIX)) {
                 defaultTableOptions.put(key, value);

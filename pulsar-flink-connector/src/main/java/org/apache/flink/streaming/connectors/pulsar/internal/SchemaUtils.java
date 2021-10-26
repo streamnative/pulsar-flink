@@ -77,7 +77,7 @@ public class SchemaUtils {
             pl.setProperties(schemaInfo.getProperties());
 
             try {
-                admin.schemas().createSchema(TopicName.get(topic).tohttps://github.com/streamnative/pulsar-flink/pull/new/neng/fix-sinkString(), pl);
+                admin.schemas().createSchema(TopicName.get(topic).toString(), pl);
             } catch (PulsarAdminException pae) {
                 if (pae.getStatusCode() == 404) {
                     throw new RuntimeException(

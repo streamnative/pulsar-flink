@@ -74,7 +74,7 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
 
     @Override
     public Optional<Factory> getFactory() {
-        return Optional.of(new PulsarDynamicTableFactory(true));
+        return Optional.of(new PulsarDynamicTableFactory());
     }
 
     @Override

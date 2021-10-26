@@ -18,6 +18,7 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.formats.avro.typeutils.AvroSchemaConverter;
 import org.apache.flink.formats.protobuf.PbFormatOptions;
 import org.apache.flink.streaming.connectors.pulsar.config.RecordSchemaType;
+import org.apache.flink.streaming.util.serialization.PulsarDeserializationSchema;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.FieldsDataType;
 import org.apache.flink.table.types.logical.RowType;
@@ -29,6 +30,7 @@ import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.apache.pulsar.client.api.schema.GenericSchema;
+import org.apache.pulsar.client.impl.schema.AvroSchema;
 import org.apache.pulsar.client.impl.schema.SchemaInfoImpl;
 import org.apache.pulsar.client.internal.DefaultImplementation;
 import org.apache.pulsar.common.naming.TopicName;
@@ -93,6 +95,10 @@ public class SchemaUtils {
                     e);
             }
         } else if (!schemaEqualsIgnoreProperties(schemaInfo, existingSchema) && !compatibleSchema(existingSchema, schemaInfo)) {
+            log.info("nengnengneng schema infos");
+            log.info("schema type: existing " + existingSchema.getType().name() + "; passed: " + schemaInfo.getType().name());
+            log.info("schema fields: \nexisting" + new String(existingSchema.getSchema(), StandardCharsets.UTF_8)
+                + "; \npassed: " + new String(schemaInfo.getSchema(), StandardCharsets.UTF_8));
             throw new RuntimeException("Writing to a topic which have incompatible schema");
         }
     }

@@ -15,6 +15,7 @@
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import org.apache.flink.annotation.VisibleForTesting;
+import org.apache.flink.streaming.connectors.pulsar.table.PulsarDynamicTableFactory;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.catalog.CatalogBaseTable;
 import org.apache.flink.table.catalog.CatalogTable;
@@ -169,7 +170,8 @@ public class PulsarCatalogSupport {
     private Map<String, String> generateDefaultTableOptions() {
         // TODO refine all options needed to pass as table default
         Map<String, String> defaultTableOptions = new HashMap<>();
-        defaultTableOptions.put("type", properties.get("type"));
+        defaultTableOptions.put(FactoryUtil.CONNECTOR.key(),
+            properties.getOrDefault(FactoryUtil.CONNECTOR.key(), PulsarDynamicTableFactory.CONNECTOR_PULSAR));
         defaultTableOptions.put(PulsarOptions.SERVICE_URL_OPTION_KEY, properties.get(PulsarOptions.SERVICE_URL_OPTION_KEY));
         defaultTableOptions.put(PulsarOptions.ADMIN_URL_OPTION_KEY, properties.get(PulsarOptions.ADMIN_URL_OPTION_KEY));
 

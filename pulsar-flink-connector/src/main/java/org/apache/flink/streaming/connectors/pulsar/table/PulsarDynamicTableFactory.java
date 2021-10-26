@@ -97,8 +97,6 @@ public class PulsarDynamicTableFactory implements
 
     public static final String CONNECTOR_UPSERT_PULSAR = "upsert-pulsar";
 
-    public PulsarDynamicTableFactory() {}
-
     @Override
     public DynamicTableSink createDynamicTableSink(Context context) {
         FactoryUtil.TableFactoryHelper helper = FactoryUtil.createTableFactoryHelper(this, context);

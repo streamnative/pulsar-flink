@@ -91,35 +91,34 @@ public class PulsarDynamicTableFactory implements
         DynamicTableSourceFactory,
         DynamicTableSinkFactory {
 
-    public static final String IDENTIFIER = "pulsar";
+    public static final String FACTORY_IDENTIFIER = "pulsar";
 
-    public static final String UPSERT_CONNECTOR = "upsert-pulsar";
+    public static final String CONNECTOR_PULSAR = "pulsar";
 
-    private final boolean inCatalog;
-
-    public PulsarDynamicTableFactory() {
-        this.inCatalog = false;
-    }
-
-    public PulsarDynamicTableFactory(boolean inCatalog) {
-        this.inCatalog = inCatalog;
-    }
+    public static final String CONNECTOR_UPSERT_PULSAR = "upsert-pulsar";
 
     @Override
     public DynamicTableSink createDynamicTableSink(Context context) {
         FactoryUtil.TableFactoryHelper helper = FactoryUtil.createTableFactoryHelper(this, context);
         ReadableConfig tableOptions = helper.getOptions();
 
-        if (tableOptions.get(CONNECTOR).equals(UPSERT_CONNECTOR)) {
+        if (tableOptions.get(CONNECTOR).equals(CONNECTOR_UPSERT_PULSAR)) {
             return createDynamicTableSinkUpsert(context);
         }
 
-        if (inCatalog) {
+        List<String> topics = new ArrayList<>();
+        if (PulsarCatalogSupport.isNativeFlinkDatabase(context.getObjectIdentifier().getDatabaseName())) {
+            topics = tableOptions.get(TOPIC);
+            if (topics != null && !topics.isEmpty()) {
+                ((Configuration) tableOptions).set(TOPIC, Collections.singletonList(topics.get(0)));
+            }
+        } else {
             final ObjectIdentifier table = context.getObjectIdentifier();
             final String topic = TopicName.get(table.getDatabaseName() + "/" + table.getObjectName()).toString();
             ((Configuration) tableOptions).set(TOPIC, Collections.singletonList(topic));
+            topics.add(topic);
         }
-        List<String> topics = tableOptions.get(TOPIC);
+
         String adminUrl = tableOptions.get(ADMIN_URL);
         String serverUrl = tableOptions.get(SERVICE_URL);
         final Optional<EncodingFormat<SerializationSchema<RowData>>> keyEncodingFormat =
@@ -181,7 +180,7 @@ public class PulsarDynamicTableFactory implements
         FactoryUtil.TableFactoryHelper helper = FactoryUtil.createTableFactoryHelper(this, context);
         ReadableConfig tableOptions = helper.getOptions();
 
-        if (tableOptions.get(CONNECTOR).equals(UPSERT_CONNECTOR)) {
+        if (tableOptions.get(CONNECTOR).equals(CONNECTOR_UPSERT_PULSAR)) {
             return createDynamicTableSourceUpsert(context);
         }
 
@@ -249,7 +248,7 @@ public class PulsarDynamicTableFactory implements
 
     @Override
     public String factoryIdentifier() {
-        return IDENTIFIER;
+        return FACTORY_IDENTIFIER;
     }
 
     @Override

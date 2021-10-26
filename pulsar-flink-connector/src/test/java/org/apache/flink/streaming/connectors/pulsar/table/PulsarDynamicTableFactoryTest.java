@@ -608,7 +608,7 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
     private static Map<String, String> getBasicSourceOptions() {
         Map<String, String> tableOptions = new HashMap<>();
         // Pulsar specific options.
-        tableOptions.put("connector", PulsarDynamicTableFactory.IDENTIFIER);
+        tableOptions.put("connector", PulsarDynamicTableFactory.CONNECTOR_PULSAR);
         tableOptions.put("topic", TOPIC);
         tableOptions.put("service-url", SERVICE_URL);
         tableOptions.put("admin-url", ADMIN_URL);
@@ -630,7 +630,7 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
     private static Map<String, String> getBasicSinkOptions() {
         Map<String, String> tableOptions = new HashMap<>();
         // Pulsar specific options.
-        tableOptions.put("connector", PulsarDynamicTableFactory.IDENTIFIER);
+        tableOptions.put("connector", PulsarDynamicTableFactory.CONNECTOR_PULSAR);
         tableOptions.put("topic", TOPIC);
         tableOptions.put("service-url", SERVICE_URL);
         tableOptions.put("admin-url", ADMIN_URL);
@@ -649,7 +649,7 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
     private static Map<String, String> getKeyValueOptions() {
         Map<String, String> tableOptions = new HashMap<>();
         // Pulsar specific options.
-        tableOptions.put("connector", PulsarDynamicTableFactory.IDENTIFIER);
+        tableOptions.put("connector", PulsarDynamicTableFactory.CONNECTOR_PULSAR);
         tableOptions.put("topic", TOPIC);
         tableOptions.put("service-url", SERVICE_URL);
         tableOptions.put("admin-url", ADMIN_URL);

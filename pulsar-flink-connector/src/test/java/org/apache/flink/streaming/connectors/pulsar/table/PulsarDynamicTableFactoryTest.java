@@ -222,7 +222,7 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
                 null,
                 SERVICE_URL,
                 ADMIN_URL,
-                null,
+                Collections.emptyList(),
                 TOPIC_REGEX,
                 PULSAR_SOURCE_PROPERTIES,
                 startupOptions

@@ -263,9 +263,6 @@ public abstract class PulsarTestBase extends TestLogger {
     // --------------------- public client related helpers ------------------
 
     public static PulsarAdmin getPulsarAdmin() {
-        if (pulsarAdmin != null) {
-            return pulsarAdmin;
-        }
         try {
             return PulsarAdminUtils.newAdminFromConf(adminUrl, clientConfigurationData);
         } catch (PulsarClientException e) {

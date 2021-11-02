@@ -576,7 +576,7 @@ authentication.
   conf.setAuthPluginClassName(className);
   conf.setAuthParams(params);
   ```
-2. For the Table and SQL, you can use the following ways to set up authentication.
+2. For the Table and SQL, you can use the following way to set up authentication.
 
 ```sql
 CREATE TABLE pulsar (

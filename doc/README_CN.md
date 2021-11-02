@@ -528,31 +528,32 @@ Pulsar Flink 连接器也支持 Key-Shared 订阅模式。可以通过配置参�
      conf.setAuthPluginClassName(className);
      conf.setAuthParams(params);
      ```
+
 2. 对于通过 SQL 或者 Table 使用 Pulsar 认证，需要设置 `properties.auth-plugin-classname`、`properties.auth-params` 参数。
 
-    ```sql
-    CREATE TABLE pulsar (
-                           `physical_1` STRING,
-                           `physical_2` INT,
-                           `eventTime` TIMESTAMP(3) METADATA,
-                           `properties` MAP<STRING, STRING> METADATA ,
-                           `topic` STRING METADATA VIRTUAL,
-                           `sequenceId` BIGINT METADATA VIRTUAL,
-                           `key` STRING ,
-                           `physical_3` BOOLEAN
-    ) WITH (
-         'connector' = 'pulsar',
-         'topic' = 'persistent://public/default/topic82547611',
-         'key.format' = 'raw',
-         'key.fields' = 'key',
-         'value.format' = 'avro',
-         'service-url' = 'pulsar://localhost:6650',
-         'admin-url' = 'http://localhost:8080',
-         'scan.startup.mode' = 'earliest',
-         'properties.auth-plugin-classname' = 'org.apache.pulsar.client.impl.auth.AuthenticationToken',
-         'properties.auth-params' = 'token:xxxxxxxxxx',
-         )
-    ```
+   ```sql
+   CREATE TABLE pulsar (
+                          `physical_1` STRING,
+                          `physical_2` INT,
+                          `eventTime` TIMESTAMP(3) METADATA,
+                          `properties` MAP<STRING, STRING> METADATA ,
+                          `topic` STRING METADATA VIRTUAL,
+                          `sequenceId` BIGINT METADATA VIRTUAL,
+                          `key` STRING ,
+                          `physical_3` BOOLEAN
+   ) WITH (
+       'connector' = 'pulsar',
+       'topic' = 'persistent://public/default/topic82547611',
+       'key.format' = 'raw',
+       'key.fields' = 'key',
+       'value.format' = 'avro',
+       'service-url' = 'pulsar://localhost:6650',
+       'admin-url' = 'http://localhost:8080',
+       'scan.startup.mode' = 'earliest',
+       'properties.auth-plugin-classname' = 'org.apache.pulsar.client.impl.auth.AuthenticationToken',
+       'properties.auth-params' = 'token:xxxxxxxxxx',
+   )
+   ```
 
 有关认证的详细信息，参见 [Pulsar Security](https://pulsar.apache.org/docs/en/security-overview/)。
 
@@ -560,6 +561,7 @@ Pulsar Flink 连接器也支持 Key-Shared 订阅模式。可以通过配置参�
 
 该功能基于[Flink: New Format of protobuf](https://github.com/apache/flink/pull/14376),目前正处于等待合并中。
 该功能在SQL模式使用如下: 
+
 ```
 create table pulsar (
                         a INT,
@@ -586,5 +588,6 @@ create table pulsar (
 
 INSERT INTO pulsar VALUES (1,2,false,0.1,0.01,'haha', ENCODE('1', 'utf-8'), 'IMAGES',1, TIMESTAMP '2020-03-08 13:12:11.123');
 ```
+
 要求：`SimpleTest`类必须实现`GeneratedMessageV3`。
 由于该Flink Format: ProtoBuf组件未合并，暂放于本仓库一份源代码用于打包和依赖。

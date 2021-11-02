@@ -457,7 +457,7 @@ Flink 社区用户对 Upsert 模式消息队列有很高的需求，主要原因
 
 在 SQL DDL 定义中，用户将 `connector` 设置为 `upsert-pulsar`，即可使用 Upsert Pulsar 连接器。
 
-**在配置方面，必须指定 Table 的主键，且`key.fields`、`key.fields-prefix` 不能使用。**
+**在配置方面，必须指定 Table 的主键，且不能使用 `key.fields`、`key.fields-prefix`。**
 
 作为 source，Upsert Pulsar 连接器生产 changelog 流，其中每条数据记录代表一个更新或删除事件。更准确地说，如果存在这个 key（，数据记录中的 value 是同一键的最后一个值的 UPDATE。如果不存在相应的 key，则该更新被视为 INSERT）。用表来类比，changelog 流中的数据记录是 UPSERT，也称为 INSERT/UPDATE，因为任何具有相同键的已存在行都会被覆盖。另外，值为空的消息将会被视作为 DELETE 消息。
 

@@ -461,7 +461,7 @@ Based on these requirements, we support Upsert Pulsar. With this feature, users 
 
 In the SQL DDL definition, you can set the connector to `upsert-pulsar` to use the Upsert Pulsar connector.
 
-In terms of configuration, the primary key of the Table must be specified, and `key.fields` cannot be used.
+**In terms of configuration, the primary key of the Table must be specified, and `key.fields`, `key.fields-prefix` cannot be used.**
 
 As a source, the Upsert Pulsar connector produces changelog streams, where each data record represents an update or deletion event. More precisely, the value in a data record is interpreted as a UPDATE of the last value of the same key, if this key exists (If the corresponding key does not exist, the UPDATE is considered as an INSERT.). Using the table analogy, data records in the changelog stream are interpreted as UPSERT, also known as INSERT/UPDATE, because any existing row with the same key is overwritten. Also, a message with a null value is treated as a DELETE message.
 
@@ -558,23 +558,49 @@ In the DDL statement, the sample which is similar to the following is used.
 
 For Pulsar instances configured with authentication, the Pulsar Flink connector can be configured in a similar as the regular Pulsar client.
 
-For `FlinkPulsarSource` and `FlinkPulsarSink`, you can use one of the following ways to set up authentication.
+1. For `FlinkPulsarSource` and `FlinkPulsarSink` on Java API, you can use one of the following ways to set up authentication.
 
-- Set the `Properties` parameter.
+   - Set the `Properties` parameter.
 
-  ```java
-  props.setProperty(PulsarOptions.AUTH_PLUGIN_CLASSNAME_KEY, "org.apache.pulsar.client.impl.auth.AuthenticationToken");
-  props.setProperty(PulsarOptions.AUTH_PARAMS_KEY, "token:abcdefghijklmn");
-  ```
+     ```java
+     props.setProperty(PulsarOptions.AUTH_PLUGIN_CLASSNAME_KEY, "org.apache.pulsar.client.impl.auth.AuthenticationToken");
+     props.setProperty(PulsarOptions.AUTH_PARAMS_KEY, "token:abcdefghijklmn");
+     ```
 
-- Set the `ClientConfigurationData` parameter, which has a higher priority than the `Properties` parameter.
+   - Set the `ClientConfigurationData` parameter, which has a higher priority than the `Properties` parameter.
 
-  ```java
-  ClientConfigurationData conf = new ClientConfigurationData();
-  conf.setServiceUrl(serviceUrl);
-  conf.setAuthPluginClassName(className);
-  conf.setAuthParams(params);
-  ```
+     ```java
+     ClientConfigurationData conf = new ClientConfigurationData();
+     conf.setServiceUrl(serviceUrl);
+     conf.setAuthPluginClassName(className);
+     conf.setAuthParams(params);
+     ```
+     
+2. For the Table and SQL, you can use the following way to set up authentication.
+
+   ```sql
+   CREATE TABLE pulsar (
+                          `physical_1` STRING,
+                          `physical_2` INT,
+                          `eventTime` TIMESTAMP(3) METADATA,
+                          `properties` MAP<STRING, STRING> METADATA ,
+                          `topic` STRING METADATA VIRTUAL,
+                          `sequenceId` BIGINT METADATA VIRTUAL,
+                          `key` STRING ,
+                          `physical_3` BOOLEAN
+   ) WITH (
+       'connector' = 'pulsar',
+       'topic' = 'persistent://public/default/topic82547611',
+       'key.format' = 'raw',
+       'key.fields' = 'key',
+       'value.format' = 'avro',
+       'service-url' = 'pulsar://localhost:6650',
+       'admin-url' = 'http://localhost:8080',
+       'scan.startup.mode' = 'earliest',
+       'properties.auth-plugin-classname' = 'org.apache.pulsar.client.impl.auth.AuthenticationToken',
+       'properties.auth-params' = 'token:xxxxxxxxxx',
+   )
+   ```
 
 For details about authentication configuration, see [Pulsar Security](https://pulsar.apache.org/docs/en/security-overview/).
 

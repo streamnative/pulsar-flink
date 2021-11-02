@@ -619,6 +619,7 @@ public class PulsarDeserializer implements PulsarDeserializationSchema<Row> {
      * DecimalConversion.
      */
     public static class NewDecimalConversion extends Conversions.DecimalConversion implements Serializable{
+        private static final long serialVersionUID = 1316420373590931296L;
 
     }
 }

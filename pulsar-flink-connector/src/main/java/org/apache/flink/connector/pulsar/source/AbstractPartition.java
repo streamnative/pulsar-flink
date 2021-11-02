@@ -20,6 +20,8 @@ import java.io.Serializable;
  * The abstraction of partition, not necessarily the topical partition in pulsar.
  */
 public abstract class AbstractPartition implements Serializable {
+    private static final long serialVersionUID = -3313450344502434024L;
+
     protected final String topic;
     protected final PartitionType partitionType;
 

@@ -34,6 +34,7 @@ import java.util.function.Function;
  */
 @Getter
 public class JSONOptions implements Serializable {
+    private static final long serialVersionUID = -7011153183551222235L;
 
     private final boolean primitivesAsString;
     private final boolean prefersDecimal;

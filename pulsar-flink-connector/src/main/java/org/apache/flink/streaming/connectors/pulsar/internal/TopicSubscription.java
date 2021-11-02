@@ -29,6 +29,7 @@ import java.io.Serializable;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TopicSubscription implements Serializable {
+    private static final long serialVersionUID = -4100234175920115707L;
 
     private String topic;
 

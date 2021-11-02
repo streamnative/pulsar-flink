@@ -31,7 +31,6 @@ import org.apache.flink.streaming.api.functions.sink.TwoPhaseCommitSinkFunction;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
 import org.apache.flink.streaming.connectors.pulsar.internal.CachedPulsarClient;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarClientUtils;
-import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.SourceSinkUtils;
 import org.apache.flink.streaming.connectors.pulsar.table.PulsarSinkSemantic;
 import org.apache.flink.streaming.util.serialization.PulsarSerializationSchema;
@@ -264,7 +263,6 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
         );
 
         if (forcedTopic) {
-            uploadSchema(defaultTopic);
             singleProducer = createProducer(clientConfigurationData, producerConf, defaultTopic,
                     serializationSchema.getSchema());
         } else {
@@ -298,10 +296,6 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
         }
     }
 
-    private void uploadSchema(String topic) {
-        SchemaUtils.uploadPulsarSchema(admin, topic, serializationSchema.getSchema().getSchemaInfo());
-    }
-
     @Override
     public void close() throws Exception {
         checkErroneous();
@@ -317,7 +311,6 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
         if (topic2Producer.containsKey(topic)) {
             return topic2Producer.get(topic);
         } else {
-            uploadSchema(topic);
             Producer<T> p = createProducer(clientConfigurationData, producerConf, topic, serializationSchema.getSchema());
             topic2Producer.put(topic, p);
             return p;

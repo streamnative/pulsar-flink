@@ -558,49 +558,49 @@ In the DDL statement, the sample which is similar to the following is used.
 
 For Pulsar instances configured with authentication, the Pulsar Flink connector can be configured in a similar as the regular Pulsar client.
 
-1. For `FlinkPulsarSource` and `FlinkPulsarSink` on Java API, you can use one of the following ways to set up 
-authentication.
+1. For `FlinkPulsarSource` and `FlinkPulsarSink` on Java API, you can use one of the following ways to set up authentication.
 
-- Set the `Properties` parameter.
+   - Set the `Properties` parameter.
 
-  ```java
-  props.setProperty(PulsarOptions.AUTH_PLUGIN_CLASSNAME_KEY, "org.apache.pulsar.client.impl.auth.AuthenticationToken");
-  props.setProperty(PulsarOptions.AUTH_PARAMS_KEY, "token:abcdefghijklmn");
-  ```
+      ```java
+      props.setProperty(PulsarOptions.AUTH_PLUGIN_CLASSNAME_KEY, "org.apache.pulsar.client.impl.auth.AuthenticationToken");
+      props.setProperty(PulsarOptions.AUTH_PARAMS_KEY, "token:abcdefghijklmn");
+      ```
 
-- Set the `ClientConfigurationData` parameter, which has a higher priority than the `Properties` parameter.
+   - Set the `ClientConfigurationData` parameter, which has a higher priority than the `Properties` parameter.
 
-  ```java
-  ClientConfigurationData conf = new ClientConfigurationData();
-  conf.setServiceUrl(serviceUrl);
-  conf.setAuthPluginClassName(className);
-  conf.setAuthParams(params);
-  ```
+     ```java
+     ClientConfigurationData conf = new ClientConfigurationData();
+     conf.setServiceUrl(serviceUrl);
+     conf.setAuthPluginClassName(className);
+     conf.setAuthParams(params);
+     ```
+     
 2. For the Table and SQL, you can use the following way to set up authentication.
 
-```sql
-CREATE TABLE pulsar (
-                       `physical_1` STRING,
-                       `physical_2` INT,
-                       `eventTime` TIMESTAMP(3) METADATA,
-                       `properties` MAP<STRING, STRING> METADATA ,
-                       `topic` STRING METADATA VIRTUAL,
-                       `sequenceId` BIGINT METADATA VIRTUAL,
-                       `key` STRING ,
-                       `physical_3` BOOLEAN
-) WITH (
-     'connector' = 'pulsar',
-     'topic' = 'persistent://public/default/topic82547611',
-     'key.format' = 'raw',
-     'key.fields' = 'key',
-     'value.format' = 'avro',
-     'service-url' = 'pulsar://localhost:6650',
-     'admin-url' = 'http://localhost:8080',
-     'scan.startup.mode' = 'earliest',
-     'properties.auth-plugin-classname' = 'org.apache.pulsar.client.impl.auth.AuthenticationToken',
-     'properties.auth-params' = 'token:xxxxxxxxxx',
-     )
-```
+    ```sql
+    CREATE TABLE pulsar (
+                           `physical_1` STRING,
+                           `physical_2` INT,
+                           `eventTime` TIMESTAMP(3) METADATA,
+                           `properties` MAP<STRING, STRING> METADATA ,
+                           `topic` STRING METADATA VIRTUAL,
+                           `sequenceId` BIGINT METADATA VIRTUAL,
+                           `key` STRING ,
+                           `physical_3` BOOLEAN
+    ) WITH (
+         'connector' = 'pulsar',
+         'topic' = 'persistent://public/default/topic82547611',
+         'key.format' = 'raw',
+         'key.fields' = 'key',
+         'value.format' = 'avro',
+         'service-url' = 'pulsar://localhost:6650',
+         'admin-url' = 'http://localhost:8080',
+         'scan.startup.mode' = 'earliest',
+         'properties.auth-plugin-classname' = 'org.apache.pulsar.client.impl.auth.AuthenticationToken',
+         'properties.auth-params' = 'token:xxxxxxxxxx',
+         )
+   ```
 
 
 For details about authentication configuration, see [Pulsar Security](https://pulsar.apache.org/docs/en/security-overview/).

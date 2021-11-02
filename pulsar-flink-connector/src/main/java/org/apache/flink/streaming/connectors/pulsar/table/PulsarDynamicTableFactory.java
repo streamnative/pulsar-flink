@@ -106,17 +106,9 @@ public class PulsarDynamicTableFactory implements
             return createDynamicTableSinkUpsert(context);
         }
 
-        List<String> topics = new ArrayList<>();
-        if (PulsarCatalogSupport.isNativeFlinkDatabase(context.getObjectIdentifier().getDatabaseName())) {
-            topics = tableOptions.get(TOPIC);
-            if (topics != null && !topics.isEmpty()) {
-                ((Configuration) tableOptions).set(TOPIC, Collections.singletonList(topics.get(0)));
-            }
-        } else {
-            final ObjectIdentifier table = context.getObjectIdentifier();
-            final String topic = TopicName.get(table.getDatabaseName() + "/" + table.getObjectName()).toString();
-            ((Configuration) tableOptions).set(TOPIC, Collections.singletonList(topic));
-            topics.add(topic);
+        List<String> topics = generateTopic(context, tableOptions);
+        if (!topics.isEmpty()) {
+            ((Configuration) tableOptions).set(TOPIC, Collections.singletonList(topics.get(0)));
         }
 
         String adminUrl = tableOptions.get(ADMIN_URL);
@@ -184,23 +176,18 @@ public class PulsarDynamicTableFactory implements
             return createDynamicTableSourceUpsert(context);
         }
 
-        List<String> topics = new ArrayList<>();
+        List<String> topics = generateTopic(context, tableOptions);
+        if (!topics.isEmpty()) {
+            ((Configuration) tableOptions).set(TOPIC, Collections.singletonList(topics.get(0)));
+        }
+
+        // Native Flink Table can reference multiple topics with topicPattern
         String topicPattern = null;
         if (PulsarCatalogSupport.isNativeFlinkDatabase(context.getObjectIdentifier().getDatabaseName())) {
-            topics = tableOptions.get(TOPIC);
-            if (topics != null && !topics.isEmpty()) {
-                ((Configuration) tableOptions).set(TOPIC, Collections.singletonList(topics.get(0)));
-            }
-
             topicPattern = tableOptions.get(TOPIC_PATTERN);
-            if (topicPattern != null) {
-                ((Configuration) tableOptions).set(TOPIC_PATTERN, topicPattern);
-            }
-        } else {
-            final ObjectIdentifier table = context.getObjectIdentifier();
-            final String topic = TopicName.get(table.getDatabaseName() + "/" + table.getObjectName()).toString();
-            ((Configuration) tableOptions).set(TOPIC, Collections.singletonList(topic));
-            topics.add(topic);
+        }
+        if (topicPattern != null) {
+            ((Configuration) tableOptions).set(TOPIC_PATTERN, topicPattern);
         }
 
         String adminUrl = tableOptions.get(ADMIN_URL);
@@ -284,6 +271,20 @@ public class PulsarDynamicTableFactory implements
     }
 
     // --------------------------------------------------------------------------------------------
+
+    private List<String> generateTopic(Context context, ReadableConfig tableOptions) {
+        List<String> topics = null;
+        final ObjectIdentifier table = context.getObjectIdentifier();
+        if (PulsarCatalogSupport.isNativeFlinkDatabase(table.getDatabaseName())) {
+            topics = tableOptions.getOptional(TOPIC).orElse(Collections.emptyList());
+        } else if (tableOptions.get(TOPIC_PATTERN) == null) {
+            String rawTopic = table.getDatabaseName() + "/" + table.getObjectName();
+            String topic = TopicName.get(rawTopic).toString();
+            topics = Collections.singletonList(topic);
+        }
+
+        return topics;
+    }
 
     private static Optional<DecodingFormat<DeserializationSchema<RowData>>> getKeyDecodingFormat(
             FactoryUtil.TableFactoryHelper helper) {
@@ -392,7 +393,7 @@ public class PulsarDynamicTableFactory implements
 
         String adminUrl = tableOptions.get(ADMIN_URL);
         String serverUrl = tableOptions.get(SERVICE_URL);
-        List<String> topics = tableOptions.get(TOPIC);
+        List<String> topics = tableOptions.getOptional(TOPIC).orElse(Collections.emptyList());
         String topicPattern = tableOptions.get(TOPIC_PATTERN);
 
         // Validate the option data type.

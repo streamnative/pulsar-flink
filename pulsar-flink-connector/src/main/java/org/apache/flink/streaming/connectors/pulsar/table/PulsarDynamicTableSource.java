@@ -176,9 +176,9 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
         this.metadataKeys = new ArrayList<>();
         this.watermarkStrategy = null;
         // Pulsar-specific attributes
-        Preconditions.checkArgument((topics != null && topicPattern == null) ||
-                        (topics == null && topicPattern != null),
-                "Either Topic or Topic Pattern must be set for source.");
+        Preconditions.checkArgument(((topics != null && !topics.isEmpty()) && topicPattern == null) ||
+                ((topics == null || topics.isEmpty()) && topicPattern != null),
+                "Only one of (Topic, Topic_Pattern) can be set for source.");
         this.topics = topics;
         this.topicPattern = topicPattern;
         this.adminUrl = adminUrl;

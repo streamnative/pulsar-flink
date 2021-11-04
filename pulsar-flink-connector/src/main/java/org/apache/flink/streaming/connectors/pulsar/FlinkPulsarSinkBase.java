@@ -41,6 +41,7 @@ import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdmin;
+import org.apache.pulsar.client.api.CryptoKeyReader;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.MessageRouter;
 import org.apache.pulsar.client.api.MessageRoutingMode;
@@ -61,10 +62,12 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -142,6 +145,10 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
 
     protected transient Map<String, Producer<T>> topic2Producer;
 
+    private final CryptoKeyReader cryptoKeyReader;
+
+    private final Set<String> encryptionKeys;
+
     public FlinkPulsarSinkBase(
             String adminUrl,
             Optional<String> defaultTopicName,
@@ -149,7 +156,7 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
             Properties properties,
             PulsarSerializationSchema<T> serializationSchema,
             MessageRouter messageRouter) {
-        this(adminUrl, defaultTopicName, clientConf, properties, serializationSchema, messageRouter, PulsarSinkSemantic.AT_LEAST_ONCE);
+        this(adminUrl, defaultTopicName, clientConf, properties, serializationSchema, messageRouter, PulsarSinkSemantic.AT_LEAST_ONCE, null, new HashSet<>());
     }
 
     public FlinkPulsarSinkBase(
@@ -159,7 +166,9 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
             Properties properties,
             PulsarSerializationSchema<T> serializationSchema,
             MessageRouter messageRouter,
-            PulsarSinkSemantic semantic) {
+            PulsarSinkSemantic semantic,
+            final CryptoKeyReader cryptoKeyReader,
+            final Set<String> encryptionKeys) {
         super(new TransactionStateSerializer(), VoidSerializer.INSTANCE);
 
         this.adminUrl = checkNotNull(adminUrl);
@@ -213,21 +222,9 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
         if (this.clientConfigurationData.getServiceUrl() == null) {
             throw new IllegalArgumentException("ServiceUrl must be supplied in the client configuration");
         }
-    }
 
-    public FlinkPulsarSinkBase(
-            String serviceUrl,
-            String adminUrl,
-            Optional<String> defaultTopicName,
-            Properties properties,
-            PulsarSerializationSchema serializationSchema,
-            MessageRouter messageRouter) {
-        this(adminUrl,
-                defaultTopicName,
-                PulsarClientUtils.newClientConf(checkNotNull(serviceUrl), properties),
-                properties,
-                serializationSchema,
-                messageRouter);
+        this.cryptoKeyReader = cryptoKeyReader;
+        this.encryptionKeys = encryptionKeys;
     }
 
     @Override
@@ -333,6 +330,12 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
                     // maximizing the throughput
                     .batchingMaxBytes(5 * 1024 * 1024)
                     .loadConf(producerConf);
+                    if (cryptoKeyReader != null){
+                        builder.cryptoKeyReader(cryptoKeyReader);
+                        for (final String encryptionKey : this.encryptionKeys) {
+                            builder.addEncryptionKey(encryptionKey);
+                        }
+                    }
             if (messageRouter == null) {
                 return builder.create();
             } else {

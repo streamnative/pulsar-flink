@@ -27,6 +27,7 @@ import org.apache.flink.streaming.util.serialization.PulsarDeserializationSchema
 import org.apache.flink.util.SerializedValue;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.pulsar.client.api.CryptoKeyReader;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.shade.com.google.common.collect.ImmutableList;
@@ -146,6 +147,8 @@ public class PulsarFetcher<T> {
      */
     private final MetricGroup consumerMetricGroup;
 
+    private final CryptoKeyReader cryptoKeyReader;
+
     public PulsarFetcher(
             SourceContext<T> sourceContext,
             Map<TopicRange, MessageId> seedTopicsWithInitialOffsets,
@@ -177,7 +180,8 @@ public class PulsarFetcher<T> {
                 deserializer,
                 metadataReader,
                 consumerMetricGroup,
-                useMetrics
+                useMetrics,
+                null
         );
     }
 
@@ -197,7 +201,8 @@ public class PulsarFetcher<T> {
         PulsarDeserializationSchema<T> deserializer,
         PulsarMetadataReader metadataReader,
         MetricGroup consumerMetricGroup,
-        boolean useMetrics) throws Exception {
+        boolean useMetrics,
+        final CryptoKeyReader cryptoKeyReader) throws Exception {
 
         this.sourceContext = sourceContext;
         this.watermarkOutput = new SourceContextWatermarkOutputAdapter<>(sourceContext);
@@ -217,6 +222,7 @@ public class PulsarFetcher<T> {
         this.commitMaxRetries = commitMaxRetries;
         this.deserializer = deserializer;
         this.metadataReader = metadataReader;
+        this.cryptoKeyReader = cryptoKeyReader;
 
         // figure out what we watermark mode we will be using
         this.watermarkStrategy = watermarkStrategy;
@@ -543,7 +549,8 @@ public class PulsarFetcher<T> {
                 exceptionProxy,
                 failOnDataLoss,
                 useEarliestWhenDataLoss,
-                excludeStartMessageIds.contains(state.getTopicRange()));
+                excludeStartMessageIds.contains(state.getTopicRange()),
+                cryptoKeyReader);
     }
 
     /**

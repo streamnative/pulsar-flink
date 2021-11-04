@@ -19,6 +19,7 @@ import org.apache.flink.streaming.connectors.pulsar.table.PulsarSinkSemantic;
 import org.apache.flink.streaming.util.serialization.PulsarSerializationSchema;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.pulsar.client.api.CryptoKeyReader;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.MessageRouter;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
@@ -26,12 +27,17 @@ import org.apache.pulsar.client.api.transaction.TxnID;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+import static org.apache.flink.util.InstantiationUtil.isSerializable;
 import static org.apache.flink.util.Preconditions.checkNotNull;
+import static org.apache.flink.util.Preconditions.checkState;
 
 /**
  * Write data to Flink.
@@ -41,7 +47,110 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 @Slf4j
 public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
 
+    public static class Builder<T> {
+        private String adminUrl;
+        private String defaultTopicName;
+        private ClientConfigurationData clientConf;
+        private Properties properties;
+        private PulsarSerializationSchema<T>  serializationSchema;
+        private MessageRouter messageRouter = null;
+        private PulsarSinkSemantic semantic = PulsarSinkSemantic.AT_LEAST_ONCE;
+        private String serviceUrl;
+        private CryptoKeyReader cryptoKeyReader;
+        private final Set<String> encryptionKeys = new HashSet<>();
+
+        public Builder<T> withAdminUrl(final String adminUrl) {
+            this.adminUrl = adminUrl;
+            return this;
+        }
+
+        public Builder<T> withDefaultTopicName(final String defaultTopicName) {
+            this.defaultTopicName = defaultTopicName;
+            return this;
+        }
+
+        public Builder<T> withClientConf(final ClientConfigurationData clientConf) {
+            this.clientConf = clientConf;
+            return this;
+        }
+
+        public Builder<T> withProperties(final Properties properties) {
+            this.properties = properties;
+            return this;
+        }
+
+        public Builder<T> withPulsarSerializationSchema(final PulsarSerializationSchema<T> serializationSchema) {
+            this.serializationSchema = serializationSchema;
+            return this;
+        }
+
+        public Builder<T> withMessageRouter(final MessageRouter messageRouter) {
+            this.messageRouter = messageRouter;
+            return this;
+        }
+
+        public Builder<T> withSemantic(final PulsarSinkSemantic semantic) {
+            this.semantic = semantic;
+            return this;
+        }
+
+        public Builder<T> withServiceUrl(final String serviceUrl) {
+            this.serviceUrl = serviceUrl;
+            return this;
+        }
+
+        public Builder<T> withCryptoKeyReader(CryptoKeyReader cryptoKeyReader) {
+            this.cryptoKeyReader = cryptoKeyReader;
+            return this;
+        }
+
+        public Builder<T> withEncryptionKeys(String... encryptionKeys) {
+            this.encryptionKeys.addAll(Arrays.asList(encryptionKeys));
+            return this;
+        }
+
+        private Optional<String> getDefaultTopicName() {
+            return Optional.ofNullable(defaultTopicName);
+        }
+
+        public FlinkPulsarSink<T>  build(){
+            if (adminUrl == null) {
+                throw new IllegalStateException("Admin URL must be set.");
+            }
+            if (serializationSchema == null) {
+                throw new IllegalStateException("Serialization schema must be set.");
+            }
+            if (semantic == null) {
+                throw new IllegalStateException("Semantic must be set.");
+            }
+            if (properties == null) {
+                throw new IllegalStateException("Properties must be set.");
+            }
+            if (serviceUrl != null && clientConf != null) {
+                throw new IllegalStateException("Set either client conf or service URL but not both.");
+            }
+            if (serviceUrl != null){
+                clientConf = PulsarClientUtils.newClientConf(checkNotNull(serviceUrl), properties);
+            }
+            if (clientConf == null){
+                throw new IllegalStateException("Client conf must be set.");
+            }
+            if ((cryptoKeyReader == null) != (encryptionKeys.isEmpty())){
+                throw new IllegalStateException("Set crypto key reader and encryption keys in conjunction.");
+            }
+            checkState(isSerializable(cryptoKeyReader));
+            checkState(isSerializable(encryptionKeys));
+            return new FlinkPulsarSink<>(this);
+        }
+
+    }
+
     private final PulsarSerializationSchema<T> serializationSchema;
+
+    private FlinkPulsarSink(final Builder<T> builder) {
+        super(builder.adminUrl, builder.getDefaultTopicName(), builder.clientConf, builder.properties, builder.serializationSchema, builder.messageRouter, builder.semantic, builder.cryptoKeyReader, builder.encryptionKeys);
+        this.serializationSchema = builder.serializationSchema;
+    }
 
     public FlinkPulsarSink(
             String adminUrl,
@@ -51,9 +160,14 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
             PulsarSerializationSchema serializationSchema,
             MessageRouter messageRouter,
             PulsarSinkSemantic semantic) {
-
-        super(adminUrl, defaultTopicName, clientConf, properties, serializationSchema, messageRouter, semantic);
-        this.serializationSchema = serializationSchema;
+        this(new Builder<T>()
+            .withAdminUrl(adminUrl)
+            .withDefaultTopicName(defaultTopicName.orElse(null))
+            .withClientConf(clientConf)
+            .withProperties(properties)
+            .withPulsarSerializationSchema(serializationSchema)
+            .withMessageRouter(messageRouter)
+            .withSemantic(semantic));
     }
 
     public FlinkPulsarSink(

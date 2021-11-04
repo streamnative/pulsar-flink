@@ -18,6 +18,7 @@ import org.apache.flink.streaming.connectors.pulsar.util.MessageIdUtils;
 import org.apache.flink.streaming.util.serialization.PulsarDeserializationSchema;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.pulsar.client.api.CryptoKeyReader;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.PulsarClientException;
@@ -58,6 +59,8 @@ public class ReaderThread<T> extends Thread {
 
     protected volatile Reader<T> reader = null;
 
+    private final CryptoKeyReader cryptoKeyReader;
+
     public ReaderThread(
             PulsarFetcher<T> owner,
             PulsarTopicState state,
@@ -65,7 +68,8 @@ public class ReaderThread<T> extends Thread {
             Map<String, Object> readerConf,
             PulsarDeserializationSchema<T> deserializer,
             int pollTimeoutMs,
-            ExceptionProxy exceptionProxy) {
+            ExceptionProxy exceptionProxy,
+            final CryptoKeyReader cryptoKeyReader) {
         this.owner = owner;
         this.state = state;
         this.clientConf = clientConf;
@@ -76,6 +80,7 @@ public class ReaderThread<T> extends Thread {
 
         this.topicRange = state.getTopicRange();
         this.startMessageId = state.getOffset();
+        this.cryptoKeyReader = cryptoKeyReader;
     }
 
     public ReaderThread(
@@ -88,8 +93,9 @@ public class ReaderThread<T> extends Thread {
             ExceptionProxy exceptionProxy,
             boolean failOnDataLoss,
             boolean useEarliestWhenDataLoss,
-            boolean excludeMessageId) {
-        this(owner, state, clientConf, readerConf, deserializer, pollTimeoutMs, exceptionProxy);
+            boolean excludeMessageId,
+            final CryptoKeyReader cryptoKeyReader) {
+        this(owner, state, clientConf, readerConf, deserializer, pollTimeoutMs, exceptionProxy, cryptoKeyReader);
         this.failOnDataLoss = failOnDataLoss;
         this.useEarliestWhenDataLoss = useEarliestWhenDataLoss;
         this.excludeMessageId = excludeMessageId;
@@ -129,6 +135,9 @@ public class ReaderThread<T> extends Thread {
                 .topic(topicRange.getTopic())
                 .startMessageId(startMessageId)
                 .loadConf(readerConf);
+                if (cryptoKeyReader != null){
+                    readerBuilder.cryptoKeyReader(cryptoKeyReader);
+                }
         log.info("Create a reader at topic {} starting from message {} (inclusive) : config = {}",
                 topicRange, startMessageId, readerConf);
         if (!excludeMessageId){

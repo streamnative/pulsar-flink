@@ -505,11 +505,11 @@ public class FlinkPulsarSource<T>
             }
         }
 
-        if (log.isInfoEnabled()) {
+        if (log.isDebugEnabled()) {
             try {
                 ObjectMapper m = new ObjectMapper();
                 ObjectWriter w = m.writerWithDefaultPrettyPrinter();
-                log.info("Pulsar source config: {}", w.writeValueAsString(properties));
+                log.debug("Pulsar source config: {}", w.writeValueAsString(properties));
             } catch (IOException e) {
                 log.error("Failed to dump source config info", e);
             }

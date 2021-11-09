@@ -28,17 +28,47 @@ import org.apache.pulsar.PulsarVersion;
 @Internal
 public final class PulsarCatalogFactoryOptions {
 
-    public static final String IDENTIFIER = "pulsar";
+    public static final String IDENTIFIER = "pulsar-catalog";
+
+    public static final ConfigOption<String> CATALOG_TENANT =
+            ConfigOptions.key("catalog-tenant")
+                .stringType()
+                .defaultValue(PulsarCatalog.DEFAULT_TENANT)
+                .withDescription("Pulsar tenant used to store all table information");
 
     public static final ConfigOption<String> DEFAULT_DATABASE =
             ConfigOptions.key(CommonCatalogOptions.DEFAULT_DATABASE_KEY)
                     .stringType()
                     .defaultValue(PulsarCatalog.DEFAULT_DB);
 
+    public static final ConfigOption<String> ADMIN_URL =
+            ConfigOptions.key("catalog-admin-url")
+                .stringType()
+                .defaultValue("http://localhost:8080")
+                .withDescription("Required pulsar cluster admin url");
+
+    public static final ConfigOption<String> SERVICE_URL =
+            ConfigOptions.key("catalog-service-url")
+                .stringType()
+                .defaultValue("pulsar://localhost:6650")
+                .withDescription("Required pulsar cluster service url");
+
+    public static final ConfigOption<String>  AUTH_PLUGIN =
+            ConfigOptions.key("catalog-auth-plugin")
+                .stringType()
+                .noDefaultValue()
+                .withDescription("Auth plugin name for accessing pulsar cluster");
+
+    public static final ConfigOption<String> AUTH_PARAMS =
+            ConfigOptions.key("catalog-auth-params")
+                .stringType()
+                .noDefaultValue()
+                .withDescription("Auth params for accessing pulsar cluster");
+
     public static final ConfigOption<Integer> DEFAULT_PARTITIONS =
             ConfigOptions.key("table-default-partitions")
                     .intType()
-                    .defaultValue(5);
+                    .defaultValue(0);
 
     public static final ConfigOption<String> PULSAR_VERSION =
             ConfigOptions.key("pulsar-version")

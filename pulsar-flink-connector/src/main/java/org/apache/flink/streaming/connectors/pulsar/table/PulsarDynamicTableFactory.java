@@ -14,6 +14,7 @@
 
 package org.apache.flink.streaming.connectors.pulsar.table;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.configuration.ConfigOption;
@@ -48,6 +49,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.ADMIN_URL;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.GENERIC;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.KEY_FIELDS;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.KEY_FIELDS_PREFIX;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.KEY_FORMAT;
@@ -84,26 +86,16 @@ public class PulsarDynamicTableFactory implements
 
     public static final String IDENTIFIER = "pulsar";
 
-    private final boolean inCatalog;
-
-    public PulsarDynamicTableFactory() {
-        this.inCatalog = false;
-    }
-
-    public PulsarDynamicTableFactory(boolean inCatalog) {
-        this.inCatalog = inCatalog;
-    }
-
     @Override
     public DynamicTableSink createDynamicTableSink(Context context) {
         FactoryUtil.TableFactoryHelper helper = FactoryUtil.createTableFactoryHelper(this, context);
         ReadableConfig tableOptions = helper.getOptions();
-        if (inCatalog) {
-            final ObjectIdentifier table = context.getObjectIdentifier();
-            final String topic = TopicName.get(table.getDatabaseName() + "/" + table.getObjectName()).toString();
-            ((Configuration) tableOptions).set(TOPIC, Collections.singletonList(topic));
+
+        List<String> topics = generateTopic(context.getObjectIdentifier(), tableOptions);
+        if (topics != null && !topics.isEmpty()) {
+            ((Configuration) tableOptions).set(TOPIC, Collections.singletonList(topics.get(0)));
         }
-        List<String> topics = tableOptions.get(TOPIC);
+
         String adminUrl = tableOptions.get(ADMIN_URL);
         String serverUrl = tableOptions.get(SERVICE_URL);
         final Optional<EncodingFormat<SerializationSchema<RowData>>> keyEncodingFormat =
@@ -164,13 +156,18 @@ public class PulsarDynamicTableFactory implements
     public DynamicTableSource createDynamicTableSource(Context context) {
         FactoryUtil.TableFactoryHelper helper = FactoryUtil.createTableFactoryHelper(this, context);
         ReadableConfig tableOptions = helper.getOptions();
-        if (inCatalog) {
-            final ObjectIdentifier table = context.getObjectIdentifier();
-            final String topic = TopicName.get(table.getDatabaseName() + "/" + table.getObjectName()).toString();
-            ((Configuration) tableOptions).set(TOPIC, Collections.singletonList(topic));
+
+        List<String> topics = generateTopic(context.getObjectIdentifier(), tableOptions);
+        if (topics != null && topics.isEmpty()) {
+            ((Configuration) tableOptions).set(TOPIC, Collections.singletonList(topics.get(0)));
         }
-        List<String> topics = tableOptions.get(TOPIC);
-        String topicPattern = tableOptions.get(TOPIC_PATTERN);
+
+        // Generic Flink Table can reference multiple topics with topicPattern
+        String topicPattern = tableOptions.getOptional(TOPIC_PATTERN).orElse(null);
+        if (topicPattern != null && !topicPattern.isEmpty()) {
+            ((Configuration) tableOptions).set(TOPIC_PATTERN, topicPattern);
+        }
+
         String adminUrl = tableOptions.get(ADMIN_URL);
         String serviceUrl = tableOptions.get(SERVICE_URL);
 
@@ -242,6 +239,7 @@ public class PulsarDynamicTableFactory implements
         options.add(SCAN_STARTUP_SPECIFIC_OFFSETS);
         options.add(SCAN_STARTUP_SUB_NAME);
         options.add(SCAN_STARTUP_SUB_START_OFFSET);
+        options.add(GENERIC);
 
         options.add(PARTITION_DISCOVERY_INTERVAL_MILLIS);
         options.add(SINK_SEMANTIC);
@@ -252,6 +250,19 @@ public class PulsarDynamicTableFactory implements
     }
 
     // --------------------------------------------------------------------------------------------
+
+    private List<String> generateTopic(ObjectIdentifier table, ReadableConfig tableOptions) {
+        List<String> topics = null;
+        if (tableOptions.get(GENERIC)) {
+            topics = tableOptions.getOptional(TOPIC).orElse(null);
+        } else {
+            String rawTopic = table.getDatabaseName() + "/" + table.getObjectName();
+            final String topic = TopicName.get(rawTopic).toString();
+            topics = Collections.singletonList(topic);
+        }
+
+        return topics;
+    }
 
     private static Optional<DecodingFormat<DeserializationSchema<RowData>>> getKeyDecodingFormat(
             FactoryUtil.TableFactoryHelper helper) {

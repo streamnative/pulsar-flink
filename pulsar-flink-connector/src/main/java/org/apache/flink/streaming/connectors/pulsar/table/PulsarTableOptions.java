@@ -50,7 +50,12 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.IntStream;
 
+import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.ADMIN_URL_OPTION_KEY;
+import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.AUTH_PARAMS_KEY;
+import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.AUTH_PLUGIN_CLASSNAME_KEY;
+import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.Generic;
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.PULSAR_OPTION_KEY_PREFIX;
+import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.SERVICE_URL_OPTION_KEY;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarSinkSemantic.AT_LEAST_ONCE;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarSinkSemantic.EXACTLY_ONCE;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarSinkSemantic.NONE;
@@ -119,16 +124,22 @@ public class PulsarTableOptions {
     // --------------------------------------------------------------------------------------------
 
     public static final ConfigOption<String> SERVICE_URL = ConfigOptions
-            .key("service-url")
+            .key(SERVICE_URL_OPTION_KEY)
             .stringType()
             .noDefaultValue()
             .withDescription("Required pulsar server connection string");
 
     public static final ConfigOption<String> ADMIN_URL = ConfigOptions
-            .key("admin-url")
+            .key(ADMIN_URL_OPTION_KEY)
             .stringType()
             .noDefaultValue()
             .withDescription("Required pulsar admin connection string");
+
+    public static final ConfigOption<Boolean> GENERIC = ConfigOptions
+        .key(Generic)
+        .booleanType()
+        .defaultValue(false)
+        .withDescription("Indicate if the table is a generic flink table");
 
     // --------------------------------------------------------------------------------------------
     // Scan specific options

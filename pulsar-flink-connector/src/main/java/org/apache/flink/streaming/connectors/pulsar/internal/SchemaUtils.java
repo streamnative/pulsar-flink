@@ -96,6 +96,15 @@ public class SchemaUtils {
         }
     }
 
+    public static void deletePulsarSchema(PulsarAdmin admin, String topic) {
+        try {
+            admin.schemas().deleteSchema(topic);
+        } catch (PulsarAdminException e) {
+            // TODO: refine error handling logic
+            e.printStackTrace();
+        }
+    }
+
     private static boolean schemaEqualsIgnoreProperties(SchemaInfo schemaInfo, SchemaInfo existingSchema) {
         return existingSchema.getType().equals(schemaInfo.getType()) && Arrays.equals(existingSchema.getSchema(),
                 schemaInfo.getSchema());

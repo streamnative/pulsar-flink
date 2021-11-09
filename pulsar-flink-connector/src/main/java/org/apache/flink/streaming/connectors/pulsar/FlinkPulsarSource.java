@@ -596,7 +596,7 @@ public class FlinkPulsarSource<T>
         boolean useMetrics,
         Set<TopicRange> excludeStartMessageIds) throws Exception {
 
-        //readerConf.putIfAbsent(PulsarOptions.SUBSCRIPTION_ROLE_OPTION_KEY, getSubscriptionName());
+        readerConf.putIfAbsent(PulsarOptions.SUBSCRIPTION_ROLE_OPTION_KEY, getSubscriptionName());
 
         return new PulsarFetcher<>(
                 sourceContext,

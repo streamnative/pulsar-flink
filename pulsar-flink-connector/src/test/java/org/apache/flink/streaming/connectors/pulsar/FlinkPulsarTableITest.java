@@ -331,6 +331,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
                 "  watermark for eventTime as eventTime\n" +
                 ") with (\n" +
                 "  'connector' = 'pulsar',\n" +
+                "  'generic' = 'true',\n" +
                 "  'topic' = '%s',\n" +
                 "  'service-url' = '%s',\n" +
                 "  'admin-url' = '%s',\n" +
@@ -402,6 +403,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
                 "  watermark for eventTime as eventTime\n" +
                 ") with (\n" +
                 "  'connector' = 'pulsar',\n" +
+                "  'generic' = 'true',\n" +
                 "  'topic' = '%s',\n" +
                 "  'service-url' = '%s',\n" +
                 "  'admin-url' = '%s',\n" +
@@ -475,6 +477,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
                 "  watermark for ts as ts\n" +
                 ") with (\n" +
                 "  'connector' = 'pulsar',\n" +
+                "  'generic' = 'true',\n" +
                 "  'topic' = '%s',\n" +
                 "  'service-url' = '%s',\n" +
                 "  'admin-url' = '%s',\n" +
@@ -539,6 +542,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
                 "  watermark for ts as ts\n" +
                 ") with (\n" +
                 "  'connector' = 'pulsar',\n" +
+                "  'generic' = 'true',\n" +
                 "  'topic' = '%s',\n" +
                 "  'service-url' = '%s',\n" +
                 "  'admin-url' = '%s',\n" +
@@ -609,6 +613,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
                 + "  `physical_3` BOOLEAN\n"
                 + ") WITH (\n"
                 + "  'connector' = 'pulsar',\n"
+                + "  'generic' = 'true',\n"
                 + "  'topic' = '%s',\n"
                 + "  'key.format' = 'raw',\n"
                 + "  'key.fields' = 'key',\n"
@@ -702,6 +707,7 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
                 + "  `sequenceId` BIGINT METADATA VIRTUAL\n"
                 + ") WITH (\n"
                 + "  'connector' = 'pulsar',\n"
+                + "  'generic' = 'true',\n"
                 + "  'topic' = '%s',\n"
                 + "  'service-url' = '%s',\n"
                 + "  'admin-url' = '%s',\n"

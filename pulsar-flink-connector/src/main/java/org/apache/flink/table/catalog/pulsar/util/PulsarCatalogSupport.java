@@ -166,7 +166,7 @@ public class PulsarCatalogSupport {
             }
         } else {
             final SchemaInfo pulsarSchema = pulsarMetadataReader.getPulsarSchema(topicName);
-            return schemaToCatalogTable(pulsarSchema, tablePath);
+            return schemaToCatalogTable(pulsarSchema);
         }
     }
 
@@ -207,7 +207,7 @@ public class PulsarCatalogSupport {
         }
     }
 
-    private CatalogTable schemaToCatalogTable(SchemaInfo pulsarSchema, ObjectPath tablePath) {
+    private CatalogTable schemaToCatalogTable(SchemaInfo pulsarSchema) {
         final TableSchema tableSchema = schemaTranslator.pulsarSchemaToTableSchema(pulsarSchema);
         final Schema schema = Schema.newBuilder().fromRowDataType(tableSchema.toRowDataType()).build();
         return CatalogTable.of(schema, "", Collections.emptyList(), enrichTableOptions(null));

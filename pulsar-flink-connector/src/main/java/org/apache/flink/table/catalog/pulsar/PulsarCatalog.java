@@ -69,8 +69,6 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
 
     private final String tenant;
 
-    private final String database;
-
     private PulsarCatalogSupport catalogSupport;
 
     public static final String DEFAULT_TENANT = "__flink_catalog";
@@ -91,7 +89,6 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
         this.authPlugin = authPlugin;
         this.authParams = authParams;
         this.tenant = tenant;
-        this.database = database;
 
         log.info("Created Pulsar Catalog {}", catalogName);
     }

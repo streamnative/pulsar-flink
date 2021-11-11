@@ -158,7 +158,7 @@ public class PulsarDynamicTableFactory implements
         ReadableConfig tableOptions = helper.getOptions();
 
         List<String> topics = generateTopic(context.getObjectIdentifier(), tableOptions);
-        if (topics != null && topics.isEmpty()) {
+        if (topics != null && !topics.isEmpty()) {
             ((Configuration) tableOptions).set(TOPIC, Collections.singletonList(topics.get(0)));
         }
 

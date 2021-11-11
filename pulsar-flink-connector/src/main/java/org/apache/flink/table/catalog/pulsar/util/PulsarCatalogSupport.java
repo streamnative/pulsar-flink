@@ -18,6 +18,7 @@ import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.streaming.connectors.pulsar.internal.SchemaTranslator;
+import org.apache.flink.streaming.connectors.pulsar.table.PulsarDynamicTableFactory;
 import org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions;
 import org.apache.flink.table.api.Schema;
 import org.apache.flink.table.api.TableSchema;
@@ -217,13 +218,20 @@ public class PulsarCatalogSupport {
     private Map<String, String> enrichTableOptions(final Map<String, String> tableOptions) {
         // TODO (nlu): add necessary table options
         Map<String, String> enrichedTableOptions = new HashMap<>();
+        enrichedTableOptions.put(FactoryUtil.CONNECTOR.key(), PulsarDynamicTableFactory.IDENTIFIER);
         enrichedTableOptions.put(PulsarOptions.ADMIN_URL_OPTION_KEY, pulsarMetadataReader.getAdminUrl());
         enrichedTableOptions.put(PulsarOptions.SERVICE_URL_OPTION_KEY,
             pulsarMetadataReader.getClientConf().getServiceUrl());
-        enrichedTableOptions.put(PulsarTableOptions.PROPERTIES_PREFIX + PulsarOptions.AUTH_PLUGIN_CLASSNAME_KEY,
-            pulsarMetadataReader.getClientConf().getAuthPluginClassName());
-        enrichedTableOptions.put(PulsarTableOptions.PROPERTIES_PREFIX + PulsarOptions.AUTH_PARAMS_KEY,
-            pulsarMetadataReader.getClientConf().getAuthParams());
+
+        String authPlugin = pulsarMetadataReader.getClientConf().getAuthPluginClassName();
+        if (authPlugin != null && !authPlugin.isEmpty()) {
+            enrichedTableOptions.put(PulsarTableOptions.PROPERTIES_PREFIX + PulsarOptions.AUTH_PLUGIN_CLASSNAME_KEY, authPlugin);
+        }
+
+        String  authParams = pulsarMetadataReader.getClientConf().getAuthParams();
+        if (authParams != null && !authParams.isEmpty()) {
+            enrichedTableOptions.put(PulsarTableOptions.PROPERTIES_PREFIX + PulsarOptions.AUTH_PARAMS_KEY, authParams);
+        }
 
         if (tableOptions != null) {
             // table options could overwrite the default options provided above

@@ -236,7 +236,7 @@ public class SchemaUtils {
             case "protobuf":
                 final String messageClassName = configuration.get(PbFormatOptions.MESSAGE_CLASS_NAME);
                 return getProtobufSchemaInfo(messageClassName, SchemaUtils.class.getClassLoader());
-            case "atomic":
+            case "raw":
                 org.apache.pulsar.client.api.Schema pulsarSchema =
                         SimpleSchemaTranslator.sqlType2PulsarSchema(dataType.getChildren().get(0));
                 return pulsarSchema.getSchemaInfo();

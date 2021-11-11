@@ -49,6 +49,7 @@ import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.policies.data.TenantInfo;
 import org.apache.pulsar.common.schema.SchemaType;
+import org.apache.pulsar.shade.org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -70,6 +71,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
+import static org.apache.flink.streaming.connectors.pulsar.SchemaData.BYTES_LIST;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.INTEGER_LIST;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -238,14 +240,14 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         sendTypedMessages(tableName, SchemaType.INT32, INTEGER_LIST, Optional.empty());
 
         Map<String, String> conf = getStreamingConfs();
-        conf.put("$VAR_STARTING", "earliest");
-
         ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
         TableEnvironment tableEnv = context.getTableEnvironment();
 
         tableEnv.useCatalog("pulsarcatalog1");
+        tableEnv.getConfig().getConfiguration().setString("table.dynamic-table-options.enabled", "true");
 
-        Table t = tableEnv.sqlQuery("select `value` from " + TopicName.get(tableName).getLocalName());
+        Table t = tableEnv.sqlQuery("select `value` from " + TopicName.get(tableName).getLocalName()
+                                    + " /*+ OPTIONS('scan.startup.mode'='earliest') */");
 
         StreamExecutionEnvironment executionEnvironment =
                 StreamExecutionEnvironment.getExecutionEnvironment().setParallelism(1);
@@ -277,38 +279,33 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
     @Test(timeout = 40 * 10000L)
     public void testTableSink() throws Exception {
-        String tp = newTopic();
-        String tableName = TopicName.get(tp).getLocalName();
+        String sourceTopic = newTopic("source");
+        String sourceTableName = TopicName.get(sourceTopic).getLocalName();
+        sendTypedMessages(sourceTopic, SchemaType.INT32, INTEGER_LIST, Optional.empty());
 
-        String tableSinkTopic = newTopic("tableSink");
-        String tableSinkName = TopicName.get(tableSinkTopic).getLocalName();
-        String pulsarCatalog1 = "pulsarcatalog1";
+        String sinkTopic = newTopic("sink");
+        String sinkTableName = TopicName.get(sinkTopic).getLocalName();
+        getPulsarAdmin().schemas().createSchema(sinkTopic, Schema.INT32.getSchemaInfo());
 
-        sendTypedMessages(tp, SchemaType.INT32, INTEGER_LIST, Optional.empty());
-//        getPulsarAdmin().schemas().createSchema(tp, Schema.INT32.getSchemaInfo());
-//        getPulsarAdmin().topics().createSubscription(tp, "test", MessageId.earliest);
         Map<String, String> conf = getStreamingConfs();
-        conf.put("$VAR_STARTING", "earliest");
-
         ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
         TableEnvironment tableEnv = context.getTableEnvironment();
 
-        tableEnv.useCatalog(pulsarCatalog1);
+        tableEnv.useCatalog("pulsarcatalog1");
+        tableEnv.getConfig().getConfiguration().setString("table.dynamic-table-options.enabled", "true");
 
-        String sinkDDL = "create table " + tableSinkName + "(v int)";
-        String insertQ = "INSERT INTO " + tableSinkName + " SELECT * FROM `" + tableName + "`";
+        String insertQ = "INSERT INTO " + sinkTableName + " SELECT * FROM `" + sourceTableName + "` /*+ OPTIONS('scan.startup.mode'='earliest') */";
 
-        tableEnv.executeSql(sinkDDL).print();
         tableEnv.executeSql(insertQ);
 
-        List<Integer> result = consumeMessage(tableSinkName, Schema.INT32, INTEGER_LIST.size(), 10);
+        List<Integer> result = consumeMessage(sinkTableName, Schema.INT32, INTEGER_LIST.size(), 10);
 
         assertEquals(INTEGER_LIST, result);
     }
 
     @Test(timeout = 40 * 10000L)
     public void testAvroTableSink() throws Exception {
-
+        String databaseName = newDatabaseName();
         String tableSinkTopic = newTopic("tableSink");
         String tableSinkName = TopicName.get(tableSinkTopic).getLocalName();
         String pulsarCatalog1 = "pulsarcatalog3";
@@ -324,10 +321,18 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
         tableEnv.useCatalog(pulsarCatalog1);
 
+        String dbDDL = "CREATE DATABASE " + databaseName;
+        tableEnv.executeSql(dbDDL).print();
+        tableEnv.executeSql("USE " + databaseName);
+
         String sinkDDL = "create table " + tableSinkName + "(\n" +
                 "  oid STRING,\n" +
                 "  totalprice INT,\n" +
                 "  customerid STRING\n" +
+                ") with (\n" +
+                "   'connector' = 'pulsar',\n" +
+                "   'topic' = '" + tableSinkTopic + "',\n" +
+                "   'format' = 'avro'\n" +
                 ")";
         String insertQ = "INSERT INTO " + tableSinkName + " VALUES\n" +
                 "  ('oid1', 10, 'cid1'),\n" +
@@ -345,29 +350,26 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
     @Test(timeout = 40 * 10000L)
     public void testTableSchema() throws Exception {
-
+        String databaseName = newDatabaseName();
         String tableSinkTopic = newTopic("tableSink");
         String tableSinkName = TopicName.get(tableSinkTopic).getLocalName();
-        String useCatalog = "pulsarcatalogtest1";
+        String catalogName = "pulsarcatalogtest1";
 
         TableEnvironment tableEnv = TableEnvironment.create(EnvironmentSettings.fromConfiguration(new Configuration()));
 
-        String createCatalog = "CREATE CATALOG " + useCatalog + "\n" +
+        String createCatalog = "CREATE CATALOG " + catalogName + "\n" +
                 "  WITH (\n" +
-                "    'type' = 'pulsar',\n" +
-                "    'value.format' = 'avro',\n" +
-                "    'value.fields-include' = 'EXCEPT_KEY',\n" +
-                "    'key.format' = 'string',\n" +
-                "    'key.fields' = 'key',\n" +
+                "    'type' = 'pulsar-catalog',\n" +
                 "    'default-database' = 'public/default',\n" +
-                "    'scan.startup.mode' = 'earliest',\n" +
-                "    'service-url'='" + getServiceUrl() + "',\n" +
-                "    'admin-url'=  '" + getAdminUrl() + "',\n" +
-                "    'properties.auth-plugin-classname'=  '',\n" +
-                "    'properties.auth-params'=  'auth-params'\n" +
+                "    'catalog-service-url'='" + getServiceUrl() + "',\n" +
+                "    'catalog-admin-url'=  '" + getAdminUrl() + "'\n" +
                 "  )";
         tableEnv.executeSql(createCatalog);
-        tableEnv.useCatalog(useCatalog);
+        tableEnv.useCatalog(catalogName);
+
+        String dbDDL = "CREATE DATABASE " + databaseName;
+        tableEnv.executeSql(dbDDL).print();
+        tableEnv.executeSql("USE " + databaseName + "");
 
         String sinkDDL = "CREATE TABLE " + tableSinkName + " (\n" +
                 "  `physical_1` STRING,\n" +
@@ -386,7 +388,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         TableEnvironment tableEnv2 =
                 TableEnvironment.create(EnvironmentSettings.fromConfiguration(new Configuration()));
         tableEnv2.executeSql(createCatalog);
-        tableEnv2.useCatalog(useCatalog);
+        tableEnv2.useCatalog(catalogName);
         final TableSchema schema2 = tableEnv2.executeSql("DESCRIBE " + tableSinkName).getTableSchema();
 
         assertEquals(schema, schema2);
@@ -394,7 +396,7 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
     @Test(timeout = 40 * 10000L)
     public void testJsonTableSink() throws Exception {
-
+        String databaseName = newDatabaseName();
         String tableSinkTopic = newTopic("tableSink");
         String tableSinkName = TopicName.get(tableSinkTopic).getLocalName();
         String pulsarCatalog1 = "pulsarcatalog3";
@@ -407,10 +409,18 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         TableEnvironment tableEnv = context.getTableEnvironment();
         tableEnv.useCatalog(pulsarCatalog1);
 
+        String dbDDL = "CREATE DATABASE " + databaseName;
+        tableEnv.executeSql(dbDDL).print();
+        tableEnv.executeSql("USE " + databaseName + "");
+
         String sinkDDL = "create table " + tableSinkName + "(\n" +
                 "  oid STRING,\n" +
                 "  totalprice INT,\n" +
                 "  customerid STRING\n" +
+                ") with (\n" +
+                "   'connector' = 'pulsar',\n" +
+                "   'topic' = '" + tableSinkTopic + "',\n" +
+                "   'format' = 'json'\n" +
                 ")";
         String insertQ = "INSERT INTO " + tableSinkName + " VALUES\n" +
                 "  ('oid1', 10, 'cid1'),\n" +
@@ -428,8 +438,8 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
     }
 
     @Test(timeout = 40 * 10000L)
-    public void testCreateTopic() throws Exception {
-
+    public void testCreateTable() throws Exception {
+        String databaseName = newDatabaseName();
         String tableSinkTopic = newTopic("tableSink");
         String tableSinkName = TopicName.get(tableSinkTopic).getLocalName();
         String pulsarCatalog1 = "pulsarcatalog3";
@@ -441,6 +451,10 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
         TableEnvironment tableEnv = context.getTableEnvironment();
         tableEnv.useCatalog(pulsarCatalog1);
+
+        String dbDDL = "CREATE DATABASE " + databaseName;
+        tableEnv.executeSql(dbDDL).print();
+        tableEnv.executeSql("USE " + databaseName);
 
         String sinkDDL = "create table " + tableSinkName + "(\n" +
                 "  oid STRING,\n" +
@@ -492,14 +506,13 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         sendTypedMessages(tableSink, SchemaType.INT32, Arrays.asList(-1), Optional.empty());
 
         Map<String, String> conf = getStreamingConfs();
-        conf.put("$VAR_STARTING", "earliest");
-
         ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
         TableEnvironment tableEnv = context.getTableEnvironment();
 
         tableEnv.useCatalog("pulsarcatalog1");
+        tableEnv.getConfig().getConfiguration().setString("table.dynamic-table-options.enabled", "true");
 
-        String insertQ = "INSERT INTO " + tableSinkName + " SELECT * FROM `" + tableName + "`";
+        String insertQ = "INSERT INTO " + tableSinkName + " SELECT * FROM `" + tableName + "` /*+ OPTIONS('scan.startup.mode'='earliest') */";
         tableEnv.executeSql(insertQ);
 
         List<Integer> expectedOutput = new ArrayList<>();
@@ -533,5 +546,9 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         replaceVars.put("$VAR_SERVICEURL", getServiceUrl());
         replaceVars.put("$VAR_ADMINURL", getAdminUrl());
         return replaceVars;
+    }
+
+    private String newDatabaseName() {
+        return  "database" + RandomStringUtils.randomNumeric(8);
     }
 }

@@ -43,7 +43,7 @@ public class PulsarOptions {
             TOPIC_PATTERN_OPTION_KEY);
 
 
-    public static final String Generic = "generic";
+    public static final String GENERIC = "generic";
     public static final String SERVICE_URL_OPTION_KEY = "service-url";
     public static final String ADMIN_URL_OPTION_KEY = "admin-url";
     public static final String STARTUP_MODE_OPTION_KEY = "startup-mode";

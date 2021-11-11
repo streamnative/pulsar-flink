@@ -14,7 +14,6 @@
 
 package org.apache.flink.streaming.connectors.pulsar.table;
 
-import lombok.extern.slf4j.Slf4j;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.configuration.ConfigOption;

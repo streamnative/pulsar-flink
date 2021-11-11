@@ -18,6 +18,7 @@ import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.streaming.connectors.pulsar.util.KeyHashMessageRouterImpl;
 import org.apache.flink.table.api.TableException;
 import org.apache.flink.table.api.ValidationException;
@@ -51,9 +52,6 @@ import java.util.Set;
 import java.util.stream.IntStream;
 
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.ADMIN_URL_OPTION_KEY;
-import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.AUTH_PARAMS_KEY;
-import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.AUTH_PLUGIN_CLASSNAME_KEY;
-import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.Generic;
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.PULSAR_OPTION_KEY_PREFIX;
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.SERVICE_URL_OPTION_KEY;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarSinkSemantic.AT_LEAST_ONCE;
@@ -136,7 +134,7 @@ public class PulsarTableOptions {
             .withDescription("Required pulsar admin connection string");
 
     public static final ConfigOption<Boolean> GENERIC = ConfigOptions
-        .key(Generic)
+        .key(PulsarOptions.GENERIC)
         .booleanType()
         .defaultValue(false)
         .withDescription("Indicate if the table is a generic flink table");

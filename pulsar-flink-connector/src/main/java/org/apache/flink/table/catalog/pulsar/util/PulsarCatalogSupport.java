@@ -26,8 +26,8 @@ import org.apache.flink.table.catalog.CatalogTable;
 import org.apache.flink.table.catalog.ObjectPath;
 import org.apache.flink.table.catalog.ResolvedCatalogTable;
 import org.apache.flink.table.catalog.exceptions.CatalogException;
-
 import org.apache.flink.table.factories.FactoryUtil;
+
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
@@ -51,22 +51,22 @@ public class PulsarCatalogSupport {
 
     private final PulsarMetadataReader pulsarMetadataReader;
 
-    private final String flink_catalog_tenant;
+    private final String flinkCatalogTenant;
 
     private SchemaTranslator schemaTranslator;
 
     public PulsarCatalogSupport(String adminUrl,
                                 ClientConfigurationData clientConf,
-                                String flink_tenant,
+                                String flinkTenant,
                                 SchemaTranslator schemaTranslator) throws
         PulsarClientException, PulsarAdminException {
         this.pulsarMetadataReader = new PulsarMetadataReader(adminUrl, clientConf, "", new HashMap<>(), -1, -1);
         this.schemaTranslator = schemaTranslator;
-        this.flink_catalog_tenant = flink_tenant;
+        this.flinkCatalogTenant = flinkTenant;
 
         // Initialize the dedicated tenant if necessary
-        if (!pulsarMetadataReader.tenantExists(flink_catalog_tenant)) {
-            pulsarMetadataReader.createTenant(flink_catalog_tenant);
+        if (!pulsarMetadataReader.tenantExists(flinkCatalogTenant)) {
+            pulsarMetadataReader.createTenant(flinkCatalogTenant);
         }
     }
 
@@ -76,11 +76,10 @@ public class PulsarCatalogSupport {
                                 String flinkCatalogTenant) {
         this.pulsarMetadataReader = metadataReader;
         this.schemaTranslator = schemaTranslator;
-        this.flink_catalog_tenant = flinkCatalogTenant;
+        this.flinkCatalogTenant = flinkCatalogTenant;
     }
 
-    /**
-     * A generic database stored in pulsar catalog should consist of alphanumeric characters
+    /** A generic database stored in pulsar catalog should consist of alphanumeric characters.
      * A pulsar tenant/namespace mapped database should contain the "/" in between tenant and namespace
      * @param name the database name
      * @return false if the name contains "/", which indicate it's a pulsar tenant/namespace mapped database
@@ -90,15 +89,15 @@ public class PulsarCatalogSupport {
     }
 
     private String completeGenericDatabasePath(String name) {
-        return this.flink_catalog_tenant + "/" + name;
+        return this.flinkCatalogTenant + "/" + name;
     }
 
     public List<String> listDatabases() throws PulsarAdminException {
         List<String> databases = new ArrayList<>();
         for (String ns : pulsarMetadataReader.listNamespaces()) {
-            if (ns.startsWith(flink_catalog_tenant)) {
+            if (ns.startsWith(flinkCatalogTenant)) {
                 // generic database
-                databases.add(ns.substring(flink_catalog_tenant.length() + 1));
+                databases.add(ns.substring(flinkCatalogTenant.length() + 1));
             } else {
                 // pulsar tenant/namespace mapped database
                 databases.add(ns);
@@ -156,7 +155,7 @@ public class PulsarCatalogSupport {
                 final SchemaInfo metadataSchema = pulsarMetadataReader.getPulsarSchema(topicName);
                 Map<String, String> tableProperties = TableSchemaHelper.generateTableProperties(metadataSchema);
                 CatalogTable table = CatalogTable.fromProperties(tableProperties);
-                table.getOptions().put(PulsarOptions.Generic, Boolean.TRUE.toString());
+                table.getOptions().put(PulsarOptions.GENERIC, Boolean.TRUE.toString());
                 return CatalogTable.of(table.getUnresolvedSchema(),
                                         table.getComment(),
                                         table.getPartitionKeys(),
@@ -251,7 +250,7 @@ public class PulsarCatalogSupport {
         String topic;
 
         if (isGenericDatabase(objectPath.getDatabaseName())) {
-            database = flink_catalog_tenant + "/" + objectPath.getDatabaseName();
+            database = flinkCatalogTenant + "/" + objectPath.getDatabaseName();
             topic = TABLE_PREFIX + objectPath.getObjectName();
         } else {
             database = objectPath.getDatabaseName();

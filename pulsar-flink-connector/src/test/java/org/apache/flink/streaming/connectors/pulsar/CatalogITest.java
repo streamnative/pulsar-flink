@@ -71,7 +71,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
-import static org.apache.flink.streaming.connectors.pulsar.SchemaData.BYTES_LIST;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.INTEGER_LIST;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;

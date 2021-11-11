@@ -48,6 +48,7 @@ import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 
 import javax.annotation.Nullable;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -275,7 +276,6 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
     // Unsupported catalog operations for Pulsar
     // There should not be such permission in the connector, it is very dangerous
     // ------------------------------------------------------------------------
-
 
     @Override
     public void alterDatabase(String name, CatalogDatabase newDatabase, boolean ignoreIfNotExists)

@@ -27,9 +27,9 @@ import java.util.Set;
 import static org.apache.flink.table.catalog.pulsar.factories.PulsarCatalogFactoryOptions.ADMIN_URL;
 import static org.apache.flink.table.catalog.pulsar.factories.PulsarCatalogFactoryOptions.AUTH_PARAMS;
 import static org.apache.flink.table.catalog.pulsar.factories.PulsarCatalogFactoryOptions.AUTH_PLUGIN;
+import static org.apache.flink.table.catalog.pulsar.factories.PulsarCatalogFactoryOptions.CATALOG_TENANT;
 import static org.apache.flink.table.catalog.pulsar.factories.PulsarCatalogFactoryOptions.DEFAULT_DATABASE;
 import static org.apache.flink.table.catalog.pulsar.factories.PulsarCatalogFactoryOptions.DEFAULT_PARTITIONS;
-import static org.apache.flink.table.catalog.pulsar.factories.PulsarCatalogFactoryOptions.CATALOG_TENANT;
 import static org.apache.flink.table.catalog.pulsar.factories.PulsarCatalogFactoryOptions.IDENTIFIER;
 import static org.apache.flink.table.catalog.pulsar.factories.PulsarCatalogFactoryOptions.PULSAR_VERSION;
 import static org.apache.flink.table.catalog.pulsar.factories.PulsarCatalogFactoryOptions.SERVICE_URL;
@@ -77,7 +77,7 @@ public class PulsarCatalogFactory implements CatalogFactory {
         options.add(DEFAULT_PARTITIONS);
         options.add(PULSAR_VERSION);
 
-        // TODO(nlu): investigate if need to provide default table options
+        // TODO: investigate if need to provide default table options
 
         return options;
     }

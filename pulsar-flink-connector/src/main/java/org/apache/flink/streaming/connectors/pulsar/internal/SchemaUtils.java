@@ -229,6 +229,8 @@ public class SchemaUtils {
                                                      Configuration configuration)
             throws IncompatibleSchemaException {
         switch (StringUtils.lowerCase(format)) {
+            case "raw":
+                return getSchemaInfo(SchemaType.BYTES, dataType);
             case "json":
                 return getSchemaInfo(SchemaType.JSON, dataType);
             case "avro":
@@ -236,7 +238,7 @@ public class SchemaUtils {
             case "protobuf":
                 final String messageClassName = configuration.get(PbFormatOptions.MESSAGE_CLASS_NAME);
                 return getProtobufSchemaInfo(messageClassName, SchemaUtils.class.getClassLoader());
-            case "raw":
+            case "atomic":
                 org.apache.pulsar.client.api.Schema pulsarSchema =
                         SimpleSchemaTranslator.sqlType2PulsarSchema(dataType.getChildren().get(0));
                 return pulsarSchema.getSchemaInfo();

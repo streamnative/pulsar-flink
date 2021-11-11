@@ -240,7 +240,7 @@ public class PulsarMetadataReader implements AutoCloseable {
     }
 
     public void createTopic(String topicName, int partitionNum) throws PulsarAdminException, IncompatibleSchemaException {
-        if (partitionNum > 1) {
+        if (partitionNum > 0) {
             admin.topics().createPartitionedTopic(topicName, partitionNum);
         } else {
             admin.topics().createNonPartitionedTopic(topicName);

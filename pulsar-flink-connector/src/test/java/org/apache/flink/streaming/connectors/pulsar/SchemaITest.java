@@ -80,7 +80,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
     @Test(timeout = 100 * 1000L)
     public void testBooleanWrite() throws Exception {
-        checkWrite(SchemaType.BOOLEAN, DataTypes.BOOLEAN(), BOOLEAN_LIST, obj -> Row.of(obj).toString(), RAW_FORMAT);
+        checkWrite(DataTypes.BOOLEAN(), BOOLEAN_LIST, obj -> Row.of(obj).toString(), RAW_FORMAT);
     }
 
     @Test(timeout = 100 * 1000L)
@@ -90,7 +90,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
     @Test(timeout = 100 * 1000L)
     public void testINT32Write() throws Exception {
-        checkWrite(SchemaType.INT32, DataTypes.INT(), INTEGER_LIST, obj -> Row.of(obj).toString(), RAW_FORMAT);
+        checkWrite(DataTypes.INT(), INTEGER_LIST, obj -> Row.of(obj).toString(), RAW_FORMAT);
     }
 
     @Test(timeout = 100 * 1000L)
@@ -100,7 +100,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
     @Test(timeout = 100 * 1000L)
     public void testINT64Write() throws Exception {
-        checkWrite(SchemaType.INT64, DataTypes.BIGINT(), INT_64_LIST, obj -> Row.of(obj).toString(), RAW_FORMAT);
+        checkWrite(DataTypes.BIGINT(), INT_64_LIST, obj -> Row.of(obj).toString(), RAW_FORMAT);
     }
 
     @Test(timeout = 100 * 1000L)
@@ -110,7 +110,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
     @Test(timeout = 100 * 1000L)
     public void testStringWrite() throws Exception {
-        checkWrite(SchemaType.STRING, DataTypes.STRING(), STRING_LIST, obj -> Row.of(obj).toString(), RAW_FORMAT);
+        checkWrite(DataTypes.STRING(), STRING_LIST, obj -> Row.of(obj).toString(), RAW_FORMAT);
     }
 
     @Test(timeout = 100 * 1000L)
@@ -120,7 +120,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
     @Test
     public void testByteWrite() throws Exception {
-        checkWrite(SchemaType.INT8, DataTypes.TINYINT(), INT_8_LIST, obj -> Row.of(obj).toString(), RAW_FORMAT);
+        checkWrite(DataTypes.TINYINT(), INT_8_LIST, obj -> Row.of(obj).toString(), RAW_FORMAT);
     }
 
     @Test(timeout = 100 * 1000L)
@@ -130,7 +130,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
     @Test(timeout = 100 * 1000L)
     public void testShortWrite() throws Exception {
-        checkWrite(SchemaType.INT16, DataTypes.SMALLINT(), INT_16_LIST, obj -> Row.of(obj).toString(), RAW_FORMAT);
+        checkWrite(DataTypes.SMALLINT(), INT_16_LIST, obj -> Row.of(obj).toString(), RAW_FORMAT);
     }
 
     @Test(timeout = 100 * 1000L)
@@ -140,7 +140,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
     @Test(timeout = 100 * 1000L)
     public void testFloatWrite() throws Exception {
-        checkWrite(SchemaType.FLOAT, DataTypes.FLOAT(), FLOAT_LIST, obj -> Row.of(obj).toString(), RAW_FORMAT);
+        checkWrite(DataTypes.FLOAT(), FLOAT_LIST, obj -> Row.of(obj).toString(), RAW_FORMAT);
     }
 
     @Test(timeout = 100 * 1000L)
@@ -150,7 +150,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
     @Test(timeout = 100 * 1000L)
     public void testDoubleWrite() throws Exception {
-        checkWrite(SchemaType.DOUBLE, DataTypes.DOUBLE(), DOUBLE_LIST, obj -> Row.of(obj).toString(), RAW_FORMAT);
+        checkWrite(DataTypes.DOUBLE(), DOUBLE_LIST, obj -> Row.of(obj).toString(), RAW_FORMAT);
     }
 
     @Test(timeout = 100 * 1000L)
@@ -161,9 +161,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
     @Test
     public void testDateWrite() throws Exception {
-        checkWrite(SchemaType.LOCAL_DATE,
-                DataTypes.DATE(),
-                localDateList, obj -> Row.of(obj).toString(), ATOMIC_FORMAT);
+        checkWrite(DataTypes.DATE(), localDateList, obj -> Row.of(obj).toString(), ATOMIC_FORMAT);
     }
 
     @Test(timeout = 100 * 1000L)
@@ -174,8 +172,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
     @Test(timeout = 100 * 1000L)
     public void testTimestampWrite() throws Exception {
-        checkWrite(SchemaType.LOCAL_DATE_TIME,
-                DataTypes.TIMESTAMP(3), localDateTimeList, obj -> Row.of(obj).toString(), ATOMIC_FORMAT);
+        checkWrite(DataTypes.TIMESTAMP(3), localDateTimeList, obj -> Row.of(obj).toString(), ATOMIC_FORMAT);
     }
 
     @Test(timeout = 100 * 1000L)
@@ -185,7 +182,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
     @Test(timeout = 100 * 1000L)
     public void testByteArrayWrite() throws Exception {
-        checkWrite(SchemaType.BYTES, DataTypes.BYTES(), BYTES_LIST, obj -> Row.of(obj).toString(), RAW_FORMAT);
+        checkWrite(DataTypes.BYTES(), BYTES_LIST, obj -> Row.of(obj).toString(), RAW_FORMAT);
     }
 
     private <T> void checkRead(SchemaType type, DataType dt, List<T> datas, Function<T, String> toStr, String formatType)
@@ -225,7 +222,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
         }).collect(Collectors.toList());
     }
 
-    private <T> void checkWrite(SchemaType type, DataType dt, List<T> datas, Function<T, String> toStr, String formatType)
+    private <T> void checkWrite(DataType dt, List<T> datas, Function<T, String> toStr, String formatType)
             throws Exception {
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.setParallelism(1);

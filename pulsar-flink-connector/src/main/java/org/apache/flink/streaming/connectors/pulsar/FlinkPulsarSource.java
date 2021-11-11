@@ -229,6 +229,8 @@ public class FlinkPulsarSource<T>
 
     private transient int numParallelTasks;
 
+    private long startupOffsetsTimestamp = -1L;
+
     public FlinkPulsarSource(
             String adminUrl,
             ClientConfigurationData clientConf,
@@ -432,6 +434,24 @@ public class FlinkPulsarSource<T>
         return this;
     }
 
+    public FlinkPulsarSource<T> setStartFromTimestamp(long startupOffsetsTimestamp) {
+        checkArgument(
+            startupOffsetsTimestamp >= 0,
+            "The provided value for the startup offsets timestamp is invalid.");
+
+        long currentTimestamp = System.currentTimeMillis();
+        checkArgument(
+            startupOffsetsTimestamp <= currentTimestamp,
+            "Startup time[%s] must be before current time[%s].",
+            startupOffsetsTimestamp,
+            currentTimestamp);
+
+        this.startupMode = StartupMode.TIMESTAMP;
+        this.startupOffsetsTimestamp = startupOffsetsTimestamp;
+        this.specificStartupOffsets = null;
+        return this;
+    }
+
     // ------------------------------------------------------------------------
     //  Work methods
     // ------------------------------------------------------------------------
@@ -597,7 +617,6 @@ public class FlinkPulsarSource<T>
         Set<TopicRange> excludeStartMessageIds) throws Exception {
 
         //readerConf.putIfAbsent(PulsarOptions.SUBSCRIPTION_ROLE_OPTION_KEY, getSubscriptionName());
-
         return new PulsarFetcher<>(
                 sourceContext,
                 seedTopicsWithInitialOffsets,
@@ -614,7 +633,8 @@ public class FlinkPulsarSource<T>
                 deserializer,
                 metadataReader,
                 streamingRuntime.getMetricGroup().addGroup(PULSAR_SOURCE_METRICS_GROUP),
-                useMetrics
+                useMetrics,
+                startupOffsetsTimestamp
         );
     }
 
@@ -938,6 +958,7 @@ public class FlinkPulsarSource<T>
 
         switch (mode) {
             case LATEST:
+            case TIMESTAMP:
                 return topics.stream()
                         .collect(Collectors.toMap(k -> k, k -> MessageId.latest));
             case EARLIEST:

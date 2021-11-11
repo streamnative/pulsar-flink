@@ -232,12 +232,14 @@ public class PulsarTableOptions {
     public static final String SCAN_STARTUP_MODE_VALUE_LATEST = "latest";
     public static final String SCAN_STARTUP_MODE_VALUE_EXTERNAL_SUBSCRIPTION = "external-subscription";
     public static final String SCAN_STARTUP_MODE_VALUE_SPECIFIC_OFFSETS = "specific-offsets";
+    public static final String SCAN_STARTUP_MODE_TIMESTAMP = "timestamp";
 
     private static final Set<String> SCAN_STARTUP_MODE_ENUMS = new HashSet<>(Arrays.asList(
             SCAN_STARTUP_MODE_VALUE_EARLIEST,
             SCAN_STARTUP_MODE_VALUE_LATEST,
             SCAN_STARTUP_MODE_VALUE_EXTERNAL_SUBSCRIPTION,
-            SCAN_STARTUP_MODE_VALUE_SPECIFIC_OFFSETS));
+            SCAN_STARTUP_MODE_VALUE_SPECIFIC_OFFSETS,
+            SCAN_STARTUP_MODE_TIMESTAMP));
 
     // Sink partitioner.
     public static final String SINK_MESSAGE_ROUTER_VALUE_KEY_HASH = "key-hash";
@@ -363,6 +365,8 @@ public class PulsarTableOptions {
             }
         });
     }
+
+
 
     // --------------------------------------------------------------------------------------------
     // Utilities
@@ -493,6 +497,11 @@ public class PulsarTableOptions {
                     options.externalSubscriptionName = tableOptions.get(SCAN_STARTUP_SUB_NAME);
                     options.externalSubStartOffset = tableOptions.get(SCAN_STARTUP_SUB_START_OFFSET);
                     options.startupMode = StartupMode.EXTERNAL_SUBSCRIPTION;
+                    break;
+
+                case PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_TIMESTAMP:
+                    options.startupMode = StartupMode.TIMESTAMP;
+                    options.startupTimestampMills = tableOptions.get(SCAN_STARTUP_TIMESTAMP_MILLIS);
                     break;
 
                 default:
@@ -692,6 +701,7 @@ public class PulsarTableOptions {
         public Map<String, MessageId> specificOffsets = new HashMap<>();
         public String externalSubscriptionName;
         public String externalSubStartOffset;
+        public long startupTimestampMills;
     }
 
     /**

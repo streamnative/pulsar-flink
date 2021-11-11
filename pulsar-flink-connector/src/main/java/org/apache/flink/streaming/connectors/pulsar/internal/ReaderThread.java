@@ -58,6 +58,8 @@ public class ReaderThread<T> extends Thread {
 
     protected volatile Reader<T> reader = null;
 
+    private final long startConsumeTimestamp;
+
     public ReaderThread(
             PulsarFetcher<T> owner,
             PulsarTopicState state,
@@ -65,7 +67,8 @@ public class ReaderThread<T> extends Thread {
             Map<String, Object> readerConf,
             PulsarDeserializationSchema<T> deserializer,
             int pollTimeoutMs,
-            ExceptionProxy exceptionProxy) {
+            ExceptionProxy exceptionProxy,
+            long startConsumeTimestamp) {
         this.owner = owner;
         this.state = state;
         this.clientConf = clientConf;
@@ -76,6 +79,7 @@ public class ReaderThread<T> extends Thread {
 
         this.topicRange = state.getTopicRange();
         this.startMessageId = state.getOffset();
+        this.startConsumeTimestamp = startConsumeTimestamp;
     }
 
     public ReaderThread(
@@ -88,8 +92,9 @@ public class ReaderThread<T> extends Thread {
             ExceptionProxy exceptionProxy,
             boolean failOnDataLoss,
             boolean useEarliestWhenDataLoss,
-            boolean excludeMessageId) {
-        this(owner, state, clientConf, readerConf, deserializer, pollTimeoutMs, exceptionProxy);
+            boolean excludeMessageId,
+            long startConsumeTimestamp) {
+        this(owner, state, clientConf, readerConf, deserializer, pollTimeoutMs, exceptionProxy, startConsumeTimestamp);
         this.failOnDataLoss = failOnDataLoss;
         this.useEarliestWhenDataLoss = useEarliestWhenDataLoss;
         this.excludeMessageId = excludeMessageId;
@@ -103,7 +108,10 @@ public class ReaderThread<T> extends Thread {
             handleTooLargeCursor();
             createActualReader();
             log.info("Starting to read {} with reader thread {}", topicRange, getName());
-
+            if (startConsumeTimestamp >= 0) {
+                log.info("Reader seek to timestamp:{}", startConsumeTimestamp);
+                reader.seek(startConsumeTimestamp);
+            }
             while (running) {
                 Message<T> message = reader.readNext(pollTimeoutMs, TimeUnit.MILLISECONDS);
                 if (message != null) {

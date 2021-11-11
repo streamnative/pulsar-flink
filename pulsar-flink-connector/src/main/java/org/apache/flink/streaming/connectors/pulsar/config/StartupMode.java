@@ -25,5 +25,7 @@ public enum StartupMode {
 
     SPECIFIC_OFFSETS,
 
-    EXTERNAL_SUBSCRIPTION
+    EXTERNAL_SUBSCRIPTION,
+
+    TIMESTAMP
 }

@@ -75,120 +75,120 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
     @Test(timeout = 100 * 1000L)
     public void testBooleanRead() throws Exception {
-        checkRead(SchemaType.BOOLEAN, DataTypes.BOOLEAN(), BOOLEAN_LIST, null, null, RAW_FORMAT);
+        checkRead(SchemaType.BOOLEAN, DataTypes.BOOLEAN(), BOOLEAN_LIST, null, RAW_FORMAT);
     }
 
     @Test(timeout = 100 * 1000L)
     public void testBooleanWrite() throws Exception {
-        checkWrite(SchemaType.BOOLEAN, DataTypes.BOOLEAN(), BOOLEAN_LIST, obj -> Row.of(obj).toString(), null, RAW_FORMAT);
+        checkWrite(SchemaType.BOOLEAN, DataTypes.BOOLEAN(), BOOLEAN_LIST, obj -> Row.of(obj).toString(), RAW_FORMAT);
     }
 
     @Test(timeout = 100 * 1000L)
     public void testINT32Read() throws Exception {
-        checkRead(SchemaType.INT32, DataTypes.INT(), INTEGER_LIST, null, null, RAW_FORMAT);
+        checkRead(SchemaType.INT32, DataTypes.INT(), INTEGER_LIST, null, RAW_FORMAT);
     }
 
     @Test(timeout = 100 * 1000L)
     public void testINT32Write() throws Exception {
-        checkWrite(SchemaType.INT32, DataTypes.INT(), INTEGER_LIST, obj -> Row.of(obj).toString(), null, RAW_FORMAT);
+        checkWrite(SchemaType.INT32, DataTypes.INT(), INTEGER_LIST, obj -> Row.of(obj).toString(), RAW_FORMAT);
     }
 
     @Test(timeout = 100 * 1000L)
     public void testINT64Read() throws Exception {
-        checkRead(SchemaType.INT64, DataTypes.BIGINT(), INT_64_LIST, null, null, RAW_FORMAT);
+        checkRead(SchemaType.INT64, DataTypes.BIGINT(), INT_64_LIST, null, RAW_FORMAT);
     }
 
     @Test(timeout = 100 * 1000L)
     public void testINT64Write() throws Exception {
-        checkWrite(SchemaType.INT64, DataTypes.BIGINT(), INT_64_LIST, obj -> Row.of(obj).toString(), null, RAW_FORMAT);
+        checkWrite(SchemaType.INT64, DataTypes.BIGINT(), INT_64_LIST, obj -> Row.of(obj).toString(), RAW_FORMAT);
     }
 
     @Test(timeout = 100 * 1000L)
     public void testStringRead() throws Exception {
-        checkRead(SchemaType.STRING, DataTypes.STRING(), STRING_LIST, null, null, RAW_FORMAT);
+        checkRead(SchemaType.STRING, DataTypes.STRING(), STRING_LIST, null, RAW_FORMAT);
     }
 
     @Test(timeout = 100 * 1000L)
     public void testStringWrite() throws Exception {
-        checkWrite(SchemaType.STRING, DataTypes.STRING(), STRING_LIST, obj -> Row.of(obj).toString(), null, RAW_FORMAT);
+        checkWrite(SchemaType.STRING, DataTypes.STRING(), STRING_LIST, obj -> Row.of(obj).toString(), RAW_FORMAT);
     }
 
     @Test(timeout = 100 * 1000L)
     public void testByteRead() throws Exception {
-        checkRead(SchemaType.INT8, DataTypes.TINYINT(), INT_8_LIST, null, null, RAW_FORMAT);
+        checkRead(SchemaType.INT8, DataTypes.TINYINT(), INT_8_LIST, null, RAW_FORMAT);
     }
 
     @Test
     public void testByteWrite() throws Exception {
-        checkWrite(SchemaType.INT8, DataTypes.TINYINT(), INT_8_LIST, obj -> Row.of(obj).toString(), null, RAW_FORMAT);
+        checkWrite(SchemaType.INT8, DataTypes.TINYINT(), INT_8_LIST, obj -> Row.of(obj).toString(), RAW_FORMAT);
     }
 
     @Test(timeout = 100 * 1000L)
     public void testShortRead() throws Exception {
-        checkRead(SchemaType.INT16, DataTypes.SMALLINT(), INT_16_LIST, null, null, RAW_FORMAT);
+        checkRead(SchemaType.INT16, DataTypes.SMALLINT(), INT_16_LIST, null, RAW_FORMAT);
     }
 
     @Test(timeout = 100 * 1000L)
     public void testShortWrite() throws Exception {
-        checkWrite(SchemaType.INT16, DataTypes.SMALLINT(), INT_16_LIST, obj -> Row.of(obj).toString(), null, RAW_FORMAT);
+        checkWrite(SchemaType.INT16, DataTypes.SMALLINT(), INT_16_LIST, obj -> Row.of(obj).toString(), RAW_FORMAT);
     }
 
     @Test(timeout = 100 * 1000L)
     public void testFloatRead() throws Exception {
-        checkRead(SchemaType.FLOAT, DataTypes.FLOAT(), FLOAT_LIST, null, null, RAW_FORMAT);
+        checkRead(SchemaType.FLOAT, DataTypes.FLOAT(), FLOAT_LIST, null, RAW_FORMAT);
     }
 
     @Test(timeout = 100 * 1000L)
     public void testFloatWrite() throws Exception {
-        checkWrite(SchemaType.FLOAT, DataTypes.FLOAT(), FLOAT_LIST, obj -> Row.of(obj).toString(), null, RAW_FORMAT);
+        checkWrite(SchemaType.FLOAT, DataTypes.FLOAT(), FLOAT_LIST, obj -> Row.of(obj).toString(), RAW_FORMAT);
     }
 
     @Test(timeout = 100 * 1000L)
     public void testDoubleRead() throws Exception {
-        checkRead(SchemaType.DOUBLE, DataTypes.DOUBLE(), DOUBLE_LIST, null, null, RAW_FORMAT);
+        checkRead(SchemaType.DOUBLE, DataTypes.DOUBLE(), DOUBLE_LIST, null, RAW_FORMAT);
     }
 
     @Test(timeout = 100 * 1000L)
     public void testDoubleWrite() throws Exception {
-        checkWrite(SchemaType.DOUBLE, DataTypes.DOUBLE(), DOUBLE_LIST, obj -> Row.of(obj).toString(), null, RAW_FORMAT);
+        checkWrite(SchemaType.DOUBLE, DataTypes.DOUBLE(), DOUBLE_LIST, obj -> Row.of(obj).toString(), RAW_FORMAT);
     }
 
     @Test(timeout = 100 * 1000L)
     public void testDateRead() throws Exception {
         checkRead(SchemaType.LOCAL_DATE, DataTypes.DATE(),
-                localDateList, null, null, ATOMIC_FORMAT);
+                localDateList, null, ATOMIC_FORMAT);
     }
 
     @Test
     public void testDateWrite() throws Exception {
         checkWrite(SchemaType.LOCAL_DATE,
                 DataTypes.DATE(),
-                localDateList, obj -> Row.of(obj).toString(), null, ATOMIC_FORMAT);
+                localDateList, obj -> Row.of(obj).toString(), ATOMIC_FORMAT);
     }
 
     @Test(timeout = 100 * 1000L)
     public void testTimestampRead() throws Exception {
         checkRead(SchemaType.LOCAL_DATE_TIME,
-                DataTypes.TIMESTAMP(3), localDateTimeList, null, null, ATOMIC_FORMAT);
+                DataTypes.TIMESTAMP(3), localDateTimeList, null, ATOMIC_FORMAT);
     }
 
     @Test(timeout = 100 * 1000L)
     public void testTimestampWrite() throws Exception {
         checkWrite(SchemaType.LOCAL_DATE_TIME,
-                DataTypes.TIMESTAMP(3), localDateTimeList, obj -> Row.of(obj).toString(), null, ATOMIC_FORMAT);
+                DataTypes.TIMESTAMP(3), localDateTimeList, obj -> Row.of(obj).toString(), ATOMIC_FORMAT);
     }
 
     @Test(timeout = 100 * 1000L)
     public void testByteArrayRead() throws Exception {
-        checkRead(SchemaType.BYTES, DataTypes.BYTES(), BYTES_LIST, null, null, RAW_FORMAT);
+        checkRead(SchemaType.BYTES, DataTypes.BYTES(), BYTES_LIST, null, RAW_FORMAT);
     }
 
     @Test(timeout = 100 * 1000L)
     public void testByteArrayWrite() throws Exception {
-        checkWrite(SchemaType.BYTES, DataTypes.BYTES(), BYTES_LIST, obj -> Row.of(obj).toString(), null, RAW_FORMAT);
+        checkWrite(SchemaType.BYTES, DataTypes.BYTES(), BYTES_LIST, obj -> Row.of(obj).toString(), RAW_FORMAT);
     }
 
-    private <T> void checkRead(SchemaType type, DataType dt, List<T> datas, Function<T, String> toStr, Class<T> tClass, String formatType)
+    private <T> void checkRead(SchemaType type, DataType dt, List<T> datas, Function<T, String> toStr, String formatType)
             throws Exception {
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.setParallelism(1);
@@ -225,7 +225,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
         }).collect(Collectors.toList());
     }
 
-    private <T> void checkWrite(SchemaType type, DataType dt, List<T> datas, Function<T, String> toStr, Class<T> tClass, String formatType)
+    private <T> void checkWrite(SchemaType type, DataType dt, List<T> datas, Function<T, String> toStr, String formatType)
             throws Exception {
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.setParallelism(1);

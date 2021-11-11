@@ -32,12 +32,12 @@ deployment:
 
 catalogs:
   - name: pulsarcatalog1
-    type: pulsar
+    type: pulsar-catalog
     service-url: "$VAR_SERVICEURL"
     admin-url: "$VAR_ADMINURL"
     format: "atomic"
   - name: pulsarcatalog2
-    type: pulsar
+    type: pulsar-catalog
     default-database: tn/ns
     service-url: "$VAR_SERVICEURL"
     admin-url: "$VAR_ADMINURL"

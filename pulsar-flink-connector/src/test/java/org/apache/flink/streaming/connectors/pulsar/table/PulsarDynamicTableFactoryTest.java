@@ -590,6 +590,7 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
         Map<String, String> tableOptions = new HashMap<>();
         // Pulsar specific options.
         tableOptions.put("connector", PulsarDynamicTableFactory.IDENTIFIER);
+        tableOptions.put("generic", Boolean.TRUE.toString());
         tableOptions.put("topic", TOPIC);
         tableOptions.put("service-url", SERVICE_URL);
         tableOptions.put("admin-url", ADMIN_URL);

@@ -15,31 +15,24 @@
 package org.apache.flink.table.catalog.pulsar.factories;
 
 import org.apache.flink.configuration.ConfigOption;
-import org.apache.flink.configuration.Configuration;
 import org.apache.flink.table.catalog.Catalog;
 import org.apache.flink.table.catalog.pulsar.PulsarCatalog;
 import org.apache.flink.table.factories.CatalogFactory;
 import org.apache.flink.table.factories.FactoryUtil;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.ADMIN_URL;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.KEY_FIELDS;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.KEY_FIELDS_PREFIX;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.KEY_FORMAT;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.PROPERTIES;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.PROPERTIES_PREFIX;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.SCAN_STARTUP_MODE;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.SERVICE_URL;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.SINK_SEMANTIC;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.VALUE_FIELDS_INCLUDE;
-import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.VALUE_FORMAT;
+import static org.apache.flink.table.catalog.pulsar.factories.PulsarCatalogFactoryOptions.ADMIN_URL;
+import static org.apache.flink.table.catalog.pulsar.factories.PulsarCatalogFactoryOptions.AUTH_PARAMS;
+import static org.apache.flink.table.catalog.pulsar.factories.PulsarCatalogFactoryOptions.AUTH_PLUGIN;
+import static org.apache.flink.table.catalog.pulsar.factories.PulsarCatalogFactoryOptions.CATALOG_TENANT;
 import static org.apache.flink.table.catalog.pulsar.factories.PulsarCatalogFactoryOptions.DEFAULT_DATABASE;
 import static org.apache.flink.table.catalog.pulsar.factories.PulsarCatalogFactoryOptions.DEFAULT_PARTITIONS;
 import static org.apache.flink.table.catalog.pulsar.factories.PulsarCatalogFactoryOptions.IDENTIFIER;
 import static org.apache.flink.table.catalog.pulsar.factories.PulsarCatalogFactoryOptions.PULSAR_VERSION;
-import static org.apache.flink.table.factories.FactoryUtil.PROPERTY_VERSION;
+import static org.apache.flink.table.catalog.pulsar.factories.PulsarCatalogFactoryOptions.SERVICE_URL;
 
 /**
  * Pulsar {@CatalogFactory}.
@@ -55,38 +48,37 @@ public class PulsarCatalogFactory implements CatalogFactory {
     public Catalog createCatalog(Context context) {
         final FactoryUtil.CatalogFactoryHelper helper =
                 FactoryUtil.createCatalogFactoryHelper(this, context);
-        helper.validateExcept(PROPERTIES_PREFIX);
+        helper.validate();
         return new PulsarCatalog(
-                helper.getOptions().get(ADMIN_URL),
                 context.getName(),
-                (Configuration) helper.getOptions(),
-                helper.getOptions().get(DEFAULT_DATABASE));
+                helper.getOptions().get(ADMIN_URL),
+                helper.getOptions().get(SERVICE_URL),
+                helper.getOptions().get(DEFAULT_DATABASE),
+                helper.getOptions().get(CATALOG_TENANT),
+                helper.getOptions().get(AUTH_PLUGIN),
+                helper.getOptions().get(AUTH_PARAMS));
     }
 
     @Override
     public Set<ConfigOption<?>> requiredOptions() {
-        final Set<ConfigOption<?>> options = new HashSet<>();
-        options.add(ADMIN_URL);
-        options.add(SERVICE_URL);
-        return options;
+        return Collections.emptySet();
     }
 
     @Override
     public Set<ConfigOption<?>> optionalOptions() {
-        Set<ConfigOption<?>> props = new HashSet<>();
-        props.add(DEFAULT_DATABASE);
-        props.add(PROPERTY_VERSION);
-        props.add(SCAN_STARTUP_MODE);
-        props.add(DEFAULT_PARTITIONS);
-        props.add(KEY_FORMAT);
-        props.add(KEY_FIELDS);
-        props.add(KEY_FIELDS_PREFIX);
-        props.add(VALUE_FORMAT);
-        props.add(VALUE_FIELDS_INCLUDE);
-        props.add(SINK_SEMANTIC);
-        props.add(PULSAR_VERSION);
-        props.add(FactoryUtil.FORMAT);
-        props.add(PROPERTIES);
-        return props;
+        Set<ConfigOption<?>> options = new HashSet<>();
+        // pulsar catalog options
+        options.add(ADMIN_URL);
+        options.add(SERVICE_URL);
+        options.add(CATALOG_TENANT);
+        options.add(DEFAULT_DATABASE);
+        options.add(AUTH_PLUGIN);
+        options.add(AUTH_PARAMS);
+        options.add(DEFAULT_PARTITIONS);
+        options.add(PULSAR_VERSION);
+
+        // TODO: investigate if need to provide default table options
+
+        return options;
     }
 }

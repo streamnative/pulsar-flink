@@ -115,13 +115,14 @@ public abstract class PulsarTestBaseWithFlink extends PulsarTestBase {
                 " " + StringUtils.join(columns, ",\n") +
                 ") with (\n" +
                 "   'connector' = 'pulsar',\n" +
+                "   'generic' = 'true',\n" +
                 "   'topic' = '" + topic + "',\n" +
                 "   'service-url' = '" + getServiceUrl() + "',\n" +
                 "   'admin-url' = '" + getAdminUrl() + "',\n" +
-                "   'scan.startup.mode' = 'earliest',  //订阅模式\n" +
-                "   'partition.discovery.interval-millis' = '5000'," +
+                "   'scan.startup.mode' = 'earliest',\n" +
+                "   'partition.discovery.interval-millis' = '5000',\n" +
                 "   'format' = '" + formatType + "'\n" +
-                ")";
+            ")";
         return sql;
     }
 }

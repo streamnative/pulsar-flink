@@ -96,6 +96,15 @@ public class SchemaUtils {
         }
     }
 
+    public static void deletePulsarSchema(PulsarAdmin admin, String topic) {
+        try {
+            admin.schemas().deleteSchema(topic);
+        } catch (PulsarAdminException e) {
+            // TODO: refine error handling logic
+            e.printStackTrace();
+        }
+    }
+
     private static boolean schemaEqualsIgnoreProperties(SchemaInfo schemaInfo, SchemaInfo existingSchema) {
         return existingSchema.getType().equals(schemaInfo.getType()) && Arrays.equals(existingSchema.getSchema(),
                 schemaInfo.getSchema());
@@ -220,6 +229,8 @@ public class SchemaUtils {
                                                      Configuration configuration)
             throws IncompatibleSchemaException {
         switch (StringUtils.lowerCase(format)) {
+            case "raw":
+                return getSchemaInfo(SchemaType.BYTES, dataType);
             case "json":
                 return getSchemaInfo(SchemaType.JSON, dataType);
             case "avro":

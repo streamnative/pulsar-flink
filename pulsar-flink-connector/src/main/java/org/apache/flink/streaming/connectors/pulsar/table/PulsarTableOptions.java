@@ -18,6 +18,7 @@ import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
+import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.streaming.connectors.pulsar.util.KeyHashMessageRouterImpl;
 import org.apache.flink.table.api.TableException;
 import org.apache.flink.table.api.ValidationException;
@@ -50,7 +51,9 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.IntStream;
 
+import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.ADMIN_URL_OPTION_KEY;
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.PULSAR_OPTION_KEY_PREFIX;
+import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.SERVICE_URL_OPTION_KEY;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarSinkSemantic.AT_LEAST_ONCE;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarSinkSemantic.EXACTLY_ONCE;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarSinkSemantic.NONE;
@@ -119,16 +122,22 @@ public class PulsarTableOptions {
     // --------------------------------------------------------------------------------------------
 
     public static final ConfigOption<String> SERVICE_URL = ConfigOptions
-            .key("service-url")
+            .key(SERVICE_URL_OPTION_KEY)
             .stringType()
             .noDefaultValue()
             .withDescription("Required pulsar server connection string");
 
     public static final ConfigOption<String> ADMIN_URL = ConfigOptions
-            .key("admin-url")
+            .key(ADMIN_URL_OPTION_KEY)
             .stringType()
             .noDefaultValue()
             .withDescription("Required pulsar admin connection string");
+
+    public static final ConfigOption<Boolean> GENERIC = ConfigOptions
+        .key(PulsarOptions.GENERIC)
+        .booleanType()
+        .defaultValue(false)
+        .withDescription("Indicate if the table is a generic flink table");
 
     // --------------------------------------------------------------------------------------------
     // Scan specific options

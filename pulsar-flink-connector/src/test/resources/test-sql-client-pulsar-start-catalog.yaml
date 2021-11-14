@@ -32,33 +32,26 @@ deployment:
 
 catalogs:
   - name: pulsarcatalog1
-    type: pulsar
-    service-url: "$VAR_SERVICEURL"
-    admin-url: "$VAR_ADMINURL"
-    scan:
-      startup:
-        mode: "$VAR_STARTING"
-    format: "atomic"
-
+    type: pulsar-catalog
+    default-database: public/default
+    catalog-service-url: "$VAR_SERVICEURL"
+    catalog-admin-url: "$VAR_ADMINURL"
+    catalog-tenant: '__flink_catalog'
     table-default-partitions: 5
   - name: pulsarcatalog2
-    type: pulsar
+    type: pulsar-catalog
     default-database: tn/ns
-    service-url: "$VAR_SERVICEURL"
-    admin-url: "$VAR_ADMINURL"
-    scan:
-      startup:
-        mode: "$VAR_STARTING"
-    format: "atomic"
+    catalog-service-url: "$VAR_SERVICEURL"
+    catalog-admin-url: "$VAR_ADMINURL"
+    catalog-tenant: '__flink_catalog'
+    table-default-partitions: 5
   - name: pulsarcatalog3
-    type: pulsar
+    type: pulsar-catalog
     default-database: public/default
-    service-url: "$VAR_SERVICEURL"
-    admin-url: "$VAR_ADMINURL"
-    scan:
-      startup:
-        mode: "$VAR_STARTING"
-    format: "$VAR_FORMAT"
+    catalog-service-url: "$VAR_SERVICEURL"
+    catalog-admin-url: "$VAR_ADMINURL"
+    catalog-tenant: '__flink_catalog'
+    table-default-partitions: 5
   - name: inmemorycatalog
     type: generic_in_memory
     default-database: mydatabase

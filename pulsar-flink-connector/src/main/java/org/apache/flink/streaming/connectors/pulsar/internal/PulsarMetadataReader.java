@@ -14,6 +14,7 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
@@ -28,7 +29,9 @@ import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.partition.PartitionedTopicMetadata;
 import org.apache.pulsar.common.policies.data.PartitionedTopicInternalStats;
 import org.apache.pulsar.common.policies.data.PersistentTopicInternalStats;
+import org.apache.pulsar.common.policies.data.RetentionPolicies;
 import org.apache.pulsar.common.policies.data.SubscriptionStats;
+import org.apache.pulsar.common.policies.data.TenantInfoImpl;
 import org.apache.pulsar.common.policies.data.TopicStats;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.shade.com.google.common.collect.Iterables;
@@ -60,7 +63,11 @@ import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOption
 @Slf4j
 public class PulsarMetadataReader implements AutoCloseable {
 
+    @Getter
     private final String adminUrl;
+
+    @Getter
+    private final ClientConfigurationData clientConf;
 
     private final String subscriptionName;
 
@@ -90,6 +97,7 @@ public class PulsarMetadataReader implements AutoCloseable {
             boolean useExternalSubscription) throws PulsarClientException {
 
         this.adminUrl = adminUrl;
+        this.clientConf = clientConf;
         this.subscriptionName = subscriptionName;
         this.caseInsensitiveParams = caseInsensitiveParams;
         this.indexOfThisSubtask = indexOfThisSubtask;
@@ -143,6 +151,20 @@ public class PulsarMetadataReader implements AutoCloseable {
         }
     }
 
+    public void createTenant(String tenant) throws PulsarAdminException {
+        Set<String> clusters = new HashSet<>(admin.clusters().getClusters());
+        admin.tenants().createTenant(tenant, TenantInfoImpl.builder().allowedClusters(clusters).build());
+    }
+
+    public boolean tenantExists(String tenant) throws PulsarAdminException {
+        try {
+            admin.tenants().getTenantInfo(tenant);
+        } catch (PulsarAdminException.NotFoundException e) {
+            return false;
+        }
+        return true;
+    }
+
     public List<String> listNamespaces() throws PulsarAdminException {
         List<String> tenants = admin.tenants().getTenants();
         List<String> namespaces = new ArrayList<String>();
@@ -162,8 +184,16 @@ public class PulsarMetadataReader implements AutoCloseable {
     }
 
     public void createNamespace(String ns) throws PulsarAdminException {
+            createNamespace(ns, false);
+    }
+
+    public void createNamespace(String ns, boolean retain) throws PulsarAdminException {
         String nsName = NamespaceName.get(ns).toString();
         admin.namespaces().createNamespace(nsName);
+        if (retain) {
+            // retain the topic infinitely to store the metadata
+            admin.namespaces().setRetention(nsName, new RetentionPolicies(-1, -1));
+        }
     }
 
     public void deleteNamespace(String ns) throws PulsarAdminException {
@@ -209,12 +239,20 @@ public class PulsarMetadataReader implements AutoCloseable {
         }
     }
 
-    public void createTopic(String topicName, int defaultPartitionNum) throws PulsarAdminException, IncompatibleSchemaException {
-        admin.topics().createPartitionedTopic(topicName, defaultPartitionNum);
+    public void createTopic(String topicName, int partitionNum) throws PulsarAdminException, IncompatibleSchemaException {
+        if (partitionNum > 0) {
+            admin.topics().createPartitionedTopic(topicName, partitionNum);
+        } else {
+            admin.topics().createNonPartitionedTopic(topicName);
+        }
     }
 
-    public void putSchema(String topicName, SchemaInfo schemaInfo) throws IncompatibleSchemaException {
+    public void uploadSchema(String topicName, SchemaInfo schemaInfo) throws IncompatibleSchemaException {
         SchemaUtils.uploadPulsarSchema(admin, topicName, schemaInfo);
+    }
+
+    public void deleteSchema(String topicName) {
+        SchemaUtils.deletePulsarSchema(admin, topicName);
     }
 
     public void setupCursor(Map<TopicRange, MessageId> offset, boolean failOnDataLoss) {

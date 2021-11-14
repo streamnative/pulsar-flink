@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -37,9 +41,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Setup flink mini cluster.
- */
+/** Setup flink mini cluster. */
 public abstract class PulsarTestBaseWithFlink extends PulsarTestBase {
 
     protected static final int NUM_TMS = 1;
@@ -49,12 +51,13 @@ public abstract class PulsarTestBaseWithFlink extends PulsarTestBase {
     protected ClusterClient<?> client;
 
     @Rule
-    public MiniClusterWithClientResource flink = new MiniClusterWithClientResource(
-            new MiniClusterResourceConfiguration.Builder()
-                    .setConfiguration(getFlinkConfiguration())
-                    .setNumberTaskManagers(NUM_TMS)
-                    .setNumberSlotsPerTaskManager(TM_SLOTS)
-                    .build());
+    public MiniClusterWithClientResource flink =
+            new MiniClusterWithClientResource(
+                    new MiniClusterResourceConfiguration.Builder()
+                            .setConfiguration(getFlinkConfiguration())
+                            .setNumberTaskManagers(NUM_TMS)
+                            .setNumberSlotsPerTaskManager(TM_SLOTS)
+                            .build());
 
     @Before
     public void noJobIsRunning() throws Exception {
@@ -66,8 +69,11 @@ public abstract class PulsarTestBaseWithFlink extends PulsarTestBase {
         Configuration flinkConfig = new Configuration();
 
         flinkConfig.setString(TaskManagerOptions.MANAGED_MEMORY_SIZE.key(), "16m");
-        flinkConfig.setString(ConfigConstants.METRICS_REPORTER_PREFIX + "my_reporter." +
-                ConfigConstants.METRICS_REPORTER_CLASS_SUFFIX, JMXReporter.class.getName());
+        flinkConfig.setString(
+                ConfigConstants.METRICS_REPORTER_PREFIX
+                        + "my_reporter."
+                        + ConfigConstants.METRICS_REPORTER_CLASS_SUFFIX,
+                JMXReporter.class.getName());
         flinkConfig.setInteger(ConfigConstants.LOCAL_NUMBER_TASK_MANAGER, NUM_TMS);
         flinkConfig.setInteger(TaskManagerOptions.NUM_TASK_SLOTS, TM_SLOTS);
         flinkConfig.setBoolean(WebOptions.SUBMIT_ENABLE, false);
@@ -102,27 +108,40 @@ public abstract class PulsarTestBaseWithFlink extends PulsarTestBase {
         }
     }
 
-    protected String createTableSql(String tableName, String topic, TableSchema tableSchema, String formatType) {
+    protected String createTableSql(
+            String tableName, String topic, TableSchema tableSchema, String formatType) {
         List<String> columns = new ArrayList<>();
         for (TableColumn tableColumn : tableSchema.getTableColumns()) {
-            final String column = MessageFormat.format(" `{0}` {1}",
-                    tableColumn.getName(),
-                    tableColumn.getType().getLogicalType().asSerializableString());
+            final String column =
+                    MessageFormat.format(
+                            " `{0}` {1}",
+                            tableColumn.getName(),
+                            tableColumn.getType().getLogicalType().asSerializableString());
             columns.add(column);
         }
 
-        String sql = "create table " + tableName + "(\n" +
-                " " + StringUtils.join(columns, ",\n") +
-                ") with (\n" +
-                "   'connector' = 'pulsar',\n" +
-                "   'generic' = 'true',\n" +
-                "   'topic' = '" + topic + "',\n" +
-                "   'service-url' = '" + getServiceUrl() + "',\n" +
-                "   'admin-url' = '" + getAdminUrl() + "',\n" +
-                "   'scan.startup.mode' = 'earliest',\n" +
-                "   'partition.discovery.interval-millis' = '5000',\n" +
-                "   'format' = '" + formatType + "'\n" +
-            ")";
-        return sql;
+        return "create table "
+                + tableName
+                + "(\n"
+                + " "
+                + StringUtils.join(columns, ",\n")
+                + ") with (\n"
+                + "   'connector' = 'pulsar',\n"
+                + "   'generic' = 'true',\n"
+                + "   'topic' = '"
+                + topic
+                + "',\n"
+                + "   'service-url' = '"
+                + getServiceUrl()
+                + "',\n"
+                + "   'admin-url' = '"
+                + getAdminUrl()
+                + "',\n"
+                + "   'scan.startup.mode' = 'earliest',\n"
+                + "   'partition.discovery.interval-millis' = '5000',\n"
+                + "   'format' = '"
+                + formatType
+                + "'\n"
+                + ")";
     }
 }

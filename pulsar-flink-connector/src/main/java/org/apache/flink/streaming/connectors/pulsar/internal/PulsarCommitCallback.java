@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -15,20 +19,22 @@
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
 /**
- * A callback interface that the source operator can implement to trigger custom actions when a commit request completes,
- * which should normally be triggered from checkpoint complete event.
+ * A callback interface that the source operator can implement to trigger custom actions when a
+ * commit request completes, which should normally be triggered from checkpoint complete event.
  */
 public interface PulsarCommitCallback {
 
     /**
-     * A callback method the user can implement to provide asynchronous handling of commit request completion.
-     * This method will be called when the commit request sent to the server has been acknowledged without error.
+     * A callback method the user can implement to provide asynchronous handling of commit request
+     * completion. This method will be called when the commit request sent to the server has been
+     * acknowledged without error.
      */
     void onSuccess();
 
     /**
-     * A callback method the user can implement to provide asynchronous handling of commit request failure.
-     * This method will be called when the commit request failed.
+     * A callback method the user can implement to provide asynchronous handling of commit request
+     * failure. This method will be called when the commit request failed.
+     *
      * @param cause pulsar commit failure cause returned by pulsar client
      */
     void onException(Throwable cause);

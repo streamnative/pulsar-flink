@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -27,25 +31,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Tool class for getting document field types.
- */
+/** Tool class for getting document field types. */
 public class TypeInformationUtils {
 
-    /**
-     * Document Field Type Caching.
-     */
-    private static final Map<Class<?>, List<TypeInformation<?>>> typeInfoPerDocument = new ConcurrentHashMap<>();
+    /** Document Field Type Caching. */
+    private static final Map<Class<?>, List<TypeInformation<?>>> typeInfoPerDocument =
+            new ConcurrentHashMap<>();
 
-    private static final Map<Class<?>, TypeInformation<Row>> rowInfoPerDocument = new ConcurrentHashMap<>();
+    private static final Map<Class<?>, TypeInformation<Row>> rowInfoPerDocument =
+            new ConcurrentHashMap<>();
 
     public static TypeInformation<Row> getTypesAsRow(Class<?> documentFormat) {
-        return rowInfoPerDocument.computeIfAbsent(documentFormat, documentFormat1 -> {
-            List<TypeInformation<?>> columnTypes = getColumnTypes(documentFormat1);
-            TypeInformation<?>[] typeInfos = columnTypes.toArray(new TypeInformation[0]);
-            List<String> fieldNames = getFieldNames(documentFormat1);
-            return new RowTypeInfo(typeInfos, fieldNames.toArray(new String[0]));
-        });
+        return rowInfoPerDocument.computeIfAbsent(
+                documentFormat,
+                documentFormat1 -> {
+                    List<TypeInformation<?>> columnTypes = getColumnTypes(documentFormat1);
+                    TypeInformation<?>[] typeInfos = columnTypes.toArray(new TypeInformation[0]);
+                    List<String> fieldNames = getFieldNames(documentFormat1);
+                    return new RowTypeInfo(typeInfos, fieldNames.toArray(new String[0]));
+                });
     }
 
     private static List<String> getFieldNames(Class<?> documentFormat) {
@@ -61,16 +65,18 @@ public class TypeInformationUtils {
     }
 
     public static List<TypeInformation<?>> getColumnTypes(Class<?> documentFormat) {
-        return typeInfoPerDocument.computeIfAbsent(documentFormat, documentFormat1 -> {
-            List<Field> fields = FieldUtils.getAllFieldsList(documentFormat1);
-            List<TypeInformation<?>> typeInfos = new ArrayList<>();
-            for (Field field : fields) {
-                if (Modifier.isStatic(field.getModifiers())) {
-                    continue;
-                }
-                typeInfos.add(TypeInformation.of(field.getType()));
-            }
-            return typeInfos;
-        });
+        return typeInfoPerDocument.computeIfAbsent(
+                documentFormat,
+                documentFormat1 -> {
+                    List<Field> fields = FieldUtils.getAllFieldsList(documentFormat1);
+                    List<TypeInformation<?>> typeInfos = new ArrayList<>();
+                    for (Field field : fields) {
+                        if (Modifier.isStatic(field.getModifiers())) {
+                            continue;
+                        }
+                        typeInfos.add(TypeInformation.of(field.getType()));
+                    }
+                    return typeInfos;
+                });
     }
 }

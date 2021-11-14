@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -24,26 +28,20 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * A source generate integer test data.
- */
+/** A source generate integer test data. */
 @Slf4j
 public class IntegerSource extends RichParallelSourceFunction<Integer>
         implements ListCheckpointed<Integer>, CheckpointListener {
     /**
-     * Blocker when the generator needs to wait for the checkpoint to happen.
-     * Eager initialization means it must be serializable (pick any serializable type).
+     * Blocker when the generator needs to wait for the checkpoint to happen. Eager initialization
+     * means it must be serializable (pick any serializable type).
      */
     private final Object blocker = new SerializableObject();
 
-    /**
-     * The total number of events to generate.
-     */
+    /** The total number of events to generate. */
     private final int numEventsTotal;
 
-    /**
-     * The current position in the sequence of numbers.
-     */
+    /** The current position in the sequence of numbers. */
     private int currentPosition = -1;
 
     private long lastCheckpointTriggered;
@@ -63,7 +61,10 @@ public class IntegerSource extends RichParallelSourceFunction<Integer>
 
         // each source subtask emits only the numbers where (num % parallelism == subtask_index)
         final int stepSize = getRuntimeContext().getNumberOfParallelSubtasks();
-        int current = this.currentPosition >= 0 ? this.currentPosition : getRuntimeContext().getIndexOfThisSubtask();
+        int current =
+                this.currentPosition >= 0
+                        ? this.currentPosition
+                        : getRuntimeContext().getIndexOfThisSubtask();
 
         while (this.running && current < this.numEventsTotal) {
             // emit the next element
@@ -72,7 +73,8 @@ public class IntegerSource extends RichParallelSourceFunction<Integer>
                 current += stepSize;
                 this.currentPosition = current;
             }
-            // give some time to trigger checkpoint while we are not holding the lock (to prevent starvation)
+            // give some time to trigger checkpoint while we are not holding the lock (to prevent
+            // starvation)
             if (!restored && current % 10 == 0) {
                 Thread.sleep(1);
             }
@@ -100,9 +102,13 @@ public class IntegerSource extends RichParallelSourceFunction<Integer>
     }
 
     @Override
-    public List<Integer> snapshotState(long checkpointId, long checkpointTimestamp) throws Exception {
+    public List<Integer> snapshotState(long checkpointId, long checkpointTimestamp)
+            throws Exception {
         this.lastCheckpointTriggered = checkpointId;
-        log.info("checkpoint {} is snapshotState, the currentPosition is {}", checkpointId, this.currentPosition);
+        log.info(
+                "checkpoint {} is snapshotState, the currentPosition is {}",
+                checkpointId,
+                this.currentPosition);
         return Collections.singletonList(this.currentPosition);
     }
 
@@ -126,5 +132,6 @@ public class IntegerSource extends RichParallelSourceFunction<Integer>
 
     @Override
     public void notifyCheckpointAborted(long checkpointId) {
+        // Nothing to do.
     }
 }

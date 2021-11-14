@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -20,9 +24,9 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.formats.protobuf.PbFormatOptions;
 import org.apache.flink.formats.protobuf.serialize.PbRowDataSerializationSchema;
 import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils;
-import org.apache.flink.streaming.util.serialization.FlinkSchema;
-import org.apache.flink.streaming.util.serialization.PulsarContextAware;
-import org.apache.flink.streaming.util.serialization.PulsarSerializationSchema;
+import org.apache.flink.streaming.connectors.pulsar.serialization.FlinkSchema;
+import org.apache.flink.streaming.connectors.pulsar.serialization.PulsarContextAware;
+import org.apache.flink.streaming.connectors.pulsar.serialization.PulsarSerializationSchema;
 import org.apache.flink.table.data.GenericRowData;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.runtime.typeutils.InternalTypeInfo;
@@ -45,16 +49,13 @@ import java.util.concurrent.TimeUnit;
 
 import static org.apache.flink.shaded.guava18.com.google.common.base.Preconditions.checkArgument;
 
-/**
- * A specific Serializer for {@link PulsarDynamicTableSink}.
- */
+/** A specific Serializer for {@link PulsarDynamicTableSink}. */
 class DynamicPulsarSerializationSchema
         implements PulsarSerializationSchema<RowData>, PulsarContextAware<RowData> {
 
     private static final long serialVersionUID = 1L;
 
-    private final @Nullable
-    SerializationSchema<RowData> keySerialization;
+    private final @Nullable SerializationSchema<RowData> keySerialization;
 
     private final SerializationSchema<RowData> valueSerialization;
 
@@ -67,8 +68,8 @@ class DynamicPulsarSerializationSchema
     private final boolean upsertMode;
 
     /**
-     * Contains the position for each value of {@link PulsarDynamicTableSink.WritableMetadata} in the consumed row or
-     * -1 if this metadata key is not used.
+     * Contains the position for each value of {@link PulsarDynamicTableSink.WritableMetadata} in
+     * the consumed row or -1 if this metadata key is not used.
      */
     private final int[] metadataPositions;
 
@@ -84,9 +85,7 @@ class DynamicPulsarSerializationSchema
 
     private volatile Schema<RowData> schema;
 
-    /**
-     * delay milliseconds message.
-     */
+    /** delay milliseconds message. */
     private long delayMilliseconds;
 
     DynamicPulsarSerializationSchema(
@@ -101,7 +100,8 @@ class DynamicPulsarSerializationSchema
             String valueFormatType,
             long delayMilliseconds) {
         if (upsertMode) {
-            checkArgument(keySerialization != null && keyFieldGetters.length > 0,
+            checkArgument(
+                    keySerialization != null && keyFieldGetters.length > 0,
                     "Key must be set in upsert mode for serialization schema.");
         }
         this.keySerialization = keySerialization;
@@ -157,23 +157,26 @@ class DynamicPulsarSerializationSchema
             messageBuilder.value(valueRow);
         }
 
-        Map<String, String> properties = readMetadata(consumedRow, PulsarDynamicTableSink.WritableMetadata.PROPERTIES);
+        Map<String, String> properties =
+                readMetadata(consumedRow, PulsarDynamicTableSink.WritableMetadata.PROPERTIES);
         if (properties != null) {
             messageBuilder.properties(properties);
         }
-        final Long eventTime = readMetadata(consumedRow, PulsarDynamicTableSink.WritableMetadata.EVENT_TIME);
+        final Long eventTime =
+                readMetadata(consumedRow, PulsarDynamicTableSink.WritableMetadata.EVENT_TIME);
         if (eventTime != null && eventTime >= 0) {
             messageBuilder.eventTime(eventTime);
         }
     }
 
     public Optional<String> getTargetTopic(RowData element) {
-        //TODO need get topic from row.
+        // TODO need get topic from row.
         return Optional.empty();
     }
 
     @SuppressWarnings("unchecked")
-    private <T> T readMetadata(RowData consumedRow, PulsarDynamicTableSink.WritableMetadata metadata) {
+    private <T> T readMetadata(
+            RowData consumedRow, PulsarDynamicTableSink.WritableMetadata metadata) {
         final int pos = metadataPositions[metadata.ordinal()];
         if (pos < 0) {
             return null;
@@ -181,7 +184,8 @@ class DynamicPulsarSerializationSchema
         return (T) metadata.converter.read(consumedRow, pos);
     }
 
-    private static RowData createProjectedRow(RowData consumedRow, RowKind kind, RowData.FieldGetter[] fieldGetters) {
+    private static RowData createProjectedRow(
+            RowData consumedRow, RowKind kind, RowData.FieldGetter[] fieldGetters) {
         final int arity = fieldGetters.length;
         final GenericRowData genericRowData = new GenericRowData(kind, arity);
         for (int fieldPos = 0; fieldPos < arity; fieldPos++) {
@@ -224,7 +228,8 @@ class DynamicPulsarSerializationSchema
         }
         Configuration configuration = new Configuration();
         hackPbSerializationSchema(configuration);
-        SchemaInfo schemaInfo = SchemaUtils.tableSchemaToSchemaInfo(valueFormatType, valueDataType, configuration);
+        SchemaInfo schemaInfo =
+                SchemaUtils.tableSchemaToSchemaInfo(valueFormatType, valueDataType, configuration);
         return new FlinkSchema<>(schemaInfo, valueSerialization, null);
     }
 
@@ -233,7 +238,9 @@ class DynamicPulsarSerializationSchema
         if (valueSerialization instanceof PbRowDataSerializationSchema) {
             try {
                 final String messageClassName =
-                        (String) FieldUtils.readDeclaredField(valueSerialization, "messageClassName", true);
+                        (String)
+                                FieldUtils.readDeclaredField(
+                                        valueSerialization, "messageClassName", true);
                 configuration.set(PbFormatOptions.MESSAGE_CLASS_NAME, messageClassName);
             } catch (IllegalAccessException e) {
                 e.printStackTrace();

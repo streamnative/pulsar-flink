@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -31,11 +35,12 @@ import static java.util.Objects.requireNonNull;
 
 /**
  * A special form of blocking queue with two additions:
+ *
  * <ol>
- *     <li>The queue can be closed atomically when empty. Adding elements after the queue
- *         is closed fails. This allows queue consumers to atomically discover that no elements
- *         are available and mark themselves as shut down.</li>
- *     <li>The queue allows to poll batches of elements in one polling call.</li>
+ *   <li>The queue can be closed atomically when empty. Adding elements after the queue is closed
+ *       fails. This allows queue consumers to atomically discover that no elements are available
+ *       and mark themselves as shut down.
+ *   <li>The queue allows to poll batches of elements in one polling call.
  * </ol>
  *
  * <p>The queue has no capacity restriction and is safe for multiple producers and consumers.
@@ -61,17 +66,14 @@ public class ClosableBlockingQueue<E> {
 
     // ------------------------------------------------------------------------
 
-    /**
-     * Creates a new empty queue.
-     */
+    /** Creates a new empty queue. */
     public ClosableBlockingQueue() {
         this(10);
     }
 
     /**
-     * Creates a new empty queue, reserving space for at least the specified number
-     * of elements. The queue can still grow, of more elements are added than the
-     * reserved space.
+     * Creates a new empty queue, reserving space for at least the specified number of elements. The
+     * queue can still grow, of more elements are added than the reserved space.
      *
      * @param initialSize The number of elements to reserve space for.
      */
@@ -81,7 +83,6 @@ public class ClosableBlockingQueue<E> {
 
         this.elements = new ArrayDeque<E>(initialSize);
         this.open = true;
-
     }
 
     /**
@@ -100,6 +101,7 @@ public class ClosableBlockingQueue<E> {
 
     /**
      * Gets the number of elements currently in the queue.
+     *
      * @return The number of elements currently in the queue.
      */
     public int size() {
@@ -113,6 +115,7 @@ public class ClosableBlockingQueue<E> {
 
     /**
      * Checks whether the queue is empty (has no elements).
+     *
      * @return True, if the queue is empty; false, if it is non-empty.
      */
     public boolean isEmpty() {
@@ -121,6 +124,7 @@ public class ClosableBlockingQueue<E> {
 
     /**
      * Checks whether the queue is currently open, meaning elements can be added and polled.
+     *
      * @return True, if the queue is open; false, if it is closed.
      */
     public boolean isOpen() {
@@ -128,9 +132,9 @@ public class ClosableBlockingQueue<E> {
     }
 
     /**
-     * Tries to close the queue. Closing the queue only succeeds when no elements are
-     * in the queue when this method is called. Checking whether the queue is empty, and
-     * marking the queue as closed is one atomic operation.
+     * Tries to close the queue. Closing the queue only succeeds when no elements are in the queue
+     * when this method is called. Checking whether the queue is empty, and marking the queue as
+     * closed is one atomic operation.
      *
      * @return True, if the queue is closed, false if the queue remains open.
      */
@@ -162,9 +166,8 @@ public class ClosableBlockingQueue<E> {
      * Tries to add an element to the queue, if the queue is still open. Checking whether the queue
      * is open and adding the element is one atomic operation.
      *
-     * <p>Unlike the {@link #add(Object)} method, this method never throws an exception,
-     * but only indicates via the return code if the element was added or the
-     * queue was closed.
+     * <p>Unlike the {@link #add(Object)} method, this method never throws an exception, but only
+     * indicates via the return code if the element was added or the queue was closed.
      *
      * @param element The element to add.
      * @return True, if the element was added, false if the queue was closes.
@@ -187,8 +190,8 @@ public class ClosableBlockingQueue<E> {
     }
 
     /**
-     * Adds the element to the queue, or fails with an exception, if the queue is closed.
-     * Checking whether the queue is open and adding the element is one atomic operation.
+     * Adds the element to the queue, or fails with an exception, if the queue is closed. Checking
+     * whether the queue is open and adding the element is one atomic operation.
      *
      * @param element The element to add.
      * @throws IllegalStateException Thrown, if the queue is closed.
@@ -212,11 +215,11 @@ public class ClosableBlockingQueue<E> {
     }
 
     /**
-     * Returns the queue's next element without removing it, if the queue is non-empty.
-     * Otherwise, returns null.
+     * Returns the queue's next element without removing it, if the queue is non-empty. Otherwise,
+     * returns null.
      *
-     * <p>The method throws an {@code IllegalStateException} if the queue is closed.
-     * Checking whether the queue is open and getting the next element is one atomic operation.
+     * <p>The method throws an {@code IllegalStateException} if the queue is closed. Checking
+     * whether the queue is open and getting the next element is one atomic operation.
      *
      * <p>This method never blocks.
      *
@@ -241,11 +244,11 @@ public class ClosableBlockingQueue<E> {
     }
 
     /**
-     * Returns the queue's next element and removes it, the queue is non-empty.
-     * Otherwise, this method returns null.
+     * Returns the queue's next element and removes it, the queue is non-empty. Otherwise, this
+     * method returns null.
      *
-     * <p>The method throws an {@code IllegalStateException} if the queue is closed.
-     * Checking whether the queue is open and removing the next element is one atomic operation.
+     * <p>The method throws an {@code IllegalStateException} if the queue is closed. Checking
+     * whether the queue is open and removing the next element is one atomic operation.
      *
      * <p>This method never blocks.
      *
@@ -270,11 +273,11 @@ public class ClosableBlockingQueue<E> {
     }
 
     /**
-     * Returns all of the queue's current elements in a list, if the queue is non-empty.
-     * Otherwise, this method returns null.
+     * Returns all of the queue's current elements in a list, if the queue is non-empty. Otherwise,
+     * this method returns null.
      *
-     * <p>The method throws an {@code IllegalStateException} if the queue is closed.
-     * Checking whether the queue is open and removing the elements is one atomic operation.
+     * <p>The method throws an {@code IllegalStateException} if the queue is closed. Checking
+     * whether the queue is open and removing the elements is one atomic operation.
      *
      * <p>This method never blocks.
      *
@@ -301,17 +304,16 @@ public class ClosableBlockingQueue<E> {
     }
 
     /**
-     * Returns the next element in the queue. If the queue is empty, this method
-     * waits until at least one element is added.
+     * Returns the next element in the queue. If the queue is empty, this method waits until at
+     * least one element is added.
      *
-     * <p>The method throws an {@code IllegalStateException} if the queue is closed.
-     * Checking whether the queue is open and removing the next element is one atomic operation.
+     * <p>The method throws an {@code IllegalStateException} if the queue is closed. Checking
+     * whether the queue is open and removing the next element is one atomic operation.
      *
      * @return The next element in the queue, never null.
-     *
      * @throws IllegalStateException Thrown, if the queue is closed.
-     * @throws InterruptedException Throw, if the thread is interrupted while waiting for an
-     *                              element to be added.
+     * @throws InterruptedException Throw, if the thread is interrupted while waiting for an element
+     *     to be added.
      */
     public E getElementBlocking() throws InterruptedException {
         lock.lock();
@@ -331,19 +333,19 @@ public class ClosableBlockingQueue<E> {
     }
 
     /**
-     * Returns the next element in the queue. If the queue is empty, this method
-     * waits at most a certain time until an element becomes available. If no element
-     * is available after that time, the method returns null.
+     * Returns the next element in the queue. If the queue is empty, this method waits at most a
+     * certain time until an element becomes available. If no element is available after that time,
+     * the method returns null.
      *
-     * <p>The method throws an {@code IllegalStateException} if the queue is closed.
-     * Checking whether the queue is open and removing the next element is one atomic operation.
+     * <p>The method throws an {@code IllegalStateException} if the queue is closed. Checking
+     * whether the queue is open and removing the next element is one atomic operation.
      *
      * @param timeoutMillis The number of milliseconds to block, at most.
-     * @return The next element in the queue, or null, if the timeout expires  before an element is available.
-     *
+     * @return The next element in the queue, or null, if the timeout expires before an element is
+     *     available.
      * @throws IllegalStateException Thrown, if the queue is closed.
-     * @throws InterruptedException Throw, if the thread is interrupted while waiting for an
-     *                              element to be added.
+     * @throws InterruptedException Throw, if the thread is interrupted while waiting for an element
+     *     to be added.
      */
     public E getElementBlocking(long timeoutMillis) throws InterruptedException {
         if (timeoutMillis == 0L) {
@@ -375,20 +377,18 @@ public class ClosableBlockingQueue<E> {
     }
 
     /**
-     * Gets all the elements found in the list, or blocks until at least one element
-     * was added. If the queue is empty when this method is called, it blocks until
-     * at least one element is added.
+     * Gets all the elements found in the list, or blocks until at least one element was added. If
+     * the queue is empty when this method is called, it blocks until at least one element is added.
      *
      * <p>This method always returns a list with at least one element.
      *
-     * <p>The method throws an {@code IllegalStateException} if the queue is closed.
-     * Checking whether the queue is open and removing the next element is one atomic operation.
+     * <p>The method throws an {@code IllegalStateException} if the queue is closed. Checking
+     * whether the queue is open and removing the next element is one atomic operation.
      *
      * @return A list with all elements in the queue, always at least one element.
-     *
      * @throws IllegalStateException Thrown, if the queue is closed.
-     * @throws InterruptedException Throw, if the thread is interrupted while waiting for an
-     *                              element to be added.
+     * @throws InterruptedException Throw, if the thread is interrupted while waiting for an element
+     *     to be added.
      */
     public List<E> getBatchBlocking() throws InterruptedException {
         lock.lock();
@@ -409,22 +409,21 @@ public class ClosableBlockingQueue<E> {
     }
 
     /**
-     * Gets all the elements found in the list, or blocks until at least one element
-     * was added. This method is similar as {@link #getBatchBlocking()}, but takes
-     * a number of milliseconds that the method will maximally wait before returning.
+     * Gets all the elements found in the list, or blocks until at least one element was added. This
+     * method is similar as {@link #getBatchBlocking()}, but takes a number of milliseconds that the
+     * method will maximally wait before returning.
      *
-     * <p>This method never returns null, but an empty list, if the queue is empty when
-     * the method is called and the request times out before an element was added.
+     * <p>This method never returns null, but an empty list, if the queue is empty when the method
+     * is called and the request times out before an element was added.
      *
-     * <p>The method throws an {@code IllegalStateException} if the queue is closed.
-     * Checking whether the queue is open and removing the next element is one atomic operation.
+     * <p>The method throws an {@code IllegalStateException} if the queue is closed. Checking
+     * whether the queue is open and removing the next element is one atomic operation.
      *
      * @param timeoutMillis The number of milliseconds to wait, at most.
      * @return A list with all elements in the queue, possible an empty list.
-     *
      * @throws IllegalStateException Thrown, if the queue is closed.
-     * @throws InterruptedException Throw, if the thread is interrupted while waiting for an
-     *                              element to be added.
+     * @throws InterruptedException Throw, if the thread is interrupted while waiting for an element
+     *     to be added.
      */
     public List<E> getBatchBlocking(long timeoutMillis) throws InterruptedException {
         if (timeoutMillis == 0L) {

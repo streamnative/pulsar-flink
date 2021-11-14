@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -40,9 +44,7 @@ import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-/**
- * JSON record parser.
- */
+/** JSON record parser. */
 @Slf4j
 public class JacksonRecordParser {
 
@@ -67,36 +69,41 @@ public class JacksonRecordParser {
 
     private BiFunction<JsonParser, Row, Row> makeStructRootConverter(FieldsDataType st) {
         List<String> fieldNames = ((RowType) st.getLogicalType()).getFieldNames();
-        List<Function<JsonParser, Object>> fieldConverters = new ArrayList<Function<JsonParser, Object>>();
+        List<Function<JsonParser, Object>> fieldConverters = new ArrayList<>();
         RowType rowType = (RowType) st.getLogicalType();
         for (int i = 0; i < fieldNames.size(); i++) {
-            //String fieldName = fieldNames.get(i);
+            // String fieldName = fieldNames.get(i);
             LogicalType logicalType = rowType.getTypeAt(i);
             DataType type = TypeConversions.fromLogicalToDataType(logicalType);
             fieldConverters.add(makeConverter(type));
         }
         return (parser, row) -> {
             try {
-                parseJsonToken(parser, st, new PartialFunc() {
-                    @Override
-                    public boolean isDefinedAt(JsonToken token) {
-                        return token == JsonToken.START_OBJECT || token == JsonToken.START_ARRAY;
-                    }
-
-                    @Override
-                    public Object apply(JsonToken token) {
-                        if (token == JsonToken.START_OBJECT) {
-                            try {
-                                return convertObject(parser, st, fieldConverters, row);
-                            } catch (IOException e) {
-                                suroundWithRuntimeE(e);
+                parseJsonToken(
+                        parser,
+                        st,
+                        new PartialFunc() {
+                            @Override
+                            public boolean isDefinedAt(JsonToken token) {
+                                return token == JsonToken.START_OBJECT
+                                        || token == JsonToken.START_ARRAY;
                             }
-                        } else {
-                            throw new IllegalStateException("Message should be a single JSON object");
-                        }
-                        return null;
-                    }
-                });
+
+                            @Override
+                            public Object apply(JsonToken token) {
+                                if (token == JsonToken.START_OBJECT) {
+                                    try {
+                                        return convertObject(parser, st, fieldConverters, row);
+                                    } catch (IOException e) {
+                                        suroundWithRuntimeE(e);
+                                    }
+                                } else {
+                                    throw new IllegalStateException(
+                                            "Message should be a single JSON object");
+                                }
+                                return null;
+                            }
+                        });
             } catch (IOException e) {
                 suroundWithRuntimeE(e);
             }
@@ -104,7 +111,9 @@ public class JacksonRecordParser {
         };
     }
 
-    public Row parse(String record, BiFunction<JsonFactory, String, JsonParser> createParser, Row row) throws BadRecordException {
+    public Row parse(
+            String record, BiFunction<JsonFactory, String, JsonParser> createParser, Row row)
+            throws BadRecordException {
         try (JsonParser parser = createParser.apply(factory, record)) {
             JsonToken token = parser.nextToken();
             if (token == null) {
@@ -112,7 +121,7 @@ public class JacksonRecordParser {
             } else {
                 Row result = rootConverter.apply(parser, row);
                 if (result == null) {
-                    throw new RuntimeException("Root converter returned null");
+                    throw new IllegalStateException("Root converter returned null");
                 } else {
                     return result;
                 }
@@ -122,7 +131,12 @@ public class JacksonRecordParser {
         }
     }
 
-    private Row convertObject(JsonParser parser, FieldsDataType fdt, List<Function<JsonParser, Object>> fieldConverters, Row row) throws IOException {
+    private Row convertObject(
+            JsonParser parser,
+            FieldsDataType fdt,
+            List<Function<JsonParser, Object>> fieldConverters,
+            Row row)
+            throws IOException {
 
         RowType rowType = (RowType) fdt.getLogicalType();
         List<String> fieldNames = rowType.getFieldNames();
@@ -139,7 +153,7 @@ public class JacksonRecordParser {
 
     private void suroundWithRuntimeE(Exception e) {
         log.error("Failed to parse json due to {}", ExceptionUtils.stringifyException(e));
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
     }
 
     private boolean nextUntil(JsonParser parser, JsonToken stopOn) throws IOException {
@@ -158,17 +172,21 @@ public class JacksonRecordParser {
             case BOOLEAN:
                 return parser -> {
                     try {
-                        return parseJsonToken(parser, dataType, new PartialFunc() {
-                            @Override
-                            public boolean isDefinedAt(JsonToken token) {
-                                return token == JsonToken.VALUE_TRUE || token == JsonToken.VALUE_FALSE;
-                            }
+                        return parseJsonToken(
+                                parser,
+                                dataType,
+                                new PartialFunc() {
+                                    @Override
+                                    public boolean isDefinedAt(JsonToken token) {
+                                        return token == JsonToken.VALUE_TRUE
+                                                || token == JsonToken.VALUE_FALSE;
+                                    }
 
-                            @Override
-                            public Object apply(JsonToken token) {
-                                return token == JsonToken.VALUE_TRUE;
-                            }
-                        });
+                                    @Override
+                                    public Object apply(JsonToken token) {
+                                        return token == JsonToken.VALUE_TRUE;
+                                    }
+                                });
                     } catch (IOException e) {
                         suroundWithRuntimeE(e);
                     }
@@ -177,22 +195,25 @@ public class JacksonRecordParser {
             case TINYINT:
                 return parser -> {
                     try {
-                        return parseJsonToken(parser, dataType, new PartialFunc() {
-                            @Override
-                            public boolean isDefinedAt(JsonToken token) {
-                                return token == JsonToken.VALUE_NUMBER_INT;
-                            }
+                        return parseJsonToken(
+                                parser,
+                                dataType,
+                                new PartialFunc() {
+                                    @Override
+                                    public boolean isDefinedAt(JsonToken token) {
+                                        return token == JsonToken.VALUE_NUMBER_INT;
+                                    }
 
-                            @Override
-                            public Object apply(JsonToken token) {
-                                try {
-                                    return parser.getByteValue();
-                                } catch (IOException e) {
-                                    suroundWithRuntimeE(e);
-                                }
-                                return null;
-                            }
-                        });
+                                    @Override
+                                    public Object apply(JsonToken token) {
+                                        try {
+                                            return parser.getByteValue();
+                                        } catch (IOException e) {
+                                            suroundWithRuntimeE(e);
+                                        }
+                                        return null;
+                                    }
+                                });
                     } catch (IOException e) {
                         suroundWithRuntimeE(e);
                     }
@@ -202,22 +223,25 @@ public class JacksonRecordParser {
             case SMALLINT:
                 return parser -> {
                     try {
-                        return parseJsonToken(parser, dataType, new PartialFunc() {
-                            @Override
-                            public boolean isDefinedAt(JsonToken token) {
-                                return token == JsonToken.VALUE_NUMBER_INT;
-                            }
+                        return parseJsonToken(
+                                parser,
+                                dataType,
+                                new PartialFunc() {
+                                    @Override
+                                    public boolean isDefinedAt(JsonToken token) {
+                                        return token == JsonToken.VALUE_NUMBER_INT;
+                                    }
 
-                            @Override
-                            public Object apply(JsonToken token) {
-                                try {
-                                    return parser.getShortValue();
-                                } catch (IOException e) {
-                                    suroundWithRuntimeE(e);
-                                }
-                                return null;
-                            }
-                        });
+                                    @Override
+                                    public Object apply(JsonToken token) {
+                                        try {
+                                            return parser.getShortValue();
+                                        } catch (IOException e) {
+                                            suroundWithRuntimeE(e);
+                                        }
+                                        return null;
+                                    }
+                                });
                     } catch (IOException e) {
                         suroundWithRuntimeE(e);
                     }
@@ -227,22 +251,25 @@ public class JacksonRecordParser {
             case INTEGER:
                 return parser -> {
                     try {
-                        return parseJsonToken(parser, dataType, new PartialFunc() {
-                            @Override
-                            public boolean isDefinedAt(JsonToken token) {
-                                return token == JsonToken.VALUE_NUMBER_INT;
-                            }
+                        return parseJsonToken(
+                                parser,
+                                dataType,
+                                new PartialFunc() {
+                                    @Override
+                                    public boolean isDefinedAt(JsonToken token) {
+                                        return token == JsonToken.VALUE_NUMBER_INT;
+                                    }
 
-                            @Override
-                            public Object apply(JsonToken token) {
-                                try {
-                                    return parser.getIntValue();
-                                } catch (IOException e) {
-                                    suroundWithRuntimeE(e);
-                                }
-                                return null;
-                            }
-                        });
+                                    @Override
+                                    public Object apply(JsonToken token) {
+                                        try {
+                                            return parser.getIntValue();
+                                        } catch (IOException e) {
+                                            suroundWithRuntimeE(e);
+                                        }
+                                        return null;
+                                    }
+                                });
                     } catch (IOException e) {
                         suroundWithRuntimeE(e);
                     }
@@ -252,22 +279,25 @@ public class JacksonRecordParser {
             case BIGINT:
                 return parser -> {
                     try {
-                        return parseJsonToken(parser, dataType, new PartialFunc() {
-                            @Override
-                            public boolean isDefinedAt(JsonToken token) {
-                                return token == JsonToken.VALUE_NUMBER_INT;
-                            }
+                        return parseJsonToken(
+                                parser,
+                                dataType,
+                                new PartialFunc() {
+                                    @Override
+                                    public boolean isDefinedAt(JsonToken token) {
+                                        return token == JsonToken.VALUE_NUMBER_INT;
+                                    }
 
-                            @Override
-                            public Object apply(JsonToken token) {
-                                try {
-                                    return parser.getLongValue();
-                                } catch (IOException e) {
-                                    suroundWithRuntimeE(e);
-                                }
-                                return null;
-                            }
-                        });
+                                    @Override
+                                    public Object apply(JsonToken token) {
+                                        try {
+                                            return parser.getLongValue();
+                                        } catch (IOException e) {
+                                            suroundWithRuntimeE(e);
+                                        }
+                                        return null;
+                                    }
+                                });
                     } catch (IOException e) {
                         suroundWithRuntimeE(e);
                     }
@@ -277,38 +307,42 @@ public class JacksonRecordParser {
             case FLOAT:
                 return parser -> {
                     try {
-                        return parseJsonToken(parser, dataType, new PartialFunc() {
-                            @Override
-                            public boolean isDefinedAt(JsonToken token) {
-                                return token == JsonToken.VALUE_NUMBER_INT
-                                        || token == JsonToken.VALUE_NUMBER_FLOAT
-                                        || token == JsonToken.VALUE_STRING;
-                            }
-
-                            @Override
-                            public Object apply(JsonToken token) {
-                                try {
-                                    if (token == JsonToken.VALUE_NUMBER_INT
-                                            || token == JsonToken.VALUE_NUMBER_FLOAT) {
-                                        return parser.getFloatValue();
-                                    } else {
-                                        String txt = parser.getText();
-                                        if (txt.equals("NaN")) {
-                                            return Float.NaN;
-                                        } else if (txt.equals("Infinity")) {
-                                            return Float.POSITIVE_INFINITY;
-                                        } else if (txt.equals("-Infinity")) {
-                                            return Float.NEGATIVE_INFINITY;
-                                        } else {
-                                            throw new RuntimeException("Cannot parse " + txt + " as Float");
-                                        }
+                        return parseJsonToken(
+                                parser,
+                                dataType,
+                                new PartialFunc() {
+                                    @Override
+                                    public boolean isDefinedAt(JsonToken token) {
+                                        return token == JsonToken.VALUE_NUMBER_INT
+                                                || token == JsonToken.VALUE_NUMBER_FLOAT
+                                                || token == JsonToken.VALUE_STRING;
                                     }
-                                } catch (IOException e) {
-                                    suroundWithRuntimeE(e);
-                                }
-                                return null;
-                            }
-                        });
+
+                                    @Override
+                                    public Object apply(JsonToken token) {
+                                        try {
+                                            if (token == JsonToken.VALUE_NUMBER_INT
+                                                    || token == JsonToken.VALUE_NUMBER_FLOAT) {
+                                                return parser.getFloatValue();
+                                            } else {
+                                                String txt = parser.getText();
+                                                if (txt.equals("NaN")) {
+                                                    return Float.NaN;
+                                                } else if (txt.equals("Infinity")) {
+                                                    return Float.POSITIVE_INFINITY;
+                                                } else if (txt.equals("-Infinity")) {
+                                                    return Float.NEGATIVE_INFINITY;
+                                                } else {
+                                                    throw new IllegalArgumentException(
+                                                            "Cannot parse " + txt + " as Float");
+                                                }
+                                            }
+                                        } catch (IOException e) {
+                                            suroundWithRuntimeE(e);
+                                        }
+                                        return null;
+                                    }
+                                });
                     } catch (IOException e) {
                         suroundWithRuntimeE(e);
                     }
@@ -318,38 +352,42 @@ public class JacksonRecordParser {
             case DOUBLE:
                 return parser -> {
                     try {
-                        return parseJsonToken(parser, dataType, new PartialFunc() {
-                            @Override
-                            public boolean isDefinedAt(JsonToken token) {
-                                return token == JsonToken.VALUE_NUMBER_INT
-                                        || token == JsonToken.VALUE_NUMBER_FLOAT
-                                        || token == JsonToken.VALUE_STRING;
-                            }
-
-                            @Override
-                            public Object apply(JsonToken token) {
-                                try {
-                                    if (token == JsonToken.VALUE_NUMBER_INT
-                                            || token == JsonToken.VALUE_NUMBER_FLOAT) {
-                                        return parser.getDoubleValue();
-                                    } else {
-                                        String txt = parser.getText();
-                                        if (txt.equals("NaN")) {
-                                            return Float.NaN;
-                                        } else if (txt.equals("Infinity")) {
-                                            return Float.POSITIVE_INFINITY;
-                                        } else if (txt.equals("-Infinity")) {
-                                            return Float.NEGATIVE_INFINITY;
-                                        } else {
-                                            throw new RuntimeException("Cannot parse " + txt + " as Float");
-                                        }
+                        return parseJsonToken(
+                                parser,
+                                dataType,
+                                new PartialFunc() {
+                                    @Override
+                                    public boolean isDefinedAt(JsonToken token) {
+                                        return token == JsonToken.VALUE_NUMBER_INT
+                                                || token == JsonToken.VALUE_NUMBER_FLOAT
+                                                || token == JsonToken.VALUE_STRING;
                                     }
-                                } catch (IOException e) {
-                                    suroundWithRuntimeE(e);
-                                }
-                                return null;
-                            }
-                        });
+
+                                    @Override
+                                    public Object apply(JsonToken token) {
+                                        try {
+                                            if (token == JsonToken.VALUE_NUMBER_INT
+                                                    || token == JsonToken.VALUE_NUMBER_FLOAT) {
+                                                return parser.getDoubleValue();
+                                            } else {
+                                                String txt = parser.getText();
+                                                if (txt.equals("NaN")) {
+                                                    return Float.NaN;
+                                                } else if (txt.equals("Infinity")) {
+                                                    return Float.POSITIVE_INFINITY;
+                                                } else if (txt.equals("-Infinity")) {
+                                                    return Float.NEGATIVE_INFINITY;
+                                                } else {
+                                                    throw new IllegalArgumentException(
+                                                            "Cannot parse " + txt + " as Float");
+                                                }
+                                            }
+                                        } catch (IOException e) {
+                                            suroundWithRuntimeE(e);
+                                        }
+                                        return null;
+                                    }
+                                });
                     } catch (IOException e) {
                         suroundWithRuntimeE(e);
                     }
@@ -359,31 +397,39 @@ public class JacksonRecordParser {
             case VARCHAR:
                 return parser -> {
                     try {
-                        return parseJsonToken(parser, dataType, new PartialFunc() {
-                            @Override
-                            public boolean isDefinedAt(JsonToken token) {
-                                return true;
-                            }
-
-                            @Override
-                            public Object apply(JsonToken token) {
-                                try {
-                                    if (token == JsonToken.VALUE_STRING) {
-                                        return parser.getText();
-                                    } else {
-                                        ByteArrayOutputStream writer = new ByteArrayOutputStream();
-                                        try (JsonGenerator generator = factory.createGenerator(writer, JsonEncoding.UTF8)) {
-                                            generator.copyCurrentStructure(parser);
-                                        }
-                                        return new String(writer.toByteArray(), StandardCharsets.UTF_8);
+                        return parseJsonToken(
+                                parser,
+                                dataType,
+                                new PartialFunc() {
+                                    @Override
+                                    public boolean isDefinedAt(JsonToken token) {
+                                        return true;
                                     }
 
-                                } catch (IOException e) {
-                                    suroundWithRuntimeE(e);
-                                }
-                                return null;
-                            }
-                        });
+                                    @Override
+                                    public Object apply(JsonToken token) {
+                                        try {
+                                            if (token == JsonToken.VALUE_STRING) {
+                                                return parser.getText();
+                                            } else {
+                                                ByteArrayOutputStream writer =
+                                                        new ByteArrayOutputStream();
+                                                try (JsonGenerator generator =
+                                                        factory.createGenerator(
+                                                                writer, JsonEncoding.UTF8)) {
+                                                    generator.copyCurrentStructure(parser);
+                                                }
+                                                return new String(
+                                                        writer.toByteArray(),
+                                                        StandardCharsets.UTF_8);
+                                            }
+
+                                        } catch (IOException e) {
+                                            suroundWithRuntimeE(e);
+                                        }
+                                        return null;
+                                    }
+                                });
                     } catch (IOException e) {
                         suroundWithRuntimeE(e);
                     }
@@ -393,28 +439,39 @@ public class JacksonRecordParser {
             case TIMESTAMP_WITHOUT_TIME_ZONE:
                 return parser -> {
                     try {
-                        return parseJsonToken(parser, dataType, new PartialFunc() {
-                            @Override
-                            public boolean isDefinedAt(JsonToken token) {
-                                return token == JsonToken.VALUE_NUMBER_INT || token == JsonToken.VALUE_STRING;
-                            }
-
-                            @Override
-                            public Object apply(JsonToken token) {
-                                try {
-                                    if (token == JsonToken.VALUE_STRING) {
-                                        String v = parser.getText();
-                                        long t = options.getTimestampFormat().parse(v).getTime() * 1000L;
-                                        return DateTimeUtils.toJavaTimestamp(t).toLocalDateTime();
-                                    } else {
-                                        return DateTimeUtils.toJavaTimestamp(parser.getLongValue() * 1000000L).toLocalDateTime();
+                        return parseJsonToken(
+                                parser,
+                                dataType,
+                                new PartialFunc() {
+                                    @Override
+                                    public boolean isDefinedAt(JsonToken token) {
+                                        return token == JsonToken.VALUE_NUMBER_INT
+                                                || token == JsonToken.VALUE_STRING;
                                     }
-                                } catch (IOException | ParseException e) {
-                                    suroundWithRuntimeE(e);
-                                }
-                                return null;
-                            }
-                        });
+
+                                    @Override
+                                    public Object apply(JsonToken token) {
+                                        try {
+                                            if (token == JsonToken.VALUE_STRING) {
+                                                String v = parser.getText();
+                                                long t =
+                                                        options.getTimestampFormat()
+                                                                        .parse(v)
+                                                                        .getTime()
+                                                                * 1000L;
+                                                return DateTimeUtils.toJavaTimestamp(t)
+                                                        .toLocalDateTime();
+                                            } else {
+                                                return DateTimeUtils.toJavaTimestamp(
+                                                                parser.getLongValue() * 1000000L)
+                                                        .toLocalDateTime();
+                                            }
+                                        } catch (IOException | ParseException e) {
+                                            suroundWithRuntimeE(e);
+                                        }
+                                        return null;
+                                    }
+                                });
                     } catch (IOException e) {
                         suroundWithRuntimeE(e);
                     }
@@ -424,25 +481,35 @@ public class JacksonRecordParser {
             case DATE:
                 return parser -> {
                     try {
-                        return parseJsonToken(parser, dataType, new PartialFunc() {
-                            @Override
-                            public boolean isDefinedAt(JsonToken token) {
-                                return token == JsonToken.VALUE_STRING;
-                            }
+                        return parseJsonToken(
+                                parser,
+                                dataType,
+                                new PartialFunc() {
+                                    @Override
+                                    public boolean isDefinedAt(JsonToken token) {
+                                        return token == JsonToken.VALUE_STRING;
+                                    }
 
-                            @Override
-                            public Object apply(JsonToken token) {
-                                try {
-                                    String v = parser.getText();
-                                    int t = DateTimeUtils.millisToDays(options.getDateFormat().parse(v).getTime());
-                                    return DateTimeUtils.toJavaDate(t).toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+                                    @Override
+                                    public Object apply(JsonToken token) {
+                                        try {
+                                            String v = parser.getText();
+                                            int t =
+                                                    DateTimeUtils.millisToDays(
+                                                            options.getDateFormat()
+                                                                    .parse(v)
+                                                                    .getTime());
+                                            return DateTimeUtils.toJavaDate(t)
+                                                    .toInstant()
+                                                    .atZone(ZoneId.systemDefault())
+                                                    .toLocalDate();
 
-                                } catch (IOException | ParseException e) {
-                                    suroundWithRuntimeE(e);
-                                }
-                                return null;
-                            }
-                        });
+                                        } catch (IOException | ParseException e) {
+                                            suroundWithRuntimeE(e);
+                                        }
+                                        return null;
+                                    }
+                                });
                     } catch (IOException e) {
                         suroundWithRuntimeE(e);
                     }
@@ -452,22 +519,25 @@ public class JacksonRecordParser {
             case VARBINARY:
                 return parser -> {
                     try {
-                        return parseJsonToken(parser, dataType, new PartialFunc() {
-                            @Override
-                            public boolean isDefinedAt(JsonToken token) {
-                                return token == JsonToken.VALUE_STRING;
-                            }
+                        return parseJsonToken(
+                                parser,
+                                dataType,
+                                new PartialFunc() {
+                                    @Override
+                                    public boolean isDefinedAt(JsonToken token) {
+                                        return token == JsonToken.VALUE_STRING;
+                                    }
 
-                            @Override
-                            public Object apply(JsonToken token) {
-                                try {
-                                    return parser.getBinaryValue();
-                                } catch (IOException e) {
-                                    suroundWithRuntimeE(e);
-                                }
-                                return null;
-                            }
-                        });
+                                    @Override
+                                    public Object apply(JsonToken token) {
+                                        try {
+                                            return parser.getBinaryValue();
+                                        } catch (IOException e) {
+                                            suroundWithRuntimeE(e);
+                                        }
+                                        return null;
+                                    }
+                                });
                     } catch (IOException e) {
                         suroundWithRuntimeE(e);
                     }
@@ -477,22 +547,26 @@ public class JacksonRecordParser {
             case DECIMAL:
                 return parser -> {
                     try {
-                        return parseJsonToken(parser, dataType, new PartialFunc() {
-                            @Override
-                            public boolean isDefinedAt(JsonToken token) {
-                                return token == JsonToken.VALUE_NUMBER_INT || token == JsonToken.VALUE_NUMBER_FLOAT;
-                            }
+                        return parseJsonToken(
+                                parser,
+                                dataType,
+                                new PartialFunc() {
+                                    @Override
+                                    public boolean isDefinedAt(JsonToken token) {
+                                        return token == JsonToken.VALUE_NUMBER_INT
+                                                || token == JsonToken.VALUE_NUMBER_FLOAT;
+                                    }
 
-                            @Override
-                            public Object apply(JsonToken token) {
-                                try {
-                                    return parser.getDecimalValue();
-                                } catch (IOException e) {
-                                    suroundWithRuntimeE(e);
-                                }
-                                return null;
-                            }
-                        });
+                                    @Override
+                                    public Object apply(JsonToken token) {
+                                        try {
+                                            return parser.getDecimalValue();
+                                        } catch (IOException e) {
+                                            suroundWithRuntimeE(e);
+                                        }
+                                        return null;
+                                    }
+                                });
                     } catch (IOException e) {
                         suroundWithRuntimeE(e);
                     }
@@ -502,31 +576,40 @@ public class JacksonRecordParser {
             case ROW:
                 RowType rowType = (RowType) dataType.getLogicalType();
                 List<String> fieldNames = rowType.getFieldNames();
-                List<Function<JsonParser, Object>> fieldConverters = new ArrayList<Function<JsonParser, Object>>();
+                List<Function<JsonParser, Object>> fieldConverters =
+                        new ArrayList<Function<JsonParser, Object>>();
                 for (int i = 0; i < fieldNames.size(); i++) {
                     LogicalType logicalType = rowType.getTypeAt(i);
-                    fieldConverters.add(makeConverter(TypeConversions.fromLogicalToDataType(logicalType)));
+                    fieldConverters.add(
+                            makeConverter(TypeConversions.fromLogicalToDataType(logicalType)));
                 }
 
                 return parser -> {
                     try {
-                        return parseJsonToken(parser, dataType, new PartialFunc() {
-                            @Override
-                            public boolean isDefinedAt(JsonToken token) {
-                                return token == JsonToken.START_OBJECT;
-                            }
+                        return parseJsonToken(
+                                parser,
+                                dataType,
+                                new PartialFunc() {
+                                    @Override
+                                    public boolean isDefinedAt(JsonToken token) {
+                                        return token == JsonToken.START_OBJECT;
+                                    }
 
-                            @Override
-                            public Object apply(JsonToken token) {
-                                try {
-                                    Row record = new Row(rowType.getFieldCount());
-                                    return convertObject(parser, (FieldsDataType) dataType, fieldConverters, record);
-                                } catch (IOException e) {
-                                    suroundWithRuntimeE(e);
-                                }
-                                return null;
-                            }
-                        });
+                                    @Override
+                                    public Object apply(JsonToken token) {
+                                        try {
+                                            Row record = new Row(rowType.getFieldCount());
+                                            return convertObject(
+                                                    parser,
+                                                    (FieldsDataType) dataType,
+                                                    fieldConverters,
+                                                    record);
+                                        } catch (IOException e) {
+                                            suroundWithRuntimeE(e);
+                                        }
+                                        return null;
+                                    }
+                                });
                     } catch (IOException e) {
                         suroundWithRuntimeE(e);
                     }
@@ -534,17 +617,20 @@ public class JacksonRecordParser {
                 };
 
             default:
-                throw new RuntimeException(String.format(
-                        "Failed to parse a value for data type %s (current: %s).", dataType.toString(), tpe.toString()));
+                throw new IllegalStateException(
+                        String.format(
+                                "Failed to parse a value for data type %s (current: %s).",
+                                dataType.toString(), tpe.toString()));
         }
     }
 
     /**
-     * This method skips `FIELD_NAME`s at the beginning, and handles nulls ahead before trying
-     * to parse the JSON token using given function `f`. If the `f` failed to parse and convert the
+     * This method skips `FIELD_NAME`s at the beginning, and handles nulls ahead before trying to
+     * parse the JSON token using given function `f`. If the `f` failed to parse and convert the
      * token, call `failedConversion` to handle the token.
      */
-    public Object parseJsonToken(JsonParser parser, DataType dataType, PartialFunc f) throws IOException {
+    public Object parseJsonToken(JsonParser parser, DataType dataType, PartialFunc f)
+            throws IOException {
         while (true) {
             JsonToken currentToken = parser.getCurrentToken();
             if (!JsonToken.FIELD_NAME.equals(currentToken)) {
@@ -567,7 +653,8 @@ public class JacksonRecordParser {
 
         Object apply(JsonToken token);
 
-        default Object applyOrElse(JsonToken token, JsonParser parser, DataType dataType) throws IOException {
+        default Object applyOrElse(JsonToken token, JsonParser parser, DataType dataType)
+                throws IOException {
             if (isDefinedAt(token)) {
                 return apply(token);
             } else {
@@ -576,8 +663,10 @@ public class JacksonRecordParser {
                     // This will protect the mismatch of types.
                     return null;
                 } else {
-                    throw new RuntimeException(String.format(
-                            "Failed to parse a value for data type %s (current token: %s).", dataType.toString(), token.toString()));
+                    throw new IllegalStateException(
+                            String.format(
+                                    "Failed to parse a value for data type %s (current token: %s).",
+                                    dataType.toString(), token.toString()));
                 }
             }
         }
@@ -592,7 +681,10 @@ public class JacksonRecordParser {
         private final ParseMode mode;
         private final FieldsDataType schema;
 
-        FailureSafeRecordParser(BiFunctionWithException<String, Row, Row> rawParser, ParseMode mode, FieldsDataType schema) {
+        FailureSafeRecordParser(
+                BiFunctionWithException<String, Row, Row> rawParser,
+                ParseMode mode,
+                FieldsDataType schema) {
             this.rawParser = rawParser;
             this.mode = mode;
             this.schema = schema;
@@ -608,7 +700,8 @@ public class JacksonRecordParser {
                     case DROPMALFORMED:
                         return null;
                     case FAILFAST:
-                        throw new RuntimeException("Malformed records are detected in record parsing", e);
+                        throw new IllegalStateException(
+                                "Malformed records are detected in record parsing", e);
                 }
             }
             return null;

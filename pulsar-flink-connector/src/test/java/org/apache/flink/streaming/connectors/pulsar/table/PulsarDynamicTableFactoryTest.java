@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -75,20 +79,18 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-/**
- * Abstract test base for {@link PulsarDynamicTableFactory}.
- */
+/** Abstract test base for {@link PulsarDynamicTableFactory}. */
 public class PulsarDynamicTableFactoryTest extends TestLogger {
 
-    @Rule
-    public ExpectedException thrown = ExpectedException.none();
+    @Rule public ExpectedException thrown = ExpectedException.none();
 
     private static final String SERVICE_URL = "pulsar://127.0.0.1:6650";
     private static final String ADMIN_URL = "http://127.0.0.1:8080";
     private static final String TOPIC = "myTopic";
     private static final String TOPICS = "myTopic-1;myTopic-2;myTopic-3";
     private static final String TOPIC_REGEX = "myTopic-\\d+";
-    private static final List<String> TOPIC_LIST = Arrays.asList("myTopic-1", "myTopic-2", "myTopic-3");
+    private static final List<String> TOPIC_LIST =
+            Arrays.asList("myTopic-1", "myTopic-2", "myTopic-3");
 
     private static final String NAME = "name";
     private static final String COUNT = "count";
@@ -105,16 +107,13 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
     private static final Properties PULSAR_SINK_PROPERTIES = new Properties();
 
     static {
-
         PULSAR_SOURCE_PROPERTIES.setProperty("partition.discovery.interval-millis", "1000");
         PULSAR_SOURCE_PROPERTIES.setProperty("pulsar.reader.readername", "testReaderName");
 
         PULSAR_SINK_PROPERTIES.setProperty("pulsar.reader.readername", "testReaderName");
-
     }
 
-    private static final String PROPS_SCAN_OFFSETS =
-            MessageId.earliest.toString();
+    private static final String PROPS_SCAN_OFFSETS = MessageId.earliest.toString();
 
     private static final ResolvedSchema SCHEMA =
             new ResolvedSchema(
@@ -153,9 +152,10 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
 
         final Map<String, MessageId> specificOffsets = new HashMap<>();
         specificOffsets.put("-1", MessageId.earliest);
-//        specificOffsets.put(TOPIC, MessageId.earliest);
+        //        specificOffsets.put(TOPIC, MessageId.earliest);
 
-        final PulsarTableOptions.StartupOptions startupOptions = new PulsarTableOptions.StartupOptions();
+        final PulsarTableOptions.StartupOptions startupOptions =
+                new PulsarTableOptions.StartupOptions();
         startupOptions.startupMode = StartupMode.SPECIFIC_OFFSETS;
         startupOptions.specificOffsets = specificOffsets;
 
@@ -163,19 +163,20 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
                 new DecodingFormatMock(",", true);
 
         // Test scan source equals
-        final PulsarDynamicTableSource expectedPulsarSource = createExpectedScanSource(
-                SCHEMA_DATA_TYPE,
-                null,
-                valueDecodingFormat,
-                new int[0],
-                new int[]{0, 1, 2},
-                null,
-                SERVICE_URL,
-                ADMIN_URL,
-                Collections.singletonList(TOPIC),
-                null,
-                PULSAR_SOURCE_PROPERTIES,
-                startupOptions);
+        final PulsarDynamicTableSource expectedPulsarSource =
+                createExpectedScanSource(
+                        SCHEMA_DATA_TYPE,
+                        null,
+                        valueDecodingFormat,
+                        new int[0],
+                        new int[] {0, 1, 2},
+                        null,
+                        SERVICE_URL,
+                        ADMIN_URL,
+                        Collections.singletonList(TOPIC),
+                        null,
+                        PULSAR_SOURCE_PROPERTIES,
+                        startupOptions);
         assertEquals(actualPulsarSource, expectedPulsarSource);
 
         // Test Pulsar consumer
@@ -183,43 +184,48 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
                 actualPulsarSource.getScanRuntimeProvider(ScanRuntimeProviderContext.INSTANCE);
         assertThat(provider, instanceOf(SourceFunctionProvider.class));
         final SourceFunctionProvider sourceFunctionProvider = (SourceFunctionProvider) provider;
-        final SourceFunction<RowData> sourceFunction = sourceFunctionProvider.createSourceFunction();
+        final SourceFunction<RowData> sourceFunction =
+                sourceFunctionProvider.createSourceFunction();
         assertThat(sourceFunction, instanceOf(FlinkPulsarSource.class));
 
         // Test commitOnCheckpoints flag should be true when set consumer group
-//		assertTrue(((FlinkPulsarSource<?>) sourceFunction).getEnableCommitOnCheckpoints());
+        //		assertTrue(((FlinkPulsarSource<?>) sourceFunction).getEnableCommitOnCheckpoints());
     }
 
     @Test
     public void testTableSourceCommitOnCheckpointsDisabled() {
-        final Map<String, String> modifiedOptions = getModifiedOptions(
-                getBasicSourceOptions(),
-                options -> options.remove("properties.group.id"));
+        final Map<String, String> modifiedOptions =
+                getModifiedOptions(
+                        getBasicSourceOptions(), options -> options.remove("properties.group.id"));
         final DynamicTableSource tableSource = createTableSource(SCHEMA, modifiedOptions);
 
         // Test commitOnCheckpoints flag should be false when do not set consumer group.
         assertThat(tableSource, instanceOf(PulsarDynamicTableSource.class));
-        ScanTableSource.ScanRuntimeProvider providerWithoutGroupId = ((PulsarDynamicTableSource) tableSource)
-                .getScanRuntimeProvider(ScanRuntimeProviderContext.INSTANCE);
+        ScanTableSource.ScanRuntimeProvider providerWithoutGroupId =
+                ((PulsarDynamicTableSource) tableSource)
+                        .getScanRuntimeProvider(ScanRuntimeProviderContext.INSTANCE);
         assertThat(providerWithoutGroupId, instanceOf(SourceFunctionProvider.class));
-        final SourceFunctionProvider functionProviderWithoutGroupId = (SourceFunctionProvider) providerWithoutGroupId;
-        final SourceFunction<RowData> function = functionProviderWithoutGroupId.createSourceFunction();
-//		assertFalse(((FlinkPulsarSource<?>) function).getEnableCommitOnCheckpoints());
+        final SourceFunctionProvider functionProviderWithoutGroupId =
+                (SourceFunctionProvider) providerWithoutGroupId;
+
+        functionProviderWithoutGroupId.createSourceFunction();
     }
 
     @Test
     public void testTableSourceWithPattern() {
-        final Map<String, String> modifiedOptions = getModifiedOptions(
-                getBasicSourceOptions(),
-                options -> {
-                    options.remove("topic");
-                    options.put("topic-pattern", TOPIC_REGEX);
-                    options.put("scan.startup.mode", "earliest");
-                    options.remove("scan.startup.specific-offsets");
-                });
+        final Map<String, String> modifiedOptions =
+                getModifiedOptions(
+                        getBasicSourceOptions(),
+                        options -> {
+                            options.remove("topic");
+                            options.put("topic-pattern", TOPIC_REGEX);
+                            options.put("scan.startup.mode", "earliest");
+                            options.remove("scan.startup.specific-offsets");
+                        });
         final DynamicTableSource actualSource = createTableSource(SCHEMA, modifiedOptions);
 
-        final PulsarTableOptions.StartupOptions startupOptions = new PulsarTableOptions.StartupOptions();
+        final PulsarTableOptions.StartupOptions startupOptions =
+                new PulsarTableOptions.StartupOptions();
         startupOptions.startupMode = StartupMode.EARLIEST;
         startupOptions.specificOffsets = new HashMap<>();
 
@@ -227,20 +233,20 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
                 new DecodingFormatMock(",", true);
 
         // Test scan source equals
-        final PulsarDynamicTableSource expectedPulsarSource = createExpectedScanSource(
-                SCHEMA_DATA_TYPE,
-                null,
-                valueDecodingFormat,
-                new int[0],
-                new int[]{0, 1, 2},
-                null,
-                SERVICE_URL,
-                ADMIN_URL,
-                null,
-                TOPIC_REGEX,
-                PULSAR_SOURCE_PROPERTIES,
-                startupOptions
-        );
+        final PulsarDynamicTableSource expectedPulsarSource =
+                createExpectedScanSource(
+                        SCHEMA_DATA_TYPE,
+                        null,
+                        valueDecodingFormat,
+                        new int[0],
+                        new int[] {0, 1, 2},
+                        null,
+                        SERVICE_URL,
+                        ADMIN_URL,
+                        null,
+                        TOPIC_REGEX,
+                        PULSAR_SOURCE_PROPERTIES,
+                        startupOptions);
         final PulsarDynamicTableSource actualPulsarSource = (PulsarDynamicTableSource) actualSource;
         assertEquals(actualPulsarSource, expectedPulsarSource);
 
@@ -249,7 +255,8 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
                 actualPulsarSource.getScanRuntimeProvider(ScanRuntimeProviderContext.INSTANCE);
         assertThat(provider, instanceOf(SourceFunctionProvider.class));
         final SourceFunctionProvider sourceFunctionProvider = (SourceFunctionProvider) provider;
-        final SourceFunction<RowData> sourceFunction = sourceFunctionProvider.createSourceFunction();
+        final SourceFunction<RowData> sourceFunction =
+                sourceFunctionProvider.createSourceFunction();
         assertThat(sourceFunction, instanceOf(FlinkPulsarSource.class));
     }
 
@@ -261,52 +268,50 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
         final DynamicTableSource actualSource = createTableSource(SCHEMA_WITH_METADATA, options);
         final PulsarDynamicTableSource actualPulsarSource = (PulsarDynamicTableSource) actualSource;
         // initialize stateful testing formats
-        actualPulsarSource.applyReadableMetadata(Arrays.asList("eventTime", "value.metadata_2"),
+        actualPulsarSource.applyReadableMetadata(
+                Arrays.asList("eventTime", "value.metadata_2"),
                 SCHEMA_WITH_METADATA.toSourceRowDataType());
         actualPulsarSource.getScanRuntimeProvider(ScanRuntimeProviderContext.INSTANCE);
 
-        final DecodingFormatMock expectedKeyFormat = new DecodingFormatMock(
-                "#",
-                false,
-                ChangelogMode.insertOnly(),
-                Collections.emptyMap());
-        expectedKeyFormat.producedDataType = DataTypes.ROW(
-                DataTypes.FIELD(NAME, DataTypes.STRING()))
-                .notNull();
+        final DecodingFormatMock expectedKeyFormat =
+                new DecodingFormatMock(
+                        "#", false, ChangelogMode.insertOnly(), Collections.emptyMap());
+        expectedKeyFormat.producedDataType =
+                DataTypes.ROW(DataTypes.FIELD(NAME, DataTypes.STRING())).notNull();
 
         final Map<String, DataType> expectedReadableMetadata = new LinkedHashMap<>();
         expectedReadableMetadata.put("eventTime", DataTypes.INT());
         expectedReadableMetadata.put("metadata_2", DataTypes.STRING());
 
-        final DecodingFormatMock expectedValueFormat = new DecodingFormatMock(
-                "|",
-                false,
-                ChangelogMode.insertOnly(),
-                expectedReadableMetadata);
-        expectedValueFormat.producedDataType = DataTypes.ROW(
-                DataTypes.FIELD(COUNT, DataTypes.DECIMAL(38, 18)),
-                DataTypes.FIELD("metadata_2", DataTypes.STRING()))
-                .notNull();
+        final DecodingFormatMock expectedValueFormat =
+                new DecodingFormatMock(
+                        "|", false, ChangelogMode.insertOnly(), expectedReadableMetadata);
+        expectedValueFormat.producedDataType =
+                DataTypes.ROW(
+                                DataTypes.FIELD(COUNT, DataTypes.DECIMAL(38, 18)),
+                                DataTypes.FIELD("metadata_2", DataTypes.STRING()))
+                        .notNull();
         expectedValueFormat.metadataKeys = Collections.singletonList("metadata_2");
 
-        final PulsarTableOptions.StartupOptions startupOptions = new PulsarTableOptions.StartupOptions();
+        final PulsarTableOptions.StartupOptions startupOptions =
+                new PulsarTableOptions.StartupOptions();
         startupOptions.startupMode = StartupMode.LATEST;
         startupOptions.specificOffsets = new HashMap<>();
 
-        final PulsarDynamicTableSource expectedPulsarSource = createExpectedScanSource(
-                SCHEMA_WITH_METADATA.toPhysicalRowDataType(),
-                expectedKeyFormat,
-                expectedValueFormat,
-                new int[]{0},
-                new int[]{1},
-                null,
-                SERVICE_URL,
-                ADMIN_URL,
-                Collections.singletonList(TOPIC),
-                null,
-                PULSAR_SOURCE_PROPERTIES,
-                startupOptions
-        );
+        final PulsarDynamicTableSource expectedPulsarSource =
+                createExpectedScanSource(
+                        SCHEMA_WITH_METADATA.toPhysicalRowDataType(),
+                        expectedKeyFormat,
+                        expectedValueFormat,
+                        new int[] {0},
+                        new int[] {1},
+                        null,
+                        SERVICE_URL,
+                        ADMIN_URL,
+                        Collections.singletonList(TOPIC),
+                        null,
+                        PULSAR_SOURCE_PROPERTIES,
+                        startupOptions);
         expectedPulsarSource.producedDataType = SCHEMA_WITH_METADATA.toSourceRowDataType();
         expectedPulsarSource.metadataKeys = Collections.singletonList("eventTime");
 
@@ -320,19 +325,19 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
         final EncodingFormat<SerializationSchema<RowData>> valueEncodingFormat =
                 new EncodingFormatMock(",");
 
-        final DynamicTableSink expectedSink = createExpectedSink(
-                SCHEMA_DATA_TYPE,
-                null,
-                valueEncodingFormat,
-                new int[0],
-                new int[]{0, 1, 2},
-                null,
-                TOPIC,
-                PULSAR_SINK_PROPERTIES,
-                PulsarSinkSemantic.AT_LEAST_ONCE,
-                null,
-                TestFormatFactory.IDENTIFIER
-        );
+        final DynamicTableSink expectedSink =
+                createExpectedSink(
+                        SCHEMA_DATA_TYPE,
+                        null,
+                        valueEncodingFormat,
+                        new int[0],
+                        new int[] {0, 1, 2},
+                        null,
+                        TOPIC,
+                        PULSAR_SINK_PROPERTIES,
+                        PulsarSinkSemantic.AT_LEAST_ONCE,
+                        null,
+                        TestFormatFactory.IDENTIFIER);
         assertEquals(expectedSink, actualSink);
 
         // Test pulsar producer.
@@ -352,13 +357,17 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
     @Test
     public void testInvalidScanStartupMode() {
         thrown.expect(ValidationException.class);
-        thrown.expect(containsCause(new ValidationException("Invalid value for option 'scan.startup.mode'. "
-                + "Supported values are [earliest, latest, specific-offsets, external-subscription], "
-                + "but was: abc")));
+        thrown.expect(
+                containsCause(
+                        new ValidationException(
+                                "Invalid value for option 'scan.startup.mode'. "
+                                        + "Supported values are [earliest, latest, specific-offsets, external-subscription], "
+                                        + "but was: abc")));
 
-        final Map<String, String> modifiedOptions = getModifiedOptions(
-                getBasicSourceOptions(),
-                options -> options.put("scan.startup.mode", "abc"));
+        final Map<String, String> modifiedOptions =
+                getModifiedOptions(
+                        getBasicSourceOptions(),
+                        options -> options.put("scan.startup.mode", "abc"));
 
         createTableSource(SCHEMA, modifiedOptions);
     }
@@ -366,15 +375,18 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
     @Test
     public void testSourceTableWithTopicAndTopicPattern() {
         thrown.expect(ValidationException.class);
-        thrown.expect(containsCause(
-                new ValidationException("Option 'topic' and 'topic-pattern' shouldn't be set together.")));
+        thrown.expect(
+                containsCause(
+                        new ValidationException(
+                                "Option 'topic' and 'topic-pattern' shouldn't be set together.")));
 
-        final Map<String, String> modifiedOptions = getModifiedOptions(
-                getBasicSourceOptions(),
-                options -> {
-                    options.put("topic", TOPICS);
-                    options.put("topic-pattern", TOPIC_REGEX);
-                });
+        final Map<String, String> modifiedOptions =
+                getModifiedOptions(
+                        getBasicSourceOptions(),
+                        options -> {
+                            options.put("topic", TOPICS);
+                            options.put("topic-pattern", TOPIC_REGEX);
+                        });
 
         createTableSource(SCHEMA, modifiedOptions);
     }
@@ -382,12 +394,16 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
     @Test
     public void testMissingSpecificOffsets() {
         thrown.expect(ValidationException.class);
-        thrown.expect(containsCause(new ValidationException("'scan.startup.specific-offsets' "
-                + "is required in 'specific-offsets' startup mode but missing.")));
+        thrown.expect(
+                containsCause(
+                        new ValidationException(
+                                "'scan.startup.specific-offsets' "
+                                        + "is required in 'specific-offsets' startup mode but missing.")));
 
-        final Map<String, String> modifiedOptions = getModifiedOptions(
-                getBasicSourceOptions(),
-                options -> options.remove("scan.startup.specific-offsets"));
+        final Map<String, String> modifiedOptions =
+                getModifiedOptions(
+                        getBasicSourceOptions(),
+                        options -> options.remove("scan.startup.specific-offsets"));
 
         createTableSource(SCHEMA, modifiedOptions);
     }
@@ -395,26 +411,35 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
     @Test
     public void testInvalidSinkMessageRouter() {
         thrown.expect(ValidationException.class);
-        thrown.expect(containsCause(new ValidationException("Could not find and instantiate messageRouter "
-                + "class 'fakeRouter'")));
-        final Map<String, String> modifiedOptions = getModifiedOptions(
-                getBasicSinkOptions(),
-                options -> options.put("sink.message-router", "fakeRouter"));
+        thrown.expect(
+                containsCause(
+                        new ValidationException(
+                                "Could not find and instantiate messageRouter "
+                                        + "class 'fakeRouter'")));
+        final Map<String, String> modifiedOptions =
+                getModifiedOptions(
+                        getBasicSinkOptions(),
+                        options -> options.put("sink.message-router", "fakeRouter"));
 
         createTableSink(SCHEMA, modifiedOptions);
     }
 
     @Test
     public void testValidSinkMessageRouter() {
-        final Map<String, String> mockMessageRouterOptions = getModifiedOptions(
-                getBasicSinkOptions(),
-                options -> options.put("sink.message-router", MockMessageRouter.class.getName()));
-        final Map<String, String> keyHashRouterOptions = getModifiedOptions(
-                getBasicSinkOptions(),
-                options -> options.put("sink.message-router", "key-hash"));
-        final Map<String, String> roundRobinRouterOptions = getModifiedOptions(
-                getBasicSinkOptions(),
-                options -> options.put("sink.message-router", "round-robin"));
+        final Map<String, String> mockMessageRouterOptions =
+                getModifiedOptions(
+                        getBasicSinkOptions(),
+                        options ->
+                                options.put(
+                                        "sink.message-router", MockMessageRouter.class.getName()));
+        final Map<String, String> keyHashRouterOptions =
+                getModifiedOptions(
+                        getBasicSinkOptions(),
+                        options -> options.put("sink.message-router", "key-hash"));
+        final Map<String, String> roundRobinRouterOptions =
+                getModifiedOptions(
+                        getBasicSinkOptions(),
+                        options -> options.put("sink.message-router", "round-robin"));
         PulsarDynamicTableSink mockMessageRouterSink =
                 (PulsarDynamicTableSink) createTableSink(SCHEMA, mockMessageRouterOptions);
         assertTrue(mockMessageRouterSink.getMessageRouter() instanceof MockMessageRouter);
@@ -429,43 +454,54 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
     @Test
     public void testInvalidSinkSemantic() {
         thrown.expect(ValidationException.class);
-        thrown.expect(containsCause(new ValidationException("Unsupported value 'xyz' for 'sink.semantic'. "
-                + "Supported values are ['at-least-once', 'exactly-once', 'none'].")));
+        thrown.expect(
+                containsCause(
+                        new ValidationException(
+                                "Unsupported value 'xyz' for 'sink.semantic'. "
+                                        + "Supported values are ['at-least-once', 'exactly-once', 'none'].")));
 
-        final Map<String, String> modifiedOptions = getModifiedOptions(
-                getBasicSourceOptions(),
-                options -> options.put("sink.semantic", "xyz"));
+        final Map<String, String> modifiedOptions =
+                getModifiedOptions(
+                        getBasicSourceOptions(), options -> options.put("sink.semantic", "xyz"));
 
         createTableSink(SCHEMA, modifiedOptions);
     }
 
     @Test
     public void testSinkWithTopicListOrTopicPattern() {
-        Map<String, String> modifiedOptions = getModifiedOptions(
-                getBasicSourceOptions(),
-                options -> {
-                    options.put("topic", TOPICS);
-                    options.put("scan.startup.mode", "earliest");
-                    options.remove("specific-offsets");
-                });
-        final String errorMessageTemp = "Flink Pulsar sink currently only supports single topic, but got %s: %s.";
+        Map<String, String> modifiedOptions =
+                getModifiedOptions(
+                        getBasicSourceOptions(),
+                        options -> {
+                            options.put("topic", TOPICS);
+                            options.put("scan.startup.mode", "earliest");
+                            options.remove("specific-offsets");
+                        });
+        final String errorMessageTemp =
+                "Flink Pulsar sink currently only supports single topic, but got %s: %s.";
 
         try {
             createTableSink(SCHEMA, modifiedOptions);
         } catch (Throwable t) {
             assertEquals(
-                    String.format(errorMessageTemp, "'topic'", String.format("[%s]", String.join(", ", TOPIC_LIST))),
+                    String.format(
+                            errorMessageTemp,
+                            "'topic'",
+                            String.format("[%s]", String.join(", ", TOPIC_LIST))),
                     t.getCause().getMessage());
         }
 
-        modifiedOptions = getModifiedOptions(
-                getBasicSourceOptions(),
-                options -> options.put("topic-pattern", TOPIC_REGEX));
+        modifiedOptions =
+                getModifiedOptions(
+                        getBasicSourceOptions(),
+                        options -> options.put("topic-pattern", TOPIC_REGEX));
 
         try {
             createTableSink(SCHEMA, modifiedOptions);
         } catch (Throwable t) {
-            assertEquals(String.format(errorMessageTemp, "'topic-pattern'", TOPIC_REGEX), t.getCause().getMessage());
+            assertEquals(
+                    String.format(errorMessageTemp, "'topic-pattern'", TOPIC_REGEX),
+                    t.getCause().getMessage());
         }
     }
 
@@ -477,15 +513,16 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
                         SCHEMA.getWatermarkSpecs(),
                         UniqueConstraint.primaryKey(NAME, Collections.singletonList(NAME)));
 
-        Map<String, String> options1 = getModifiedOptions(
-                getBasicSourceOptions(),
-                options ->
-                        options.put(
-                                String.format(
-                                        "%s.%s",
-                                        TestFormatFactory.IDENTIFIER,
-                                        TestFormatFactory.CHANGELOG_MODE.key()),
-                                "I;UA;UB;D"));
+        Map<String, String> options1 =
+                getModifiedOptions(
+                        getBasicSourceOptions(),
+                        options ->
+                                options.put(
+                                        String.format(
+                                                "%s.%s",
+                                                TestFormatFactory.IDENTIFIER,
+                                                TestFormatFactory.CHANGELOG_MODE.key()),
+                                        "I;UA;UB;D"));
         // pk can be defined on cdc table, should pass
         createTableSink(pkSchema, options1);
         createTableSink(pkSchema, options1);
@@ -494,9 +531,10 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
             createTableSink(pkSchema, getBasicSinkOptions());
             fail();
         } catch (Throwable t) {
-            String error = "The Pulsar table 'default.default.t1' with 'test-format' format" +
-                    " doesn't support defining PRIMARY KEY constraint on the table, because it can't" +
-                    " guarantee the semantic of primary key.";
+            String error =
+                    "The Pulsar table 'default.default.t1' with 'test-format' format"
+                            + " doesn't support defining PRIMARY KEY constraint on the table, because it can't"
+                            + " guarantee the semantic of primary key.";
             assertEquals(error, t.getCause().getMessage());
         }
 
@@ -504,9 +542,10 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
             createTableSource(pkSchema, getBasicSinkOptions());
             fail();
         } catch (Throwable t) {
-            String error = "The Pulsar table 'default.default.t1' with 'test-format' format" +
-                    " doesn't support defining PRIMARY KEY constraint on the table, because it can't" +
-                    " guarantee the semantic of primary key.";
+            String error =
+                    "The Pulsar table 'default.default.t1' with 'test-format' format"
+                            + " doesn't support defining PRIMARY KEY constraint on the table, because it can't"
+                            + " guarantee the semantic of primary key.";
             assertEquals(error, t.getCause().getMessage());
         }
     }
@@ -580,8 +619,7 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
      * @param optionModifier Consumer to modify the options
      */
     private static Map<String, String> getModifiedOptions(
-            Map<String, String> options,
-            Consumer<Map<String, String>> optionModifier) {
+            Map<String, String> options, Consumer<Map<String, String>> optionModifier) {
         optionModifier.accept(options);
         return options;
     }
@@ -600,10 +638,13 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
         tableOptions.put("partition.discovery.interval-millis", DISCOVERY_INTERVAL);
         // Format options.
         tableOptions.put("format", TestFormatFactory.IDENTIFIER);
-        final String formatDelimiterKey = String.format("%s.%s",
-                TestFormatFactory.IDENTIFIER, TestFormatFactory.DELIMITER.key());
-        final String failOnMissingKey = String.format("%s.%s",
-                TestFormatFactory.IDENTIFIER, TestFormatFactory.FAIL_ON_MISSING.key());
+        final String formatDelimiterKey =
+                String.format(
+                        "%s.%s", TestFormatFactory.IDENTIFIER, TestFormatFactory.DELIMITER.key());
+        final String failOnMissingKey =
+                String.format(
+                        "%s.%s",
+                        TestFormatFactory.IDENTIFIER, TestFormatFactory.FAIL_ON_MISSING.key());
         tableOptions.put(formatDelimiterKey, ",");
         tableOptions.put(failOnMissingKey, "true");
         return tableOptions;
@@ -618,13 +659,15 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
         tableOptions.put("service-url", SERVICE_URL);
         tableOptions.put("admin-url", ADMIN_URL);
         tableOptions.put("sink.semantic", PulsarTableOptions.SINK_SEMANTIC_VALUE_AT_LEAST_ONCE);
-        tableOptions.put("sink.message-router", PulsarTableOptions.SINK_MESSAGE_ROUTER_VALUE_KEY_HASH);
+        tableOptions.put(
+                "sink.message-router", PulsarTableOptions.SINK_MESSAGE_ROUTER_VALUE_KEY_HASH);
         tableOptions.put("properties.pulsar.reader.readername", "testReaderName");
 
         // Format options.
         tableOptions.put("format", TestFormatFactory.IDENTIFIER);
-        final String formatDelimiterKey = String.format("%s.%s",
-                TestFormatFactory.IDENTIFIER, TestFormatFactory.DELIMITER.key());
+        final String formatDelimiterKey =
+                String.format(
+                        "%s.%s", TestFormatFactory.IDENTIFIER, TestFormatFactory.DELIMITER.key());
         tableOptions.put(formatDelimiterKey, ",");
         return tableOptions;
     }
@@ -643,20 +686,24 @@ public class PulsarDynamicTableFactoryTest extends TestLogger {
         // Format options.
         tableOptions.put("key.format", TestFormatFactory.IDENTIFIER);
         tableOptions.put(
-                String.format("key.%s.%s", TestFormatFactory.IDENTIFIER, TestFormatFactory.DELIMITER.key()),
+                String.format(
+                        "key.%s.%s",
+                        TestFormatFactory.IDENTIFIER, TestFormatFactory.DELIMITER.key()),
                 "#");
         tableOptions.put("key.fields", NAME);
         tableOptions.put("value.format", TestFormatFactory.IDENTIFIER);
         tableOptions.put(
-                String.format("value.%s.%s", TestFormatFactory.IDENTIFIER, TestFormatFactory.DELIMITER.key()),
+                String.format(
+                        "value.%s.%s",
+                        TestFormatFactory.IDENTIFIER, TestFormatFactory.DELIMITER.key()),
                 "|");
-        tableOptions.put("value.fields-include", PulsarTableOptions.ValueFieldsStrategy.EXCEPT_KEY.toString());
+        tableOptions.put(
+                "value.fields-include",
+                PulsarTableOptions.ValueFieldsStrategy.EXCEPT_KEY.toString());
         return tableOptions;
     }
 
-    /**
-     * MockMessageRouter that always return partition 0 for test.
-     */
+    /** MockMessageRouter that always return partition 0 for test. */
     public static class MockMessageRouter implements MessageRouter {
         @Override
         public int choosePartition(Message<?> msg, TopicMetadata metadata) {

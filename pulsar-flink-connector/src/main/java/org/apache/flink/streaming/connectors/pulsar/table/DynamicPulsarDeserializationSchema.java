@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -16,9 +20,9 @@ package org.apache.flink.streaming.connectors.pulsar.table;
 
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.streaming.util.serialization.FlinkSchema;
-import org.apache.flink.streaming.util.serialization.PulsarDeserializationSchema;
-import org.apache.flink.streaming.util.serialization.ThreadSafeDeserializationSchema;
+import org.apache.flink.streaming.connectors.pulsar.serialization.FlinkSchema;
+import org.apache.flink.streaming.connectors.pulsar.serialization.PulsarDeserializationSchema;
+import org.apache.flink.streaming.connectors.pulsar.serialization.ThreadSafeDeserializationSchema;
 import org.apache.flink.table.data.GenericRowData;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.types.DeserializationException;
@@ -36,15 +40,12 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * A specific {@link PulsarDeserializationSchema} for {@link PulsarDynamicTableSource}.
- */
+/** A specific {@link PulsarDeserializationSchema} for {@link PulsarDynamicTableSource}. */
 class DynamicPulsarDeserializationSchema implements PulsarDeserializationSchema<RowData> {
 
     private static final long serialVersionUID = 1L;
 
-    @Nullable
-    private final DeserializationSchema<RowData> keyDeserialization;
+    @Nullable private final DeserializationSchema<RowData> keyDeserialization;
 
     private final DeserializationSchema<RowData> valueDeserialization;
 
@@ -82,12 +83,13 @@ class DynamicPulsarDeserializationSchema implements PulsarDeserializationSchema<
         this.keyDeserialization = ThreadSafeDeserializationSchema.of(keyDeserialization);
         this.valueDeserialization = ThreadSafeDeserializationSchema.of(valueDeserialization);
         this.hasMetadata = hasMetadata;
-        this.outputCollector = new OutputProjectionCollector(
-                physicalArity,
-                keyProjection,
-                valueProjection,
-                metadataConverters,
-                upsertMode);
+        this.outputCollector =
+                new OutputProjectionCollector(
+                        physicalArity,
+                        keyProjection,
+                        valueProjection,
+                        metadataConverters,
+                        upsertMode);
         this.producedTypeInfo = producedTypeInfo;
         this.upsertMode = upsertMode;
     }
@@ -113,7 +115,8 @@ class DynamicPulsarDeserializationSchema implements PulsarDeserializationSchema<
     }
 
     @Override
-    public void deserialize(Message<RowData> message, Collector<RowData> collector) throws IOException {
+    public void deserialize(Message<RowData> message, Collector<RowData> collector)
+            throws IOException {
         // shortcut in case no output projection is required,
         // also not for a cartesian product with the keys
         if (keyDeserialization == null && !hasMetadata) {
@@ -185,7 +188,7 @@ class DynamicPulsarDeserializationSchema implements PulsarDeserializationSchema<
 
         @Override
         public void close() {
-
+            // Nothing to do.
         }
 
         private T getRecord() {
@@ -209,15 +212,17 @@ class DynamicPulsarDeserializationSchema implements PulsarDeserializationSchema<
      * Emits a row with key, value, and metadata fields.
      *
      * <p>The collector is able to handle the following kinds of keys:
+     *
      * <ul>
-     *     <li>No key is used.
-     *     <li>A key is used.
-     *     <li>The deserialization schema emits multiple keys.
-     *     <li>Keys and values have overlapping fields.
-     *     <li>Keys are used and value is null.
+     *   <li>No key is used.
+     *   <li>A key is used.
+     *   <li>The deserialization schema emits multiple keys.
+     *   <li>Keys and values have overlapping fields.
+     *   <li>Keys are used and value is null.
      * </ul>
      */
-    private static final class OutputProjectionCollector implements Collector<RowData>, Serializable {
+    private static final class OutputProjectionCollector
+            implements Collector<RowData>, Serializable {
 
         private static final long serialVersionUID = 1L;
 
@@ -269,7 +274,9 @@ class DynamicPulsarDeserializationSchema implements PulsarDeserializationSchema<
             // nothing to do
         }
 
-        private void emitRow(@Nullable GenericRowData physicalKeyRow, @Nullable GenericRowData physicalValueRow) {
+        private void emitRow(
+                @Nullable GenericRowData physicalKeyRow,
+                @Nullable GenericRowData physicalValueRow) {
             final RowKind rowKind;
             if (physicalValueRow == null) {
                 if (upsertMode) {
@@ -283,13 +290,13 @@ class DynamicPulsarDeserializationSchema implements PulsarDeserializationSchema<
             }
 
             final int metadataArity = metadataConverters.length;
-            final GenericRowData producedRow = new GenericRowData(
-                    rowKind,
-                    physicalArity + metadataArity);
+            final GenericRowData producedRow =
+                    new GenericRowData(rowKind, physicalArity + metadataArity);
 
             if (physicalValueRow != null) {
                 for (int valuePos = 0; valuePos < valueProjection.length; valuePos++) {
-                    producedRow.setField(valueProjection[valuePos], physicalValueRow.getField(valuePos));
+                    producedRow.setField(
+                            valueProjection[valuePos], physicalValueRow.getField(valuePos));
                 }
             }
 
@@ -299,7 +306,9 @@ class DynamicPulsarDeserializationSchema implements PulsarDeserializationSchema<
             }
 
             for (int metadataPos = 0; metadataPos < metadataArity; metadataPos++) {
-                producedRow.setField(physicalArity + metadataPos, metadataConverters[metadataPos].read(inputMessage));
+                producedRow.setField(
+                        physicalArity + metadataPos,
+                        metadataConverters[metadataPos].read(inputMessage));
             }
 
             outputCollector.collect(producedRow);

@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -29,9 +33,7 @@ import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
-/**
- * Various options for decoding a JSON record.
- */
+/** Various options for decoding a JSON record. */
 @Getter
 public class JSONOptions implements Serializable {
     private static final long serialVersionUID = -7011153183551222235L;
@@ -73,10 +75,8 @@ public class JSONOptions implements Serializable {
 
         this.primitivesAsString =
                 Boolean.valueOf(parameters.getOrDefault("primitivesAsString", "false"));
-        this.prefersDecimal =
-                Boolean.valueOf(parameters.getOrDefault("prefersDecimal", "false"));
-        this.allowComments =
-                Boolean.valueOf(parameters.getOrDefault("allowComments", "false"));
+        this.prefersDecimal = Boolean.valueOf(parameters.getOrDefault("prefersDecimal", "false"));
+        this.allowComments = Boolean.valueOf(parameters.getOrDefault("allowComments", "false"));
         this.allowUnquotedFieldNames =
                 Boolean.valueOf(parameters.getOrDefault("allowUnquotedFieldNames", "false"));
         this.allowSingleQuotes =
@@ -86,20 +86,21 @@ public class JSONOptions implements Serializable {
         this.allowNonNumericNumbers =
                 Boolean.valueOf(parameters.getOrDefault("allowNonNumericNumbers", "false"));
         this.allowBackslashEscapingAnyCharacter =
-                Boolean.valueOf(parameters.getOrDefault("allowBackslashEscapingAnyCharacter", "false"));
+                Boolean.valueOf(
+                        parameters.getOrDefault("allowBackslashEscapingAnyCharacter", "false"));
         this.allowUnquotedControlChars =
                 Boolean.valueOf(parameters.getOrDefault("allowUnquotedControlChars", "false"));
         this.columnNameOfCorruptRecord =
-                parameters.getOrDefault("columnNameOfCorruptRecord", defaultColumnNameOfCorruptRecord);
+                parameters.getOrDefault(
+                        "columnNameOfCorruptRecord", defaultColumnNameOfCorruptRecord);
         this.dropFieldIfAllNull =
                 Boolean.valueOf(parameters.getOrDefault("dropFieldIfAllNull", "false"));
-        this.parseMode =
-                ParseMode.get(parameters.getOrDefault("mode", "PERMISSIVE"));
-        this.multiLine =
-                Boolean.valueOf(parameters.getOrDefault("multiLine", "false"));
+        this.parseMode = ParseMode.get(parameters.getOrDefault("mode", "PERMISSIVE"));
+        this.multiLine = Boolean.valueOf(parameters.getOrDefault("multiLine", "false"));
 
         if (parameters.containsKey("encoding") || parameters.containsKey("charset")) {
-            String enc = parameters.getOrDefault("encoding", parameters.getOrDefault("charset", null));
+            String enc =
+                    parameters.getOrDefault("encoding", parameters.getOrDefault("charset", null));
             if (enc != null) {
                 this.encoding = checkEncoding(enc);
             } else {
@@ -114,9 +115,10 @@ public class JSONOptions implements Serializable {
             Preconditions.checkArgument(!lineSep.isEmpty());
             this.lineSeparator = lineSep;
             try {
-                this.lineSeparatorInRead = encoding == null ? lineSep.getBytes("UTF-8") : lineSep.getBytes(encoding);
+                this.lineSeparatorInRead =
+                        encoding == null ? lineSep.getBytes("UTF-8") : lineSep.getBytes(encoding);
             } catch (UnsupportedEncodingException e) {
-                throw new RuntimeException(e);
+                throw new IllegalStateException(e);
             }
             this.lineSeparatorInWrite = lineSep;
         } else {
@@ -130,10 +132,14 @@ public class JSONOptions implements Serializable {
 
         this.timeZone = getTimeZone(parameters.getOrDefault("timezone", defaultTimeZoneId));
 
-        this.dateFormat = FastDateFormat.getInstance(parameters.getOrDefault("dateFormat", "yyyy-MM-dd"), Locale.US);
-        this.timestampFormat = FastDateFormat.getInstance(
-                parameters.getOrDefault("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSS"), timeZone, Locale.US);
-
+        this.dateFormat =
+                FastDateFormat.getInstance(
+                        parameters.getOrDefault("dateFormat", "yyyy-MM-dd"), Locale.US);
+        this.timestampFormat =
+                FastDateFormat.getInstance(
+                        parameters.getOrDefault("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSS"),
+                        timeZone,
+                        Locale.US);
     }
 
     protected String checkEncoding(String enc) {
@@ -151,7 +157,10 @@ public class JSONOptions implements Serializable {
         factory.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, allowSingleQuotes);
         factory.configure(JsonParser.Feature.ALLOW_NUMERIC_LEADING_ZEROS, allowNumericLeadingZeros);
         factory.configure(JsonParser.Feature.ALLOW_NON_NUMERIC_NUMBERS, allowNonNumericNumbers);
-        factory.configure(JsonParser.Feature.ALLOW_BACKSLASH_ESCAPING_ANY_CHARACTER, allowBackslashEscapingAnyCharacter);
-        factory.configure(JsonParser.Feature.ALLOW_UNQUOTED_CONTROL_CHARS, allowUnquotedControlChars);
+        factory.configure(
+                JsonParser.Feature.ALLOW_BACKSLASH_ESCAPING_ANY_CHARACTER,
+                allowBackslashEscapingAnyCharacter);
+        factory.configure(
+                JsonParser.Feature.ALLOW_UNQUOTED_CONTROL_CHARS, allowUnquotedControlChars);
     }
 }

@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -20,7 +24,6 @@ import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.common.naming.TopicName;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -30,19 +33,33 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+/** Unit test of PulsarMetadataReader. */
 public class PulsarMetadataReaderTest extends PulsarTestBase {
 
     private PulsarMetadataReader pulsarMetadataReader;
 
-    private String nonPersistTopic = TopicName.get("non-persistent", "public", "default", "NON-PERSIST-TOPIC").toString();
+    private String nonPersistTopic =
+            TopicName.get("non-persistent", "public", "default", "NON-PERSIST-TOPIC").toString();
     private String nonPartitionTopic = TopicName.get("NON-P-TOPIC").toString();
     private String onePartitionTopic = TopicName.get("ONE-P-TOPIC").toString();
 
     @Before
     public void init() throws PulsarClientException {
         Map<String, String> caseInsensitiveParams = new HashMap<>();
-        caseInsensitiveParams.put(PulsarOptions.TOPIC_MULTI_OPTION_KEY, nonPartitionTopic + "," + onePartitionTopic);
-        pulsarMetadataReader = new PulsarMetadataReader(adminUrl, clientConfigurationData, "subscribeName", caseInsensitiveParams, 0, 0);
+        caseInsensitiveParams.put(
+                PulsarOptions.TOPIC_MULTI_OPTION_KEY, nonPartitionTopic + "," + onePartitionTopic);
+        pulsarMetadataReader =
+                new PulsarMetadataReader(
+                        adminUrl,
+                        clientConfigurationData,
+                        "subscribeName",
+                        caseInsensitiveParams,
+                        0,
+                        0);
     }
 
     @Test
@@ -54,27 +71,29 @@ public class PulsarMetadataReaderTest extends PulsarTestBase {
         List<TopicRange> topicRanges = topicPartitionsAll.stream().collect(Collectors.toList());
         for (TopicRange topicRange : topicRanges) {
             if (topicRange.getTopic().contains(nonPartitionTopic)) {
-                Assert.assertEquals(topicRange.getTopic(), nonPartitionTopic);
+                assertEquals(topicRange.getTopic(), nonPartitionTopic);
             } else {
-                Assert.assertEquals(topicRange.getTopic(), onePartitionTopic + PulsarOptions.PARTITION_SUFFIX + 0);
+                assertEquals(
+                        topicRange.getTopic(),
+                        onePartitionTopic + PulsarOptions.PARTITION_SUFFIX + 0);
             }
         }
 
-        Assert.assertFalse(pulsarMetadataReader.topicExists(nonPartitionTopic));
-        Assert.assertTrue(pulsarMetadataReader.topicExists(onePartitionTopic));
+        assertFalse(pulsarMetadataReader.topicExists(nonPartitionTopic));
+        assertTrue(pulsarMetadataReader.topicExists(onePartitionTopic));
     }
 
     @Test
     public void topicExists() throws PulsarAdminException {
-        Assert.assertFalse(pulsarMetadataReader.topicExists(nonPartitionTopic));
+        assertFalse(pulsarMetadataReader.topicExists(nonPartitionTopic));
 
         // non-partitioned topic it doesn't exist
         createNonPartitionTopic(nonPartitionTopic);
-        Assert.assertFalse(pulsarMetadataReader.topicExists(nonPartitionTopic));
+        assertFalse(pulsarMetadataReader.topicExists(nonPartitionTopic));
 
         // non-persist topic it exit
         getPulsarAdmin().topics().createPartitionedTopic(nonPersistTopic, 1);
-        Assert.assertTrue(pulsarMetadataReader.topicExists(nonPersistTopic));
+        assertTrue(pulsarMetadataReader.topicExists(nonPersistTopic));
     }
 
     @After

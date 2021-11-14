@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -18,25 +22,22 @@ import org.apache.flink.api.common.eventtime.Watermark;
 import org.apache.flink.api.common.eventtime.WatermarkOutput;
 import org.apache.flink.streaming.api.functions.source.SourceFunction.SourceContext;
 
-/**
- * A {@link WatermarkOutput} that forwards calls to a {@link
- * SourceContext}.
- */
+/** A {@link WatermarkOutput} that forwards calls to a {@link SourceContext}. */
 public class SourceContextWatermarkOutputAdapter<T> implements WatermarkOutput {
-	private final SourceContext<T> sourceContext;
+    private final SourceContext<T> sourceContext;
 
-	public SourceContextWatermarkOutputAdapter(SourceContext<T> sourceContext) {
-		this.sourceContext = sourceContext;
-	}
+    public SourceContextWatermarkOutputAdapter(SourceContext<T> sourceContext) {
+        this.sourceContext = sourceContext;
+    }
 
-	@Override
-	public void emitWatermark(Watermark watermark) {
-		sourceContext.emitWatermark(
-				new org.apache.flink.streaming.api.watermark.Watermark(watermark.getTimestamp()));
-	}
+    @Override
+    public void emitWatermark(Watermark watermark) {
+        sourceContext.emitWatermark(
+                new org.apache.flink.streaming.api.watermark.Watermark(watermark.getTimestamp()));
+    }
 
-	@Override
-	public void markIdle() {
-		sourceContext.markAsTemporarilyIdle();
-	}
+    @Override
+    public void markIdle() {
+        sourceContext.markAsTemporarilyIdle();
+    }
 }

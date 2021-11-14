@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -48,17 +52,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static org.apache.pulsar.shade.org.apache.avro.Schema.Type.ARRAY;
-import static org.apache.pulsar.shade.org.apache.avro.Schema.Type.BYTES;
-import static org.apache.pulsar.shade.org.apache.avro.Schema.Type.ENUM;
-import static org.apache.pulsar.shade.org.apache.avro.Schema.Type.FIXED;
-import static org.apache.pulsar.shade.org.apache.avro.Schema.Type.MAP;
-import static org.apache.pulsar.shade.org.apache.avro.Schema.Type.RECORD;
-import static org.apache.pulsar.shade.org.apache.avro.Schema.Type.STRING;
-
-/**
- * Serializer that converts Flink row to Pulsar message payload.
- */
+/** Serializer that converts Flink row to Pulsar message payload. */
 @Slf4j
 public class PulsarSerializer {
 
@@ -85,26 +79,27 @@ public class PulsarSerializer {
                 FieldsDataType st = (FieldsDataType) flinkType;
                 baseConverter = newStructConverter(st, actualAvroType);
             } else {
-                BiFunction<PositionedGetter, Integer, Object> converter = singleValueConverter(flinkType, actualAvroType);
-                baseConverter =
-                        data -> converter.apply(new PositionedGetter((Row) data), 0);
+                BiFunction<PositionedGetter, Integer, Object> converter =
+                        singleValueConverter(flinkType, actualAvroType);
+                baseConverter = data -> converter.apply(new PositionedGetter((Row) data), 0);
             }
 
             if (nullable) {
-                this.converter = data -> {
-                    if (data == null) {
-                        return null;
-                    } else {
-                        return baseConverter.apply(data);
-                    }
-                };
+                this.converter =
+                        data -> {
+                            if (data == null) {
+                                return null;
+                            } else {
+                                return baseConverter.apply(data);
+                            }
+                        };
             } else {
                 this.converter = baseConverter;
             }
 
         } catch (IncompatibleSchemaException e) {
             log.error("Failed to create serializer while converting flink type to avro type");
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
     }
 
@@ -112,42 +107,49 @@ public class PulsarSerializer {
         return converter.apply(flinkData);
     }
 
-    private BiFunction<PositionedGetter, Integer, Object> singleValueConverter(DataType dataType, Schema avroType) throws IncompatibleSchemaException {
+    private BiFunction<PositionedGetter, Integer, Object> singleValueConverter(
+            DataType dataType, Schema avroType) throws IncompatibleSchemaException {
         LogicalTypeRoot tpe = dataType.getLogicalType().getTypeRoot();
         Schema.Type atpe = avroType.getType();
         if (tpe == LogicalTypeRoot.NULL && atpe == Schema.Type.NULL) {
             return (getter, ordinal) -> null;
-        } else if ((tpe == LogicalTypeRoot.BOOLEAN && atpe == Schema.Type.BOOLEAN) ||
-                (tpe == LogicalTypeRoot.TINYINT && atpe == Schema.Type.INT) ||
-                (tpe == LogicalTypeRoot.SMALLINT && atpe == Schema.Type.INT) ||
-                (tpe == LogicalTypeRoot.INTEGER && atpe == Schema.Type.INT) ||
-                (tpe == LogicalTypeRoot.BIGINT && atpe == Schema.Type.LONG) ||
-                (tpe == LogicalTypeRoot.FLOAT && atpe == Schema.Type.FLOAT) ||
-                (tpe == LogicalTypeRoot.DOUBLE && atpe == Schema.Type.DOUBLE) ||
-                (tpe == LogicalTypeRoot.VARCHAR && atpe == Schema.Type.STRING) ||
-                (tpe == LogicalTypeRoot.VARBINARY && atpe == Schema.Type.BYTES)) {
+        } else if ((tpe == LogicalTypeRoot.BOOLEAN && atpe == Schema.Type.BOOLEAN)
+                || (tpe == LogicalTypeRoot.TINYINT && atpe == Schema.Type.INT)
+                || (tpe == LogicalTypeRoot.SMALLINT && atpe == Schema.Type.INT)
+                || (tpe == LogicalTypeRoot.INTEGER && atpe == Schema.Type.INT)
+                || (tpe == LogicalTypeRoot.BIGINT && atpe == Schema.Type.LONG)
+                || (tpe == LogicalTypeRoot.FLOAT && atpe == Schema.Type.FLOAT)
+                || (tpe == LogicalTypeRoot.DOUBLE && atpe == Schema.Type.DOUBLE)
+                || (tpe == LogicalTypeRoot.VARCHAR && atpe == Schema.Type.STRING)
+                || (tpe == LogicalTypeRoot.VARBINARY && atpe == Schema.Type.BYTES)) {
             return (getter, ordinal) -> getter.getField(ordinal);
         } else if ((tpe == LogicalTypeRoot.DATE && atpe == Schema.Type.INT)) {
             return (getter, ordinal) -> (LocalDate) getter.getField(ordinal);
         } else if (tpe == LogicalTypeRoot.TIMESTAMP_WITHOUT_TIME_ZONE && atpe == Schema.Type.LONG) {
             LogicalType altpe = avroType.getLogicalType();
-            if (altpe instanceof LogicalTypes.TimestampMillis || altpe instanceof LogicalTypes.TimestampMicros) {
+            if (altpe instanceof LogicalTypes.TimestampMillis
+                    || altpe instanceof LogicalTypes.TimestampMicros) {
                 return (getter, ordinal) -> (LocalDateTime) getter.getField(ordinal);
             } else {
                 throw new IncompatibleSchemaException(
                         "Cannot convert flink timestamp to avro logical type " + altpe.toString());
             }
         } else {
-            throw new IncompatibleSchemaException(String.format(
-                    "Cannot convert flink type %s to avro type %s", dataType.toString(), avroType.toString(true)));
+            throw new IncompatibleSchemaException(
+                    String.format(
+                            "Cannot convert flink type %s to avro type %s",
+                            dataType.toString(), avroType.toString(true)));
         }
     }
 
-    private Function<Object, Object> newStructConverter(FieldsDataType dataType, Schema avroStruct) throws IncompatibleSchemaException {
-        if (avroStruct.getType() != RECORD ||
-                avroStruct.getFields().size() != dataType.getChildren().size()) {
+    private Function<Object, Object> newStructConverter(FieldsDataType dataType, Schema avroStruct)
+            throws IncompatibleSchemaException {
+        if (avroStruct.getType() != Schema.Type.RECORD
+                || avroStruct.getFields().size() != dataType.getChildren().size()) {
             throw new IncompatibleSchemaException(
-                    String.format("Cannot convert Flink type %s to Avro type %s.", dataType.toString(), avroStruct.toString(true)));
+                    String.format(
+                            "Cannot convert Flink type %s to Avro type %s.",
+                            dataType.toString(), avroStruct.toString(true)));
         }
 
         RowType rowType = (RowType) dataType.getLogicalType();
@@ -159,7 +161,10 @@ public class PulsarSerializer {
             org.apache.flink.table.types.logical.LogicalType logicalType = rowType.getTypeAt(i);
             DataType dt = TypeConversions.fromLogicalToDataType(logicalType);
             Schema.Field at = avroStruct.getFields().get(i);
-            fieldConverters.add(newConverter(dt, resolveNullableType(at.schema(), dt.getLogicalType().isNullable())));
+            fieldConverters.add(
+                    newConverter(
+                            dt,
+                            resolveNullableType(at.schema(), dt.getLogicalType().isNullable())));
         }
         int numFields = dataType.getChildren().size();
 
@@ -172,29 +177,32 @@ public class PulsarSerializer {
                 if (rowX.getField(i) == null) {
                     builder.set(pSchema.getFields().get(i), null);
                 } else {
-                    builder.set(pSchema.getFields().get(i), fieldConverters.get(i).apply(new PositionedGetter(rowX), i));
+                    builder.set(
+                            pSchema.getFields().get(i),
+                            fieldConverters.get(i).apply(new PositionedGetter(rowX), i));
                 }
             }
             return (GenericAvroRecord) builder.build();
         };
-
     }
 
-    private BiFunction<PositionedGetter, Integer, Object> newConverter(DataType dataType, Schema avroType) throws IncompatibleSchemaException {
+    private BiFunction<PositionedGetter, Integer, Object> newConverter(
+            DataType dataType, Schema avroType) throws IncompatibleSchemaException {
         LogicalTypeRoot tpe = dataType.getLogicalType().getTypeRoot();
         Schema.Type atpe = avroType.getType();
         if (tpe == LogicalTypeRoot.NULL && atpe == Schema.Type.NULL) {
             return (getter, ordinal) -> null;
-        } else if ((tpe == LogicalTypeRoot.BOOLEAN && atpe == Schema.Type.BOOLEAN) ||
-                (tpe == LogicalTypeRoot.TINYINT && atpe == Schema.Type.INT) ||
-                (tpe == LogicalTypeRoot.SMALLINT && atpe == Schema.Type.INT) ||
-                (tpe == LogicalTypeRoot.INTEGER && atpe == Schema.Type.INT) ||
-                (tpe == LogicalTypeRoot.BIGINT && atpe == Schema.Type.LONG) ||
-                (tpe == LogicalTypeRoot.FLOAT && atpe == Schema.Type.FLOAT) ||
-                (tpe == LogicalTypeRoot.DOUBLE && atpe == Schema.Type.DOUBLE) ||
-                (tpe == LogicalTypeRoot.VARBINARY && atpe == BYTES)) {
+        } else if ((tpe == LogicalTypeRoot.BOOLEAN && atpe == Schema.Type.BOOLEAN)
+                || (tpe == LogicalTypeRoot.TINYINT && atpe == Schema.Type.INT)
+                || (tpe == LogicalTypeRoot.SMALLINT && atpe == Schema.Type.INT)
+                || (tpe == LogicalTypeRoot.INTEGER && atpe == Schema.Type.INT)
+                || (tpe == LogicalTypeRoot.BIGINT && atpe == Schema.Type.LONG)
+                || (tpe == LogicalTypeRoot.FLOAT && atpe == Schema.Type.FLOAT)
+                || (tpe == LogicalTypeRoot.DOUBLE && atpe == Schema.Type.DOUBLE)
+                || (tpe == LogicalTypeRoot.VARBINARY && atpe == Schema.Type.BYTES)) {
             return (getter, ordinal) -> getter.getField(ordinal);
-        } else if (tpe == LogicalTypeRoot.DECIMAL && (atpe == FIXED || atpe == BYTES)) {
+        } else if (tpe == LogicalTypeRoot.DECIMAL
+                && (atpe == Schema.Type.FIXED || atpe == Schema.Type.BYTES)) {
             DecimalType d = (DecimalType) dataType.getLogicalType();
             if (avroType.getLogicalType() == LogicalTypes.decimal(d.getPrecision(), d.getScale())) {
                 return (getter, ordinal) -> {
@@ -208,35 +216,44 @@ public class PulsarSerializer {
                 throw new IncompatibleSchemaException(
                         "Cannot convert flink decimal type to Avro logical type");
             }
-        } else if (tpe == LogicalTypeRoot.BIGINT && atpe == BYTES) {
+        } else if (tpe == LogicalTypeRoot.BIGINT && atpe == Schema.Type.BYTES) {
             return (getter, ordinal) -> ByteBuffer.wrap((byte[]) getter.getField(ordinal));
         } else if (tpe == LogicalTypeRoot.DATE && atpe == Schema.Type.INT) {
-            return (getter, ordinal) -> ((java.time.LocalDate) getter.getField(ordinal)).toEpochDay();
+            return (getter, ordinal) -> ((LocalDate) getter.getField(ordinal)).toEpochDay();
         } else if (tpe == LogicalTypeRoot.TIMESTAMP_WITH_TIME_ZONE && atpe == Schema.Type.LONG) {
             LogicalType altpe = avroType.getLogicalType();
             if (altpe instanceof LogicalTypes.TimestampMillis) {
-                return (getter, ordinal) -> DateTimeUtils.fromJavaTimestamp(java.sql.Timestamp.valueOf(
-                        (LocalDateTime) getter.getField(ordinal))) / 1000;
+                return (getter, ordinal) ->
+                        DateTimeUtils.fromJavaTimestamp(
+                                        java.sql.Timestamp.valueOf(
+                                                (LocalDateTime) getter.getField(ordinal)))
+                                / 1000;
             } else if (altpe instanceof LogicalTypes.TimestampMicros) {
-                return (getter, ordinal) -> DateTimeUtils.fromJavaTimestamp(java.sql.Timestamp.valueOf(
-                        (LocalDateTime) getter.getField(ordinal)));
+                return (getter, ordinal) ->
+                        DateTimeUtils.fromJavaTimestamp(
+                                java.sql.Timestamp.valueOf(
+                                        (LocalDateTime) getter.getField(ordinal)));
             } else {
                 throw new IncompatibleSchemaException(
                         "Cannot convert flink timestamp to avro logical type " + altpe.toString());
             }
-        } else if (tpe == LogicalTypeRoot.VARCHAR && atpe == STRING) {
+        } else if (tpe == LogicalTypeRoot.VARCHAR && atpe == Schema.Type.STRING) {
             return (getter, ordinal) -> new Utf8((String) getter.getField(ordinal));
-        } else if (tpe == LogicalTypeRoot.VARCHAR && atpe == ENUM) {
+        } else if (tpe == LogicalTypeRoot.VARCHAR && atpe == Schema.Type.ENUM) {
             HashSet<String> enumSymbols = new HashSet<>(avroType.getEnumSymbols());
             return (getter, ordinal) -> {
                 String data = (String) getter.getField(ordinal);
                 if (!enumSymbols.contains(data)) {
-                    throw new RuntimeException(String.format(
-                            "Cannot write %s since it's not defined in enum %s", data, String.join(", ", enumSymbols)));
+                    throw new IllegalArgumentException(
+                            String.format(
+                                    "Cannot write %s since it's not defined in enum %s",
+                                    data, String.join(", ", enumSymbols)));
                 }
                 return new GenericData.EnumSymbol(avroType, data);
             };
-        } else if (tpe == LogicalTypeRoot.ARRAY && atpe == ARRAY && dataType instanceof CollectionDataType) {
+        } else if (tpe == LogicalTypeRoot.ARRAY
+                && atpe == Schema.Type.ARRAY
+                && dataType instanceof CollectionDataType) {
             DataType et = ((CollectionDataType) dataType).getElementDataType();
             boolean containsNull = et.getLogicalType().isNullable();
             BiFunction<PositionedGetter, Integer, Object> elementConverter =
@@ -256,30 +273,39 @@ public class PulsarSerializer {
                 // `ArrayList` backed by the specified array without data copying.
                 return Arrays.asList(result);
             };
-        } else if (tpe == LogicalTypeRoot.MAP && atpe == MAP &&
-                ((KeyValueDataType) dataType).getKeyDataType().getLogicalType().getTypeRoot() == LogicalTypeRoot.VARCHAR) {
+        } else if (tpe == LogicalTypeRoot.MAP
+                && atpe == Schema.Type.MAP
+                && ((KeyValueDataType) dataType).getKeyDataType().getLogicalType().getTypeRoot()
+                        == LogicalTypeRoot.VARCHAR) {
             return (getter, ordinal) -> getter.getField(ordinal);
-        } else if (tpe == LogicalTypeRoot.ROW && atpe == RECORD) {
+        } else if (tpe == LogicalTypeRoot.ROW && atpe == Schema.Type.RECORD) {
             FieldsDataType st = (FieldsDataType) dataType;
             Function<Object, Object> structConverter = newStructConverter(st, avroType);
-            return (getter, ordinal) -> ((GenericAvroRecord) structConverter.apply(getter.getField(ordinal))).getAvroRecord();
+            return (getter, ordinal) ->
+                    ((GenericAvroRecord) structConverter.apply(getter.getField(ordinal)))
+                            .getAvroRecord();
         } else {
-            throw new IncompatibleSchemaException(String.format(
-                    "Cannot convert flink type %s to avro type %s", dataType.toString(), avroType.toString(true)));
+            throw new IncompatibleSchemaException(
+                    String.format(
+                            "Cannot convert flink type %s to avro type %s",
+                            dataType.toString(), avroType.toString(true)));
         }
     }
 
     private List<Field> getFields(Schema aschema) {
         return aschema.getFields().stream()
-                .map(f -> new Field(f.name(), f.pos())).collect(Collectors.toList());
+                .map(f -> new Field(f.name(), f.pos()))
+                .collect(Collectors.toList());
     }
 
     private Schema resolveNullableType(Schema avroType, boolean nullable) {
         if (nullable && avroType.getType() != Schema.Type.NULL) {
             List<Schema> fields = avroType.getTypes();
             assert fields.size() == 2;
-            List<Schema> actualType = fields.stream()
-                    .filter(f -> f.getType() != Schema.Type.NULL).collect(Collectors.toList());
+            List<Schema> actualType =
+                    fields.stream()
+                            .filter(f -> f.getType() != Schema.Type.NULL)
+                            .collect(Collectors.toList());
             assert actualType.size() == 1;
             return actualType.get(0);
         } else {
@@ -287,9 +313,7 @@ public class PulsarSerializer {
         }
     }
 
-    /**
-     * Get element from specific position.
-     */
+    /** Get element from specific position. */
     public static class PositionedGetter {
         private final Object[] array;
         private final Row row;

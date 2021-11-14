@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -18,12 +22,15 @@ import org.apache.flink.table.descriptors.DescriptorProperties;
 import org.apache.flink.table.descriptors.SchemaValidator;
 
 /**
- * Pulsar validator that allows to only specify proctime or rowtime in schema.
- * Other fields could be inferred from Pulsar schema.
+ * Pulsar validator that allows to only specify proctime or rowtime in schema. Other fields could be
+ * inferred from Pulsar schema.
  */
 public class PulsarSchemaValidator extends SchemaValidator {
 
-    public PulsarSchemaValidator(boolean isStreamEnvironment, boolean supportsSourceTimestamps, boolean supportsSourceWatermarks) {
+    public PulsarSchemaValidator(
+            boolean isStreamEnvironment,
+            boolean supportsSourceTimestamps,
+            boolean supportsSourceWatermarks) {
         super(isStreamEnvironment, supportsSourceTimestamps, supportsSourceWatermarks);
     }
 

@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -19,8 +23,6 @@ import org.apache.flink.shaded.guava18.com.google.common.collect.ComparisonChain
 
 import org.apache.pulsar.client.api.Range;
 
-import javax.validation.constraints.NotNull;
-
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -30,9 +32,7 @@ import java.util.Objects;
 import static org.apache.flink.streaming.connectors.pulsar.internal.SerializableRange.fullRangeEnd;
 import static org.apache.flink.streaming.connectors.pulsar.internal.SerializableRange.fullRangeStart;
 
-/**
- * topic key_share range.
- */
+/** topic key_share range. */
 public class TopicRange implements Externalizable, Comparable<TopicRange> {
 
     private String topic;
@@ -72,8 +72,8 @@ public class TopicRange implements Externalizable, Comparable<TopicRange> {
     }
 
     public boolean isFullRange() {
-        return range.getPulsarRange().getStart() == fullRangeStart &&
-                range.getPulsarRange().getEnd() == fullRangeEnd;
+        return range.getPulsarRange().getStart() == fullRangeStart
+                && range.getPulsarRange().getEnd() == fullRangeEnd;
     }
 
     public void setTopic(String topic) {
@@ -93,8 +93,7 @@ public class TopicRange implements Externalizable, Comparable<TopicRange> {
             return false;
         }
         TopicRange that = (TopicRange) o;
-        return topic.equals(that.topic) &&
-                range.equals(that.range);
+        return topic.equals(that.topic) && range.equals(that.range);
     }
 
     @Override
@@ -123,10 +122,7 @@ public class TopicRange implements Externalizable, Comparable<TopicRange> {
     }
 
     @Override
-    public int compareTo(@NotNull TopicRange o) {
-        return ComparisonChain.start()
-                .compare(topic, o.topic)
-                .compare(range, o.range)
-                .result();
+    public int compareTo(TopicRange o) {
+        return ComparisonChain.start().compare(topic, o.topic).compare(range, o.range).result();
     }
 }

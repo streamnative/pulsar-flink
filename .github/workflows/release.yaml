@@ -29,7 +29,8 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 1.8
-      - name: Release Maven package
+
+      - name: Release Pulsar Flink with Scala 2.11
         uses: samuelmeuli/action-maven-publish@v1
         with:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
@@ -37,6 +38,18 @@ jobs:
           nexus_username: ${{ secrets.SONATYPE_USERNAME }}
           nexus_password: ${{ secrets.SONATYPE_PASSWORD }}
           server_id: ossrh
-          maven_profiles: release
+          maven_profiles: release,scala-2.11
           maven_goals_phases: clean deploy
           maven_args: -DskipTests
+
+      - name: Release Pulsar Flink with Scala 2.12
+        uses: samuelmeuli/action-maven-publish@v1
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg_passphrase: ${{ secrets.PASSPHRASE }}
+          nexus_username: ${{ secrets.SONATYPE_USERNAME }}
+          nexus_password: ${{ secrets.SONATYPE_PASSWORD }}
+          server_id: ossrh
+          maven_profiles: release,scala-2.12
+          maven_goals_phases: clean deploy
+          maven_args: -DskipTests -Dscala-2.12

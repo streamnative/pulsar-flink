@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -20,14 +24,14 @@ import org.apache.pulsar.client.impl.MessageIdImpl;
 
 import java.io.Serializable;
 
-/**
- * support position move for MessageId.
- */
+/** support position move for MessageId. */
 public class MessageIdUtils {
 
-    private static final MessageIdOperate<MessageIdImpl> messageIdImplOperate = new MessageIdImplOperate();
+    private static final MessageIdOperate<MessageIdImpl> messageIdImplOperate =
+            new MessageIdImplOperate();
 
-    private static final MessageIdOperate<BatchMessageIdImpl> batchMessageIdImplOperate = new BatchMessageIdImplOperate();
+    private static final MessageIdOperate<BatchMessageIdImpl> batchMessageIdImplOperate =
+            new BatchMessageIdImplOperate();
 
     public static MessageId next(MessageId current) {
         return getOperate(current).next(current);
@@ -44,7 +48,8 @@ public class MessageIdUtils {
         if (current instanceof MessageIdImpl) {
             return (MessageIdOperate<T>) messageIdImplOperate;
         }
-        throw new UnsupportedOperationException("MessageId type: " + current.getClass().getCanonicalName());
+        throw new UnsupportedOperationException(
+                "MessageId type: " + current.getClass().getCanonicalName());
     }
 
     /**
@@ -58,30 +63,29 @@ public class MessageIdUtils {
         MessageId prev(T current);
     }
 
-    /**
-     * MessageIdImpl Operate.
-     */
+    /** MessageIdImpl Operate. */
     public static class MessageIdImplOperate implements MessageIdOperate<MessageIdImpl> {
 
         @Override
         public MessageId next(MessageIdImpl current) {
-            return new MessageIdImpl(current.getLedgerId(), current.getEntryId() + 1, current.getPartitionIndex());
+            return new MessageIdImpl(
+                    current.getLedgerId(), current.getEntryId() + 1, current.getPartitionIndex());
         }
 
         @Override
         public MessageId prev(MessageIdImpl current) {
-            return new MessageIdImpl(current.getLedgerId(), current.getEntryId() - 1, current.getPartitionIndex());
+            return new MessageIdImpl(
+                    current.getLedgerId(), current.getEntryId() - 1, current.getPartitionIndex());
         }
     }
 
-    /**
-     * BatchMessageIdImpl Operate.
-     */
+    /** BatchMessageIdImpl Operate. */
     public static class BatchMessageIdImplOperate implements MessageIdOperate<BatchMessageIdImpl> {
 
         @Override
         public MessageId next(BatchMessageIdImpl current) {
-            return new MessageIdImpl(current.getLedgerId(), current.getEntryId() + 1, current.getPartitionIndex());
+            return new MessageIdImpl(
+                    current.getLedgerId(), current.getEntryId() + 1, current.getPartitionIndex());
         }
 
         @Override

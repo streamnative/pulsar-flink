@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -62,10 +66,9 @@ import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOpti
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.getPulsarProperties;
 import static org.apache.flink.table.factories.FactoryUtil.FORMAT;
 
-/**
- * Upsert-Pulsar factory.
- */
-public class UpsertPulsarDynamicTableFactory implements DynamicTableSourceFactory, DynamicTableSinkFactory {
+/** Upsert-Pulsar factory. */
+public class UpsertPulsarDynamicTableFactory
+        implements DynamicTableSourceFactory, DynamicTableSinkFactory {
 
     public static final String IDENTIFIER = "upsert-pulsar";
 
@@ -100,12 +103,10 @@ public class UpsertPulsarDynamicTableFactory implements DynamicTableSourceFactor
         FactoryUtil.TableFactoryHelper helper = FactoryUtil.createTableFactoryHelper(this, context);
 
         ReadableConfig tableOptions = helper.getOptions();
-        DecodingFormat<DeserializationSchema<RowData>> keyDecodingFormat = helper.discoverDecodingFormat(
-                DeserializationFormatFactory.class,
-                KEY_FORMAT);
-        DecodingFormat<DeserializationSchema<RowData>> valueDecodingFormat = helper.discoverDecodingFormat(
-                DeserializationFormatFactory.class,
-                VALUE_FORMAT);
+        DecodingFormat<DeserializationSchema<RowData>> keyDecodingFormat =
+                helper.discoverDecodingFormat(DeserializationFormatFactory.class, KEY_FORMAT);
+        DecodingFormat<DeserializationSchema<RowData>> valueDecodingFormat =
+                helper.discoverDecodingFormat(DeserializationFormatFactory.class, VALUE_FORMAT);
 
         String adminUrl = tableOptions.get(ADMIN_URL);
         String serverUrl = tableOptions.get(SERVICE_URL);
@@ -117,7 +118,8 @@ public class UpsertPulsarDynamicTableFactory implements DynamicTableSourceFactor
         TableSchema schema = context.getCatalogTable().getSchema();
         validateTableOptions(tableOptions, keyDecodingFormat, valueDecodingFormat, schema);
 
-        Tuple2<int[], int[]> keyValueProjections = createKeyValueProjections(context.getCatalogTable());
+        Tuple2<int[], int[]> keyValueProjections =
+                createKeyValueProjections(context.getCatalogTable());
         String keyPrefix = tableOptions.getOptional(KEY_FIELDS_PREFIX).orElse(null);
         Properties properties = getPulsarProperties(context.getCatalogTable().toProperties());
 
@@ -148,26 +150,26 @@ public class UpsertPulsarDynamicTableFactory implements DynamicTableSourceFactor
 
         ReadableConfig tableOptions = helper.getOptions();
 
-        EncodingFormat<SerializationSchema<RowData>> keyEncodingFormat = helper.discoverEncodingFormat(
-                SerializationFormatFactory.class,
-                KEY_FORMAT);
-        EncodingFormat<SerializationSchema<RowData>> valueEncodingFormat = helper.discoverEncodingFormat(
-                SerializationFormatFactory.class,
-                VALUE_FORMAT);
+        EncodingFormat<SerializationSchema<RowData>> keyEncodingFormat =
+                helper.discoverEncodingFormat(SerializationFormatFactory.class, KEY_FORMAT);
+        EncodingFormat<SerializationSchema<RowData>> valueEncodingFormat =
+                helper.discoverEncodingFormat(SerializationFormatFactory.class, VALUE_FORMAT);
 
         // Validate the option data type.
         helper.validateExcept(PulsarTableOptions.PROPERTIES_PREFIX);
         TableSchema schema = context.getCatalogTable().getSchema();
         validateTableOptions(tableOptions, keyEncodingFormat, valueEncodingFormat, schema);
 
-        Tuple2<int[], int[]> keyValueProjections = createKeyValueProjections(context.getCatalogTable());
+        Tuple2<int[], int[]> keyValueProjections =
+                createKeyValueProjections(context.getCatalogTable());
         final String keyPrefix = tableOptions.getOptional(KEY_FIELDS_PREFIX).orElse(null);
         Properties properties = getPulsarProperties(context.getCatalogTable().toProperties());
         Integer parallelism = tableOptions.get(FactoryUtil.SINK_PARALLELISM);
 
         String adminUrl = tableOptions.get(ADMIN_URL);
         String serverUrl = tableOptions.get(SERVICE_URL);
-        String formatType = tableOptions.getOptional(FORMAT).orElseGet(() -> tableOptions.get(VALUE_FORMAT));
+        String formatType =
+                tableOptions.getOptional(FORMAT).orElseGet(() -> tableOptions.get(VALUE_FORMAT));
 
         return new PulsarDynamicTableSink(
                 serverUrl,
@@ -208,10 +210,7 @@ public class UpsertPulsarDynamicTableFactory implements DynamicTableSourceFactor
     // --------------------------------------------------------------------------------------------
 
     private static void validateTableOptions(
-            ReadableConfig tableOptions,
-            Format keyFormat,
-            Format valueFormat,
-            TableSchema schema) {
+            ReadableConfig tableOptions, Format keyFormat, Format valueFormat, TableSchema schema) {
         validateTopic(tableOptions);
         validateFormat(keyFormat, valueFormat, tableOptions);
         validatePKConstraints(schema);
@@ -220,36 +219,38 @@ public class UpsertPulsarDynamicTableFactory implements DynamicTableSourceFactor
     private static void validateTopic(ReadableConfig tableOptions) {
         List<String> topic = tableOptions.get(TOPIC);
         if (topic.size() > 1) {
-            throw new ValidationException("The 'upsert-pulsar' connector doesn't support topic list now. " +
-                    "Please use single topic as the value of the parameter 'topic'.");
+            throw new ValidationException(
+                    "The 'upsert-pulsar' connector doesn't support topic list now. "
+                            + "Please use single topic as the value of the parameter 'topic'.");
         }
     }
 
-    private static void validateFormat(Format keyFormat, Format valueFormat, ReadableConfig tableOptions) {
+    private static void validateFormat(
+            Format keyFormat, Format valueFormat, ReadableConfig tableOptions) {
         if (!keyFormat.getChangelogMode().containsOnly(RowKind.INSERT)) {
             String identifier = tableOptions.get(KEY_FORMAT);
-            throw new ValidationException(String.format(
-                    "'upsert-pulsar' connector doesn't support '%s' as key format, " +
-                            "because '%s' is not in insert-only mode.",
-                    identifier,
-                    identifier));
+            throw new ValidationException(
+                    String.format(
+                            "'upsert-pulsar' connector doesn't support '%s' as key format, "
+                                    + "because '%s' is not in insert-only mode.",
+                            identifier, identifier));
         }
         if (!valueFormat.getChangelogMode().containsOnly(RowKind.INSERT)) {
             String identifier = tableOptions.get(VALUE_FORMAT);
-            throw new ValidationException(String.format(
-                    "'upsert-Pulsar' connector doesn't support '%s' as value format, " +
-                            "because '%s' is not in insert-only mode.",
-                    identifier,
-                    identifier));
+            throw new ValidationException(
+                    String.format(
+                            "'upsert-Pulsar' connector doesn't support '%s' as value format, "
+                                    + "because '%s' is not in insert-only mode.",
+                            identifier, identifier));
         }
     }
 
     private static void validatePKConstraints(TableSchema schema) {
         if (!schema.getPrimaryKey().isPresent()) {
             throw new ValidationException(
-                    "'upsert-pulsar' tables require to define a PRIMARY KEY constraint. " +
-                            "The PRIMARY KEY specifies which columns should be read from or write to the Pulsar message key. " +
-                            "The PRIMARY KEY also defines records in the 'upsert-pulsar' table should update or delete on which keys.");
+                    "'upsert-pulsar' tables require to define a PRIMARY KEY constraint. "
+                            + "The PRIMARY KEY specifies which columns should be read from or write to the Pulsar message key. "
+                            + "The PRIMARY KEY also defines records in the 'upsert-pulsar' table should update or delete on which keys.");
         }
     }
 
@@ -261,20 +262,24 @@ public class UpsertPulsarDynamicTableFactory implements DynamicTableSourceFactor
      * It is used to wrap the decoding format and expose the desired changelog mode. It's only works
      * for insert-only format.
      */
-    protected static class DecodingFormatWrapper implements DecodingFormat<DeserializationSchema<RowData>> {
+    protected static class DecodingFormatWrapper
+            implements DecodingFormat<DeserializationSchema<RowData>> {
         private final DecodingFormat<DeserializationSchema<RowData>> innerDecodingFormat;
 
-        private static final ChangelogMode SOURCE_CHANGELOG_MODE = ChangelogMode.newBuilder()
-                .addContainedKind(RowKind.UPDATE_AFTER)
-                .addContainedKind(RowKind.DELETE)
-                .build();
+        private static final ChangelogMode SOURCE_CHANGELOG_MODE =
+                ChangelogMode.newBuilder()
+                        .addContainedKind(RowKind.UPDATE_AFTER)
+                        .addContainedKind(RowKind.DELETE)
+                        .build();
 
-        public DecodingFormatWrapper(DecodingFormat<DeserializationSchema<RowData>> innerDecodingFormat) {
+        public DecodingFormatWrapper(
+                DecodingFormat<DeserializationSchema<RowData>> innerDecodingFormat) {
             this.innerDecodingFormat = innerDecodingFormat;
         }
 
         @Override
-        public DeserializationSchema<RowData> createRuntimeDecoder(DynamicTableSource.Context context, DataType producedDataType) {
+        public DeserializationSchema<RowData> createRuntimeDecoder(
+                DynamicTableSource.Context context, DataType producedDataType) {
             return innerDecodingFormat.createRuntimeDecoder(context, producedDataType);
         }
 
@@ -307,21 +312,25 @@ public class UpsertPulsarDynamicTableFactory implements DynamicTableSourceFactor
      * It is used to wrap the encoding format and expose the desired changelog mode. It's only works
      * for insert-only format.
      */
-    protected static class EncodingFormatWrapper implements EncodingFormat<SerializationSchema<RowData>> {
+    protected static class EncodingFormatWrapper
+            implements EncodingFormat<SerializationSchema<RowData>> {
         private final EncodingFormat<SerializationSchema<RowData>> innerEncodingFormat;
 
-        public static final ChangelogMode SINK_CHANGELOG_MODE = ChangelogMode.newBuilder()
-                .addContainedKind(RowKind.INSERT)
-                .addContainedKind(RowKind.UPDATE_AFTER)
-                .addContainedKind(RowKind.DELETE)
-                .build();
+        public static final ChangelogMode SINK_CHANGELOG_MODE =
+                ChangelogMode.newBuilder()
+                        .addContainedKind(RowKind.INSERT)
+                        .addContainedKind(RowKind.UPDATE_AFTER)
+                        .addContainedKind(RowKind.DELETE)
+                        .build();
 
-        public EncodingFormatWrapper(EncodingFormat<SerializationSchema<RowData>> innerEncodingFormat) {
+        public EncodingFormatWrapper(
+                EncodingFormat<SerializationSchema<RowData>> innerEncodingFormat) {
             this.innerEncodingFormat = innerEncodingFormat;
         }
 
         @Override
-        public SerializationSchema<RowData> createRuntimeEncoder(DynamicTableSink.Context context, DataType consumedDataType) {
+        public SerializationSchema<RowData> createRuntimeEncoder(
+                DynamicTableSink.Context context, DataType consumedDataType) {
             return innerEncodingFormat.createRuntimeEncoder(context, consumedDataType);
         }
 

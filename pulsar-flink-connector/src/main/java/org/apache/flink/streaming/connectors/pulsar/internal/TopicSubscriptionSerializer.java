@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -26,9 +30,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
-/**
- * TopicSubscription Serializer for flink state.
- */
+/** TopicSubscription Serializer for flink state. */
 public class TopicSubscriptionSerializer extends TypeSerializer<TopicSubscription> {
 
     public static final TopicSubscriptionSerializer INSTANCE = new TopicSubscriptionSerializer();
@@ -84,12 +86,11 @@ public class TopicSubscriptionSerializer extends TypeSerializer<TopicSubscriptio
         final byte[] subscriptionNameBytes = subscriptionName.getBytes();
         target.writeInt(subscriptionNameBytes.length);
         target.write(subscriptionNameBytes);
-
     }
 
     private byte[] toBytes(SerializableRange range) throws IOException {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-             ObjectOutputStream out = new ObjectOutputStream(baos)) {
+                ObjectOutputStream out = new ObjectOutputStream(baos)) {
             out.writeObject(range);
             out.flush();
             return baos.toByteArray();
@@ -98,7 +99,7 @@ public class TopicSubscriptionSerializer extends TypeSerializer<TopicSubscriptio
 
     private SerializableRange toObject(byte[] serialized) throws IOException {
         try (ByteArrayInputStream bais = new ByteArrayInputStream(serialized);
-             ObjectInputStream in = new ObjectInputStream(bais)) {
+                ObjectInputStream in = new ObjectInputStream(bais)) {
             try {
                 return (SerializableRange) in.readObject();
             } catch (ClassNotFoundException e) {
@@ -130,7 +131,8 @@ public class TopicSubscriptionSerializer extends TypeSerializer<TopicSubscriptio
     }
 
     @Override
-    public TopicSubscription deserialize(TopicSubscription reuse, DataInputView source) throws IOException {
+    public TopicSubscription deserialize(TopicSubscription reuse, DataInputView source)
+            throws IOException {
         return deserialize(source);
     }
 
@@ -160,9 +162,7 @@ public class TopicSubscriptionSerializer extends TypeSerializer<TopicSubscriptio
 
     // ------------------------------------------------------------------------
 
-    /**
-     * Serializer configuration snapshot for compatibility and format evolution.
-     */
+    /** Serializer configuration snapshot for compatibility and format evolution. */
     @SuppressWarnings("WeakerAccess")
     public static final class TopicSubscriptionSerializerSnapshot
             extends SimpleTypeSerializerSnapshot<TopicSubscription> {

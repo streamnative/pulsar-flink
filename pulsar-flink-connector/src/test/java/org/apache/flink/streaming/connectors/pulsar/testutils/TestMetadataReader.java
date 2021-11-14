@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -26,13 +30,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.mockito.Matchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/**
- * Mock for metadata reader.
- */
+/** Mock for metadata reader. */
 public class TestMetadataReader extends PulsarMetadataReader {
 
     private final List<Set<TopicRange>> mockGetAllTopicsReturnSequence;
@@ -43,8 +45,14 @@ public class TestMetadataReader extends PulsarMetadataReader {
             Map<String, String> caseInsensitiveParams,
             int indexOfThisSubtask,
             int numParallelSubtasks,
-            List<Set<TopicRange>> mockGetAllTopicsReturnSequence) throws PulsarClientException {
-        super("http://localhost:8080", new ClientConfigurationData(), "", caseInsensitiveParams, indexOfThisSubtask,
+            List<Set<TopicRange>> mockGetAllTopicsReturnSequence)
+            throws PulsarClientException {
+        super(
+                "http://localhost:8080",
+                new ClientConfigurationData(),
+                "",
+                caseInsensitiveParams,
+                indexOfThisSubtask,
                 numParallelSubtasks);
         this.mockGetAllTopicsReturnSequence = mockGetAllTopicsReturnSequence;
     }
@@ -53,14 +61,16 @@ public class TestMetadataReader extends PulsarMetadataReader {
         return mockGetAllTopicsReturnSequence.get(getAllTopicsInvCount++);
     }
 
-    public static List<Set<TopicRange>> createMockGetAllTopicsSequenceFromFixedReturn(Set<TopicRange> fixed) {
+    public static List<Set<TopicRange>> createMockGetAllTopicsSequenceFromFixedReturn(
+            Set<TopicRange> fixed) {
         List<Set<TopicRange>> mockSequence = mock(List.class);
         when(mockSequence.get(anyInt())).thenAnswer((Answer<Set<TopicRange>>) invocation -> fixed);
 
         return mockSequence;
     }
 
-    public static List<Set<TopicRange>> createMockGetAllTopicsSequenceFromTwoReturns(List<Set<TopicRange>> fixed) {
+    public static List<Set<TopicRange>> createMockGetAllTopicsSequenceFromTwoReturns(
+            List<Set<TopicRange>> fixed) {
         List<Set<TopicRange>> mockSequence = mock(List.class);
 
         when(mockSequence.get(0)).thenAnswer((Answer<Set<TopicRange>>) invocation -> fixed.get(0));
@@ -74,11 +84,11 @@ public class TestMetadataReader extends PulsarMetadataReader {
         if (tp.contains(PulsarOptions.PARTITION_SUFFIX)) {
             int pos = tp.lastIndexOf(PulsarOptions.PARTITION_SUFFIX);
             String topicPrefix = tp.substring(0, pos);
-            String topicPartitionIndex = tp.substring(pos + PulsarOptions.PARTITION_SUFFIX.length());
+            String topicPartitionIndex =
+                    tp.substring(pos + PulsarOptions.PARTITION_SUFFIX.length());
             if (topicPartitionIndex.matches("0|[1-9]\\d*")) {
                 int startIndex = (topicPrefix.hashCode() * 31 & Integer.MAX_VALUE) % numTasks;
-                return (startIndex + Integer.valueOf(topicPartitionIndex))
-                        % numTasks;
+                return (startIndex + Integer.valueOf(topicPartitionIndex)) % numTasks;
             }
         }
         return ((tp.hashCode() * 31) & 0x7FFFFFFF) % numTasks;

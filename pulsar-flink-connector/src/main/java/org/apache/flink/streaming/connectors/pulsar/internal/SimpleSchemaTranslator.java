@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -50,10 +54,16 @@ import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOption
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.PUBLISH_TIME_NAME;
 import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions.TOPIC_ATTRIBUTE_NAME;
 
-/**
- * flink 1.11 schema translator.
- */
+/** flink 1.11 schema translator. */
 public class SimpleSchemaTranslator extends SchemaTranslator {
+
+    public static final List<DataTypes.Field> METADATA_FIELDS =
+            ImmutableList.of(
+                    DataTypes.FIELD(KEY_ATTRIBUTE_NAME, DataTypes.BYTES()),
+                    DataTypes.FIELD(TOPIC_ATTRIBUTE_NAME, DataTypes.STRING()),
+                    DataTypes.FIELD(MESSAGE_ID_NAME, DataTypes.BYTES()),
+                    DataTypes.FIELD(PUBLISH_TIME_NAME, DataTypes.TIMESTAMP(3)),
+                    DataTypes.FIELD(EVENT_TIME_NAME, DataTypes.TIMESTAMP(3)));
 
     private final boolean useExtendField;
 
@@ -66,7 +76,8 @@ public class SimpleSchemaTranslator extends SchemaTranslator {
     }
 
     @Override
-    public SchemaInfo tableSchemaToPulsarSchema(TableSchema tableSchema) throws IncompatibleSchemaException {
+    public SchemaInfo tableSchemaToPulsarSchema(TableSchema tableSchema)
+            throws IncompatibleSchemaException {
         List<String> fieldsRemaining = new ArrayList<>(tableSchema.getFieldCount());
         for (String fieldName : tableSchema.getFieldNames()) {
             if (!PulsarOptions.META_FIELD_NAMES.contains(fieldName)) {
@@ -78,9 +89,10 @@ public class SimpleSchemaTranslator extends SchemaTranslator {
         if (fieldsRemaining.size() == 1) {
             dataType = tableSchema.getFieldDataType(fieldsRemaining.get(0)).get();
         } else {
-            List<DataTypes.Field> fieldList = fieldsRemaining.stream()
-                    .map(f -> DataTypes.FIELD(f, tableSchema.getFieldDataType(f).get()))
-                    .collect(Collectors.toList());
+            List<DataTypes.Field> fieldList =
+                    fieldsRemaining.stream()
+                            .map(f -> DataTypes.FIELD(f, tableSchema.getFieldDataType(f).get()))
+                            .collect(Collectors.toList());
             dataType = DataTypes.ROW(fieldList.toArray(new DataTypes.Field[0]));
         }
         return sqlType2PulsarSchema(dataType).getSchemaInfo();
@@ -93,8 +105,8 @@ public class SimpleSchemaTranslator extends SchemaTranslator {
         } else if (flinkType instanceof FieldsDataType) {
             return avroSchema2PulsarSchema(sqlType2AvroSchema(flinkType));
         }
-        throw new IncompatibleSchemaException(String.format("%s is not supported by Pulsar yet", flinkType.toString()),
-                null);
+        throw new IncompatibleSchemaException(
+                String.format("%s is not supported by Pulsar yet", flinkType.toString()), null);
     }
 
     static GenericSchema<GenericRecord> avroSchema2PulsarSchema(Schema avroSchema) {
@@ -110,8 +122,8 @@ public class SimpleSchemaTranslator extends SchemaTranslator {
         return sqlType2AvroSchema(flinkType, false, "record", "");
     }
 
-    private static Schema sqlType2AvroSchema(DataType flinkType, boolean nullable,
-                                             String recordName, String namespace)
+    private static Schema sqlType2AvroSchema(
+            DataType flinkType, boolean nullable, String recordName, String namespace)
             throws IncompatibleSchemaException {
         SchemaBuilder.TypeBuilder<Schema> builder = SchemaBuilder.builder();
         LogicalTypeRoot type = flinkType.getLogicalType().getTypeRoot();
@@ -151,7 +163,8 @@ public class SimpleSchemaTranslator extends SchemaTranslator {
                     break;
                 case DECIMAL:
                     DecimalType dt = (DecimalType) flinkType.getLogicalType();
-                    LogicalTypes.Decimal avroType = LogicalTypes.decimal(dt.getPrecision(), dt.getScale());
+                    LogicalTypes.Decimal avroType =
+                            LogicalTypes.decimal(dt.getPrecision(), dt.getScale());
                     int fixedSize = minBytesForPrecision[dt.getPrecision()];
                     // Need to avoid naming conflict for the fixed fields
                     String name;
@@ -163,33 +176,45 @@ public class SimpleSchemaTranslator extends SchemaTranslator {
                     schema = avroType.addToSchema(SchemaBuilder.fixed(name).size(fixedSize));
                     break;
                 default:
-                    throw new IncompatibleSchemaException(String.format("Unsupported type %s", flinkType.toString()),
-                            null);
+                    throw new IncompatibleSchemaException(
+                            String.format("Unsupported type %s", flinkType.toString()), null);
             }
         } else if (flinkType instanceof CollectionDataType) {
             if (type == LogicalTypeRoot.ARRAY) {
                 CollectionDataType cdt = (CollectionDataType) flinkType;
                 DataType elementType = cdt.getElementDataType();
-                schema = builder.array()
-                        .items(sqlType2AvroSchema(elementType, elementType.getLogicalType().isNullable(), recordName,
-                                namespace));
+                schema =
+                        builder.array()
+                                .items(
+                                        sqlType2AvroSchema(
+                                                elementType,
+                                                elementType.getLogicalType().isNullable(),
+                                                recordName,
+                                                namespace));
             } else {
-                throw new IncompatibleSchemaException("Pulsar only support collection as array", null);
+                throw new IncompatibleSchemaException(
+                        "Pulsar only support collection as array", null);
             }
         } else if (flinkType instanceof KeyValueDataType) {
             KeyValueDataType kvType = (KeyValueDataType) flinkType;
             DataType keyType = kvType.getKeyDataType();
             DataType valueType = kvType.getValueDataType();
-            if (!(keyType instanceof AtomicDataType) ||
-                    keyType.getLogicalType().getTypeRoot() != LogicalTypeRoot.VARCHAR) {
+            if (!(keyType instanceof AtomicDataType)
+                    || keyType.getLogicalType().getTypeRoot() != LogicalTypeRoot.VARCHAR) {
                 throw new IncompatibleSchemaException("Pulsar only support string key map", null);
             }
-            schema = builder.map()
-                    .values(sqlType2AvroSchema(valueType, valueType.getLogicalType().isNullable(), recordName,
-                            namespace));
+            schema =
+                    builder.map()
+                            .values(
+                                    sqlType2AvroSchema(
+                                            valueType,
+                                            valueType.getLogicalType().isNullable(),
+                                            recordName,
+                                            namespace));
         } else if (flinkType instanceof FieldsDataType) {
             FieldsDataType fieldsDataType = (FieldsDataType) flinkType;
-            String childNamespace = namespace.equals("") ? recordName : namespace + "." + recordName;
+            String childNamespace =
+                    namespace.equals("") ? recordName : namespace + "." + recordName;
             SchemaBuilder.FieldAssembler<Schema> fieldsAssembler =
                     builder.record(recordName).namespace(namespace).fields();
             RowType rowType = (RowType) fieldsDataType.getLogicalType();
@@ -200,12 +225,17 @@ public class SimpleSchemaTranslator extends SchemaTranslator {
                 org.apache.flink.table.types.logical.LogicalType logicalType = rowType.getTypeAt(i);
                 DataType ftype = TypeConversions.fromLogicalToDataType(logicalType);
                 Schema fieldAvroSchema =
-                        sqlType2AvroSchema(ftype, ftype.getLogicalType().isNullable(), fieldName, childNamespace);
+                        sqlType2AvroSchema(
+                                ftype,
+                                ftype.getLogicalType().isNullable(),
+                                fieldName,
+                                childNamespace);
                 fieldsAssembler.name(fieldName).type(fieldAvroSchema).noDefault();
             }
             schema = fieldsAssembler.endRecord();
         } else {
-            throw new IncompatibleSchemaException(String.format("Unexpected type %s", flinkType.toString()), null);
+            throw new IncompatibleSchemaException(
+                    String.format("Unexpected type %s", flinkType.toString()), null);
         }
 
         if (nullable) {
@@ -242,12 +272,16 @@ public class SimpleSchemaTranslator extends SchemaTranslator {
     }
 
     @Override
-    public TableSchema pulsarSchemaToTableSchema(SchemaInfo pulsarSchema) throws IncompatibleSchemaException {
+    public TableSchema pulsarSchemaToTableSchema(SchemaInfo pulsarSchema)
+            throws IncompatibleSchemaException {
         final FieldsDataType fieldsDataType = pulsarSchemaToFieldsDataType(pulsarSchema);
         RowType rt = (RowType) fieldsDataType.getLogicalType();
         List<DataType> fieldTypes = fieldsDataType.getChildren();
-        return TableSchema.builder().fields(
-                rt.getFieldNames().toArray(new String[0]), fieldTypes.toArray(new DataType[0])).build();
+        return TableSchema.builder()
+                .fields(
+                        rt.getFieldNames().toArray(new String[0]),
+                        fieldTypes.toArray(new DataType[0]))
+                .build();
     }
 
     @Override
@@ -262,7 +296,9 @@ public class SimpleSchemaTranslator extends SchemaTranslator {
             for (int i = 0; i < fieldNames.size(); i++) {
                 org.apache.flink.table.types.logical.LogicalType logicalType = rowType.getTypeAt(i);
                 DataTypes.Field field =
-                        DataTypes.FIELD(fieldNames.get(i), TypeConversions.fromLogicalToDataType(logicalType));
+                        DataTypes.FIELD(
+                                fieldNames.get(i),
+                                TypeConversions.fromLogicalToDataType(logicalType));
                 mainSchema.add(field);
             }
 
@@ -275,23 +311,6 @@ public class SimpleSchemaTranslator extends SchemaTranslator {
         }
         return (FieldsDataType) DataTypes.ROW(mainSchema.toArray(new DataTypes.Field[0]));
     }
-
-    public static final List<DataTypes.Field> METADATA_FIELDS = ImmutableList.of(
-            DataTypes.FIELD(
-                    KEY_ATTRIBUTE_NAME,
-                    DataTypes.BYTES()),
-            DataTypes.FIELD(
-                    TOPIC_ATTRIBUTE_NAME,
-                    DataTypes.STRING()),
-            DataTypes.FIELD(
-                    MESSAGE_ID_NAME,
-                    DataTypes.BYTES()),
-            DataTypes.FIELD(
-                    PUBLISH_TIME_NAME,
-                    DataTypes.TIMESTAMP(3)),
-            DataTypes.FIELD(
-                    EVENT_TIME_NAME,
-                    DataTypes.TIMESTAMP(3)));
 
     @Override
     public DataType schemaInfo2SqlType(SchemaInfo si) throws IncompatibleSchemaException {
@@ -323,21 +342,22 @@ public class SimpleSchemaTranslator extends SchemaTranslator {
                 return DataTypes.SMALLINT();
             case AVRO:
             case JSON:
-                String avroSchemaString =
-                        new String(si.getSchema(), StandardCharsets.UTF_8);
+                String avroSchemaString = new String(si.getSchema(), StandardCharsets.UTF_8);
                 return AvroSchemaConverter.convertToDataType(avroSchemaString);
             case PROTOBUF_NATIVE:
                 Descriptors.Descriptor descriptor =
-                        ((GenericProtobufNativeSchema) GenericProtobufNativeSchema.of(si)).getProtobufNativeSchema();
+                        ((GenericProtobufNativeSchema) GenericProtobufNativeSchema.of(si))
+                                .getProtobufNativeSchema();
                 return proto2SqlType(descriptor);
 
             default:
-                throw new UnsupportedOperationException(String.format("We do not support %s currently.", si.getType()));
+                throw new UnsupportedOperationException(
+                        String.format("We do not support %s currently.", si.getType()));
         }
     }
 
-    public static DataType proto2SqlType(Descriptors.Descriptor descriptor) throws
-            IncompatibleSchemaException {
+    public static DataType proto2SqlType(Descriptors.Descriptor descriptor)
+            throws IncompatibleSchemaException {
         List<DataTypes.Field> fields = new ArrayList<>();
         List<Descriptors.FieldDescriptor> protoFields = descriptor.getFields();
 
@@ -352,8 +372,8 @@ public class SimpleSchemaTranslator extends SchemaTranslator {
         return DataTypes.ROW(fields.toArray(new DataTypes.Field[0]));
     }
 
-    private static DataType proto2SqlType(Descriptors.FieldDescriptor field) throws
-            IncompatibleSchemaException {
+    private static DataType proto2SqlType(Descriptors.FieldDescriptor field)
+            throws IncompatibleSchemaException {
         Descriptors.FieldDescriptor.JavaType type = field.getJavaType();
         DataType dataType;
         switch (type) {
@@ -381,11 +401,13 @@ public class SimpleSchemaTranslator extends SchemaTranslator {
             case MESSAGE:
                 Descriptors.Descriptor msg = field.getMessageType();
                 if (field.isMapField()) {
-                    //map
-                    dataType = DataTypes.MAP(proto2SqlType(msg.findFieldByName("key")), proto2SqlType(
-                            msg.findFieldByName("value")));
+                    // map
+                    dataType =
+                            DataTypes.MAP(
+                                    proto2SqlType(msg.findFieldByName("key")),
+                                    proto2SqlType(msg.findFieldByName("value")));
                 } else {
-                    //row
+                    // row
                     dataType = proto2SqlType(field.getMessageType());
                 }
                 break;
@@ -394,9 +416,12 @@ public class SimpleSchemaTranslator extends SchemaTranslator {
                 break;
             default:
                 throw new IllegalArgumentException(
-                        "Unknown type: " + type.toString() + " for FieldDescriptor: " + field.toString());
+                        "Unknown type: "
+                                + type.toString()
+                                + " for FieldDescriptor: "
+                                + field.toString());
         }
-        //list
+        // list
         if (field.isRepeated() && !field.isMapField()) {
             dataType = DataTypes.ARRAY(dataType);
         }

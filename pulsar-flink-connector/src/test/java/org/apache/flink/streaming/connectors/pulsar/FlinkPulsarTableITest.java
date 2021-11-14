@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -25,11 +29,11 @@ import org.apache.flink.streaming.connectors.pulsar.internal.IncompatibleSchemaE
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
 import org.apache.flink.streaming.connectors.pulsar.internal.SimpleSchemaTranslator;
+import org.apache.flink.streaming.connectors.pulsar.serialization.PulsarSerializationSchemaWrapper;
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper;
 import org.apache.flink.streaming.connectors.pulsar.testutils.PulsarTableTestUtils;
 import org.apache.flink.streaming.connectors.pulsar.testutils.SingletonStreamSink;
 import org.apache.flink.streaming.connectors.pulsar.testutils.TestUtils;
-import org.apache.flink.streaming.util.serialization.PulsarSerializationSchemaWrapper;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.TableColumn;
 import org.apache.flink.table.api.TableSchema;
@@ -83,9 +87,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
-/**
- * Table API related Integration tests.
- */
+/** Table API related Integration tests. */
 @Slf4j
 public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
 
@@ -117,9 +119,11 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
 
         List<String> columns = new ArrayList<>();
         for (TableColumn tableColumn : tSchema.getTableColumns()) {
-            final String column = MessageFormat.format(" `{0}` {1}",
-                tableColumn.getName(),
-                tableColumn.getType().getLogicalType().asSerializableString());
+            final String column =
+                    MessageFormat.format(
+                            " `{0}` {1}",
+                            tableColumn.getName(),
+                            tableColumn.getType().getLogicalType().asSerializableString());
             columns.add(column);
         }
 
@@ -127,13 +131,15 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
 
         Table t = tEnv.sqlQuery("select `value` from " + tableName);
         tEnv.toDataStream(t, Boolean.class)
-            .map(new FailingIdentityMapper<>(BOOLEAN_LIST.size()))
-            .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
+                .map(new FailingIdentityMapper<>(BOOLEAN_LIST.size()))
+                .addSink(new SingletonStreamSink.StringSink<>())
+                .setParallelism(1);
 
         TestUtils.tryExecute(see, "basic functionality");
         SingletonStreamSink.compareWithList(
-            BOOLEAN_LIST.subList(0, BOOLEAN_LIST.size() - 1).stream().map(Objects::toString)
-                .collect(Collectors.toList()));
+                BOOLEAN_LIST.subList(0, BOOLEAN_LIST.size() - 1).stream()
+                        .map(Objects::toString)
+                        .collect(Collectors.toList()));
     }
 
     @Test(timeout = 40 * 1000L)
@@ -145,15 +151,20 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         see.setParallelism(1);
         DataStreamSource ds = see.fromCollection(fooList);
         ds.addSink(
-            new FlinkPulsarSink(
-                serviceUrl, adminUrl, Optional.of(tp), getSinkProperties(),
-                new PulsarSerializationSchemaWrapper.Builder<>(
-                    (SerializationSchema<SchemaData.Foo>) element -> {
-                        JSONSchema<SchemaData.Foo> jsonSchema = JSONSchema.of(SchemaData.Foo.class);
-                        return jsonSchema.encode(element);
-                    })
-                    .usePojoMode(SchemaData.Foo.class, RecordSchemaType.JSON)
-                    .build()));
+                new FlinkPulsarSink(
+                        serviceUrl,
+                        adminUrl,
+                        Optional.of(tp),
+                        getSinkProperties(),
+                        new PulsarSerializationSchemaWrapper.Builder<>(
+                                        (SerializationSchema<SchemaData.Foo>)
+                                                element -> {
+                                                    JSONSchema<SchemaData.Foo> jsonSchema =
+                                                            JSONSchema.of(SchemaData.Foo.class);
+                                                    return jsonSchema.encode(element);
+                                                })
+                                .usePojoMode(SchemaData.Foo.class, RecordSchemaType.JSON)
+                                .build()));
 
         see.execute("write first");
 
@@ -166,12 +177,15 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         tEnv.executeSql(createTableSql(tableName, tp, tSchema, "json")).print();
         Table t = tEnv.sqlQuery("select i, f, bar from " + tableName);
         tEnv.toDataStream(t, SchemaData.Foo.class)
-            .map(new FailingIdentityMapper<>(fooList.size()))
-            .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
+                .map(new FailingIdentityMapper<>(fooList.size()))
+                .addSink(new SingletonStreamSink.StringSink<>())
+                .setParallelism(1);
 
         TestUtils.tryExecute(env, "count elements from topics");
         SingletonStreamSink.compareWithList(
-            fooList.subList(0, fooList.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
+                fooList.subList(0, fooList.size() - 1).stream()
+                        .map(Objects::toString)
+                        .collect(Collectors.toList()));
     }
 
     @Test(timeout = 40 * 1000L)
@@ -189,12 +203,15 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
 
         Table t = tEnv.sqlQuery("select i, f, bar from " + tableName);
         tEnv.toDataStream(t, SchemaData.Foo.class)
-            .map(new FailingIdentityMapper<>(fooList.size()))
-            .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
+                .map(new FailingIdentityMapper<>(fooList.size()))
+                .addSink(new SingletonStreamSink.StringSink<>())
+                .setParallelism(1);
 
         TestUtils.tryExecute(see, "test struct in json");
         SingletonStreamSink.compareWithList(
-            fooList.subList(0, fooList.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
+                fooList.subList(0, fooList.size() - 1).stream()
+                        .map(Objects::toString)
+                        .collect(Collectors.toList()));
     }
 
     @Test(timeout = 40 * 1000L)
@@ -212,19 +229,23 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
 
         Table t = tEnv.sqlQuery("select l from " + tableName);
         tEnv.toDataStream(t, SchemaData.FL.class)
-            .map(new FailingIdentityMapper<>(flList.size()))
-            .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
+                .map(new FailingIdentityMapper<>(flList.size()))
+                .addSink(new SingletonStreamSink.StringSink<>())
+                .setParallelism(1);
         TestUtils.tryExecute(see, "test struct in json");
         SingletonStreamSink.compareWithList(
-            flList.subList(0, flList.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
+                flList.subList(0, flList.size() - 1).stream()
+                        .map(Objects::toString)
+                        .collect(Collectors.toList()));
     }
 
-    private TableSchema getTableSchema(String topicName) throws PulsarClientException, PulsarAdminException,
-        IncompatibleSchemaException {
+    private TableSchema getTableSchema(String topicName)
+            throws PulsarClientException, PulsarAdminException, IncompatibleSchemaException {
         Map<String, String> caseInsensitiveParams = new HashMap<>();
         caseInsensitiveParams.put(TOPIC_SINGLE_OPTION_KEY, topicName);
         PulsarMetadataReader reader =
-            new PulsarMetadataReader(adminUrl, new ClientConfigurationData(), "", caseInsensitiveParams, -1, -1);
+                new PulsarMetadataReader(
+                        adminUrl, new ClientConfigurationData(), "", caseInsensitiveParams, -1, -1);
         SchemaInfo pulsarSchema = reader.getPulsarSchema(topicName);
         final SimpleSchemaTranslator schemaTranslator = new SimpleSchemaTranslator();
         return schemaTranslator.pulsarSchemaToTableSchema(pulsarSchema);
@@ -246,13 +267,16 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
 
         Table t = tEnv.sqlQuery("select l from " + tableName);
         tEnv.toDataStream(t, SchemaData.FA.class)
-            .map(new FailingIdentityMapper<>(faList.size()))
-            .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
+                .map(new FailingIdentityMapper<>(faList.size()))
+                .addSink(new SingletonStreamSink.StringSink<>())
+                .setParallelism(1);
 
         TestUtils.tryExecute(see, "test struct in avro");
 
         SingletonStreamSink.compareWithList(
-            faList.subList(0, faList.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
+                faList.subList(0, faList.size() - 1).stream()
+                        .map(Objects::toString)
+                        .collect(Collectors.toList()));
     }
 
     @Test(timeout = 40 * 1000L)
@@ -271,13 +295,16 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
 
         Table t = tEnv.sqlQuery("select m from " + tableName);
         tEnv.toDataStream(t, SchemaData.FM.class)
-            .map(new FailingIdentityMapper<>(faList.size()))
-            .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
+                .map(new FailingIdentityMapper<>(faList.size()))
+                .addSink(new SingletonStreamSink.StringSink<>())
+                .setParallelism(1);
 
         TestUtils.tryExecute(see, "test struct in avro");
 
         SingletonStreamSink.compareWithList(
-            fmList.subList(0, fmList.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
+                fmList.subList(0, fmList.size() - 1).stream()
+                        .map(Objects::toString)
+                        .collect(Collectors.toList()));
     }
 
     @Test
@@ -310,55 +337,58 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         map.put("protobuf.message-class-name", SimpleTest.class.getCanonicalName());
         String extendParamStr = "";
         if (map != null && !map.isEmpty()) {
-            extendParamStr = map.entrySet().stream()
-                .map(e -> String.format("'%s' = '%s'", e.getKey(), e.getValue()))
-                .collect(Collectors.joining(",\n"));
+            extendParamStr =
+                    map.entrySet().stream()
+                            .map(e -> String.format("'%s' = '%s'", e.getKey(), e.getValue()))
+                            .collect(Collectors.joining(",\n"));
             extendParamStr += ",\n";
         }
-        createTable = String.format(
-            "create table pulsar (\n" +
-                "  a INT, \n" +
-                "  b BIGINT, \n" +
-                "  c BOOLEAN, \n" +
-                "  d FLOAT, \n" +
-                "  e DOUBLE, \n" +
-                "  f VARCHAR(32), \n" +
-                "  g BYTES, \n" +
-                "  h VARCHAR(32), \n" +
-                "  f_abc_7d INT, \n" +
-                " `eventTime` TIMESTAMP(3) METADATA, \n" +
-                "  compute as a + 1, \n" +
-                "  watermark for eventTime as eventTime\n" +
-                ") with (\n" +
-                "  'connector' = 'pulsar',\n" +
-                "  'generic' = 'true',\n" +
-                "  'topic' = '%s',\n" +
-                "  'service-url' = '%s',\n" +
-                "  'admin-url' = '%s',\n" +
-                "  'scan.startup.mode' = 'earliest', \n" +
-                "%s" +
-                "  %s \n" +
-                ")",
-            topic,
-            serviceUrl,
-            adminUrl,
-            extendParamStr,
-            String.format("'format' = '%s'", PROTOBUF_FORMAT));
+        createTable =
+                String.format(
+                        "create table pulsar (\n"
+                                + "  a INT, \n"
+                                + "  b BIGINT, \n"
+                                + "  c BOOLEAN, \n"
+                                + "  d FLOAT, \n"
+                                + "  e DOUBLE, \n"
+                                + "  f VARCHAR(32), \n"
+                                + "  g BYTES, \n"
+                                + "  h VARCHAR(32), \n"
+                                + "  f_abc_7d INT, \n"
+                                + " `eventTime` TIMESTAMP(3) METADATA, \n"
+                                + "  compute as a + 1, \n"
+                                + "  watermark for eventTime as eventTime\n"
+                                + ") with (\n"
+                                + "  'connector' = 'pulsar',\n"
+                                + "  'generic' = 'true',\n"
+                                + "  'topic' = '%s',\n"
+                                + "  'service-url' = '%s',\n"
+                                + "  'admin-url' = '%s',\n"
+                                + "  'scan.startup.mode' = 'earliest', \n"
+                                + "%s"
+                                + "  %s \n"
+                                + ")",
+                        topic,
+                        serviceUrl,
+                        adminUrl,
+                        extendParamStr,
+                        String.format("'format' = '%s'", PROTOBUF_FORMAT));
 
         SimpleTest.newBuilder()
-            .setA(1)
-            .setB(2L)
-            .setC(false)
-            .setD(0.1f)
-            .setE(0.01)
-            .setF("haha")
-            .setG(ByteString.copyFrom(new byte[]{1}))
-            .setH(SimpleTest.Corpus.IMAGES)
-            .setFAbc7D(1) // test fieldNameToJsonName
-            .build();
+                .setA(1)
+                .setB(2L)
+                .setC(false)
+                .setD(0.1f)
+                .setE(0.01)
+                .setF("haha")
+                .setG(ByteString.copyFrom(new byte[] {1}))
+                .setH(SimpleTest.Corpus.IMAGES)
+                .setFAbc7D(1) // test fieldNameToJsonName
+                .build();
         tEnv.executeSql(createTable).await();
-        String initialValues = "INSERT INTO pulsar\n" +
-            "VALUES (1,2,false,0.1,0.01,'haha', ENCODE('1', 'utf-8'), 'IMAGES',1, TIMESTAMP '2020-03-08 13:12:11.123')";
+        String initialValues =
+                "INSERT INTO pulsar\n"
+                        + "VALUES (1,2,false,0.1,0.01,'haha', ENCODE('1', 'utf-8'), 'IMAGES',1, TIMESTAMP '2020-03-08 13:12:11.123')";
         tEnv.executeSql(initialValues).await();
 
         // ---------- Consume stream from Pulsar -------------------
@@ -369,7 +399,9 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         result.addSink(sink).setParallelism(1);
         TestUtils.tryExecute(see, "Job_2");
 
-        List<String> expected = Arrays.asList("+I(1,2,false,0.1,0.01,haha,[49],IMAGES,1,2020-03-08T13:12:11.123,2)");
+        List<String> expected =
+                Arrays.asList(
+                        "+I(1,2,false,0.1,0.01,haha,[49],IMAGES,1,2020-03-08T13:12:11.123,2)");
 
         assertEquals(expected, TestingSinkFunction.rows);
     }
@@ -387,36 +419,38 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         }
         sendProtobufMessage(topic, 2);
 
-        final String createTable = String.format(
-            "create table pulsar (\n" +
-                "  a INT, \n" +
-                "  b BIGINT, \n" +
-                "  c BOOLEAN, \n" +
-                "  d FLOAT, \n" +
-                "  e DOUBLE, \n" +
-                "  f VARCHAR(32), \n" +
-                "  g BYTES, \n" +
-                "  h VARCHAR(32), \n" +
-                "  f_abc_7d INT, \n" +
-                " `eventTime` TIMESTAMP(3) METADATA, \n" +
-                "  compute as a + 1, \n" +
-                "  watermark for eventTime as eventTime\n" +
-                ") with (\n" +
-                "  'connector' = 'pulsar',\n" +
-                "  'generic' = 'true',\n" +
-                "  'topic' = '%s',\n" +
-                "  'service-url' = '%s',\n" +
-                "  'admin-url' = '%s',\n" +
-                "  'scan.startup.mode' = 'earliest', \n" +
-                "  %s \n" +
-                ")",
-            topic,
-            serviceUrl,
-            adminUrl,
-            String.format("'format' = '%s'", PULSAR_PROTOBUF_NATIVE_FORMAT));
+        final String createTable =
+                String.format(
+                        "create table pulsar (\n"
+                                + "  a INT, \n"
+                                + "  b BIGINT, \n"
+                                + "  c BOOLEAN, \n"
+                                + "  d FLOAT, \n"
+                                + "  e DOUBLE, \n"
+                                + "  f VARCHAR(32), \n"
+                                + "  g BYTES, \n"
+                                + "  h VARCHAR(32), \n"
+                                + "  f_abc_7d INT, \n"
+                                + " `eventTime` TIMESTAMP(3) METADATA, \n"
+                                + "  compute as a + 1, \n"
+                                + "  watermark for eventTime as eventTime\n"
+                                + ") with (\n"
+                                + "  'connector' = 'pulsar',\n"
+                                + "  'generic' = 'true',\n"
+                                + "  'topic' = '%s',\n"
+                                + "  'service-url' = '%s',\n"
+                                + "  'admin-url' = '%s',\n"
+                                + "  'scan.startup.mode' = 'earliest', \n"
+                                + "  %s \n"
+                                + ")",
+                        topic,
+                        serviceUrl,
+                        adminUrl,
+                        String.format("'format' = '%s'", PULSAR_PROTOBUF_NATIVE_FORMAT));
         tEnv.executeSql(createTable).await(10, TimeUnit.SECONDS);
         String query = "SELECT * FROM pulsar \n";
-        List<RowData> result = tEnv.toAppendStream(tEnv.sqlQuery(query), RowData.class).executeAndCollect(1);
+        List<RowData> result =
+                tEnv.toAppendStream(tEnv.sqlQuery(query), RowData.class).executeAndCollect(1);
 
         RowData newRowData = result.get(0);
         assertEquals(1, newRowData.getInt(0));
@@ -432,22 +466,26 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
 
     private void sendProtobufMessage(String topic, int count) throws PulsarClientException {
         Map<String, String> properties = new HashMap<>();
-        properties.put("__PARSING_INFO__", "[{\"number\":1,\"name\":\"a\",\"type\":\"INT32\",\"label\":\"LABEL_OPTIONAL\",\"definition\":null},{\"number\":2,\"name\":\"b\",\"type\":\"INT64\",\"label\":\"LABEL_OPTIONAL\",\"definition\":null},{\"number\":3,\"name\":\"c\",\"type\":\"BOOL\",\"label\":\"LABEL_OPTIONAL\",\"definition\":null},{\"number\":4,\"name\":\"d\",\"type\":\"FLOAT\",\"label\":\"LABEL_OPTIONAL\",\"definition\":null},{\"number\":5,\"name\":\"e\",\"type\":\"DOUBLE\",\"label\":\"LABEL_OPTIONAL\",\"definition\":null},{\"number\":6,\"name\":\"f\",\"type\":\"STRING\",\"label\":\"LABEL_OPTIONAL\",\"definition\":null},{\"number\":7,\"name\":\"g\",\"type\":\"BYTES\",\"label\":\"LABEL_OPTIONAL\",\"definition\":null},{\"number\":8,\"name\":\"h\",\"type\":\"ENUM\",\"label\":\"LABEL_OPTIONAL\",\"definition\":null},{\"number\":9,\"name\":\"f_abc_7d\",\"type\":\"INT32\",\"label\":\"LABEL_OPTIONAL\",\"definition\":null}]");
+        properties.put(
+                "__PARSING_INFO__",
+                "[{\"number\":1,\"name\":\"a\",\"type\":\"INT32\",\"label\":\"LABEL_OPTIONAL\",\"definition\":null},{\"number\":2,\"name\":\"b\",\"type\":\"INT64\",\"label\":\"LABEL_OPTIONAL\",\"definition\":null},{\"number\":3,\"name\":\"c\",\"type\":\"BOOL\",\"label\":\"LABEL_OPTIONAL\",\"definition\":null},{\"number\":4,\"name\":\"d\",\"type\":\"FLOAT\",\"label\":\"LABEL_OPTIONAL\",\"definition\":null},{\"number\":5,\"name\":\"e\",\"type\":\"DOUBLE\",\"label\":\"LABEL_OPTIONAL\",\"definition\":null},{\"number\":6,\"name\":\"f\",\"type\":\"STRING\",\"label\":\"LABEL_OPTIONAL\",\"definition\":null},{\"number\":7,\"name\":\"g\",\"type\":\"BYTES\",\"label\":\"LABEL_OPTIONAL\",\"definition\":null},{\"number\":8,\"name\":\"h\",\"type\":\"ENUM\",\"label\":\"LABEL_OPTIONAL\",\"definition\":null},{\"number\":9,\"name\":\"f_abc_7d\",\"type\":\"INT32\",\"label\":\"LABEL_OPTIONAL\",\"definition\":null}]");
         properties.put("__alwaysAllowNull", "true");
         properties.put("__jsr310ConversionEnabled", "false");
 
-        final SchemaInfoImpl schemaInfo = SchemaInfoImpl.builder()
-            .schema(ProtobufNativeSchemaUtils.serialize(SchemaData.descriptor))
-            .name("simpleTest1")
-            .type(SchemaType.PROTOBUF_NATIVE)
-            .properties(properties)
-            .build();
+        final SchemaInfoImpl schemaInfo =
+                SchemaInfoImpl.builder()
+                        .schema(ProtobufNativeSchemaUtils.serialize(SchemaData.descriptor))
+                        .name("simpleTest1")
+                        .type(SchemaType.PROTOBUF_NATIVE)
+                        .properties(properties)
+                        .build();
 
         final Schema<?> schema = Schema.getSchema(schemaInfo);
-        try (final Producer<byte[]> producer = getPulsarClient().newProducer(Schema.AUTO_PRODUCE_BYTES(schema))
-            .topic(topic)
-            .create()
-        ) {
+        try (final Producer<byte[]> producer =
+                getPulsarClient()
+                        .newProducer(Schema.AUTO_PRODUCE_BYTES(schema))
+                        .topic(topic)
+                        .create()) {
             for (int i = 0; i < count; i++) {
                 producer.send(SchemaData.protobufData);
             }
@@ -463,60 +501,58 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         final String createTable;
         String extendParamStr = "";
         if (extend != null && !extend.isEmpty()) {
-            extendParamStr = extend.entrySet().stream()
-                .map(e -> String.format("'%s' = '%s'", e.getKey(), e.getValue()))
-                .collect(Collectors.joining(",\n"));
+            extendParamStr =
+                    extend.entrySet().stream()
+                            .map(e -> String.format("'%s' = '%s'", e.getKey(), e.getValue()))
+                            .collect(Collectors.joining(",\n"));
             extendParamStr += ",\n";
         }
-        createTable = String.format(
-            "create table pulsar (\n" +
-                "  id int, \n" +
-                "  compute as id + 1, \n" +
-                "  log_ts timestamp(3),\n" +
-                "  ts as log_ts + INTERVAL '1' SECOND,\n" +
-                "  watermark for ts as ts\n" +
-                ") with (\n" +
-                "  'connector' = 'pulsar',\n" +
-                "  'generic' = 'true',\n" +
-                "  'topic' = '%s',\n" +
-                "  'service-url' = '%s',\n" +
-                "  'admin-url' = '%s',\n" +
-                "  'scan.startup.mode' = 'earliest', \n" +
-                "%s" +
-                "  %s \n" +
-                ")",
-            topic,
-            serviceUrl,
-            adminUrl,
-            extendParamStr,
-            String.format("'format' = '%s'", format));
+        createTable =
+                String.format(
+                        "create table pulsar (\n"
+                                + "  id int, \n"
+                                + "  compute as id + 1, \n"
+                                + "  log_ts timestamp(3),\n"
+                                + "  ts as log_ts + INTERVAL '1' SECOND,\n"
+                                + "  watermark for ts as ts\n"
+                                + ") with (\n"
+                                + "  'connector' = 'pulsar',\n"
+                                + "  'generic' = 'true',\n"
+                                + "  'topic' = '%s',\n"
+                                + "  'service-url' = '%s',\n"
+                                + "  'admin-url' = '%s',\n"
+                                + "  'scan.startup.mode' = 'earliest', \n"
+                                + "%s"
+                                + "  %s \n"
+                                + ")",
+                        topic,
+                        serviceUrl,
+                        adminUrl,
+                        extendParamStr,
+                        String.format("'format' = '%s'", format));
 
         tEnv.executeSql(createTable).await();
-        String initialValues = "INSERT INTO pulsar\n" +
-            "SELECT id, CAST(ts AS TIMESTAMP(3)) \n" +
-            "FROM (VALUES (1, '2019-12-12 00:00:01.001001'), \n" +
-            "  (2, '2019-12-12 00:00:01.001001'), \n" +
-            "  (3, '2019-12-12 00:00:01.001001'), \n" +
-            "  (4, '2019-12-12 00:00:01.001001'), \n" +
-            "  (5, '2019-12-12 00:00:01.001001'), \n" +
-            "  (6, '2019-12-12 00:00:01.001001'))\n" +
-            "  AS orders (id, ts)";
+        String initialValues =
+                "INSERT INTO pulsar\n"
+                        + "SELECT id, CAST(ts AS TIMESTAMP(3)) \n"
+                        + "FROM (VALUES (1, '2019-12-12 00:00:01.001001'), \n"
+                        + "  (2, '2019-12-12 00:00:01.001001'), \n"
+                        + "  (3, '2019-12-12 00:00:01.001001'), \n"
+                        + "  (4, '2019-12-12 00:00:01.001001'), \n"
+                        + "  (5, '2019-12-12 00:00:01.001001'), \n"
+                        + "  (6, '2019-12-12 00:00:01.001001'))\n"
+                        + "  AS orders (id, ts)";
         tEnv.executeSql(initialValues).await();
 
         // ---------- Consume stream from Pulsar -------------------
         System.out.println("Insert ok");
-        String query = "SELECT \n" +
-            "  id + 1 \n" +
-            "FROM pulsar \n";
+        String query = "SELECT \n" + "  id + 1 \n" + "FROM pulsar \n";
         DataStream<RowData> result = tEnv.toAppendStream(tEnv.sqlQuery(query), RowData.class);
         TestingSinkFunction sink = new TestingSinkFunction(6);
         result.addSink(sink).setParallelism(1);
         TestUtils.tryExecute(see, "Job_2");
 
-        List<String> expected = Arrays.asList(
-            "+I(2)",
-            "+I(3)",
-            "+I(4)", "+I(5)", "+I(6)", "+I(7)");
+        List<String> expected = Arrays.asList("+I(2)", "+I(3)", "+I(4)", "+I(5)", "+I(6)", "+I(7)");
 
         assertEquals(expected, TestingSinkFunction.rows);
     }
@@ -530,53 +566,55 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         String topic = newTopic();
 
         final String createTable;
-        createTable = String.format(
-            "create table pulsar (\n" +
-                "  `computed-price` as price + 1.0,\n" +
-                "  price decimal(38, 18),\n" +
-                "  currency string,\n" +
-                "  log_date date,\n" +
-                "  log_time time(3),\n" +
-                "  log_ts timestamp(3),\n" +
-                "  ts as log_ts + INTERVAL '1' SECOND,\n" +
-                "  watermark for ts as ts\n" +
-                ") with (\n" +
-                "  'connector' = 'pulsar',\n" +
-                "  'generic' = 'true',\n" +
-                "  'topic' = '%s',\n" +
-                "  'service-url' = '%s',\n" +
-                "  'admin-url' = '%s',\n" +
-                "  'scan.startup.mode' = 'earliest', \n" +
-                "  'format' ='avro' \n" +
-                ")",
-            topic,
-            serviceUrl,
-            adminUrl);
+        createTable =
+                String.format(
+                        "create table pulsar (\n"
+                                + "  `computed-price` as price + 1.0,\n"
+                                + "  price decimal(38, 18),\n"
+                                + "  currency string,\n"
+                                + "  log_date date,\n"
+                                + "  log_time time(3),\n"
+                                + "  log_ts timestamp(3),\n"
+                                + "  ts as log_ts + INTERVAL '1' SECOND,\n"
+                                + "  watermark for ts as ts\n"
+                                + ") with (\n"
+                                + "  'connector' = 'pulsar',\n"
+                                + "  'generic' = 'true',\n"
+                                + "  'topic' = '%s',\n"
+                                + "  'service-url' = '%s',\n"
+                                + "  'admin-url' = '%s',\n"
+                                + "  'scan.startup.mode' = 'earliest', \n"
+                                + "  'format' ='avro' \n"
+                                + ")",
+                        topic, serviceUrl, adminUrl);
+
         tEnv.executeSql(createTable);
 
-        String initialValues = "INSERT INTO pulsar\n" +
-            "SELECT CAST(price AS DECIMAL(10, 2)), currency, " +
-            " CAST(d AS DATE), CAST(t AS TIME(0)), CAST(ts AS TIMESTAMP(3))\n" +
-            "FROM (VALUES (2.02,'Euro','2019-12-12', '00:00:01', '2019-12-12 00:00:01.001001'), \n" +
-            "  (1.11,'US Dollar','2019-12-12', '00:00:02', '2019-12-12 00:00:02.002001'), \n" +
-            "  (50,'Yen','2019-12-12', '00:00:03', '2019-12-12 00:00:03.004001'), \n" +
-            "  (3.1,'Euro','2019-12-12', '00:00:04', '2019-12-12 00:00:04.005001'), \n" +
-            "  (5.33,'US Dollar','2019-12-12', '00:00:05', '2019-12-12 00:00:05.006001'), \n" +
-            "  (0,'DUMMY','2019-12-12', '00:00:10', '2019-12-12 00:00:10'))\n" +
-            "  AS orders (price, currency, d, t, ts)";
+        String initialValues =
+                "INSERT INTO pulsar\n"
+                        + "SELECT CAST(price AS DECIMAL(10, 2)), currency, "
+                        + " CAST(d AS DATE), CAST(t AS TIME(0)), CAST(ts AS TIMESTAMP(3))\n"
+                        + "FROM (VALUES (2.02,'Euro','2019-12-12', '00:00:01', '2019-12-12 00:00:01.001001'), \n"
+                        + "  (1.11,'US Dollar','2019-12-12', '00:00:02', '2019-12-12 00:00:02.002001'), \n"
+                        + "  (50,'Yen','2019-12-12', '00:00:03', '2019-12-12 00:00:03.004001'), \n"
+                        + "  (3.1,'Euro','2019-12-12', '00:00:04', '2019-12-12 00:00:04.005001'), \n"
+                        + "  (5.33,'US Dollar','2019-12-12', '00:00:05', '2019-12-12 00:00:05.006001'), \n"
+                        + "  (0,'DUMMY','2019-12-12', '00:00:10', '2019-12-12 00:00:10'))\n"
+                        + "  AS orders (price, currency, d, t, ts)";
         tEnv.executeSql(initialValues).await();
 
         // ---------- Consume stream from pulsar -------------------
         System.out.println("Insert ok");
-        String query = "SELECT\n" +
-            "  CAST(TUMBLE_END(ts, INTERVAL '5' SECOND) AS VARCHAR),\n" +
-            "  CAST(MAX(log_date) AS VARCHAR),\n" +
-            "  CAST(MAX(log_time) AS VARCHAR),\n" +
-            "  CAST(MAX(ts) AS VARCHAR),\n" +
-            "  COUNT(*),\n" +
-            "  CAST(MAX(price) AS DECIMAL(10, 2))\n" +
-            "FROM pulsar\n" +
-            "GROUP BY TUMBLE(ts, INTERVAL '5' SECOND)";
+        String query =
+                "SELECT\n"
+                        + "  CAST(TUMBLE_END(ts, INTERVAL '5' SECOND) AS VARCHAR),\n"
+                        + "  CAST(MAX(log_date) AS VARCHAR),\n"
+                        + "  CAST(MAX(log_time) AS VARCHAR),\n"
+                        + "  CAST(MAX(ts) AS VARCHAR),\n"
+                        + "  COUNT(*),\n"
+                        + "  CAST(MAX(price) AS DECIMAL(10, 2))\n"
+                        + "FROM pulsar\n"
+                        + "GROUP BY TUMBLE(ts, INTERVAL '5' SECOND)";
 
         DataStream<RowData> result = tEnv.toAppendStream(tEnv.sqlQuery(query), RowData.class);
         TestingSinkFunction sink = new TestingSinkFunction(2);
@@ -584,9 +622,10 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
 
         TestUtils.tryExecute(see, "Job_2");
 
-        List<String> expected = Arrays.asList(
-            "+I(2019-12-12 00:00:05.000,2019-12-12,00:00:03,2019-12-12 00:00:04.004,3,50.00)",
-            "+I(2019-12-12 00:00:10.000,2019-12-12,00:00:05,2019-12-12 00:00:06.006,2,5.33)");
+        List<String> expected =
+                Arrays.asList(
+                        "+I(2019-12-12 00:00:05.000,2019-12-12,00:00:03,2019-12-12 00:00:04.004,3,50.00)",
+                        "+I(2019-12-12 00:00:10.000,2019-12-12,00:00:05,2019-12-12 00:00:06.006,2,5.33)");
 
         assertEquals(expected, TestingSinkFunction.rows);
     }
@@ -599,46 +638,47 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         String topic = newTopic();
 
         // ---------- Produce an event time stream into pulsar -------------------
-        final String createTable = String.format(
-            "CREATE TABLE pulsar (\n"
-                + "  `physical_1` STRING,\n"
-                + "  `physical_2` INT,\n"
-                // metadata fields are out of order on purpose
-                // offset is ignored because it might not be deterministic
-                + "  `eventTime` TIMESTAMP(3) METADATA,\n"
-                + "  `properties` MAP<STRING, STRING> METADATA ,\n"
-                + "  `topic` STRING METADATA VIRTUAL,\n"
-                + "  `sequenceId` BIGINT METADATA VIRTUAL,\n"
-                + "  `key` STRING ,\n"
-                + "  `physical_3` BOOLEAN\n"
-                + ") WITH (\n"
-                + "  'connector' = 'pulsar',\n"
-                + "  'generic' = 'true',\n"
-                + "  'topic' = '%s',\n"
-                + "  'key.format' = 'raw',\n"
-                + "  'key.fields' = 'key',\n"
-                + "  'value.format' = 'avro',\n"
-                + "  'service-url' = '%s',\n"
-                + "  'admin-url' = '%s',\n"
-                + "  'scan.startup.mode' = 'earliest' \n"
-                + ")",
-            topic,
-            serviceUrl,
-            adminUrl);
+        final String createTable =
+                String.format(
+                        "CREATE TABLE pulsar (\n"
+                                + "  `physical_1` STRING,\n"
+                                + "  `physical_2` INT,\n"
+                                // metadata fields are out of order on purpose
+                                // offset is ignored because it might not be deterministic
+                                + "  `eventTime` TIMESTAMP(3) METADATA,\n"
+                                + "  `properties` MAP<STRING, STRING> METADATA ,\n"
+                                + "  `topic` STRING METADATA VIRTUAL,\n"
+                                + "  `sequenceId` BIGINT METADATA VIRTUAL,\n"
+                                + "  `key` STRING ,\n"
+                                + "  `physical_3` BOOLEAN\n"
+                                + ") WITH (\n"
+                                + "  'connector' = 'pulsar',\n"
+                                + "  'generic' = 'true',\n"
+                                + "  'topic' = '%s',\n"
+                                + "  'key.format' = 'raw',\n"
+                                + "  'key.fields' = 'key',\n"
+                                + "  'value.format' = 'avro',\n"
+                                + "  'service-url' = '%s',\n"
+                                + "  'admin-url' = '%s',\n"
+                                + "  'scan.startup.mode' = 'earliest' \n"
+                                + ")",
+                        topic, serviceUrl, adminUrl);
 
         tEnv.executeSql(createTable);
 
-        String initialValues = "INSERT INTO pulsar \n"
-            + "VALUES\n"
-            + " ('data 1', 1, TIMESTAMP '2020-03-08 13:12:11.123', MAP['k11', 'v11', 'k12', 'v12'], 'key1', TRUE),\n"
-            + " ('data 2', 2, TIMESTAMP '2020-03-09 13:12:11.123', MAP['k21', 'v21', 'k22', 'v22'], 'key2', FALSE),\n"
-            + " ('data 3', 3, TIMESTAMP '2020-03-10 13:12:11.123', MAP['k31', 'v31', 'k32', 'v32'], 'key3', TRUE)";
+        String initialValues =
+                "INSERT INTO pulsar \n"
+                        + "VALUES\n"
+                        + " ('data 1', 1, TIMESTAMP '2020-03-08 13:12:11.123', MAP['k11', 'v11', 'k12', 'v12'], 'key1', TRUE),\n"
+                        + " ('data 2', 2, TIMESTAMP '2020-03-09 13:12:11.123', MAP['k21', 'v21', 'k22', 'v22'], 'key2', FALSE),\n"
+                        + " ('data 3', 3, TIMESTAMP '2020-03-10 13:12:11.123', MAP['k31', 'v31', 'k32', 'v32'], 'key3', TRUE)";
 
         tEnv.executeSql(initialValues).await();
 
         // ---------- Consume stream from pulsar -------------------
 
-        final List<Row> result = PulsarTableTestUtils.collectRows(tEnv.sqlQuery("SELECT * FROM pulsar"), 3);
+        final List<Row> result =
+                PulsarTableTestUtils.collectRows(tEnv.sqlQuery("SELECT * FROM pulsar"), 3);
 
         final Map<String, String> headers1 = new HashMap<>();
         headers1.put("k11", "v11");
@@ -652,11 +692,35 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         headers3.put("k31", "v31");
         headers3.put("k32", "v32");
 
-        final List<Row> expected = Arrays.asList(
-            Row.of("data 1", 1, LocalDateTime.parse("2020-03-08T13:12:11.123"), headers1, topic, 0L, "key1", true),
-            Row.of("data 2", 2, LocalDateTime.parse("2020-03-09T13:12:11.123"), headers2, topic, 1L, "key2", false),
-            Row.of("data 3", 3, LocalDateTime.parse("2020-03-10T13:12:11.123"), headers3, topic, 2L, "key3", true)
-        );
+        final List<Row> expected =
+                Arrays.asList(
+                        Row.of(
+                                "data 1",
+                                1,
+                                LocalDateTime.parse("2020-03-08T13:12:11.123"),
+                                headers1,
+                                topic,
+                                0L,
+                                "key1",
+                                true),
+                        Row.of(
+                                "data 2",
+                                2,
+                                LocalDateTime.parse("2020-03-09T13:12:11.123"),
+                                headers2,
+                                topic,
+                                1L,
+                                "key2",
+                                false),
+                        Row.of(
+                                "data 3",
+                                3,
+                                LocalDateTime.parse("2020-03-10T13:12:11.123"),
+                                headers3,
+                                topic,
+                                2L,
+                                "key3",
+                                true));
 
         assertThat(result, deepEqualTo(expected, true));
     }
@@ -682,49 +746,59 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         }
 
         List<MessageId> messageIdList =
-            sendTypedMessagesWithMetadata(topic, SchemaType.INT32,
-                SchemaData.INTEGER_LIST, Optional.empty(),
-                null, eventTimes, sequenceIds, properties, keys);
+                sendTypedMessagesWithMetadata(
+                        topic,
+                        SchemaType.INT32,
+                        SchemaData.INTEGER_LIST,
+                        Optional.empty(),
+                        null,
+                        eventTimes,
+                        sequenceIds,
+                        properties,
+                        keys);
         List<Row> expected = new ArrayList<>();
         for (int i = 0; i < SchemaData.INTEGER_LIST.size(); i++) {
             Timestamp timestamp = new Timestamp(eventTimes.get(i));
             LocalDateTime localDateTime = timestamp.toLocalDateTime();
-            expected.add(Row.of(SchemaData.INTEGER_LIST.get(i), localDateTime,
-                properties.get(i), topic, keys.get(i), sequenceIds.get(i)));
+            expected.add(
+                    Row.of(
+                            SchemaData.INTEGER_LIST.get(i),
+                            localDateTime,
+                            properties.get(i),
+                            topic,
+                            keys.get(i),
+                            sequenceIds.get(i)));
         }
 
         // ---------- Produce an event time stream into pulsar -------------------
-        final String createTable = String.format(
-            "CREATE TABLE pulsar (\n"
-                + "  `physical_1` INT,\n"
-                // metadata fields are out of order on purpose
-                // offset is ignored because it might not be deterministic
-//                        + "  `messageId` BYTES METADATA,\n"
-                + "  `eventTime` TIMESTAMP(3) METADATA,\n"
-                + "  `properties` MAP<STRING, STRING> METADATA ,\n"
-                + "  `topic` STRING METADATA VIRTUAL,\n"
-                + "  `key` STRING ,\n"
-                + "  `sequenceId` BIGINT METADATA VIRTUAL\n"
-                + ") WITH (\n"
-                + "  'connector' = 'pulsar',\n"
-                + "  'generic' = 'true',\n"
-                + "  'topic' = '%s',\n"
-                + "  'service-url' = '%s',\n"
-                + "  'admin-url' = '%s',\n"
-                + "  'value.fields-include' = 'EXCEPT_KEY', \n"
-                + "  'key.format' = 'raw',\n"
-                + "  'key.fields' = 'key',\n"
-                + "  'value.format' = 'atomic',\n"
-                + " 'scan.startup.mode' = 'earliest' \n"
-                + ")",
-            topic,
-            serviceUrl,
-            adminUrl);
+        final String createTable =
+                String.format(
+                        "CREATE TABLE pulsar (\n"
+                                + "  `physical_1` INT,\n"
+                                + "  `eventTime` TIMESTAMP(3) METADATA,\n"
+                                + "  `properties` MAP<STRING, STRING> METADATA ,\n"
+                                + "  `topic` STRING METADATA VIRTUAL,\n"
+                                + "  `key` STRING ,\n"
+                                + "  `sequenceId` BIGINT METADATA VIRTUAL\n"
+                                + ") WITH (\n"
+                                + "  'connector' = 'pulsar',\n"
+                                + "  'generic' = 'true',\n"
+                                + "  'topic' = '%s',\n"
+                                + "  'service-url' = '%s',\n"
+                                + "  'admin-url' = '%s',\n"
+                                + "  'value.fields-include' = 'EXCEPT_KEY', \n"
+                                + "  'key.format' = 'raw',\n"
+                                + "  'key.fields' = 'key',\n"
+                                + "  'value.format' = 'atomic',\n"
+                                + " 'scan.startup.mode' = 'earliest' \n"
+                                + ")",
+                        topic, serviceUrl, adminUrl);
+
         tEnv.executeSql(createTable);
 
-        final List<Row> result = PulsarTableTestUtils.collectRows(tEnv.sqlQuery("SELECT * FROM pulsar"), 5);
+        final List<Row> result =
+                PulsarTableTestUtils.collectRows(tEnv.sqlQuery("SELECT * FROM pulsar"), 5);
         assertThat(result, deepEqualTo(expected, true));
-
     }
 
     private Properties getSinkProperties() {

@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -20,10 +24,10 @@ import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
+import org.apache.flink.streaming.connectors.pulsar.serialization.FlinkSchema;
+import org.apache.flink.streaming.connectors.pulsar.serialization.PulsarDeserializationSchema;
 import org.apache.flink.streaming.connectors.pulsar.testutils.TestUtils;
 import org.apache.flink.streaming.util.TestStreamEnvironment;
-import org.apache.flink.streaming.util.serialization.FlinkSchema;
-import org.apache.flink.streaming.util.serialization.PulsarDeserializationSchema;
 import org.apache.flink.test.util.SuccessException;
 
 import org.apache.pulsar.client.api.Message;
@@ -51,9 +55,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static java.time.temporal.ChronoUnit.SECONDS;
 import static org.testcontainers.containers.PulsarContainer.BROKER_HTTP_PORT;
 
-/**
- * pulsar auth tests.
- */
+/** pulsar auth tests. */
 public class PulsarAuthTest {
 
     private static final Logger log = LoggerFactory.getLogger(PulsarAuthTest.class);
@@ -66,25 +68,28 @@ public class PulsarAuthTest {
     @BeforeClass
     public static void prepare() throws Exception {
         log.info("    Starting PulsarTestBase ");
-        final String pulsarImage = System.getProperty("pulsar.systemtest.image", "apachepulsar/pulsar:2.8.0");
-        DockerImageName pulsar = DockerImageName.parse(pulsarImage)
-                .asCompatibleSubstituteFor("apachepulsar/pulsar");
+        final String pulsarImage =
+                System.getProperty("pulsar.systemtest.image", "apachepulsar/pulsar:2.8.0");
+        DockerImageName pulsar =
+                DockerImageName.parse(pulsarImage).asCompatibleSubstituteFor("apachepulsar/pulsar");
         pulsarService = new PulsarContainer(pulsar);
-        pulsarService
-                .withClasspathResourceMapping("pulsar/auth-standalone.conf", "/pulsar/conf/standalone.conf",
-                        BindMode.READ_ONLY);
-        pulsarService.withClasspathResourceMapping("pulsar/auth-client.conf", "/pulsar/conf/client.conf",
-                BindMode.READ_ONLY);
-        pulsarService.waitingFor(new HttpWaitStrategy()
-                .forPort(BROKER_HTTP_PORT)
-                .forStatusCode(401)
-                .forPath("/admin/v2/namespaces/public/default")
-                .withStartupTimeout(Duration.of(40, SECONDS)));
+        pulsarService.withClasspathResourceMapping(
+                "pulsar/auth-standalone.conf", "/pulsar/conf/standalone.conf", BindMode.READ_ONLY);
+        pulsarService.withClasspathResourceMapping(
+                "pulsar/auth-client.conf", "/pulsar/conf/client.conf", BindMode.READ_ONLY);
+        pulsarService.waitingFor(
+                new HttpWaitStrategy()
+                        .forPort(BROKER_HTTP_PORT)
+                        .forStatusCode(401)
+                        .forPath("/admin/v2/namespaces/public/default")
+                        .withStartupTimeout(Duration.of(40, SECONDS)));
         pulsarService.start();
         pulsarService.followOutput(new Slf4jLogConsumer(log));
         serviceUrl = pulsarService.getPulsarBrokerUrl();
         adminUrl = pulsarService.getHttpServiceUrl();
-        log.info("Successfully started pulsar service at cluster " + pulsarService.getContainerName());
+        log.info(
+                "Successfully started pulsar service at cluster "
+                        + pulsarService.getContainerName());
     }
 
     @AfterClass
@@ -113,12 +118,15 @@ public class PulsarAuthTest {
 
     @Test
     public void testSource() throws Exception {
-        final StreamExecutionEnvironment environment = StreamExecutionEnvironment.getExecutionEnvironment();
+        final StreamExecutionEnvironment environment =
+                StreamExecutionEnvironment.getExecutionEnvironment();
         final String topic = "persistent://public/default/test";
         int total = 20;
-        try (PulsarClient client = PulsarClient.builder()
-                .authentication(authPluginClassName, authParamsString)
-                .serviceUrl(serviceUrl).build()) {
+        try (PulsarClient client =
+                PulsarClient.builder()
+                        .authentication(authPluginClassName, authParamsString)
+                        .serviceUrl(serviceUrl)
+                        .build()) {
             sendMessage(topic, client, total);
         }
 
@@ -126,39 +134,29 @@ public class PulsarAuthTest {
         properties.setProperty("topic", topic);
         properties.setProperty(PulsarOptions.AUTH_PLUGIN_CLASSNAME_KEY, authPluginClassName);
         properties.setProperty(PulsarOptions.AUTH_PARAMS_KEY, authParamsString);
-        final FlinkPulsarSource<String> stringFlinkPulsarSource = new FlinkPulsarSource<String>(
-                serviceUrl,
-                adminUrl,
-                new StringPulsarDeserializationSchema(),
-                properties
-        )
-                .setStartFromEarliest();
-        environment.addSource(stringFlinkPulsarSource)
-                .map(new IgnoreMap(total))
-                .print();
+        final FlinkPulsarSource<String> stringFlinkPulsarSource =
+                new FlinkPulsarSource<String>(
+                                serviceUrl,
+                                adminUrl,
+                                new StringPulsarDeserializationSchema(),
+                                properties)
+                        .setStartFromEarliest();
+        environment.addSource(stringFlinkPulsarSource).map(new IgnoreMap(total)).print();
         TestUtils.tryExecute(environment, "test-auth-source");
     }
 
-    protected void sendMessage(String topic, PulsarClient pulsarClient, int total) throws PulsarClientException {
-        try (
-                Producer<String> producer = pulsarClient.newProducer(Schema.STRING)
-                        .topic(topic)
-                        .create();
-        ) {
-            pulsarClient.newConsumer()
-                    .topic(topic)
-                    .subscriptionName("test")
-                    .subscribe()
-                    .close();
+    protected void sendMessage(String topic, PulsarClient pulsarClient, int total)
+            throws PulsarClientException {
+        try (Producer<String> producer =
+                pulsarClient.newProducer(Schema.STRING).topic(topic).create(); ) {
+            pulsarClient.newConsumer().topic(topic).subscriptionName("test").subscribe().close();
             for (int i = 0; i < total; i++) {
                 producer.send("test-string-" + i);
             }
         }
     }
 
-    /**
-     * ignore map for test.
-     */
+    /** ignore map for test. */
     public static class IgnoreMap implements MapFunction<String, String> {
 
         private int total;
@@ -179,10 +177,9 @@ public class PulsarAuthTest {
         }
     }
 
-    /**
-     * string deserialization for schema.
-     */
-    private static class StringPulsarDeserializationSchema implements PulsarDeserializationSchema<String> {
+    /** string deserialization for schema. */
+    private static class StringPulsarDeserializationSchema
+            implements PulsarDeserializationSchema<String> {
 
         private SimpleStringSchema simpleStringSchema = new SimpleStringSchema();
 
@@ -198,6 +195,7 @@ public class PulsarAuthTest {
 
         @Override
         public void open(DeserializationSchema.InitializationContext context) throws Exception {
+            // Nothing to do.
         }
 
         @Override

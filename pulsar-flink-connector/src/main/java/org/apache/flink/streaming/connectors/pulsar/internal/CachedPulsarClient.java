@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -30,9 +34,7 @@ import org.apache.pulsar.shade.com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.concurrent.ConcurrentMap;
 
-/**
- * Enable the sharing of same PulsarClient among tasks in a same process.
- */
+/** Enable the sharing of same PulsarClient among tasks in a same process. */
 @Slf4j
 @UtilityClass
 public class CachedPulsarClient {
@@ -40,6 +42,25 @@ public class CachedPulsarClient {
     private static final ObjectMapper mapper = new ObjectMapper();
 
     private static int cacheSize = 100;
+
+    private static final RemovalListener<String, PulsarClientImpl> removalListener =
+            notification -> {
+                String config = notification.getKey();
+                PulsarClientImpl client = notification.getValue();
+                log.debug(
+                        "Evicting pulsar client {} with config {}, due to {}",
+                        client,
+                        config,
+                        notification.getCause());
+
+                close(config, client);
+            };
+
+    private static final Cache<String, PulsarClientImpl> clientCache =
+            CacheBuilder.newBuilder()
+                    .maximumSize(cacheSize)
+                    .removalListener(removalListener)
+                    .build();
 
     public static void setCacheSize(int newSize) {
         cacheSize = newSize;
@@ -49,24 +70,13 @@ public class CachedPulsarClient {
         return cacheSize;
     }
 
-    private static final RemovalListener<String, PulsarClientImpl> removalListener = notification -> {
-        String config = notification.getKey();
-        PulsarClientImpl client = notification.getValue();
-        log.debug("Evicting pulsar client {} with config {}, due to {}", client, config, notification.getCause());
-
-        close(config, client);
-    };
-
-    private static final Cache<String, PulsarClientImpl> clientCache = CacheBuilder.newBuilder()
-        .maximumSize(cacheSize)
-        .removalListener(removalListener)
-        .build();
-
-    private static PulsarClientImpl createPulsarClient(ClientConfigurationData clientConfig) throws PulsarClientException {
+    private static PulsarClientImpl createPulsarClient(ClientConfigurationData clientConfig)
+            throws PulsarClientException {
         PulsarClientImpl client;
         try {
             client = new PulsarClientImpl(clientConfig);
-            log.debug("Created a new instance of PulsarClientImpl for clientConf = {}", clientConfig);
+            log.debug(
+                    "Created a new instance of PulsarClientImpl for clientConf = {}", clientConfig);
         } catch (PulsarClientException e) {
             log.error("Failed to create PulsarClientImpl for clientConf = {}", clientConfig);
             throw e;
@@ -74,7 +84,8 @@ public class CachedPulsarClient {
         return client;
     }
 
-    public static synchronized PulsarClientImpl getOrCreate(ClientConfigurationData config) throws PulsarClientException {
+    public static synchronized PulsarClientImpl getOrCreate(ClientConfigurationData config)
+            throws PulsarClientException {
         String key = serializeKey(config);
         PulsarClientImpl client = clientCache.getIfPresent(key);
 
@@ -92,7 +103,8 @@ public class CachedPulsarClient {
                 log.info("Closing the Pulsar client with config {}", clientConfig);
                 client.close();
             } catch (PulsarClientException e) {
-                log.warn(String.format("Error while closing the Pulsar client %s", clientConfig), e);
+                log.warn(
+                        String.format("Error while closing the Pulsar client %s", clientConfig), e);
             }
         }
     }

@@ -252,6 +252,7 @@ public class PulsarDynamicTableSource implements ScanTableSource, SupportsReadin
                     subscriptionPosition = MessageId.earliest;
                 }
                 source.setStartFromSubscription(startupOptions.externalSubscriptionName, subscriptionPosition);
+                break;
             case TIMESTAMP:
                 source.setStartFromTimestamp(startupOptions.startupTimestampMills);
                 break;

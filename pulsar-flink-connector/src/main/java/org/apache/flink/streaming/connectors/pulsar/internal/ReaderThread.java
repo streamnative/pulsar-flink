@@ -14,6 +14,7 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
+import org.apache.flink.api.common.functions.util.ListCollector;
 import org.apache.flink.streaming.connectors.pulsar.util.MessageIdUtils;
 import org.apache.flink.streaming.util.serialization.PulsarDeserializationSchema;
 
@@ -28,6 +29,8 @@ import org.apache.pulsar.client.impl.MessageIdImpl;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -168,12 +171,16 @@ public class ReaderThread<T> extends Thread {
 
     protected void emitRecord(Message<T> message) throws IOException {
         MessageId messageId = message.getMessageId();
-        final T record = deserializer.deserialize(message);
-        if (deserializer.isEndOfStream(record)) {
-            running = false;
-            return;
+        List<T> list = new ArrayList<>();
+        ListCollector<T> listCollector = new ListCollector<>(list);
+        deserializer.deserialize(message, listCollector);
+        for (T t : list) {
+            if (deserializer.isEndOfStream(t)) {
+                running = false;
+                return;
+            }
+            owner.emitRecordsWithTimestamps(t, state, messageId, message.getEventTime());
         }
-        owner.emitRecordsWithTimestamps(record, state, messageId, message.getEventTime());
     }
 
     public void cancel() throws IOException {

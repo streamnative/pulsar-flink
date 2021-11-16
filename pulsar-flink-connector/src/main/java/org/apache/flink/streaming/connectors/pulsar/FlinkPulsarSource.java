@@ -102,6 +102,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 @Slf4j
 public class FlinkPulsarSource<T> extends RichParallelSourceFunction<T>
         implements ResultTypeQueryable<T>, CheckpointListener, CheckpointedFunction {
+    private static final long serialVersionUID = -6080350107046202906L;
 
     /** The maximum number of pending non-committed checkpoints to track, to avoid memory leaks. */
     public static final int MAX_NUM_PENDING_CHECKPOINTS = 100;
@@ -234,6 +235,8 @@ public class FlinkPulsarSource<T> extends RichParallelSourceFunction<T>
     private transient int taskIndex;
 
     private transient int numParallelTasks;
+
+    private long startupOffsetsTimestamp = -1L;
 
     public FlinkPulsarSource(
             String adminUrl,
@@ -448,6 +451,24 @@ public class FlinkPulsarSource<T> extends RichParallelSourceFunction<T>
         return this;
     }
 
+    public FlinkPulsarSource<T> setStartFromTimestamp(long startupOffsetsTimestamp) {
+        checkArgument(
+                startupOffsetsTimestamp >= 0,
+                "The provided value for the startup offsets timestamp is invalid.");
+
+        long currentTimestamp = System.currentTimeMillis();
+        checkArgument(
+                startupOffsetsTimestamp <= currentTimestamp,
+                "Startup time[%s] must be before current time[%s].",
+                startupOffsetsTimestamp,
+                currentTimestamp);
+
+        this.startupMode = StartupMode.TIMESTAMP;
+        this.startupOffsetsTimestamp = startupOffsetsTimestamp;
+        this.specificStartupOffsets = null;
+        return this;
+    }
+
     // ------------------------------------------------------------------------
     //  Work methods
     // ------------------------------------------------------------------------
@@ -631,9 +652,6 @@ public class FlinkPulsarSource<T> extends RichParallelSourceFunction<T>
             Set<TopicRange> excludeStartMessageIds)
             throws Exception {
 
-        // readerConf.putIfAbsent(PulsarOptions.SUBSCRIPTION_ROLE_OPTION_KEY,
-        // getSubscriptionName());
-
         return new PulsarFetcher<>(
                 sourceContext,
                 seedTopicsWithInitialOffsets,
@@ -650,7 +668,8 @@ public class FlinkPulsarSource<T> extends RichParallelSourceFunction<T>
                 deserializer,
                 metadataReader,
                 streamingRuntime.getMetricGroup().addGroup(PULSAR_SOURCE_METRICS_GROUP),
-                useMetrics);
+                useMetrics,
+                startupOffsetsTimestamp);
     }
 
     public void joinDiscoveryLoopThread() throws InterruptedException {
@@ -988,6 +1007,7 @@ public class FlinkPulsarSource<T> extends RichParallelSourceFunction<T>
 
         switch (mode) {
             case LATEST:
+            case TIMESTAMP:
                 return topics.stream().collect(Collectors.toMap(k -> k, k -> MessageId.latest));
             case EARLIEST:
                 return topics.stream().collect(Collectors.toMap(k -> k, k -> MessageId.earliest));

@@ -255,6 +255,7 @@ public class PulsarTableOptions {
     public static final String SCAN_STARTUP_MODE_VALUE_EXTERNAL_SUBSCRIPTION =
             "external-subscription";
     public static final String SCAN_STARTUP_MODE_VALUE_SPECIFIC_OFFSETS = "specific-offsets";
+    public static final String SCAN_STARTUP_MODE_TIMESTAMP = "timestamp";
 
     private static final Set<String> SCAN_STARTUP_MODE_ENUMS =
             new HashSet<>(
@@ -262,7 +263,8 @@ public class PulsarTableOptions {
                             SCAN_STARTUP_MODE_VALUE_EARLIEST,
                             SCAN_STARTUP_MODE_VALUE_LATEST,
                             SCAN_STARTUP_MODE_VALUE_EXTERNAL_SUBSCRIPTION,
-                            SCAN_STARTUP_MODE_VALUE_SPECIFIC_OFFSETS));
+                            SCAN_STARTUP_MODE_VALUE_SPECIFIC_OFFSETS,
+                            SCAN_STARTUP_MODE_TIMESTAMP));
 
     // Sink partitioner.
     public static final String SINK_MESSAGE_ROUTER_VALUE_KEY_HASH = "key-hash";
@@ -555,6 +557,11 @@ public class PulsarTableOptions {
                     options.startupMode = StartupMode.EXTERNAL_SUBSCRIPTION;
                     break;
 
+                case PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_TIMESTAMP:
+                    options.startupMode = StartupMode.TIMESTAMP;
+                    options.startupTimestampMills = tableOptions.get(SCAN_STARTUP_TIMESTAMP_MILLIS);
+                    break;
+
                 default:
                     throw new TableException(
                             "Unsupported startup mode. Validator should have checked that.");
@@ -734,6 +741,7 @@ public class PulsarTableOptions {
         public Map<String, MessageId> specificOffsets = new HashMap<>();
         public String externalSubscriptionName;
         public String externalSubStartOffset;
+        public long startupTimestampMills;
     }
 
     /** Strategies to derive the data type of a value format by considering a key format. */

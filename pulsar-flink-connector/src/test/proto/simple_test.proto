@@ -37,7 +37,6 @@ message SimpleTest {
         PRODUCTS = 5;
         VIDEO = 7;
       }
-
 }
 
 

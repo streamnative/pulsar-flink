@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -45,9 +49,7 @@ import java.util.Collections;
 import static org.apache.avro.Schema.Type.RECORD;
 import static org.apache.pulsar.shade.com.google.common.base.Preconditions.checkNotNull;
 
-/**
- * Various utilities to working with Pulsar Schema and Flink type system.
- */
+/** Various utilities to working with Pulsar Schema and Flink type system. */
 @Slf4j
 public class SchemaUtils {
 
@@ -61,12 +63,18 @@ public class SchemaUtils {
             if (pae.getStatusCode() == 404) {
                 existingSchema = null;
             } else {
-                throw new RuntimeException(
-                        String.format("Failed to get schema information for %s", TopicName.get(topic).toString()), pae);
+                throw new IllegalStateException(
+                        String.format(
+                                "Failed to get schema information for %s",
+                                TopicName.get(topic).toString()),
+                        pae);
             }
         } catch (Throwable e) {
-            throw new RuntimeException(
-                    String.format("Failed to get schema information for %s", TopicName.get(topic).toString()), e);
+            throw new IllegalStateException(
+                    String.format(
+                            "Failed to get schema information for %s",
+                            TopicName.get(topic).toString()),
+                    e);
         }
 
         if (existingSchema == null) {
@@ -79,20 +87,28 @@ public class SchemaUtils {
                 admin.schemas().createSchema(TopicName.get(topic).toString(), pl);
             } catch (PulsarAdminException pae) {
                 if (pae.getStatusCode() == 404) {
-                    throw new RuntimeException(
-                            String.format("Create schema for %s get 404", TopicName.get(topic).toString()), pae);
+                    throw new IllegalStateException(
+                            String.format(
+                                    "Create schema for %s get 404",
+                                    TopicName.get(topic).toString()),
+                            pae);
                 } else {
-                    throw new RuntimeException(
-                            String.format("Failed to create schema information for %s",
-                                    TopicName.get(topic).toString()), pae);
+                    throw new IllegalStateException(
+                            String.format(
+                                    "Failed to create schema information for %s",
+                                    TopicName.get(topic).toString()),
+                            pae);
                 }
             } catch (Throwable e) {
-                throw new RuntimeException(
-                        String.format("Failed to create schema information for %s", TopicName.get(topic).toString()),
+                throw new IllegalStateException(
+                        String.format(
+                                "Failed to create schema information for %s",
+                                TopicName.get(topic).toString()),
                         e);
             }
-        } else if (!schemaEqualsIgnoreProperties(schemaInfo, existingSchema) && !compatibleSchema(existingSchema, schemaInfo)) {
-            throw new RuntimeException("Writing to a topic which have incompatible schema");
+        } else if (!schemaEqualsIgnoreProperties(schemaInfo, existingSchema)
+                && !compatibleSchema(existingSchema, schemaInfo)) {
+            throw new IllegalStateException("Writing to a topic which have incompatible schema");
         }
     }
 
@@ -105,9 +121,10 @@ public class SchemaUtils {
         }
     }
 
-    private static boolean schemaEqualsIgnoreProperties(SchemaInfo schemaInfo, SchemaInfo existingSchema) {
-        return existingSchema.getType().equals(schemaInfo.getType()) && Arrays.equals(existingSchema.getSchema(),
-                schemaInfo.getSchema());
+    private static boolean schemaEqualsIgnoreProperties(
+            SchemaInfo schemaInfo, SchemaInfo existingSchema) {
+        return existingSchema.getType().equals(schemaInfo.getType())
+                && Arrays.equals(existingSchema.getSchema(), schemaInfo.getSchema());
     }
 
     private static String getSchemaString(SchemaInfo schemaInfo) {
@@ -117,8 +134,7 @@ public class SchemaUtils {
         }
         if (schemaInfo.getType() == SchemaType.KEY_VALUE) {
             return DefaultImplementation.convertKeyValueSchemaInfoDataToString(
-                    DefaultImplementation.decodeKeyValueSchemaInfo(schemaInfo)
-            );
+                    DefaultImplementation.decodeKeyValueSchemaInfo(schemaInfo));
         }
         return new String(schemaData, StandardCharsets.UTF_8);
     }
@@ -166,9 +182,9 @@ public class SchemaUtils {
         return numBytes;
     }
 
-    public static SchemaInfo buildRowSchema(DataType dataType,
-                                            RecordSchemaType recordSchemaType) {
-        org.apache.avro.Schema avroSchema = AvroSchemaConverter.convertToSchema(dataType.getLogicalType());
+    public static SchemaInfo buildRowSchema(DataType dataType, RecordSchemaType recordSchemaType) {
+        org.apache.avro.Schema avroSchema =
+                AvroSchemaConverter.convertToSchema(dataType.getLogicalType());
         byte[] schemaBytes = avroSchema.toString().getBytes(StandardCharsets.UTF_8);
         SchemaInfoImpl si = new SchemaInfoImpl();
         si.setSchema(schemaBytes);
@@ -185,19 +201,22 @@ public class SchemaUtils {
                 try {
                     FieldsDataType fieldType = (FieldsDataType) dataType;
                     RowType rowType = (RowType) fieldType.getLogicalType();
-                    DataType atomicType = TypeConversions.fromLogicalToDataType(rowType.getTypeAt(0));
-                    return SimpleSchemaTranslator.atomicType2PulsarSchema(atomicType).getSchemaInfo();
+                    DataType atomicType =
+                            TypeConversions.fromLogicalToDataType(rowType.getTypeAt(0));
+                    return SimpleSchemaTranslator.atomicType2PulsarSchema(atomicType)
+                            .getSchemaInfo();
                 } catch (IncompatibleSchemaException e) {
-                    throw new RuntimeException(e);
+                    throw new IllegalStateException(e);
                 }
             default:
-                throw new IllegalStateException("for now we just support json、avro、atomic format for rowData");
+                throw new IllegalStateException(
+                        "for now we just support json、avro、atomic format for rowData");
         }
         return si;
     }
 
-    public static <T> org.apache.pulsar.client.api.Schema<T> buildSchemaForRecordClazz(Class<T> recordClazz,
-                                                                                       RecordSchemaType recordSchemaType) {
+    public static <T> org.apache.pulsar.client.api.Schema<T> buildSchemaForRecordClazz(
+            Class<T> recordClazz, RecordSchemaType recordSchemaType) {
         if (recordSchemaType == null) {
             return org.apache.pulsar.client.api.Schema.AVRO(recordClazz);
         }
@@ -207,9 +226,11 @@ public class SchemaUtils {
             case JSON:
                 return org.apache.pulsar.client.api.Schema.JSON(recordClazz);
             case PROTOBUF:
-                @SuppressWarnings("unchecked") final org.apache.pulsar.client.api.Schema<T> tSchema =
-                        (org.apache.pulsar.client.api.Schema<T>) org.apache.pulsar.client.api.Schema
-                                .PROTOBUF_NATIVE(convertProtobuf(recordClazz));
+                @SuppressWarnings("unchecked")
+                final org.apache.pulsar.client.api.Schema<T> tSchema =
+                        (org.apache.pulsar.client.api.Schema<T>)
+                                org.apache.pulsar.client.api.Schema.PROTOBUF_NATIVE(
+                                        convertProtobuf(recordClazz));
                 return tSchema;
             default:
                 throw new IllegalArgumentException("not support schema type " + recordSchemaType);
@@ -225,8 +246,8 @@ public class SchemaUtils {
         return recordClazz;
     }
 
-    public static SchemaInfo tableSchemaToSchemaInfo(String format, DataType dataType,
-                                                     Configuration configuration)
+    public static SchemaInfo tableSchemaToSchemaInfo(
+            String format, DataType dataType, Configuration configuration)
             throws IncompatibleSchemaException {
         switch (StringUtils.lowerCase(format)) {
             case "raw":
@@ -236,7 +257,8 @@ public class SchemaUtils {
             case "avro":
                 return getSchemaInfo(SchemaType.AVRO, dataType);
             case "protobuf":
-                final String messageClassName = configuration.get(PbFormatOptions.MESSAGE_CLASS_NAME);
+                final String messageClassName =
+                        configuration.get(PbFormatOptions.MESSAGE_CLASS_NAME);
                 return getProtobufSchemaInfo(messageClassName, SchemaUtils.class.getClassLoader());
             case "atomic":
                 org.apache.pulsar.client.api.Schema pulsarSchema =
@@ -244,15 +266,20 @@ public class SchemaUtils {
                 return pulsarSchema.getSchemaInfo();
             default:
                 throw new UnsupportedOperationException(
-                        "Generic schema is not supported on format '" + format + "' schema type '" + dataType + "'");
+                        "Generic schema is not supported on format '"
+                                + format
+                                + "' schema type '"
+                                + dataType
+                                + "'");
         }
     }
 
-    private static <T extends GeneratedMessageV3> SchemaInfo getProtobufSchemaInfo(String messageClassName,
-                                                                                   ClassLoader classLoader) {
+    private static <T extends GeneratedMessageV3> SchemaInfo getProtobufSchemaInfo(
+            String messageClassName, ClassLoader classLoader) {
         try {
-            final org.apache.pulsar.client.api.Schema<T> tSchema = org.apache.pulsar.client.api.Schema
-                    .PROTOBUF_NATIVE(convertProtobuf(classLoader.loadClass(messageClassName)));
+            final org.apache.pulsar.client.api.Schema<T> tSchema =
+                    org.apache.pulsar.client.api.Schema.PROTOBUF_NATIVE(
+                            convertProtobuf(classLoader.loadClass(messageClassName)));
             return tSchema.getSchemaInfo();
         } catch (ClassNotFoundException e) {
             throw new IllegalArgumentException("not load Protobuf class: " + messageClassName, e);
@@ -270,13 +297,18 @@ public class SchemaUtils {
     }
 
     public static org.apache.avro.Schema getAvroSchema(DataType dataType) {
-        org.apache.avro.Schema schema = AvroSchemaConverter.convertToSchema(dataType.getLogicalType());
+        org.apache.avro.Schema schema =
+                AvroSchemaConverter.convertToSchema(dataType.getLogicalType());
         if (schema.isNullable()) {
-            schema = schema.getTypes().stream()
-                    .filter(s -> s.getType() == RECORD)
-                    .findAny()
-                    .orElseThrow(
-                            () -> new IllegalArgumentException("not support DataType: " + dataType.toString()));
+            schema =
+                    schema.getTypes().stream()
+                            .filter(s -> s.getType() == RECORD)
+                            .findAny()
+                            .orElseThrow(
+                                    () ->
+                                            new IllegalArgumentException(
+                                                    "not support DataType: "
+                                                            + dataType.toString()));
         }
         return schema;
     }

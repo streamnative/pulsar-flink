@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -32,20 +36,25 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Data for various test cases.
- */
+/** Data for various test cases. */
 public class SchemaData {
 
     public static final List<Boolean> BOOLEAN_LIST = Arrays.asList(true, false, true, true, false);
     public static final List<Integer> INTEGER_LIST = Arrays.asList(1, 2, 3, 4, 5);
-    public static final List<byte[]> BYTES_LIST = INTEGER_LIST.stream().map(i -> i.toString().getBytes()).collect(Collectors.toList());
-    public static final List<Byte> INT_8_LIST = INTEGER_LIST.stream().map(Integer::byteValue).collect(Collectors.toList());
-    public static final List<Short> INT_16_LIST = INTEGER_LIST.stream().map(Integer::shortValue).collect(Collectors.toList());
-    public static final List<Long> INT_64_LIST = INTEGER_LIST.stream().map(Integer::longValue).collect(Collectors.toList());
-    public static final List<Double> DOUBLE_LIST = INTEGER_LIST.stream().map(Integer::doubleValue).collect(Collectors.toList());
-    public static final List<Float> FLOAT_LIST = INTEGER_LIST.stream().map(Integer::floatValue).collect(Collectors.toList());
-    public static final List<String> STRING_LIST = INTEGER_LIST.stream().map(Objects::toString).collect(Collectors.toList());
+    public static final List<byte[]> BYTES_LIST =
+            INTEGER_LIST.stream().map(i -> i.toString().getBytes()).collect(Collectors.toList());
+    public static final List<Byte> INT_8_LIST =
+            INTEGER_LIST.stream().map(Integer::byteValue).collect(Collectors.toList());
+    public static final List<Short> INT_16_LIST =
+            INTEGER_LIST.stream().map(Integer::shortValue).collect(Collectors.toList());
+    public static final List<Long> INT_64_LIST =
+            INTEGER_LIST.stream().map(Integer::longValue).collect(Collectors.toList());
+    public static final List<Double> DOUBLE_LIST =
+            INTEGER_LIST.stream().map(Integer::doubleValue).collect(Collectors.toList());
+    public static final List<Float> FLOAT_LIST =
+            INTEGER_LIST.stream().map(Integer::floatValue).collect(Collectors.toList());
+    public static final List<String> STRING_LIST =
+            INTEGER_LIST.stream().map(Objects::toString).collect(Collectors.toList());
     public static List<LocalDate> localDateList;
     public static List<LocalDateTime> localDateTimeList;
     public static List<FA> faList;
@@ -56,48 +65,47 @@ public class SchemaData {
     public static Descriptors.Descriptor descriptor;
 
     static {
-        localDateList = INTEGER_LIST.stream()
-                .map(i -> LocalDate.of(2019, 1, i))
-                .collect(Collectors.toList());
+        localDateList =
+                INTEGER_LIST.stream()
+                        .map(i -> LocalDate.of(2019, 1, i))
+                        .collect(Collectors.toList());
 
-        localDateTimeList = INTEGER_LIST.stream()
-                .map(i -> LocalDateTime.of(2019, 1, i, 20, 35, 40))
-                .collect(Collectors.toList());
+        localDateTimeList =
+                INTEGER_LIST.stream()
+                        .map(i -> LocalDateTime.of(2019, 1, i, 20, 35, 40))
+                        .collect(Collectors.toList());
 
-        fooList = Arrays.asList(
-                new Foo(1, 1.0f, new Bar(true, "a")),
-                new Foo(2, 2.0f, new Bar(false, "b")),
-                new Foo(3, 0, null),
-                new Foo(0, 0, null));
+        fooList =
+                Arrays.asList(
+                        new Foo(1, 1.0f, new Bar(true, "a")),
+                        new Foo(2, 2.0f, new Bar(false, "b")),
+                        new Foo(3, 0, null),
+                        new Foo(0, 0, null));
 
-        flList = Arrays.asList(
-                new FL(Arrays.asList(
-                        new Bar(true, "a"))),
-                new FL(Arrays.asList(
-                        new Bar(false, "b"))),
-                new FL(Arrays.asList(
-                        new Bar(true, "b")))
-                );
+        flList =
+                Arrays.asList(
+                        new FL(Arrays.asList(new Bar(true, "a"))),
+                        new FL(Arrays.asList(new Bar(false, "b"))),
+                        new FL(Arrays.asList(new Bar(true, "b"))));
 
-        faList = Arrays.asList(
-                new FA(new Bar[]{new Bar(true, "a")}),
-                new FA(new Bar[]{new Bar(false, "b")}),
-                new FA(new Bar[]{new Bar(true, "b")}));
+        faList =
+                Arrays.asList(
+                        new FA(new Bar[] {new Bar(true, "a")}),
+                        new FA(new Bar[] {new Bar(false, "b")}),
+                        new FA(new Bar[] {new Bar(true, "b")}));
 
-        fmList = Arrays.asList(
-                new FM(Collections.singletonMap("a", new Bar(true, "a"))),
-                new FM(Collections.singletonMap("b", new Bar(false, "b"))),
-                new FM(Collections.singletonMap("c", new Bar(true, "a")))
-        );
-        String schema =  "{\"fileDescriptorSet\":\"CpUDChJzaW1wbGVfdGVzdDEucHJvdG8SK29yZy5hcGFjaGUuZmxpbmsuZm9ybWF0cy5wcm90b2J1Zi50ZXN0cHJvdG8ioAIKC1NpbXBsZVRlc3QxEg0KAWEYASABKAU6AjEwEg4KAWIYAiABKAM6AzEwMBIJCgFjGAMgASgIEgkKAWQYBCABKAISCQoBZRgFIAEoARIMCgFmGAYgASgJOgFmEgkKAWcYByABKAwSSgoBaBgIIAEoDjI/Lm9yZy5hcGFjaGUuZmxpbmsuZm9ybWF0cy5wcm90b2J1Zi50ZXN0cHJvdG8uU2ltcGxlVGVzdDEuQ29ycHVzEhAKCGZfYWJjXzdkGAkgASgFIloKBkNvcnB1cxINCglVTklWRVJTQUwQABIHCgNXRUIQARIKCgZJTUFHRVMQAhIJCgVMT0NBTBADEggKBE5FV1MQBBIMCghQUk9EVUNUUxAFEgkKBVZJREVPEAdCLworb3JnLmFwYWNoZS5mbGluay5mb3JtYXRzLnByb3RvYnVmLnRlc3Rwcm90b1AB\",\"rootMessageTypeName\":\"org.apache.flink.formats.protobuf.testproto.SimpleTest1\",\"rootFileDescriptorName\":\"simple_test1.proto\"}";
+        fmList =
+                Arrays.asList(
+                        new FM(Collections.singletonMap("a", new Bar(true, "a"))),
+                        new FM(Collections.singletonMap("b", new Bar(false, "b"))),
+                        new FM(Collections.singletonMap("c", new Bar(true, "a"))));
+        String schema =
+                "{\"fileDescriptorSet\":\"CpUDChJzaW1wbGVfdGVzdDEucHJvdG8SK29yZy5hcGFjaGUuZmxpbmsuZm9ybWF0cy5wcm90b2J1Zi50ZXN0cHJvdG8ioAIKC1NpbXBsZVRlc3QxEg0KAWEYASABKAU6AjEwEg4KAWIYAiABKAM6AzEwMBIJCgFjGAMgASgIEgkKAWQYBCABKAISCQoBZRgFIAEoARIMCgFmGAYgASgJOgFmEgkKAWcYByABKAwSSgoBaBgIIAEoDjI/Lm9yZy5hcGFjaGUuZmxpbmsuZm9ybWF0cy5wcm90b2J1Zi50ZXN0cHJvdG8uU2ltcGxlVGVzdDEuQ29ycHVzEhAKCGZfYWJjXzdkGAkgASgFIloKBkNvcnB1cxINCglVTklWRVJTQUwQABIHCgNXRUIQARIKCgZJTUFHRVMQAhIJCgVMT0NBTBADEggKBE5FV1MQBBIMCghQUk9EVUNUUxAFEgkKBVZJREVPEAdCLworb3JnLmFwYWNoZS5mbGluay5mb3JtYXRzLnByb3RvYnVmLnRlc3Rwcm90b1AB\",\"rootMessageTypeName\":\"org.apache.flink.formats.protobuf.testproto.SimpleTest1\",\"rootFileDescriptorName\":\"simple_test1.proto\"}";
         descriptor = ProtobufNativeSchemaUtils.deserialize(schema.getBytes(StandardCharsets.UTF_8));
         protobufData = Base64.getDecoder().decode("CAEQAhgAJc3MzD0pexSuR+F6hD8yBGhhaGE6AQFAAkgB");
     }
 
-
-    /**
-     * Foo type.
-     */
+    /** Foo type. */
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
@@ -112,9 +120,7 @@ public class SchemaData {
         }
     }
 
-    /**
-     * Bar type.
-     */
+    /** Bar type. */
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
@@ -128,9 +134,7 @@ public class SchemaData {
         }
     }
 
-    /**
-     * FL type.
-     */
+    /** FL type. */
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
@@ -158,9 +162,7 @@ public class SchemaData {
         }
     }
 
-    /**
-     * FA type.
-     */
+    /** FA type. */
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
@@ -188,9 +190,7 @@ public class SchemaData {
         }
     }
 
-    /**
-     * FM type.
-     */
+    /** FM type. */
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
@@ -221,5 +221,4 @@ public class SchemaData {
             }
         }
     }
-
 }

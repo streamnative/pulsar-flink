@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -32,8 +36,8 @@ import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
 import org.apache.flink.streaming.connectors.pulsar.internal.CachedPulsarClient;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarClientUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.SourceSinkUtils;
+import org.apache.flink.streaming.connectors.pulsar.serialization.PulsarSerializationSchema;
 import org.apache.flink.streaming.connectors.pulsar.table.PulsarSinkSemantic;
-import org.apache.flink.streaming.util.serialization.PulsarSerializationSchema;
 import org.apache.flink.util.ExceptionUtils;
 import org.apache.flink.util.SerializableObject;
 
@@ -76,14 +80,16 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 /**
  * Flink Sink to produce data into Pulsar topics.
  *
- * <p>Please note that this producer provides at-least-once reliability guarantees when
- * checkpoints are enabled and setFlushOnCheckpoint(true) is set.
- * Otherwise, the producer doesn't provide any reliability guarantees.
+ * <p>Please note that this producer provides at-least-once reliability guarantees when checkpoints
+ * are enabled and setFlushOnCheckpoint(true) is set. Otherwise, the producer doesn't provide any
+ * reliability guarantees.
  *
  * @param <T> Type of the messages to write into pulsar.
  */
 @Slf4j
-abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, FlinkPulsarSinkBase.PulsarTransactionState<T>, Void> implements CheckpointedFunction {
+abstract class FlinkPulsarSinkBase<T>
+        extends TwoPhaseCommitSinkFunction<T, FlinkPulsarSinkBase.PulsarTransactionState<T>, Void>
+        implements CheckpointedFunction {
 
     protected String adminUrl;
 
@@ -105,14 +111,10 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
 
     protected int sendTimeOutMs;
 
-    /**
-     * Lock for accessing the pending records.
-     */
+    /** Lock for accessing the pending records. */
     protected final SerializableObject pendingRecordsLock = new SerializableObject();
 
-    /**
-     * Number of unacknowledged records.
-     */
+    /** Number of unacknowledged records. */
     protected long pendingRecords = 0L;
 
     protected ConcurrentHashMap<TxnID, List<MessageId>> tid2MessagesMap;
@@ -133,9 +135,7 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
 
     protected transient BiConsumer<MessageId, Throwable> sendCallback;
 
-    /**
-     * Semantic chosen for this instance.
-     */
+    /** Semantic chosen for this instance. */
     protected PulsarSinkSemantic semantic;
 
     protected transient Producer<T> singleProducer;
@@ -149,7 +149,14 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
             Properties properties,
             PulsarSerializationSchema<T> serializationSchema,
             MessageRouter messageRouter) {
-        this(adminUrl, defaultTopicName, clientConf, properties, serializationSchema, messageRouter, PulsarSinkSemantic.AT_LEAST_ONCE);
+        this(
+                adminUrl,
+                defaultTopicName,
+                clientConf,
+                properties,
+                serializationSchema,
+                messageRouter,
+                PulsarSinkSemantic.AT_LEAST_ONCE);
     }
 
     public FlinkPulsarSinkBase(
@@ -184,34 +191,28 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
         this.caseInsensitiveParams =
                 SourceSinkUtils.toCaceInsensitiveParams(Maps.fromProperties(properties));
 
-        this.producerConf =
-                SourceSinkUtils.getProducerParams(Maps.fromProperties(properties));
+        this.producerConf = SourceSinkUtils.getProducerParams(Maps.fromProperties(properties));
 
-        this.flushOnCheckpoint =
-                SourceSinkUtils.flushOnCheckpoint(caseInsensitiveParams);
+        this.flushOnCheckpoint = SourceSinkUtils.flushOnCheckpoint(caseInsensitiveParams);
 
-        this.failOnWrite =
-                SourceSinkUtils.failOnWrite(caseInsensitiveParams);
+        this.failOnWrite = SourceSinkUtils.failOnWrite(caseInsensitiveParams);
 
-        this.transactionTimeout =
-                SourceSinkUtils.getTransactionTimeout(caseInsensitiveParams);
+        this.transactionTimeout = SourceSinkUtils.getTransactionTimeout(caseInsensitiveParams);
 
-        this.maxBlockTimeMs =
-                SourceSinkUtils.getMaxBlockTimeMs(caseInsensitiveParams);
+        this.maxBlockTimeMs = SourceSinkUtils.getMaxBlockTimeMs(caseInsensitiveParams);
 
-        this.sendTimeOutMs =
-                SourceSinkUtils.getSendTimeoutMs(caseInsensitiveParams);
+        this.sendTimeOutMs = SourceSinkUtils.getSendTimeoutMs(caseInsensitiveParams);
 
         CachedPulsarClient.setCacheSize(SourceSinkUtils.getClientCacheSize(caseInsensitiveParams));
         if (semantic == PulsarSinkSemantic.EXACTLY_ONCE) {
-            // in transactional mode, must set producer sendTimeout to 0;
             this.sendTimeOutMs = 0;
             this.tid2MessagesMap = new ConcurrentHashMap<>();
             this.tid2FuturesMap = new ConcurrentHashMap<>();
             clientConfigurationData.setEnableTransaction(true);
         }
         if (this.clientConfigurationData.getServiceUrl() == null) {
-            throw new IllegalArgumentException("ServiceUrl must be supplied in the client configuration");
+            throw new IllegalArgumentException(
+                    "ServiceUrl must be supplied in the client configuration");
         }
     }
 
@@ -222,7 +223,8 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
             Properties properties,
             PulsarSerializationSchema serializationSchema,
             MessageRouter messageRouter) {
-        this(adminUrl,
+        this(
+                adminUrl,
                 defaultTopicName,
                 PulsarClientUtils.newClientConf(checkNotNull(serviceUrl), properties),
                 properties,
@@ -238,8 +240,12 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
 
     @Override
     public void initializeState(FunctionInitializationContext context) throws Exception {
-        if (semantic != PulsarSinkSemantic.NONE && !((StreamingRuntimeContext) this.getRuntimeContext()).isCheckpointingEnabled()) {
-            log.warn("Using {} semantic, but checkpointing is not enabled. Switching to {} semantic.", semantic, PulsarSinkSemantic.NONE);
+        if (semantic != PulsarSinkSemantic.NONE
+                && !((StreamingRuntimeContext) this.getRuntimeContext()).isCheckpointingEnabled()) {
+            log.warn(
+                    "Using {} semantic, but checkpointing is not enabled. Switching to {} semantic.",
+                    semantic,
+                    PulsarSinkSemantic.NONE);
             semantic = PulsarSinkSemantic.NONE;
         }
 
@@ -248,8 +254,10 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
 
     @Override
     public void open(Configuration parameters) throws Exception {
-        if (flushOnCheckpoint && !((StreamingRuntimeContext) this.getRuntimeContext()).isCheckpointingEnabled()) {
-            log.warn("Flushing on checkpoint is enabled, but checkpointing is not enabled. Disabling flushing.");
+        if (flushOnCheckpoint
+                && !((StreamingRuntimeContext) this.getRuntimeContext()).isCheckpointingEnabled()) {
+            log.warn(
+                    "Flushing on checkpoint is enabled, but checkpointing is not enabled. Disabling flushing.");
             flushOnCheckpoint = false;
         }
 
@@ -257,18 +265,19 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
 
         serializationSchema.open(
                 RuntimeContextInitializationContextAdapters.serializationAdapter(
-                        getRuntimeContext(),
-                        metricGroup -> metricGroup.addGroup("user")
-                )
-        );
+                        getRuntimeContext(), metricGroup -> metricGroup.addGroup("user")));
 
         if (forcedTopic) {
-            singleProducer = createProducer(clientConfigurationData, producerConf, defaultTopic,
-                    serializationSchema.getSchema());
+            singleProducer =
+                    createProducer(
+                            clientConfigurationData,
+                            producerConf,
+                            defaultTopic,
+                            serializationSchema.getSchema());
         } else {
             topic2Producer = new HashMap<>();
         }
-       //super.open(parameters);
+        // super.open(parameters);
     }
 
     protected void initializeSendCallback() {
@@ -276,23 +285,27 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
             return;
         }
         if (failOnWrite) {
-            this.sendCallback = (t, u) -> {
-                if (failedWrite == null && u == null) {
-                    acknowledgeMessage();
-                } else if (failedWrite == null && u != null) {
-                    failedWrite = u;
-                } else { // failedWrite != null
-                    log.warn("callback error {}", u);
-                    // do nothing and wait next checkForError to throw exception
-                }
-            };
+            this.sendCallback =
+                    (t, u) -> {
+                        if (failedWrite == null && u == null) {
+                            acknowledgeMessage();
+                        } else if (failedWrite == null && u != null) {
+                            failedWrite = u;
+                        } else { // failedWrite != null
+                            log.warn("callback error {}", u);
+                            // do nothing and wait next checkForError to throw exception
+                        }
+                    };
         } else {
-            this.sendCallback = (t, u) -> {
-                if (failedWrite == null && u != null) {
-                    log.error("Error while sending message to Pulsar: {}", ExceptionUtils.stringifyException(u));
-                }
-                acknowledgeMessage();
-            };
+            this.sendCallback =
+                    (t, u) -> {
+                        if (failedWrite == null && u != null) {
+                            log.error(
+                                    "Error while sending message to Pulsar: {}",
+                                    ExceptionUtils.stringifyException(u));
+                        }
+                        acknowledgeMessage();
+                    };
         }
     }
 
@@ -311,7 +324,12 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
         if (topic2Producer.containsKey(topic)) {
             return topic2Producer.get(topic);
         } else {
-            Producer<T> p = createProducer(clientConfigurationData, producerConf, topic, serializationSchema.getSchema());
+            Producer<T> p =
+                    createProducer(
+                            clientConfigurationData,
+                            producerConf,
+                            topic,
+                            serializationSchema.getSchema());
             topic2Producer.put(topic, p);
             return p;
         }
@@ -324,15 +342,15 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
             Schema<T> schema) {
 
         try {
-            ProducerBuilder<T> builder = CachedPulsarClient
-                    .getOrCreate(clientConf)
-                    .newProducer(schema)
-                    .topic(topic)
-                    .sendTimeout(sendTimeOutMs, TimeUnit.MILLISECONDS)
-                    .batchingMaxPublishDelay(100, TimeUnit.MILLISECONDS)
-                    // maximizing the throughput
-                    .batchingMaxBytes(5 * 1024 * 1024)
-                    .loadConf(producerConf);
+            ProducerBuilder<T> builder =
+                    CachedPulsarClient.getOrCreate(clientConf)
+                            .newProducer(schema)
+                            .topic(topic)
+                            .sendTimeout(sendTimeOutMs, TimeUnit.MILLISECONDS)
+                            .batchingMaxPublishDelay(100, TimeUnit.MILLISECONDS)
+                            // maximizing the throughput
+                            .batchingMaxBytes(5 * 1024 * 1024)
+                            .loadConf(producerConf);
             if (messageRouter == null) {
                 return builder.create();
             } else {
@@ -342,7 +360,7 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
             }
         } catch (PulsarClientException e) {
             log.error("Failed to create producer for topic {}", topic);
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
     }
 
@@ -359,17 +377,23 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
 
         if (transaction.isTransactional()) {
             // we check the future was completed and add the messageId to list for persistence.
-            List<CompletableFuture<MessageId>> futureList = tid2FuturesMap.get(transaction.transactionalId);
+            List<CompletableFuture<MessageId>> futureList =
+                    tid2FuturesMap.get(transaction.transactionalId);
             for (CompletableFuture<MessageId> future : futureList) {
                 try {
                     MessageId messageId = future.get();
                     TxnID transactionalId = transaction.transactionalId;
-                    tid2MessagesMap.computeIfAbsent(transactionalId, key -> new ArrayList<>()).add(messageId);
-                    log.debug("transaction {} add the message {} to messageIdLIst", transactionalId, messageId);
+                    tid2MessagesMap
+                            .computeIfAbsent(transactionalId, key -> new ArrayList<>())
+                            .add(messageId);
+                    log.debug(
+                            "transaction {} add the message {} to messageIdLIst",
+                            transactionalId,
+                            messageId);
                 } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
+                    throw new IllegalStateException(e);
                 } catch (ExecutionException e) {
-                    throw new RuntimeException(e);
+                    throw new IllegalStateException(e);
                 }
             }
         }
@@ -380,8 +404,10 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
                     pendingRecordsLock.wait();
                 } catch (InterruptedException e) {
                     // this can be interrupted when the Task has been cancelled.
-                    // by throwing an exception, we ensure that this checkpoint doesn't get confirmed
-                    throw new RuntimeException("Flushing got interrupted while checkpointing", e);
+                    // by throwing an exception, we ensure that this checkpoint doesn't get
+                    // confirmed
+                    throw new IllegalStateException(
+                            "Flushing got interrupted while checkpointing", e);
                 }
             }
         }
@@ -391,17 +417,18 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
     }
 
     /**
-     * For each checkpoint we create new {@link org.apache.pulsar.client.api.transaction.Transaction} so that new transactions will not clash
+     * For each checkpoint we create new {@link
+     * org.apache.pulsar.client.api.transaction.Transaction} so that new transactions will not clash
      * with transactions created during previous checkpoints.
      */
     private Transaction createTransaction() throws Exception {
         PulsarClientImpl client = CachedPulsarClient.getOrCreate(clientConfigurationData);
         Thread.sleep(100);
-        Transaction transaction = client
-                .newTransaction()
-                .withTransactionTimeout(transactionTimeout, TimeUnit.MILLISECONDS)
-                .build()
-                .get();
+        Transaction transaction =
+                client.newTransaction()
+                        .withTransactionTimeout(transactionTimeout, TimeUnit.MILLISECONDS)
+                        .build()
+                        .get();
         return transaction;
     }
 
@@ -449,7 +476,10 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
                 throw new UnsupportedOperationException("Not implemented semantic");
         }
         if (transaction.isTransactional()) {
-            log.debug("{} preCommit with pending message size {}", transaction.transactionalId, tid2MessagesMap.get(currentTransaction().transactionalId).size());
+            log.debug(
+                    "{} preCommit with pending message size {}",
+                    transaction.transactionalId,
+                    tid2MessagesMap.get(currentTransaction().transactionalId).size());
         } else {
             log.debug("in AT_LEAST_ONCE mode, producer was flushed by preCommit");
         }
@@ -463,10 +493,13 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
             CompletableFuture<Void> future = transactionState.transaction.commit();
             try {
                 future.get(maxBlockTimeMs, TimeUnit.MILLISECONDS);
-                log.debug("transaction {} is committed with messageID size {}", transactionState.transactionalId.toString(), tid2MessagesMap.get(transactionState.transactionalId).size());
+                log.debug(
+                        "transaction {} is committed with messageID size {}",
+                        transactionState.transactionalId.toString(),
+                        tid2MessagesMap.get(transactionState.transactionalId).size());
                 tid2MessagesMap.remove(transactionState.transactionalId);
             } catch (Exception e) {
-                throw new RuntimeException(e);
+                throw new IllegalStateException(e);
             }
         }
     }
@@ -480,7 +513,7 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
                 future.get(maxBlockTimeMs, TimeUnit.MILLISECONDS);
                 log.debug("transaction {} is aborted", transactionState.transactionalId.toString());
             } catch (Exception e) {
-                throw new RuntimeException(e);
+                throw new IllegalStateException(e);
             }
         }
     }
@@ -490,20 +523,23 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
         if (transaction.isTransactional()) {
             try {
                 log.debug("transaction {} is recoverAndCommit...", transaction.transactionalId);
-                TransactionCoordinatorClientImpl tcClient = CachedPulsarClient.getOrCreate(clientConfigurationData).getTcClient();
+                TransactionCoordinatorClientImpl tcClient =
+                        CachedPulsarClient.getOrCreate(clientConfigurationData).getTcClient();
                 TxnID transactionalId = transaction.transactionalId;
                 tcClient.commit(transactionalId);
             } catch (PulsarClientException executionException) {
                 log.error("Failed to getOrCreate a PulsarClient");
-                throw new RuntimeException(executionException);
-            } catch (TransactionCoordinatorClientException.InvalidTxnStatusException statusException) {
+                throw new IllegalStateException(executionException);
+            } catch (
+                    TransactionCoordinatorClientException.InvalidTxnStatusException
+                            statusException) {
                 // In some cases, the transaction has been committed or aborted before the recovery,
                 // but Flink has not yet sensed it. When flink recover this job, it will commit or
                 // abort the transaction again, then Pulsar will throw a duplicate operation error,
                 // we catch the error without doing anything to deal with it
                 log.debug("transaction {} is already committed...", transaction.transactionalId);
             } catch (TransactionCoordinatorClientException e) {
-                throw new RuntimeException(e);
+                throw new IllegalStateException(e);
             }
         }
     }
@@ -513,20 +549,23 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
         if (transaction.isTransactional()) {
             try {
                 log.debug("transaction {} is recoverAndAbort...", transaction.transactionalId);
-                TransactionCoordinatorClientImpl tcClient = CachedPulsarClient.getOrCreate(clientConfigurationData).getTcClient();
+                TransactionCoordinatorClientImpl tcClient =
+                        CachedPulsarClient.getOrCreate(clientConfigurationData).getTcClient();
                 TxnID transactionalId = transaction.transactionalId;
                 tcClient.abort(transactionalId);
             } catch (PulsarClientException executionException) {
                 log.error("Failed to getOrCreate a PulsarClient");
-                throw new RuntimeException(executionException);
-            } catch (TransactionCoordinatorClientException.InvalidTxnStatusException statusException) {
+                throw new IllegalStateException(executionException);
+            } catch (
+                    TransactionCoordinatorClientException.InvalidTxnStatusException
+                            statusException) {
                 // In some cases, the transaction has been committed or aborted before the recovery,
                 // but Flink has not yet sensed it. When flink recover this job, it will commit or
                 // abort the transaction again, then Pulsar will throw a duplicate operation error,
                 // we catch the error without doing anything to deal with it
                 log.debug("transaction {} is already aborted...", transaction.transactionalId);
             } catch (TransactionCoordinatorClientException e) {
-                throw new RuntimeException(e);
+                throw new IllegalStateException(e);
             }
         }
     }
@@ -568,9 +607,7 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
         }
     }
 
-    /**
-     * State for handling transactions.
-     */
+    /** State for handling transactions. */
     @VisibleForTesting
     @Internal
     public static class PulsarTransactionState<T> {
@@ -579,8 +616,7 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
 
         private final List<MessageId> pendingMessages;
 
-        @Nullable
-        final TxnID transactionalId;
+        @Nullable final TxnID transactionalId;
 
         @VisibleForTesting
         public PulsarTransactionState() {
@@ -588,9 +624,10 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
         }
 
         @VisibleForTesting
-        public PulsarTransactionState(@Nullable TxnID transactionalId,
-                                      @Nullable Transaction transaction,
-                                      List<MessageId> pendingMessages) {
+        public PulsarTransactionState(
+                @Nullable TxnID transactionalId,
+                @Nullable Transaction transaction,
+                List<MessageId> pendingMessages) {
             this.transactionalId = transactionalId;
             this.transaction = transaction;
             this.pendingMessages = pendingMessages;
@@ -637,7 +674,9 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
             if (!pendingMessages.equals(that.pendingMessages)) {
                 return false;
             }
-            return transactionalId != null ? transactionalId.equals(that.transactionalId) : that.transactionalId == null;
+            return transactionalId != null
+                    ? transactionalId.equals(that.transactionalId)
+                    : that.transactionalId == null;
         }
 
         @Override
@@ -649,12 +688,13 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
     }
 
     /**
-     * {@link org.apache.flink.api.common.typeutils.TypeSerializer} for
-     * {@link PulsarTransactionState}.
+     * {@link org.apache.flink.api.common.typeutils.TypeSerializer} for {@link
+     * PulsarTransactionState}.
      */
     @VisibleForTesting
     @Internal
-    public static class TransactionStateSerializer<T> extends TypeSerializerSingleton<PulsarTransactionState<T>> {
+    public static class TransactionStateSerializer<T>
+            extends TypeSerializerSingleton<PulsarTransactionState<T>> {
 
         private static final long serialVersionUID = 1L;
 
@@ -675,8 +715,7 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
 
         @Override
         public PulsarTransactionState<T> copy(
-                PulsarTransactionState<T> from,
-                PulsarTransactionState<T> reuse) {
+                PulsarTransactionState<T> from, PulsarTransactionState<T> reuse) {
             return from;
         }
 
@@ -686,9 +725,8 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
         }
 
         @Override
-        public void serialize(
-                PulsarTransactionState<T> record,
-                DataOutputView target) throws IOException {
+        public void serialize(PulsarTransactionState<T> record, DataOutputView target)
+                throws IOException {
             if (record.transactionalId == null) {
                 target.writeBoolean(false);
             } else {
@@ -726,14 +764,12 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
 
         @Override
         public PulsarTransactionState<T> deserialize(
-                PulsarTransactionState<T> reuse,
-                DataInputView source) throws IOException {
+                PulsarTransactionState<T> reuse, DataInputView source) throws IOException {
             return deserialize(source);
         }
 
         @Override
-        public void copy(
-                DataInputView source, DataOutputView target) throws IOException {
+        public void copy(DataInputView source, DataOutputView target) throws IOException {
             boolean hasTransactionalId = source.readBoolean();
             target.writeBoolean(hasTransactionalId);
             if (hasTransactionalId) {
@@ -751,11 +787,10 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
             return new TransactionStateSerializerSnapshot<T>();
         }
 
-        /**
-         * Serializer configuration snapshot for compatibility and format evolution.
-         */
+        /** Serializer configuration snapshot for compatibility and format evolution. */
         @SuppressWarnings("WeakerAccess")
-        public static final class TransactionStateSerializerSnapshot<T> extends SimpleTypeSerializerSnapshot<PulsarTransactionState<T>> {
+        public static final class TransactionStateSerializerSnapshot<T>
+                extends SimpleTypeSerializerSnapshot<PulsarTransactionState<T>> {
 
             public TransactionStateSerializerSnapshot() {
                 super(TransactionStateSerializer::new);

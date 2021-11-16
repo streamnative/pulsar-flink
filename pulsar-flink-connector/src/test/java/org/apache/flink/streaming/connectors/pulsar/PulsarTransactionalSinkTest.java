@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -19,12 +23,12 @@ import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
+import org.apache.flink.streaming.connectors.pulsar.serialization.PulsarSerializationSchemaWrapper;
 import org.apache.flink.streaming.connectors.pulsar.table.PulsarSinkSemantic;
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper;
 import org.apache.flink.streaming.connectors.pulsar.testutils.IntegerSource;
 import org.apache.flink.streaming.connectors.pulsar.testutils.TestUtils;
 import org.apache.flink.streaming.util.TestStreamEnvironment;
-import org.apache.flink.streaming.util.serialization.PulsarSerializationSchemaWrapper;
 import org.apache.flink.table.api.DataTypes;
 
 import lombok.extern.slf4j.Slf4j;
@@ -56,39 +60,42 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.testcontainers.containers.PulsarContainer.BROKER_HTTP_PORT;
 
-/**
- * Test for pulsar transactional sink that guarantee exactly-once semantic.
- */
+/** Test for pulsar transactional sink that guarantee exactly-once semantic. */
 @Slf4j
 public class PulsarTransactionalSinkTest {
-    private PulsarAdmin admin;
-    public static final String CLUSTER_NAME = "standalone";
 
+    public static final String CLUSTER_NAME = "standalone";
     private static PulsarContainer pulsarService;
     private static String serviceUrl;
     private static String adminUrl;
+
+    private PulsarAdmin admin;
 
     @BeforeClass
     public static void prepare() throws Exception {
         log.info("    Starting PulsarTestBase ");
 
-        final String pulsarImage = System.getProperty("pulsar.systemtest.image", "apachepulsar/pulsar:2.8.0");
-        DockerImageName pulsar = DockerImageName.parse(pulsarImage)
-            .asCompatibleSubstituteFor("apachepulsar/pulsar");
+        final String pulsarImage =
+                System.getProperty("pulsar.systemtest.image", "apachepulsar/pulsar:2.8.0");
+        DockerImageName pulsar =
+                DockerImageName.parse(pulsarImage).asCompatibleSubstituteFor("apachepulsar/pulsar");
         pulsarService = new PulsarContainer(pulsar);
-        pulsarService.withClasspathResourceMapping("pulsar/txnStandalone.conf", "/pulsar/conf/standalone.conf",
-                BindMode.READ_ONLY);
-        pulsarService.waitingFor(new HttpWaitStrategy()
-                .forPort(BROKER_HTTP_PORT)
-                .forStatusCode(200)
-                .forPath("/admin/v2/namespaces/public/default")
-                .withStartupTimeout(Duration.of(40, SECONDS)));
+        pulsarService.withClasspathResourceMapping(
+                "pulsar/txnStandalone.conf", "/pulsar/conf/standalone.conf", BindMode.READ_ONLY);
+        pulsarService.waitingFor(
+                new HttpWaitStrategy()
+                        .forPort(BROKER_HTTP_PORT)
+                        .forStatusCode(200)
+                        .forPath("/admin/v2/namespaces/public/default")
+                        .withStartupTimeout(Duration.of(40, SECONDS)));
         pulsarService.start();
         pulsarService.followOutput(new Slf4jLogConsumer(log));
         serviceUrl = pulsarService.getPulsarBrokerUrl();
         adminUrl = pulsarService.getHttpServiceUrl();
 
-        log.info("Successfully started pulsar service at cluster " + pulsarService.getContainerName());
+        log.info(
+                "Successfully started pulsar service at cluster "
+                        + pulsarService.getContainerName());
     }
 
     @AfterClass
@@ -108,9 +115,7 @@ public class PulsarTransactionalSinkTest {
         log.info("-------------------------------------------------------------------------");
     }
 
-    /**
-     * Tests the exactly-once semantic for the simple writes into Pulsar.
-     */
+    /** Tests the exactly-once semantic for the simple writes into Pulsar. */
     @Test
     public void testExactlyOnceRegularSink() throws Exception {
         testExactlyOnce(1);
@@ -126,27 +131,30 @@ public class PulsarTransactionalSinkTest {
         env.setParallelism(1);
         env.setRestartStrategy(RestartStrategies.fixedDelayRestart(1, 0));
 
-        // process exactly failAfterElements number of elements and then shutdown Pulsar broker and fail application
+        // process exactly failAfterElements number of elements and then shutdown Pulsar broker and
+        // fail application
         List<Integer> expectedElements = getIntegersSequence(numElements);
 
-        DataStream<Integer> inputStream = env
-                .addSource(new IntegerSource(numElements))
-                .map(new FailingIdentityMapper<Integer>(failAfterElements));
+        DataStream<Integer> inputStream =
+                env.addSource(new IntegerSource(numElements))
+                        .map(new FailingIdentityMapper<Integer>(failAfterElements));
 
         for (int i = 0; i < sinksCount; i++) {
             ClientConfigurationData clientConfigurationData = new ClientConfigurationData();
             clientConfigurationData.setServiceUrl(serviceUrl);
-            SinkFunction<Integer> sink = new FlinkPulsarSink<>(
-                    adminUrl,
-                    Optional.of(topic),
-                    clientConfigurationData,
-                    new Properties(),
-                    new PulsarSerializationSchemaWrapper.Builder<>
-                            ((SerializationSchema<Integer>) element -> Schema.INT32.encode(element))
-                            .useAtomicMode(DataTypes.INT())
-                            .build(),
-                    PulsarSinkSemantic.EXACTLY_ONCE
-            );
+            clientConfigurationData.setEnableTransaction(true);
+            SinkFunction<Integer> sink =
+                    new FlinkPulsarSink<>(
+                            adminUrl,
+                            Optional.of(topic),
+                            clientConfigurationData,
+                            new Properties(),
+                            new PulsarSerializationSchemaWrapper.Builder<>(
+                                            (SerializationSchema<Integer>)
+                                                    element -> Schema.INT32.encode(element))
+                                    .useAtomicMode(DataTypes.INT())
+                                    .build(),
+                            PulsarSinkSemantic.EXACTLY_ONCE);
             inputStream.addSink(sink);
         }
 
@@ -154,12 +162,8 @@ public class PulsarTransactionalSinkTest {
         TestUtils.tryExecute(env, "Exactly once test");
         for (int i = 0; i < sinksCount; i++) {
             // assert that before failure we successfully snapshot/flushed all expected elements
-            assertExactlyOnceForTopic(
-                    topic,
-                    expectedElements,
-                    60000L);
+            assertExactlyOnceForTopic(topic, expectedElements, 60000L);
         }
-
     }
 
     private List<Integer> getIntegersSequence(int size) {
@@ -171,29 +175,32 @@ public class PulsarTransactionalSinkTest {
     }
 
     /**
-     * We manually handle the timeout instead of using JUnit's timeout to return failure instead of timeout error.
-     * After timeout we assume that there are missing records and there is a bug, not that the test has run out of time.
+     * We manually handle the timeout instead of using JUnit's timeout to return failure instead of
+     * timeout error. After timeout we assume that there are missing records and there is a bug, not
+     * that the test has run out of time.
      */
     public void assertExactlyOnceForTopic(
-            String topic,
-            List<Integer> expectedElements,
-            long timeoutMillis) throws Exception {
+            String topic, List<Integer> expectedElements, long timeoutMillis) throws Exception {
 
         long startMillis = System.currentTimeMillis();
         List<Integer> actualElements = new ArrayList<>();
 
         // until we timeout...
-        PulsarClient client = PulsarClient.builder().enableTransaction(true).serviceUrl(serviceUrl).build();
-        Consumer<Integer> test = client
-                .newConsumer(Schema.INT32)
-                .topic(topic)
-                .subscriptionName("test-exactly" + UUID.randomUUID())
-                .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest)
-                .subscribe();
+        PulsarClient client =
+                PulsarClient.builder().enableTransaction(true).serviceUrl(serviceUrl).build();
+        Consumer<Integer> test =
+                client.newConsumer(Schema.INT32)
+                        .topic(topic)
+                        .subscriptionName("test-exactly" + UUID.randomUUID())
+                        .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest)
+                        .subscribe();
         while (System.currentTimeMillis() < startMillis + timeoutMillis) {
             // query pulsar for new records ...
             Message<Integer> message = test.receive();
-            log.info("consume the message {} with the value {}", message.getMessageId(), message.getValue());
+            log.info(
+                    "consume the message {} with the value {}",
+                    message.getMessageId(),
+                    message.getValue());
             actualElements.add(message.getValue());
             // succeed if we got all expectedElements
             if (actualElements.size() == expectedElements.size()) {
@@ -209,8 +216,10 @@ public class PulsarTransactionalSinkTest {
             }
         }
 
-        fail(String
-                .format("Expected %s, but was: %s", formatElements(expectedElements), formatElements(actualElements)));
+        fail(
+                String.format(
+                        "Expected %s, but was: %s",
+                        formatElements(expectedElements), formatElements(actualElements)));
     }
 
     private String formatElements(List<Integer> elements) {

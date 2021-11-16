@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -64,9 +68,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-/**
- * Test for {@link UpsertPulsarDynamicTableFactory}.
- */
+/** Test for {@link UpsertPulsarDynamicTableFactory}. */
 public class UpsertPulsarDynamicTableFactoryTest extends TestLogger {
 
     private static final String SOURCE_TOPIC = "sourceTopic_1";
@@ -86,10 +88,9 @@ public class UpsertPulsarDynamicTableFactoryTest extends TestLogger {
                     Collections.emptyList(),
                     UniqueConstraint.primaryKey("name", Arrays.asList("window_start", "region")));
 
+    private static final int[] SOURCE_KEY_FIELDS = new int[] {0, 1};
 
-    private static final int[] SOURCE_KEY_FIELDS = new int[]{0, 1};
-
-    private static final int[] SOURCE_VALUE_FIELDS = new int[]{0, 1, 2};
+    private static final int[] SOURCE_VALUE_FIELDS = new int[] {0, 1, 2};
 
     private static final ResolvedSchema SINK_SCHEMA =
             new ResolvedSchema(
@@ -100,19 +101,19 @@ public class UpsertPulsarDynamicTableFactoryTest extends TestLogger {
                     Collections.emptyList(),
                     UniqueConstraint.primaryKey("name", Collections.singletonList("region")));
 
-    private static final int[] SINK_KEY_FIELDS = new int[]{0};
+    private static final int[] SINK_KEY_FIELDS = new int[] {0};
 
-    private static final int[] SINK_VALUE_FIELDS = new int[]{0, 1};
+    private static final int[] SINK_VALUE_FIELDS = new int[] {0, 1};
 
     private static final Properties UPSERT_PULSAR_SOURCE_PROPERTIES = new Properties();
     private static final Properties UPSERT_PULSAR_SINK_PROPERTIES = new Properties();
 
     static {
-//        UPSERT_PULSAR_SOURCE_PROPERTIES.setProperty("admin-url", ADMIN_URL);
-//        UPSERT_PULSAR_SOURCE_PROPERTIES.setProperty("service-url", SERVICE_URL);
-//
-//        UPSERT_PULSAR_SINK_PROPERTIES.setProperty("admin-url", ADMIN_URL);
-//        UPSERT_PULSAR_SINK_PROPERTIES.setProperty("service-url", SERVICE_URL);
+        //        UPSERT_PULSAR_SOURCE_PROPERTIES.setProperty("admin-url", ADMIN_URL);
+        //        UPSERT_PULSAR_SOURCE_PROPERTIES.setProperty("service-url", SERVICE_URL);
+        //
+        //        UPSERT_PULSAR_SINK_PROPERTIES.setProperty("admin-url", ADMIN_URL);
+        //        UPSERT_PULSAR_SINK_PROPERTIES.setProperty("service-url", SERVICE_URL);
     }
 
     protected static DecodingFormat<DeserializationSchema<RowData>> keyDecodingFormat =
@@ -128,33 +129,36 @@ public class UpsertPulsarDynamicTableFactoryTest extends TestLogger {
     protected static EncodingFormat<SerializationSchema<RowData>> valueEncodingFormat =
             new TestFormatFactory.EncodingFormatMock(",", ChangelogMode.insertOnly());
 
-
-    @Rule
-    public ExpectedException thrown = ExpectedException.none();
+    @Rule public ExpectedException thrown = ExpectedException.none();
 
     @Test
     public void testTableSource() {
         final DataType producedDataType = SOURCE_SCHEMA.toPhysicalRowDataType();
         // Construct table source using options and table source factory
-        final DynamicTableSource actualSource = createTableSource(SOURCE_SCHEMA, getFullSourceOptions());
+        final DynamicTableSource actualSource =
+                createTableSource(SOURCE_SCHEMA, getFullSourceOptions());
 
-        final PulsarDynamicTableSource expectedSource = createExpectedScanSource(
-                producedDataType,
-                keyDecodingFormat,
-                valueDecodingFormat,
-                SOURCE_KEY_FIELDS,
-                SOURCE_VALUE_FIELDS,
-                null,
-                SOURCE_TOPIC,
-                UPSERT_PULSAR_SOURCE_PROPERTIES);
+        final PulsarDynamicTableSource expectedSource =
+                createExpectedScanSource(
+                        producedDataType,
+                        keyDecodingFormat,
+                        valueDecodingFormat,
+                        SOURCE_KEY_FIELDS,
+                        SOURCE_VALUE_FIELDS,
+                        null,
+                        SOURCE_TOPIC,
+                        UPSERT_PULSAR_SOURCE_PROPERTIES);
         assertEquals(actualSource, expectedSource);
 
-        final PulsarDynamicTableSource actualUpsertPulsarSource = (PulsarDynamicTableSource) actualSource;
+        final PulsarDynamicTableSource actualUpsertPulsarSource =
+                (PulsarDynamicTableSource) actualSource;
         ScanTableSource.ScanRuntimeProvider provider =
-                actualUpsertPulsarSource.getScanRuntimeProvider(ScanRuntimeProviderContext.INSTANCE);
+                actualUpsertPulsarSource.getScanRuntimeProvider(
+                        ScanRuntimeProviderContext.INSTANCE);
         assertThat(provider, instanceOf(SourceFunctionProvider.class));
         final SourceFunctionProvider sourceFunctionProvider = (SourceFunctionProvider) provider;
-        final SourceFunction<RowData> sourceFunction = sourceFunctionProvider.createSourceFunction();
+        final SourceFunction<RowData> sourceFunction =
+                sourceFunctionProvider.createSourceFunction();
         assertThat(sourceFunction, instanceOf(FlinkPulsarSource.class));
     }
 
@@ -164,18 +168,19 @@ public class UpsertPulsarDynamicTableFactoryTest extends TestLogger {
         // Construct table sink using options and table sink factory.
         final DynamicTableSink actualSink = createTableSink(SINK_SCHEMA, getFullSinkOptions());
 
-        final DynamicTableSink expectedSink = createExpectedSink(
-                SINK_SCHEMA.toPhysicalRowDataType(),
-                keyEncodingFormat,
-                valueEncodingFormat,
-                SINK_KEY_FIELDS,
-                SINK_VALUE_FIELDS,
-                null,
-                SINK_TOPIC,
-                UPSERT_PULSAR_SINK_PROPERTIES,
-                null,
-                TestFormatFactory.IDENTIFIER,
-                KeyHashMessageRouterImpl.INSTANCE);
+        final DynamicTableSink expectedSink =
+                createExpectedSink(
+                        SINK_SCHEMA.toPhysicalRowDataType(),
+                        keyEncodingFormat,
+                        valueEncodingFormat,
+                        SINK_KEY_FIELDS,
+                        SINK_VALUE_FIELDS,
+                        null,
+                        SINK_TOPIC,
+                        UPSERT_PULSAR_SINK_PROPERTIES,
+                        null,
+                        TestFormatFactory.IDENTIFIER,
+                        KeyHashMessageRouterImpl.INSTANCE);
 
         // Test sink format.
         final PulsarDynamicTableSink actualUpsertPulsarSink = (PulsarDynamicTableSink) actualSink;
@@ -183,7 +188,8 @@ public class UpsertPulsarDynamicTableFactoryTest extends TestLogger {
 
         // Test Pulsar producer.
         DynamicTableSink.SinkRuntimeProvider provider =
-                actualUpsertPulsarSink.getSinkRuntimeProvider(new SinkRuntimeProviderContext(false));
+                actualUpsertPulsarSink.getSinkRuntimeProvider(
+                        new SinkRuntimeProviderContext(false));
         assertThat(provider, instanceOf(SinkFunctionProvider.class));
         final SinkFunctionProvider sinkFunctionProvider = (SinkFunctionProvider) provider;
         final SinkFunction<RowData> sinkFunction = sinkFunctionProvider.createSinkFunction();
@@ -192,23 +198,24 @@ public class UpsertPulsarDynamicTableFactoryTest extends TestLogger {
 
     @Test
     public void testTableSinkWithParallelism() {
-        final Map<String, String> modifiedOptions = getModifiedOptions(
-                getFullSinkOptions(),
-                options -> options.put("sink.parallelism", "100"));
+        final Map<String, String> modifiedOptions =
+                getModifiedOptions(
+                        getFullSinkOptions(), options -> options.put("sink.parallelism", "100"));
         final DynamicTableSink actualSink = createTableSink(SINK_SCHEMA, modifiedOptions);
 
-        final DynamicTableSink expectedSink = createExpectedSink(
-                SINK_SCHEMA.toPhysicalRowDataType(),
-                keyEncodingFormat,
-                valueEncodingFormat,
-                SINK_KEY_FIELDS,
-                SINK_VALUE_FIELDS,
-                null,
-                SINK_TOPIC,
-                UPSERT_PULSAR_SINK_PROPERTIES,
-                100,
-                TestFormatFactory.IDENTIFIER,
-                KeyHashMessageRouterImpl.INSTANCE);
+        final DynamicTableSink expectedSink =
+                createExpectedSink(
+                        SINK_SCHEMA.toPhysicalRowDataType(),
+                        keyEncodingFormat,
+                        valueEncodingFormat,
+                        SINK_KEY_FIELDS,
+                        SINK_VALUE_FIELDS,
+                        null,
+                        SINK_TOPIC,
+                        UPSERT_PULSAR_SINK_PROPERTIES,
+                        100,
+                        TestFormatFactory.IDENTIFIER,
+                        KeyHashMessageRouterImpl.INSTANCE);
         assertEquals(expectedSink, actualSink);
 
         final DynamicTableSink.SinkRuntimeProvider provider =
@@ -226,9 +233,12 @@ public class UpsertPulsarDynamicTableFactoryTest extends TestLogger {
     @Test
     public void testCreateSourceTableWithoutPK() {
         thrown.expect(ValidationException.class);
-        thrown.expect(containsCause(new ValidationException("'upsert-pulsar' tables require to define a PRIMARY KEY constraint. " +
-                "The PRIMARY KEY specifies which columns should be read from or write to the Pulsar message key. " +
-                "The PRIMARY KEY also defines records in the 'upsert-pulsar' table should update or delete on which keys.")));
+        thrown.expect(
+                containsCause(
+                        new ValidationException(
+                                "'upsert-pulsar' tables require to define a PRIMARY KEY constraint. "
+                                        + "The PRIMARY KEY specifies which columns should be read from or write to the Pulsar message key. "
+                                        + "The PRIMARY KEY also defines records in the 'upsert-pulsar' table should update or delete on which keys.")));
 
         ResolvedSchema illegalSchema =
                 ResolvedSchema.of(
@@ -241,9 +251,12 @@ public class UpsertPulsarDynamicTableFactoryTest extends TestLogger {
     @Test
     public void testCreateSinkTableWithoutPK() {
         thrown.expect(ValidationException.class);
-        thrown.expect(containsCause(new ValidationException("'upsert-pulsar' tables require to define a PRIMARY KEY constraint. " +
-                "The PRIMARY KEY specifies which columns should be read from or write to the Pulsar message key. " +
-                "The PRIMARY KEY also defines records in the 'upsert-pulsar' table should update or delete on which keys.")));
+        thrown.expect(
+                containsCause(
+                        new ValidationException(
+                                "'upsert-pulsar' tables require to define a PRIMARY KEY constraint. "
+                                        + "The PRIMARY KEY specifies which columns should be read from or write to the Pulsar message key. "
+                                        + "The PRIMARY KEY also defines records in the 'upsert-pulsar' table should update or delete on which keys.")));
 
         ResolvedSchema illegalSchema =
                 ResolvedSchema.of(
@@ -255,38 +268,51 @@ public class UpsertPulsarDynamicTableFactoryTest extends TestLogger {
     @Test
     public void testSerWithCDCFormatAsValue() {
         thrown.expect(ValidationException.class);
-        thrown.expect(containsCause(
-                new ValidationException(String.format(
-                        "'upsert-Pulsar' connector doesn't support '%s' as value format, " +
-                                "because '%s' is not in insert-only mode.",
-                        TestFormatFactory.IDENTIFIER, TestFormatFactory.IDENTIFIER
-                ))));
+        thrown.expect(
+                containsCause(
+                        new ValidationException(
+                                String.format(
+                                        "'upsert-Pulsar' connector doesn't support '%s' as value format, "
+                                                + "because '%s' is not in insert-only mode.",
+                                        TestFormatFactory.IDENTIFIER,
+                                        TestFormatFactory.IDENTIFIER))));
 
-        createTableSink(SINK_SCHEMA,
+        createTableSink(
+                SINK_SCHEMA,
                 getModifiedOptions(
                         getFullSinkOptions(),
-                        options -> options.put(
-                                String.format("value.%s.%s", TestFormatFactory.IDENTIFIER, TestFormatFactory.CHANGELOG_MODE.key()),
-                                "I;UA;UB;D")));
+                        options ->
+                                options.put(
+                                        String.format(
+                                                "value.%s.%s",
+                                                TestFormatFactory.IDENTIFIER,
+                                                TestFormatFactory.CHANGELOG_MODE.key()),
+                                        "I;UA;UB;D")));
     }
 
     @Test
     public void testDeserWithCDCFormatAsValue() {
         thrown.expect(ValidationException.class);
-        thrown.expect(containsCause(
-                new ValidationException(String.format(
-                        "'upsert-Pulsar' connector doesn't support '%s' as value format, " +
-                                "because '%s' is not in insert-only mode.",
-                        TestFormatFactory.IDENTIFIER,
-                        TestFormatFactory.IDENTIFIER
-                ))));
+        thrown.expect(
+                containsCause(
+                        new ValidationException(
+                                String.format(
+                                        "'upsert-Pulsar' connector doesn't support '%s' as value format, "
+                                                + "because '%s' is not in insert-only mode.",
+                                        TestFormatFactory.IDENTIFIER,
+                                        TestFormatFactory.IDENTIFIER))));
 
-        createTableSource(SOURCE_SCHEMA,
+        createTableSource(
+                SOURCE_SCHEMA,
                 getModifiedOptions(
                         getFullSinkOptions(),
-                        options -> options.put(
-                                String.format("value.%s.%s", TestFormatFactory.IDENTIFIER, TestFormatFactory.CHANGELOG_MODE.key()),
-                                "I;UA;UB;D")));
+                        options ->
+                                options.put(
+                                        String.format(
+                                                "value.%s.%s",
+                                                TestFormatFactory.IDENTIFIER,
+                                                TestFormatFactory.CHANGELOG_MODE.key()),
+                                        "I;UA;UB;D")));
     }
 
     // --------------------------------------------------------------------------------------------
@@ -299,8 +325,7 @@ public class UpsertPulsarDynamicTableFactoryTest extends TestLogger {
      * @param optionModifier Consumer to modify the options
      */
     private static Map<String, String> getModifiedOptions(
-            Map<String, String> options,
-            Consumer<Map<String, String>> optionModifier) {
+            Map<String, String> options, Consumer<Map<String, String>> optionModifier) {
         optionModifier.accept(options);
         return options;
     }
@@ -315,19 +340,37 @@ public class UpsertPulsarDynamicTableFactoryTest extends TestLogger {
         // key format options
         options.put("key.format", TestFormatFactory.IDENTIFIER);
         options.put(
-                String.format("key.%s.%s", TestFormatFactory.IDENTIFIER, TestFormatFactory.DELIMITER.key()), ",");
+                String.format(
+                        "key.%s.%s",
+                        TestFormatFactory.IDENTIFIER, TestFormatFactory.DELIMITER.key()),
+                ",");
         options.put(
-                String.format("key.%s.%s", TestFormatFactory.IDENTIFIER, TestFormatFactory.FAIL_ON_MISSING.key()), "true");
+                String.format(
+                        "key.%s.%s",
+                        TestFormatFactory.IDENTIFIER, TestFormatFactory.FAIL_ON_MISSING.key()),
+                "true");
         options.put(
-                String.format("key.%s.%s", TestFormatFactory.IDENTIFIER, TestFormatFactory.CHANGELOG_MODE.key()), "I");
+                String.format(
+                        "key.%s.%s",
+                        TestFormatFactory.IDENTIFIER, TestFormatFactory.CHANGELOG_MODE.key()),
+                "I");
         // value format options
         options.put("value.format", TestFormatFactory.IDENTIFIER);
         options.put(
-                String.format("value.%s.%s", TestFormatFactory.IDENTIFIER, TestFormatFactory.DELIMITER.key()), ",");
+                String.format(
+                        "value.%s.%s",
+                        TestFormatFactory.IDENTIFIER, TestFormatFactory.DELIMITER.key()),
+                ",");
         options.put(
-                String.format("value.%s.%s", TestFormatFactory.IDENTIFIER, TestFormatFactory.FAIL_ON_MISSING.key()), "true");
+                String.format(
+                        "value.%s.%s",
+                        TestFormatFactory.IDENTIFIER, TestFormatFactory.FAIL_ON_MISSING.key()),
+                "true");
         options.put(
-                String.format("value.%s.%s", TestFormatFactory.IDENTIFIER, TestFormatFactory.CHANGELOG_MODE.key()), "I");
+                String.format(
+                        "value.%s.%s",
+                        TestFormatFactory.IDENTIFIER, TestFormatFactory.CHANGELOG_MODE.key()),
+                "I");
         return options;
     }
 
@@ -340,17 +383,27 @@ public class UpsertPulsarDynamicTableFactoryTest extends TestLogger {
         // key format options
         options.put("value.format", TestFormatFactory.IDENTIFIER);
         options.put(
-                String.format("key.%s.%s", TestFormatFactory.IDENTIFIER, TestFormatFactory.DELIMITER.key()), ",");
+                String.format(
+                        "key.%s.%s",
+                        TestFormatFactory.IDENTIFIER, TestFormatFactory.DELIMITER.key()),
+                ",");
         options.put(
-                String.format("key.%s.%s", TestFormatFactory.IDENTIFIER, TestFormatFactory.CHANGELOG_MODE.key()), "I"
-        );
+                String.format(
+                        "key.%s.%s",
+                        TestFormatFactory.IDENTIFIER, TestFormatFactory.CHANGELOG_MODE.key()),
+                "I");
         // value format options
         options.put("key.format", TestFormatFactory.IDENTIFIER);
         options.put(
-                String.format("value.%s.%s", TestFormatFactory.IDENTIFIER, TestFormatFactory.DELIMITER.key()), ",");
+                String.format(
+                        "value.%s.%s",
+                        TestFormatFactory.IDENTIFIER, TestFormatFactory.DELIMITER.key()),
+                ",");
         options.put(
-                String.format("value.%s.%s", TestFormatFactory.IDENTIFIER, TestFormatFactory.CHANGELOG_MODE.key()), "I"
-        );
+                String.format(
+                        "value.%s.%s",
+                        TestFormatFactory.IDENTIFIER, TestFormatFactory.CHANGELOG_MODE.key()),
+                "I");
         return options;
     }
 

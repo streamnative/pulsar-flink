@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -19,17 +23,13 @@ import org.apache.flink.shaded.guava18.com.google.common.collect.ComparisonChain
 
 import org.apache.pulsar.client.api.Range;
 
-import javax.validation.constraints.NotNull;
-
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Objects;
 
-/**
- * SerializableRange.
- */
+/** SerializableRange. */
 public class SerializableRange implements Externalizable, Comparable<SerializableRange> {
 
     public static int fullRangeStart = 0;
@@ -81,9 +81,7 @@ public class SerializableRange implements Externalizable, Comparable<Serializabl
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-                .add("range", range)
-                .toString();
+        return MoreObjects.toStringHelper(this).add("range", range).toString();
     }
 
     @Override
@@ -105,7 +103,7 @@ public class SerializableRange implements Externalizable, Comparable<Serializabl
     }
 
     @Override
-    public int compareTo(@NotNull SerializableRange o) {
+    public int compareTo(SerializableRange o) {
         return ComparisonChain.start()
                 .compare(range.getStart(), o.range.getStart())
                 .compare(range.getEnd(), o.range.getEnd())

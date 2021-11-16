@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -33,6 +37,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+/** Unit test of PulsarSource. */
 public class SourceTest extends PulsarTestBaseWithFlink {
 
     private String subscriptionName = "test";
@@ -57,7 +62,8 @@ public class SourceTest extends PulsarTestBaseWithFlink {
         List<String> data = generateRange(100, 200);
         sendTypedMessages(topic, SchemaType.STRING, data, Optional.empty());
         admin.topics().createSubscription(topic, subscriptionName, MessageId.latest);
-        admin.topics().resetCursor(topic, subscriptionName, admin.topics().getLastMessageId(topic), true);
+        admin.topics()
+                .resetCursor(topic, subscriptionName, admin.topics().getLastMessageId(topic), true);
         final CompletableFuture<List<String>> future = collectData(topic, data.size() - 1);
         Thread.sleep(10000);
         data = generateRange(0, 100);
@@ -74,16 +80,19 @@ public class SourceTest extends PulsarTestBaseWithFlink {
         List<String> data = generateRange(0, 100);
         sendTypedMessages(topic, SchemaType.STRING, data, Optional.empty());
         admin.topics().createSubscription(topic, subscriptionName, MessageId.latest);
-        admin.topics().resetCursor(topic, subscriptionName, admin.topics().getLastMessageId(topic), true);
+        admin.topics()
+                .resetCursor(topic, subscriptionName, admin.topics().getLastMessageId(topic), true);
         data = generateRange(100, 200);
         sendTypedMessages(topic, SchemaType.STRING, data, Optional.empty());
-        List<String> actual = collectData(topic, data.size() - 1)
-            .get(50, TimeUnit.SECONDS);
+        List<String> actual = collectData(topic, data.size() - 1).get(50, TimeUnit.SECONDS);
         Assert.assertEquals(data.subList(0, data.size() - 1), actual);
     }
 
     private List<String> generateRange(int startInclusive, int endExclusive) {
-        return IntStream.range(startInclusive, endExclusive).boxed().map(Objects::toString).collect(Collectors.toList());
+        return IntStream.range(startInclusive, endExclusive)
+                .boxed()
+                .map(Objects::toString)
+                .collect(Collectors.toList());
     }
 
     private CompletableFuture<List<String>> collectData(String topic, int limit) {
@@ -92,17 +101,18 @@ public class SourceTest extends PulsarTestBaseWithFlink {
         see.enableCheckpointing(1000);
         final Properties properties = new Properties();
         properties.setProperty("topic", topic);
-        final FlinkPulsarSource<String> pulsarSource = new FlinkPulsarSource<>(serviceUrl, adminUrl, new SimpleStringSchema(), properties);
+        final FlinkPulsarSource<String> pulsarSource =
+                new FlinkPulsarSource<>(serviceUrl, adminUrl, new SimpleStringSchema(), properties);
         pulsarSource.setStartFromSubscription(subscriptionName);
-        final CompletableFuture<List<String>> future = CompletableFuture.supplyAsync(() -> {
-            try {
-                return see.addSource(pulsarSource)
-                    .executeAndCollect(limit);
-            } catch (Exception e) {
-                throw new IllegalStateException(e);
-            }
-        });
+        final CompletableFuture<List<String>> future =
+                CompletableFuture.supplyAsync(
+                        () -> {
+                            try {
+                                return see.addSource(pulsarSource).executeAndCollect(limit);
+                            } catch (Exception e) {
+                                throw new IllegalStateException(e);
+                            }
+                        });
         return future;
     }
 }
-

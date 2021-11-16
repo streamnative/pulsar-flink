@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -19,9 +23,8 @@ import javax.annotation.Nullable;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Creates an exception proxy that interrupts the given thread upon
- * report of an exception. The thread to interrupt may be null.
- *
+ * Creates an exception proxy that interrupts the given thread upon report of an exception. The
+ * thread to interrupt may be null.
  */
 public class ExceptionProxy {
 
@@ -32,8 +35,8 @@ public class ExceptionProxy {
     private final AtomicReference<Throwable> exception;
 
     /**
-     * Creates an exception proxy that interrupts the given thread upon
-     * report of an exception. The thread to interrupt may be null.
+     * Creates an exception proxy that interrupts the given thread upon report of an exception. The
+     * thread to interrupt may be null.
      *
      * @param toInterrupt The thread to interrupt upon an exception. May be null.
      */
@@ -45,11 +48,11 @@ public class ExceptionProxy {
     // ------------------------------------------------------------------------
 
     /**
-     * Sets the exception and interrupts the target thread,
-     * if no other exception has occurred so far.
+     * Sets the exception and interrupts the target thread, if no other exception has occurred so
+     * far.
      *
-     * <p>The exception is only set (and the interruption is only triggered),
-     * if no other exception was set before.
+     * <p>The exception is only set (and the interruption is only triggered), if no other exception
+     * was set before.
      *
      * @param t The exception that occurred
      */
@@ -61,8 +64,8 @@ public class ExceptionProxy {
     }
 
     /**
-     * Checks whether an exception has been set via {@link #reportError(Throwable)}.
-     * If yes, that exception if re-thrown by this method.
+     * Checks whether an exception has been set via {@link #reportError(Throwable)}. If yes, that
+     * exception if re-thrown by this method.
      *
      * @throws Exception This method re-throws the exception, if set.
      */

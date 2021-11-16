@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -19,6 +23,7 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper;
 import org.apache.flink.streaming.connectors.pulsar.testutils.SingletonStreamSink;
+import org.apache.flink.streaming.connectors.pulsar.testutils.TestUtils;
 import org.apache.flink.streaming.connectors.pulsar.util.RowDataUtil;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.api.Table;
@@ -28,7 +33,6 @@ import org.apache.flink.table.data.GenericRowData;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.runtime.typeutils.InternalTypeInfo;
 import org.apache.flink.table.types.DataType;
-import org.apache.flink.test.util.TestUtils;
 import org.apache.flink.types.Row;
 import org.apache.flink.types.RowKind;
 
@@ -57,9 +61,7 @@ import static org.apache.flink.streaming.connectors.pulsar.SchemaData.STRING_LIS
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.localDateList;
 import static org.apache.flink.streaming.connectors.pulsar.SchemaData.localDateTimeList;
 
-/**
- * Schema related integration tests.
- */
+/** Schema related integration tests. */
 public class SchemaITest extends PulsarTestBaseWithFlink {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SchemaITest.class);
@@ -155,8 +157,7 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
     @Test(timeout = 100 * 1000L)
     public void testDateRead() throws Exception {
-        checkRead(SchemaType.LOCAL_DATE, DataTypes.DATE(),
-                localDateList, null, ATOMIC_FORMAT);
+        checkRead(SchemaType.LOCAL_DATE, DataTypes.DATE(), localDateList, null, ATOMIC_FORMAT);
     }
 
     @Test
@@ -166,13 +167,21 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
     @Test(timeout = 100 * 1000L)
     public void testTimestampRead() throws Exception {
-        checkRead(SchemaType.LOCAL_DATE_TIME,
-                DataTypes.TIMESTAMP(3), localDateTimeList, null, ATOMIC_FORMAT);
+        checkRead(
+                SchemaType.LOCAL_DATE_TIME,
+                DataTypes.TIMESTAMP(3),
+                localDateTimeList,
+                null,
+                ATOMIC_FORMAT);
     }
 
     @Test(timeout = 100 * 1000L)
     public void testTimestampWrite() throws Exception {
-        checkWrite(DataTypes.TIMESTAMP(3), localDateTimeList, obj -> Row.of(obj).toString(), ATOMIC_FORMAT);
+        checkWrite(
+                DataTypes.TIMESTAMP(3),
+                localDateTimeList,
+                obj -> Row.of(obj).toString(),
+                ATOMIC_FORMAT);
     }
 
     @Test(timeout = 100 * 1000L)
@@ -185,7 +194,12 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
         checkWrite(DataTypes.BYTES(), BYTES_LIST, obj -> Row.of(obj).toString(), RAW_FORMAT);
     }
 
-    private <T> void checkRead(SchemaType type, DataType dt, List<T> datas, Function<T, String> toStr, String formatType)
+    private <T> void checkRead(
+            SchemaType type,
+            DataType dt,
+            List<T> datas,
+            Function<T, String> toStr,
+            String formatType)
             throws Exception {
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.setParallelism(1);
@@ -204,25 +218,33 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
 
         tEnv.toAppendStream(t, InternalTypeInfo.of(tSchema.toRowDataType().getLogicalType()))
                 .map(new FailingIdentityMapper<>(datas.size()))
-                .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
+                .addSink(new SingletonStreamSink.StringSink<>())
+                .setParallelism(1);
         TestUtils.tryExecute(see, "read from earliest");
         if (toStr == null) {
             SingletonStreamSink.compareWithList(
-                    rowData.subList(0, datas.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
+                    rowData.subList(0, datas.size() - 1).stream()
+                            .map(Objects::toString)
+                            .collect(Collectors.toList()));
         } else {
-//            SingletonStreamSink.compareWithList(rowData.subList(0, datas.size() - 1).stream().map(e -> toStr.apply(e)).collect(Collectors.toList()));
+            //            SingletonStreamSink.compareWithList(rowData.subList(0, datas.size() -
+            // 1).stream().map(e -> toStr.apply(e)).collect(Collectors.toList()));
         }
     }
 
     private <T> List<RowData> wrapperRowData(List<T> datas) {
-        return datas.stream().map(t -> {
-            GenericRowData rowData = new GenericRowData(RowKind.INSERT, 1);
-            RowDataUtil.setField(rowData, 0, t);
-            return rowData;
-        }).collect(Collectors.toList());
+        return datas.stream()
+                .map(
+                        t -> {
+                            GenericRowData rowData = new GenericRowData(RowKind.INSERT, 1);
+                            RowDataUtil.setField(rowData, 0, t);
+                            return rowData;
+                        })
+                .collect(Collectors.toList());
     }
 
-    private <T> void checkWrite(DataType dt, List<T> datas, Function<T, String> toStr, String formatType)
+    private <T> void checkWrite(
+            DataType dt, List<T> datas, Function<T, String> toStr, String formatType)
             throws Exception {
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.setParallelism(1);
@@ -248,32 +270,38 @@ public class SchemaITest extends PulsarTestBaseWithFlink {
         Table t = tEnv2.sqlQuery("select `value` from " + tableName);
         tEnv2.toAppendStream(t, t.getSchema().toRowType())
                 .map(new FailingIdentityMapper<>(datas.size()))
-                .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
+                .addSink(new SingletonStreamSink.StringSink<>())
+                .setParallelism(1);
 
         FailingIdentityMapper.failedBefore = false;
         SingletonStreamSink.clear();
 
-        Thread reader = new Thread("read") {
-            @Override
-            public void run() {
-                try {
-                    TestUtils.tryExecute(se2, "read");
-                } catch (Throwable e) {
-                    // do nothing
-                    LOGGER.error("read fail", e);
-                }
-            }
-        };
+        Thread reader =
+                new Thread("read") {
+                    @Override
+                    public void run() {
+                        try {
+                            TestUtils.tryExecute(se2, "read");
+                        } catch (Throwable e) {
+                            // do nothing
+                            LOGGER.error("read fail", e);
+                        }
+                    }
+                };
 
         reader.start();
         reader.join();
 
         if (toStr == null) {
             SingletonStreamSink.compareWithList(
-                    datas.subList(0, datas.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
+                    datas.subList(0, datas.size() - 1).stream()
+                            .map(Objects::toString)
+                            .collect(Collectors.toList()));
         } else {
             SingletonStreamSink.compareWithList(
-                    datas.subList(0, datas.size() - 1).stream().map(e -> toStr.apply(e)).collect(Collectors.toList()));
+                    datas.subList(0, datas.size() - 1).stream()
+                            .map(toStr)
+                            .collect(Collectors.toList()));
         }
     }
 }

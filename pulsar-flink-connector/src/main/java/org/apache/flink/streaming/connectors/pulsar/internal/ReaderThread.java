@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -14,8 +18,8 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
+import org.apache.flink.streaming.connectors.pulsar.serialization.PulsarDeserializationSchema;
 import org.apache.flink.streaming.connectors.pulsar.util.MessageIdUtils;
-import org.apache.flink.streaming.util.serialization.PulsarDeserializationSchema;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.Message;
@@ -97,7 +101,11 @@ public class ReaderThread<T> extends Thread {
 
     @Override
     public void run() {
-        log.info("Starting to fetch from {} at {}, failOnDataLoss {}", topicRange, startMessageId, failOnDataLoss);
+        log.info(
+                "Starting to fetch from {} at {}, failOnDataLoss {}",
+                topicRange,
+                startMessageId,
+                failOnDataLoss);
 
         try {
             handleTooLargeCursor();
@@ -124,30 +132,36 @@ public class ReaderThread<T> extends Thread {
     }
 
     protected void createActualReader() throws PulsarClientException {
-        ReaderBuilder<T> readerBuilder = CachedPulsarClient.getOrCreate(clientConf)
-                .newReader(deserializer.getSchema())
-                .topic(topicRange.getTopic())
-                .startMessageId(startMessageId)
-                .loadConf(readerConf);
-        log.info("Create a reader at topic {} starting from message {} (inclusive) : config = {}",
-                topicRange, startMessageId, readerConf);
-        if (!excludeMessageId){
+        ReaderBuilder<T> readerBuilder =
+                CachedPulsarClient.getOrCreate(clientConf)
+                        .newReader(deserializer.getSchema())
+                        .topic(topicRange.getTopic())
+                        .startMessageId(startMessageId)
+                        .loadConf(readerConf);
+        log.info(
+                "Create a reader at topic {} starting from message {} (inclusive) : config = {}",
+                topicRange,
+                startMessageId,
+                readerConf);
+        if (!excludeMessageId) {
             readerBuilder.startMessageIdInclusive();
         }
         if (!topicRange.isFullRange()) {
-             readerBuilder.keyHashRange(topicRange.getPulsarRange());
+            readerBuilder.keyHashRange(topicRange.getPulsarRange());
         }
 
         reader = readerBuilder.create();
     }
 
     protected void handleTooLargeCursor() {
-        if (startMessageId.equals(MessageId.earliest) || startMessageId.equals(MessageId.latest)
-            || ((MessageIdImpl) startMessageId).getEntryId() == -1) {
+        if (startMessageId.equals(MessageId.earliest)
+                || startMessageId.equals(MessageId.latest)
+                || ((MessageIdImpl) startMessageId).getEntryId() == -1) {
             return;
         }
 
-        MessageId lastMessageId = this.owner.getMetaDataReader().getLastMessageId(topicRange.getTopic());
+        MessageId lastMessageId =
+                this.owner.getMetaDataReader().getLastMessageId(topicRange.getTopic());
         if (MessageIdUtils.prev(startMessageId).compareTo(lastMessageId) <= 0) {
             return;
         }
@@ -155,8 +169,10 @@ public class ReaderThread<T> extends Thread {
         // this will make the messageId to be read greater than the lastMessageId.
         // startMessageId is bigger than lastMessageId + 1
         if (this.failOnDataLoss) {
-            log.error("the start message id is beyond the last commit message id, with topic:{}", this.topicRange);
-            throw new RuntimeException("start message id beyond the last commit");
+            log.error(
+                    "the start message id is beyond the last commit message id, with topic:{}",
+                    this.topicRange);
+            throw new IllegalStateException("start message id beyond the last commit");
         } else if (useEarliestWhenDataLoss) {
             log.info("reset message to earliest");
             startMessageId = MessageId.earliest;
@@ -206,12 +222,13 @@ public class ReaderThread<T> extends Thread {
     private void reportDataLoss(String message) {
         running = false;
         exceptionProxy.reportError(
-                new IllegalStateException(message + PulsarOptions.INSTRUCTION_FOR_FAIL_ON_DATA_LOSS_TRUE));
+                new IllegalStateException(
+                        message + PulsarOptions.INSTRUCTION_FOR_FAIL_ON_DATA_LOSS_TRUE));
     }
 
-    /** used to check whether starting position and current message we got actually are equal
-     * we neglect the potential batchIdx deliberately while seeking to MessageIdImpl for batch entry.
-     *
+    /**
+     * used to check whether starting position and current message we got actually are equal we
+     * neglect the potential batchIdx deliberately while seeking to MessageIdImpl for batch entry.
      */
     public static boolean messageIdRoughEquals(MessageId l, MessageId r) {
         if (l == null || r == null) {
@@ -222,15 +239,19 @@ public class ReaderThread<T> extends Thread {
             return l.equals(r);
         } else if (l instanceof MessageIdImpl && r instanceof BatchMessageIdImpl) {
             BatchMessageIdImpl rb = (BatchMessageIdImpl) r;
-            return l.equals(new MessageIdImpl(rb.getLedgerId(), rb.getEntryId(), rb.getPartitionIndex()));
+            return l.equals(
+                    new MessageIdImpl(rb.getLedgerId(), rb.getEntryId(), rb.getPartitionIndex()));
         } else if (r instanceof MessageIdImpl && l instanceof BatchMessageIdImpl) {
             BatchMessageIdImpl lb = (BatchMessageIdImpl) l;
-            return r.equals(new MessageIdImpl(lb.getLedgerId(), lb.getEntryId(), lb.getPartitionIndex()));
+            return r.equals(
+                    new MessageIdImpl(lb.getLedgerId(), lb.getEntryId(), lb.getPartitionIndex()));
         } else if (l instanceof MessageIdImpl && r instanceof MessageIdImpl) {
             return l.equals(r);
         } else {
             throw new IllegalStateException(
-                    String.format("comparing messageIds of type %s, %s", l.getClass().toString(), r.getClass().toString()));
+                    String.format(
+                            "comparing messageIds of type %s, %s",
+                            l.getClass().toString(), r.getClass().toString()));
         }
     }
 }

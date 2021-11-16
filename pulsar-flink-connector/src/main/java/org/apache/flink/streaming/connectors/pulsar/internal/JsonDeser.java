@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -24,44 +28,45 @@ import java.io.IOException;
 
 /**
  * Read JSON encoded data from Pulsar.
+ *
  * @param <T> the type of record class.
  */
 public class JsonDeser<T> implements DeserializationSchema<T> {
 
-	private final Class<T> recordClazz;
+    private final Class<T> recordClazz;
 
-	private transient JSONSchema<T> pulsarSchema;
+    private transient JSONSchema<T> pulsarSchema;
 
-	private JsonDeser(Class<T> recordClazz) {
-		Preconditions.checkNotNull(recordClazz, "JSON record class must not be null");
-		this.recordClazz = recordClazz;
-	}
+    private JsonDeser(Class<T> recordClazz) {
+        Preconditions.checkNotNull(recordClazz, "JSON record class must not be null");
+        this.recordClazz = recordClazz;
+    }
 
-	public static <T> JsonDeser<T> of(Class<T> recordClazz) {
-		return new JsonDeser<>(recordClazz);
-	}
+    public static <T> JsonDeser<T> of(Class<T> recordClazz) {
+        return new JsonDeser<>(recordClazz);
+    }
 
-	@Override
-	public T deserialize(byte[] message) throws IOException {
-		checkPulsarJsonSchemaInitialized();
-		return pulsarSchema.decode(message);
-	}
+    @Override
+    public T deserialize(byte[] message) throws IOException {
+        checkPulsarJsonSchemaInitialized();
+        return pulsarSchema.decode(message);
+    }
 
-	@Override
-	public boolean isEndOfStream(T nextElement) {
-		return false;
-	}
+    @Override
+    public boolean isEndOfStream(T nextElement) {
+        return false;
+    }
 
-	@Override
-	public TypeInformation<T> getProducedType() {
-		return TypeInformation.of(recordClazz);
-	}
+    @Override
+    public TypeInformation<T> getProducedType() {
+        return TypeInformation.of(recordClazz);
+    }
 
-	private void checkPulsarJsonSchemaInitialized() {
-		if (pulsarSchema != null) {
-			return;
-		}
+    private void checkPulsarJsonSchemaInitialized() {
+        if (pulsarSchema != null) {
+            return;
+        }
 
-		this.pulsarSchema = JSONSchema.of(recordClazz);
-	}
+        this.pulsarSchema = JSONSchema.of(recordClazz);
+    }
 }

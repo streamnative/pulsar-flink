@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -34,9 +38,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/**
- * Old PulsarSourceState Serializer for flink state.
- */
+/** Old PulsarSourceState Serializer for flink state. */
 @Slf4j
 public class PulsarSourceStateSerializer
         implements SimpleVersionedSerializer<Tuple2<TopicSubscription, MessageId>>, Serializable {
@@ -45,39 +47,52 @@ public class PulsarSourceStateSerializer
 
     private final ExecutionConfig executionConfig;
 
-    private Map<Integer, SerializableFunction<byte[], Tuple2<TopicSubscription, MessageId>>> oldStateSerializer;
+    private Map<Integer, SerializableFunction<byte[], Tuple2<TopicSubscription, MessageId>>>
+            oldStateSerializer;
 
     public PulsarSourceStateSerializer(ExecutionConfig executionConfig) {
         this.executionConfig = executionConfig;
         this.oldStateSerializer = new LinkedHashMap<>();
-        oldStateSerializer.put(0, bytes -> {
-            final DataInputDeserializer deserializer = new DataInputDeserializer(bytes);
-            Tuple2<String, MessageId> deserialize = getV0Serializer().deserialize(deserializer);
-            TopicSubscription topicSubscription = TopicSubscription.builder()
-                    .topic(deserialize.f0)
-                    .range(SerializableRange.ofFullRange())
-                    .build();
-            return Tuple2.of(topicSubscription, deserialize.f1);
-        });
-        oldStateSerializer.put(1, bytes -> {
-            final DataInputDeserializer deserializer = new DataInputDeserializer(bytes);
-            Tuple2<TopicRange, MessageId> deserialize = getV1Serializer().deserialize(deserializer);
-            TopicSubscription topicSubscription = TopicSubscription.builder()
-                    .topic(deserialize.f0.getTopic())
-                    .range(deserialize.f0.getRange())
-                    .build();
-            return Tuple2.of(topicSubscription, deserialize.f1);
-        });
-        oldStateSerializer.put(2, bytes -> {
-            final DataInputDeserializer deserializer = new DataInputDeserializer(bytes);
-            Tuple3<TopicRange, MessageId, String> deserialize = getV2Serializer().deserialize(deserializer);
-            TopicSubscription topicSubscription = TopicSubscription.builder()
-                    .topic(deserialize.f0.getTopic())
-                    .range(deserialize.f0.getRange())
-                    .subscriptionName(deserialize.f2)
-                    .build();
-            return Tuple2.of(topicSubscription, deserialize.f1);
-        });
+        oldStateSerializer.put(
+                0,
+                bytes -> {
+                    final DataInputDeserializer deserializer = new DataInputDeserializer(bytes);
+                    Tuple2<String, MessageId> deserialize =
+                            getV0Serializer().deserialize(deserializer);
+                    TopicSubscription topicSubscription =
+                            TopicSubscription.builder()
+                                    .topic(deserialize.f0)
+                                    .range(SerializableRange.ofFullRange())
+                                    .build();
+                    return Tuple2.of(topicSubscription, deserialize.f1);
+                });
+        oldStateSerializer.put(
+                1,
+                bytes -> {
+                    final DataInputDeserializer deserializer = new DataInputDeserializer(bytes);
+                    Tuple2<TopicRange, MessageId> deserialize =
+                            getV1Serializer().deserialize(deserializer);
+                    TopicSubscription topicSubscription =
+                            TopicSubscription.builder()
+                                    .topic(deserialize.f0.getTopic())
+                                    .range(deserialize.f0.getRange())
+                                    .build();
+                    return Tuple2.of(topicSubscription, deserialize.f1);
+                });
+        oldStateSerializer.put(
+                2,
+                bytes -> {
+                    final DataInputDeserializer deserializer = new DataInputDeserializer(bytes);
+                    Tuple3<TopicRange, MessageId, String> deserialize =
+                            getV2Serializer().deserialize(deserializer);
+                    TopicSubscription topicSubscription =
+                            TopicSubscription.builder()
+                                    .topic(deserialize.f0.getTopic())
+                                    .range(deserialize.f0.getRange())
+                                    .subscriptionName(deserialize.f2)
+                                    .build();
+                    return Tuple2.of(topicSubscription, deserialize.f1);
+                });
     }
 
     @Override
@@ -91,12 +106,14 @@ public class PulsarSourceStateSerializer
     }
 
     @Override
-    public Tuple2<TopicSubscription, MessageId> deserialize(int version, byte[] serialized) throws IOException {
+    public Tuple2<TopicSubscription, MessageId> deserialize(int version, byte[] serialized)
+            throws IOException {
         Exception exception = null;
-        for (Map.Entry<Integer, SerializableFunction<byte[], Tuple2<TopicSubscription, MessageId>>> entry : oldStateSerializer
-                .entrySet()) {
+        for (Map.Entry<Integer, SerializableFunction<byte[], Tuple2<TopicSubscription, MessageId>>>
+                entry : oldStateSerializer.entrySet()) {
             try {
-                final Tuple2<TopicSubscription, MessageId> tuple2 = entry.getValue().apply(serialized);
+                final Tuple2<TopicSubscription, MessageId> tuple2 =
+                        entry.getValue().apply(serialized);
                 log.info("pulsar deser old state " + tuple2);
                 return tuple2;
             } catch (Exception e) {
@@ -106,7 +123,8 @@ public class PulsarSourceStateSerializer
         throw new IllegalArgumentException("not restore Pulsar state", exception);
     }
 
-    public Tuple2<TopicSubscription, MessageId> deserialize(int version, Object oldStateObject) throws IOException {
+    public Tuple2<TopicSubscription, MessageId> deserialize(int version, Object oldStateObject)
+            throws IOException {
         final DataOutputSerializer target = new DataOutputSerializer(1024 * 8);
         switch (version) {
             case 0:
@@ -116,7 +134,8 @@ public class PulsarSourceStateSerializer
                 getV1Serializer().serialize((Tuple2<TopicRange, MessageId>) oldStateObject, target);
                 break;
             case 2:
-                getV2Serializer().serialize((Tuple3<TopicRange, MessageId, String>) oldStateObject, target);
+                getV2Serializer()
+                        .serialize((Tuple3<TopicRange, MessageId, String>) oldStateObject, target);
                 break;
             default:
                 throw new IllegalArgumentException("unsupport old pulsar state version");
@@ -126,9 +145,9 @@ public class PulsarSourceStateSerializer
 
     public TupleSerializer<Tuple2<String, MessageId>> getV0Serializer() {
         TypeSerializer<?>[] fieldSerializers =
-                new TypeSerializer<?>[]{
-                        StringSerializer.INSTANCE,
-                        new KryoSerializer<>(MessageId.class, executionConfig)
+                new TypeSerializer<?>[] {
+                    StringSerializer.INSTANCE,
+                    new KryoSerializer<>(MessageId.class, executionConfig)
                 };
         @SuppressWarnings("unchecked")
         Class<Tuple2<String, MessageId>> tupleClass =
@@ -138,9 +157,9 @@ public class PulsarSourceStateSerializer
 
     public TupleSerializer<Tuple2<TopicRange, MessageId>> getV1Serializer() {
         TypeSerializer<?>[] fieldSerializers =
-                new TypeSerializer<?>[]{
-                        new KryoSerializer<>(TopicRange.class, executionConfig),
-                        new KryoSerializer<>(MessageId.class, executionConfig)
+                new TypeSerializer<?>[] {
+                    new KryoSerializer<>(TopicRange.class, executionConfig),
+                    new KryoSerializer<>(MessageId.class, executionConfig)
                 };
         @SuppressWarnings("unchecked")
         Class<Tuple2<TopicRange, MessageId>> tupleClass =
@@ -150,10 +169,10 @@ public class PulsarSourceStateSerializer
 
     public TupleSerializer<Tuple3<TopicRange, MessageId, String>> getV2Serializer() {
         TypeSerializer<?>[] fieldSerializers =
-                new TypeSerializer<?>[]{
-                        new KryoSerializer<>(TopicRange.class, executionConfig),
-                        new KryoSerializer<>(MessageId.class, executionConfig),
-                        new StringSerializer()
+                new TypeSerializer<?>[] {
+                    new KryoSerializer<>(TopicRange.class, executionConfig),
+                    new KryoSerializer<>(MessageId.class, executionConfig),
+                    new StringSerializer()
                 };
         @SuppressWarnings("unchecked")
         Class<Tuple3<TopicRange, MessageId, String>> tupleClass =

@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -40,13 +44,13 @@ import org.apache.flink.streaming.connectors.pulsar.internal.PulsarFetcher;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarMetadataReader;
 import org.apache.flink.streaming.connectors.pulsar.internal.TopicRange;
 import org.apache.flink.streaming.connectors.pulsar.internal.TopicSubscription;
+import org.apache.flink.streaming.connectors.pulsar.serialization.PulsarDeserializationSchema;
 import org.apache.flink.streaming.connectors.pulsar.testutils.TestMetadataReader;
 import org.apache.flink.streaming.connectors.pulsar.testutils.TestSourceContext;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
 import org.apache.flink.streaming.runtime.tasks.TestProcessingTimeService;
 import org.apache.flink.streaming.util.AbstractStreamOperatorTestHarness;
 import org.apache.flink.streaming.util.MockStreamingRuntimeContext;
-import org.apache.flink.streaming.util.serialization.PulsarDeserializationSchema;
 import org.apache.flink.util.ExceptionUtils;
 import org.apache.flink.util.FlinkException;
 import org.apache.flink.util.Preconditions;
@@ -97,9 +101,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 
-/**
- * Source unit tests.
- */
+/** Source unit tests. */
 public class FlinkPulsarSourceTest extends TestLogger {
 
     private static final int maxParallelism = Short.MAX_VALUE / 2;
@@ -121,7 +123,8 @@ public class FlinkPulsarSourceTest extends TestLogger {
         } catch (NullPointerException ignored) {
         }
 
-        final AssignerWithPeriodicWatermarks<String> periodicAssigner = mock(AssignerWithPeriodicWatermarks.class);
+        final AssignerWithPeriodicWatermarks<String> periodicAssigner =
+                mock(AssignerWithPeriodicWatermarks.class);
         final AssignerWithPunctuatedWatermarks<String> punctuatedAssigner =
                 mock(AssignerWithPunctuatedWatermarks.class);
 
@@ -142,16 +145,14 @@ public class FlinkPulsarSourceTest extends TestLogger {
         }
     }
 
-    /**
-     * Tests that no checkpoints happen when the fetcher is not running.
-     */
+    /** Tests that no checkpoints happen when the fetcher is not running. */
     @Test
     public void ignoreCheckpointWhenNotRunning() throws Exception {
-        @SuppressWarnings("unchecked") final MockFetcher<String> fetcher = new MockFetcher<>();
-        final FlinkPulsarSource<String> source = new DummyFlinkPulsarSource<>(
-                fetcher,
-                mock(PulsarMetadataReader.class),
-                dummyProperties);
+        @SuppressWarnings("unchecked")
+        final MockFetcher<String> fetcher = new MockFetcher<>();
+        final FlinkPulsarSource<String> source =
+                new DummyFlinkPulsarSource<>(
+                        fetcher, mock(PulsarMetadataReader.class), dummyProperties);
 
         final TestingListState<Tuple2<String, MessageId>> listState = new TestingListState<>();
         setupSource(source, false, listState, true, 0, 1);
@@ -169,20 +170,23 @@ public class FlinkPulsarSourceTest extends TestLogger {
     }
 
     /**
-     * Tests that when taking a checkpoint when the fetcher is not running yet,
-     * the checkpoint correctly contains the restored state instead.
+     * Tests that when taking a checkpoint when the fetcher is not running yet, the checkpoint
+     * correctly contains the restored state instead.
      */
     @Test
     public void checkRestoredCheckpointWhenFetcherNotReady() throws Exception {
-        @SuppressWarnings("unchecked") final FlinkPulsarSource<String> source = new DummyFlinkPulsarSource<>();
+        @SuppressWarnings("unchecked")
+        final FlinkPulsarSource<String> source = new DummyFlinkPulsarSource<>();
 
-        final TestingListState<Tuple2<String, MessageId>> restoredListState = new TestingListState<>();
+        final TestingListState<Tuple2<String, MessageId>> restoredListState =
+                new TestingListState<>();
         setupSource(source, true, restoredListState, true, 0, 1);
 
         // snapshot before the fetcher starts running
         source.snapshotState(new StateSnapshotContextSynchronousImpl(17, 17));
 
-        // ensure that the list was cleared and refilled. while this is an implementation detail, we use it here
+        // ensure that the list was cleared and refilled. while this is an implementation detail, we
+        // use it here
         // to figure out that snapshotState() actually did something.
         Assert.assertTrue(restoredListState.isClearCalled());
 
@@ -205,26 +209,41 @@ public class FlinkPulsarSourceTest extends TestLogger {
     @Test
     @SuppressWarnings("unchecked")
     public void testSnapshotStateWithCommitOnCheckpoint() throws Exception {
-        Map<TopicRange, MessageId> state1 = ImmutableMap.of(new TopicRange("abc"), dummyMessageId(5), new TopicRange("def"), dummyMessageId(90));
-        Map<TopicRange, MessageId> state2 = ImmutableMap.of(new TopicRange("abc"), dummyMessageId(10), new TopicRange("def"), dummyMessageId(95));
-        Map<TopicRange, MessageId> state3 = ImmutableMap.of(new TopicRange("abc"), dummyMessageId(15), new TopicRange("def"), dummyMessageId(100));
+        Map<TopicRange, MessageId> state1 =
+                ImmutableMap.of(
+                        new TopicRange("abc"),
+                        dummyMessageId(5),
+                        new TopicRange("def"),
+                        dummyMessageId(90));
+        Map<TopicRange, MessageId> state2 =
+                ImmutableMap.of(
+                        new TopicRange("abc"),
+                        dummyMessageId(10),
+                        new TopicRange("def"),
+                        dummyMessageId(95));
+        Map<TopicRange, MessageId> state3 =
+                ImmutableMap.of(
+                        new TopicRange("abc"),
+                        dummyMessageId(15),
+                        new TopicRange("def"),
+                        dummyMessageId(100));
 
         MockFetcher<String> fetcher = new MockFetcher<>(state1, state2, state3);
 
-        final FlinkPulsarSource<String> source = new DummyFlinkPulsarSource<>(
-                fetcher,
-                mock(PulsarMetadataReader.class),
-                dummyProperties);
+        final FlinkPulsarSource<String> source =
+                new DummyFlinkPulsarSource<>(
+                        fetcher, mock(PulsarMetadataReader.class), dummyProperties);
 
         final TestingListState<Serializable> listState = new TestingListState<>();
         setupSource(source, false, listState, true, 0, 1);
 
-        final CheckedThread runThread = new CheckedThread() {
-            @Override
-            public void go() throws Exception {
-                source.run(new TestSourceContext<>());
-            }
-        };
+        final CheckedThread runThread =
+                new CheckedThread() {
+                    @Override
+                    public void go() throws Exception {
+                        source.run(new TestSourceContext<>());
+                    }
+                };
         runThread.start();
         fetcher.waitUntilRun();
 
@@ -236,8 +255,10 @@ public class FlinkPulsarSourceTest extends TestLogger {
         HashMap<TopicRange, MessageId> snapshot1 = new HashMap<>();
 
         for (Serializable serializable : listState.get()) {
-            Tuple2<TopicSubscription, MessageId> tuple2 = (Tuple2<TopicSubscription, MessageId>) serializable;
-            final TopicRange topicRange = new TopicRange(tuple2.f0.getTopic(), tuple2.f0.getRange().getPulsarRange());
+            Tuple2<TopicSubscription, MessageId> tuple2 =
+                    (Tuple2<TopicSubscription, MessageId>) serializable;
+            final TopicRange topicRange =
+                    new TopicRange(tuple2.f0.getTopic(), tuple2.f0.getRange().getPulsarRange());
             snapshot1.put(topicRange, tuple2.f1);
         }
 
@@ -251,8 +272,10 @@ public class FlinkPulsarSourceTest extends TestLogger {
         HashMap<TopicRange, MessageId> snapshot2 = new HashMap<>();
 
         for (Serializable serializable : listState.get()) {
-            Tuple2<TopicSubscription, MessageId> tuple2 = (Tuple2<TopicSubscription, MessageId>) serializable;
-            final TopicRange topicRange = new TopicRange(tuple2.f0.getTopic(), tuple2.f0.getRange().getPulsarRange());
+            Tuple2<TopicSubscription, MessageId> tuple2 =
+                    (Tuple2<TopicSubscription, MessageId>) serializable;
+            final TopicRange topicRange =
+                    new TopicRange(tuple2.f0.getTopic(), tuple2.f0.getRange().getPulsarRange());
             snapshot2.put(topicRange, tuple2.f1);
         }
 
@@ -273,8 +296,10 @@ public class FlinkPulsarSourceTest extends TestLogger {
         HashMap<TopicRange, MessageId> snapshot3 = new HashMap<>();
 
         for (Serializable serializable : listState.get()) {
-            Tuple2<TopicSubscription, MessageId> tuple2 = (Tuple2<TopicSubscription, MessageId>) serializable;
-            final TopicRange topicRange = new TopicRange(tuple2.f0.getTopic(), tuple2.f0.getRange().getPulsarRange());
+            Tuple2<TopicSubscription, MessageId> tuple2 =
+                    (Tuple2<TopicSubscription, MessageId>) serializable;
+            final TopicRange topicRange =
+                    new TopicRange(tuple2.f0.getTopic(), tuple2.f0.getRange().getPulsarRange());
             snapshot3.put(topicRange, tuple2.f1);
         }
 
@@ -299,13 +324,17 @@ public class FlinkPulsarSourceTest extends TestLogger {
 
     @Test
     public void testCloseDiscovererWhenOpenThrowException() throws Exception {
-        final RuntimeException failureCause =
-                new RuntimeException(new FlinkException("Test partition discoverer exception"));
-        final FailingPartitionDiscoverer failingPartitionDiscoverer = new FailingPartitionDiscoverer(failureCause);
+        final IllegalStateException failureCause =
+                new IllegalStateException(
+                        new FlinkException("Test partition discoverer exception"));
+        final FailingPartitionDiscoverer failingPartitionDiscoverer =
+                new FailingPartitionDiscoverer(failureCause);
 
-        final DummyFlinkPulsarSource source = new DummyFlinkPulsarSource(failingPartitionDiscoverer);
+        final DummyFlinkPulsarSource source =
+                new DummyFlinkPulsarSource(failingPartitionDiscoverer);
         testFailingSourceLifecycle(source, failureCause);
-        assertTrue("partitionDiscoverer should be closed when consumer is closed",
+        assertTrue(
+                "partitionDiscoverer should be closed when consumer is closed",
                 failingPartitionDiscoverer.isClosed());
     }
 
@@ -313,14 +342,17 @@ public class FlinkPulsarSourceTest extends TestLogger {
     public void testClosePartitionDiscovererWhenCreateFetcherFails() throws Exception {
         final FlinkException failureCause = new FlinkException("create fetcher failure");
         final DummyPartitionDiscoverer testDiscoverer = new DummyPartitionDiscoverer();
-        final DummyFlinkPulsarSource<String> source = new DummyFlinkPulsarSource<>(
-                () -> {
-                    throw failureCause;
-                },
-                testDiscoverer,
-                dummyProperties);
+        final DummyFlinkPulsarSource<String> source =
+                new DummyFlinkPulsarSource<>(
+                        () -> {
+                            throw failureCause;
+                        },
+                        testDiscoverer,
+                        dummyProperties);
         testFailingSourceLifecycle(source, failureCause);
-        assertTrue("partitionDiscoverer should be closed when consumer is closed", testDiscoverer.isClosed());
+        assertTrue(
+                "partitionDiscoverer should be closed when consumer is closed",
+                testDiscoverer.isClosed());
     }
 
     @Test
@@ -333,23 +365,26 @@ public class FlinkPulsarSourceTest extends TestLogger {
         final DummyPartitionDiscoverer testDiscoverer = new DummyPartitionDiscoverer();
         final PulsarFetcher<String> mock = mock(PulsarFetcher.class);
         doThrow(failureCause).when(mock).runFetchLoop();
-        final DummyFlinkPulsarSource<String> source = new DummyFlinkPulsarSource<>(
-                () -> mock,
-                testDiscoverer,
-                dummyProperties);
+        final DummyFlinkPulsarSource<String> source =
+                new DummyFlinkPulsarSource<>(() -> mock, testDiscoverer, dummyProperties);
 
         testFailingSourceLifecycle(source, failureCause);
-        assertTrue("partitionDiscoverer should be closed when consumer is closed", testDiscoverer.isClosed());
+        assertTrue(
+                "partitionDiscoverer should be closed when consumer is closed",
+                testDiscoverer.isClosed());
     }
 
     @Test
     public void testClosePartitionDiscovererWithCancellation() throws Exception {
         final DummyPartitionDiscoverer testPartitionDiscoverer = new DummyPartitionDiscoverer();
 
-        final TestingFlinkPulsarSource<String> consumer = new TestingFlinkPulsarSource<>(testPartitionDiscoverer);
+        final TestingFlinkPulsarSource<String> consumer =
+                new TestingFlinkPulsarSource<>(testPartitionDiscoverer);
 
         testNormalConsumerLifecycle(consumer);
-        assertTrue("partitionDiscoverer should be closed when consumer is closed", testPartitionDiscoverer.isClosed());
+        assertTrue(
+                "partitionDiscoverer should be closed when consumer is closed",
+                testPartitionDiscoverer.isClosed());
     }
 
     @Test
@@ -366,37 +401,40 @@ public class FlinkPulsarSourceTest extends TestLogger {
      * Tests whether the pulsar consumer behaves correctly when scaling the parallelism up/down,
      * which means that operator state is being reshuffled.
      *
-     * <p>This also verifies that a restoring source is always impervious to changes in the list
-     * of topics fetched from pulsar.
+     * <p>This also verifies that a restoring source is always impervious to changes in the list of
+     * topics fetched from pulsar.
      */
     @SuppressWarnings("unchecked")
     private void testRescaling(
             final int initialParallelism,
             final int numPartitions,
             final int restoredParallelism,
-            final int restoredNumPartitions) throws Exception {
+            final int restoredNumPartitions)
+            throws Exception {
 
         Preconditions.checkArgument(
                 restoredNumPartitions >= numPartitions,
                 "invalid test case for Pulsar repartitioning; Pulsar only allows increasing partitions.");
 
         List<TopicRange> startupTopics =
-                IntStream.range(0, numPartitions).mapToObj(i -> topicName("test-topic", i))
+                IntStream.range(0, numPartitions)
+                        .mapToObj(i -> topicName("test-topic", i))
                         .map(TopicRange::new)
                         .collect(Collectors.toList());
 
-        DummyFlinkPulsarSource<String>[] sources =
-                new DummyFlinkPulsarSource[initialParallelism];
+        DummyFlinkPulsarSource<String>[] sources = new DummyFlinkPulsarSource[initialParallelism];
 
         AbstractStreamOperatorTestHarness<String>[] testHarnesses =
                 new AbstractStreamOperatorTestHarness[initialParallelism];
 
         for (int i = 0; i < initialParallelism; i++) {
-            TestMetadataReader discoverer = new TestMetadataReader(
-                    Collections.singletonMap("topic", "test-topic"),
-                    i,
-                    initialParallelism,
-                    TestMetadataReader.createMockGetAllTopicsSequenceFromFixedReturn(Sets.newHashSet(startupTopics)));
+            TestMetadataReader discoverer =
+                    new TestMetadataReader(
+                            Collections.singletonMap("topic", "test-topic"),
+                            i,
+                            initialParallelism,
+                            TestMetadataReader.createMockGetAllTopicsSequenceFromFixedReturn(
+                                    Sets.newHashSet(startupTopics)));
 
             sources[i] = new DummyFlinkPulsarSource(discoverer);
             testHarnesses[i] = createTestHarness(sources[i], initialParallelism, i);
@@ -440,17 +478,25 @@ public class FlinkPulsarSourceTest extends TestLogger {
                 new AbstractStreamOperatorTestHarness[restoredParallelism];
 
         for (int i = 0; i < restoredParallelism; i++) {
-            OperatorSubtaskState initState = AbstractStreamOperatorTestHarness.repartitionOperatorState(
-                    mergedState, maxParallelism, initialParallelism, restoredParallelism, i);
+            OperatorSubtaskState initState =
+                    AbstractStreamOperatorTestHarness.repartitionOperatorState(
+                            mergedState,
+                            maxParallelism,
+                            initialParallelism,
+                            restoredParallelism,
+                            i);
 
-            TestMetadataReader discoverer = new TestMetadataReader(
-                    Collections.singletonMap("topic", "test-topic"),
-                    i,
-                    restoredParallelism,
-                    TestMetadataReader.createMockGetAllTopicsSequenceFromFixedReturn(Sets.newHashSet(restoredTopics)));
+            TestMetadataReader discoverer =
+                    new TestMetadataReader(
+                            Collections.singletonMap("topic", "test-topic"),
+                            i,
+                            restoredParallelism,
+                            TestMetadataReader.createMockGetAllTopicsSequenceFromFixedReturn(
+                                    Sets.newHashSet(restoredTopics)));
 
             restoredConsumers[i] = new DummyFlinkPulsarSource<>(discoverer);
-            restoredTestHarnesses[i] = createTestHarness(restoredConsumers[i], restoredParallelism, i);
+            restoredTestHarnesses[i] =
+                    createTestHarness(restoredConsumers[i], restoredParallelism, i);
 
             // initializeState() is always called, null signals that we didn't restore
             restoredTestHarnesses[i].initializeState(initState);
@@ -472,17 +518,19 @@ public class FlinkPulsarSourceTest extends TestLogger {
 
         assertThat(restoredGlobalSubscribedPartitions.values(), hasSize(restoredNumPartitions));
         assertThat(restoredTopics, everyItem(isIn(restoredGlobalSubscribedPartitions.keySet())));
-
     }
 
-    private void testFailingSourceLifecycle(FlinkPulsarSource<String> source, Exception e) throws Exception {
+    private void testFailingSourceLifecycle(FlinkPulsarSource<String> source, Exception e)
+            throws Exception {
         try {
             setupSource(source);
             source.run(new TestSourceContext());
 
             fail("Exception should have been thrown from open / run method of FlinkPulsarSource.");
         } catch (Exception exc) {
-            assertThat(ExceptionUtils.findThrowable(e, throwable -> throwable.equals(e)).isPresent(), is(true));
+            assertThat(
+                    ExceptionUtils.findThrowable(e, throwable -> throwable.equals(e)).isPresent(),
+                    is(true));
         }
         source.close();
     }
@@ -490,7 +538,8 @@ public class FlinkPulsarSourceTest extends TestLogger {
     private void testNormalConsumerLifecycle(FlinkPulsarSource<String> source) throws Exception {
         setupSource(source);
         final CompletableFuture<Void> runFuture =
-                CompletableFuture.runAsync(ThrowingRunnable.unchecked(() -> source.run(new TestSourceContext<>())));
+                CompletableFuture.runAsync(
+                        ThrowingRunnable.unchecked(() -> source.run(new TestSourceContext<>())));
         source.close();
         runFuture.get();
     }
@@ -510,11 +559,17 @@ public class FlinkPulsarSourceTest extends TestLogger {
     private static class FailingPartitionDiscoverer extends PulsarMetadataReader {
         private volatile boolean closed = false;
 
-        private final RuntimeException failureCause;
+        private final IllegalStateException failureCause;
 
-        public FailingPartitionDiscoverer(RuntimeException failureCause) throws PulsarClientException {
-            super("http://localhost:8080", new ClientConfigurationData(), "", Collections.singletonMap("topic", "foo"),
-                    0, 1);
+        public FailingPartitionDiscoverer(IllegalStateException failureCause)
+                throws PulsarClientException {
+            super(
+                    "http://localhost:8080",
+                    new ClientConfigurationData(),
+                    "",
+                    Collections.singletonMap("topic", "foo"),
+                    0,
+                    1);
             this.failureCause = failureCause;
         }
 
@@ -544,8 +599,13 @@ public class FlinkPulsarSourceTest extends TestLogger {
         private static Set<TopicRange> allPartitions = Sets.newHashSet(new TopicRange("foo"));
 
         public DummyPartitionDiscoverer() throws PulsarClientException {
-            super("http://localhost:8080", new ClientConfigurationData(), "", Collections.singletonMap("topic", "foo"),
-                    0, 1);
+            super(
+                    "http://localhost:8080",
+                    new ClientConfigurationData(),
+                    "",
+                    Collections.singletonMap("topic", "foo"),
+                    0,
+                    1);
         }
 
         @Override
@@ -553,7 +613,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
             try {
                 checkState();
             } catch (ClosedException e) {
-                throw new RuntimeException(e);
+                throw new IllegalStateException(e);
             }
             return allPartitions;
         }
@@ -578,17 +638,29 @@ public class FlinkPulsarSourceTest extends TestLogger {
         setupSource(source, false, null, false, 0, 1);
     }
 
-    private static <T, S> void setupSource(FlinkPulsarSource<T> source, boolean isRestored,
-                                           ListState<S> restoredListState, boolean isCheckpointEnabled,
-                                           int subtaskIndex, int totalNumberSubtasks) throws Exception {
+    private static <T, S> void setupSource(
+            FlinkPulsarSource<T> source,
+            boolean isRestored,
+            ListState<S> restoredListState,
+            boolean isCheckpointEnabled,
+            int subtaskIndex,
+            int totalNumberSubtasks)
+            throws Exception {
         source.setRuntimeContext(
-                new MockStreamingRuntimeContext(isCheckpointEnabled, totalNumberSubtasks, subtaskIndex));
+                new MockStreamingRuntimeContext(
+                        isCheckpointEnabled, totalNumberSubtasks, subtaskIndex));
         source.initializeState(
-                new MockFunctionInitializationContext(isRestored, new MockOperatorStateStore(restoredListState)));
+                new MockFunctionInitializationContext(
+                        isRestored, new MockOperatorStateStore(restoredListState)));
         source.open(new Configuration());
     }
 
-    public static Properties dummyProperties = new Properties() {{ put("topic", "c"); }};
+    public static Properties dummyProperties =
+            new Properties() {
+                {
+                    put("topic", "c");
+                }
+            };
 
     private static String topicName(String topic, int partition) {
         return TopicName.get(topic).getPartition(partition).toString();
@@ -616,9 +688,15 @@ public class FlinkPulsarSourceTest extends TestLogger {
                 long autoWatermarkInterval,
                 ClassLoader userCodeClassLoader,
                 StreamingRuntimeContext streamingRuntime,
-                boolean useMetrics, Set<TopicRange> inclusiveStartMessageIds) throws Exception {
-            return new TestingFetcher<>(sourceContext, seedTopicsWithInitialOffsets, watermarkStrategy,
-                    processingTimeProvider, autoWatermarkInterval);
+                boolean useMetrics,
+                Set<TopicRange> inclusiveStartMessageIds)
+                throws Exception {
+            return new TestingFetcher<>(
+                    sourceContext,
+                    seedTopicsWithInitialOffsets,
+                    watermarkStrategy,
+                    processingTimeProvider,
+                    autoWatermarkInterval);
         }
 
         @Override
@@ -666,7 +744,9 @@ public class FlinkPulsarSourceTest extends TestLogger {
                 long autoWatermarkInterval,
                 ClassLoader userCodeClassLoader,
                 StreamingRuntimeContext streamingRuntime,
-                boolean useMetrics, Set<TopicRange> inclusiveStartMessageIds) throws Exception {
+                boolean useMetrics,
+                Set<TopicRange> inclusiveStartMessageIds)
+                throws Exception {
             return testFetcherSupplier.get();
         }
 
@@ -685,7 +765,8 @@ public class FlinkPulsarSourceTest extends TestLogger {
                 Map<TopicRange, MessageId> seedTopicsWithInitialOffsets,
                 SerializedValue<WatermarkStrategy<T>> watermarkStrategy,
                 ProcessingTimeService processingTimeProvider,
-                long autoWatermarkInterval) throws Exception {
+                long autoWatermarkInterval)
+                throws Exception {
             super(
                     sourceContext,
                     seedTopicsWithInitialOffsets,
@@ -716,7 +797,9 @@ public class FlinkPulsarSourceTest extends TestLogger {
         }
 
         @Override
-        public void doCommitOffsetToPulsar(Map<TopicRange, MessageId> offset, PulsarCommitCallback offsetCommitCallback) {
+        public void doCommitOffsetToPulsar(
+                Map<TopicRange, MessageId> offset, PulsarCommitCallback offsetCommitCallback) {
+            // Nothing to do.
         }
     }
 
@@ -760,7 +843,8 @@ public class FlinkPulsarSourceTest extends TestLogger {
         @Override
         public void addAll(List<T> values) throws Exception {
             if (values != null) {
-                values.forEach(v -> Preconditions.checkNotNull(v, "You cannot add null to a ListState."));
+                values.forEach(
+                        v -> Preconditions.checkNotNull(v, "You cannot add null to a ListState."));
 
                 list.addAll(values);
             }
@@ -772,7 +856,8 @@ public class FlinkPulsarSourceTest extends TestLogger {
         private final OneShotLatch runLatch = new OneShotLatch();
         private final OneShotLatch stopLatch = new OneShotLatch();
 
-        private final ArrayDeque<Map<TopicRange, MessageId>> stateSnapshotsToReturn = new ArrayDeque<>();
+        private final ArrayDeque<Map<TopicRange, MessageId>> stateSnapshotsToReturn =
+                new ArrayDeque<>();
 
         private Map<TopicRange, MessageId> lastCommittedOffsets;
         private int commitCount = 0;
@@ -798,7 +883,8 @@ public class FlinkPulsarSourceTest extends TestLogger {
         }
 
         @Override
-        public void doCommitOffsetToPulsar(Map<TopicRange, MessageId> offset, PulsarCommitCallback offsetCommitCallback) {
+        public void doCommitOffsetToPulsar(
+                Map<TopicRange, MessageId> offset, PulsarCommitCallback offsetCommitCallback) {
             this.lastCommittedOffsets = offset;
             this.commitCount++;
             offsetCommitCallback.onSuccess();
@@ -846,28 +932,32 @@ public class FlinkPulsarSourceTest extends TestLogger {
 
         @Override
         @SuppressWarnings("unchecked")
-        public <S> ListState<S> getUnionListState(ListStateDescriptor<S> stateDescriptor) throws Exception {
+        public <S> ListState<S> getUnionListState(ListStateDescriptor<S> stateDescriptor)
+                throws Exception {
             return (ListState<S>) mockRestoredUnionListState;
         }
 
-        public <T extends Serializable> ListState<T> getSerializableListState(String stateName) throws Exception {
+        public <T extends Serializable> ListState<T> getSerializableListState(String stateName)
+                throws Exception {
             return new TestingListState<>();
         }
 
         // ------------------------------------------------------------------------
 
-        public <S> ListState<S> getOperatorState(ListStateDescriptor<S> stateDescriptor) throws Exception {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public <K, V> BroadcastState<K, V> getBroadcastState(MapStateDescriptor<K, V> stateDescriptor)
+        public <S> ListState<S> getOperatorState(ListStateDescriptor<S> stateDescriptor)
                 throws Exception {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public <S> ListState<S> getListState(ListStateDescriptor<S> stateDescriptor) throws Exception {
+        public <K, V> BroadcastState<K, V> getBroadcastState(
+                MapStateDescriptor<K, V> stateDescriptor) throws Exception {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public <S> ListState<S> getListState(ListStateDescriptor<S> stateDescriptor)
+                throws Exception {
             throw new UnsupportedOperationException();
         }
 
@@ -882,12 +972,14 @@ public class FlinkPulsarSourceTest extends TestLogger {
         }
     }
 
-    private static class MockFunctionInitializationContext implements FunctionInitializationContext {
+    private static class MockFunctionInitializationContext
+            implements FunctionInitializationContext {
 
         private final boolean isRestored;
         private final OperatorStateStore operatorStateStore;
 
-        private MockFunctionInitializationContext(boolean isRestored, OperatorStateStore operatorStateStore) {
+        private MockFunctionInitializationContext(
+                boolean isRestored, OperatorStateStore operatorStateStore) {
             this.isRestored = isRestored;
             this.operatorStateStore = operatorStateStore;
         }
@@ -907,5 +999,4 @@ public class FlinkPulsarSourceTest extends TestLogger {
             throw new UnsupportedOperationException();
         }
     }
-
 }

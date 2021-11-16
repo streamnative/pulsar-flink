@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -26,9 +30,7 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
 
-/**
- * Utils for various date related conversions.
- */
+/** Utils for various date related conversions. */
 public class DateTimeUtils {
 
     private static final long SECONDS_PER_DAY = 60 * 60 * 24L;
@@ -65,9 +67,7 @@ public class DateTimeUtils {
         }
     }
 
-    /**
-     * Returns the number of days since epoch from java.sql.Date.
-     */
+    /** Returns the number of days since epoch from java.sql.Date. */
     public static int fromJavaDate(Date date) {
         return millisToDays(date.getTime());
     }
@@ -86,9 +86,7 @@ public class DateTimeUtils {
         return TimeZone.getDefault();
     }
 
-    /**
-     * Returns the number of micros since epoch from java.sql.Timestamp.
-     */
+    /** Returns the number of micros since epoch from java.sql.Timestamp. */
     public static long fromJavaTimestamp(Timestamp t) {
         if (t != null) {
             return t.getTime() * 1000L + ((long) t.getNanos() / 1000) % 1000L;
@@ -121,9 +119,7 @@ public class DateTimeUtils {
         return sdf;
     }
 
-    /**
-     * Returns a java.sql.Timestamp from number of micros since epoch.
-     */
+    /** Returns a java.sql.Timestamp from number of micros since epoch. */
     public static Timestamp toJavaTimestamp(long us) {
         // setNanos() will overwrite the millisecond part, so the milliseconds should be
         // cut off at seconds
@@ -139,9 +135,7 @@ public class DateTimeUtils {
         return t;
     }
 
-    /**
-     * Returns a java.sql.Date from number of days since epoch.
-     */
+    /** Returns a java.sql.Date from number of days since epoch. */
     public static Date toJavaDate(int daysSinceEpoch) {
         return new Date(daysToMillis(daysSinceEpoch));
     }
@@ -157,9 +151,8 @@ public class DateTimeUtils {
     }
 
     /**
-     * Lookup the offset for given millis seconds since 1970-01-01 00:00:00 in given timezone.
-     * TODO: Improve handling of normalization differences.
-     * TODO: Replace with JSR-310 or similar system
+     * Lookup the offset for given millis seconds since 1970-01-01 00:00:00 in given timezone. TODO:
+     * Improve handling of normalization differences. TODO: Replace with JSR-310 or similar system
      */
     private static long getOffsetFromLocalMillis(long millisLocal, TimeZone tz) {
         int guess = tz.getRawOffset();
@@ -193,20 +186,17 @@ public class DateTimeUtils {
         return guess;
     }
 
-    /**
-     * Returns the year value for the given date. The date is expressed in days
-     * since 1.1.1970.
-     */
+    /** Returns the year value for the given date. The date is expressed in days since 1.1.1970. */
     public static int getYear(int date) {
         return getYearAndDayInYear(date).f0;
     }
 
     /**
-     * Calculates the year and the number of the day in the year for the given
-     * number of days. The given days is the number of days since 1.1.1970.
+     * Calculates the year and the number of the day in the year for the given number of days. The
+     * given days is the number of days since 1.1.1970.
      *
-     * <p>The calculation uses the fact that the period 1.1.2001 until 31.12.2400 is
-     * equals to the period 1.1.1601 until 31.12.2000.
+     * <p>The calculation uses the fact that the period 1.1.2001 until 31.12.2400 is equals to the
+     * period 1.1.1601 until 31.12.2000.
      */
     private static Tuple2<Integer, Integer> getYearAndDayInYear(int daysSince1970) {
         // add the difference (in days) between 1.1.1970 and the artificial year 0 (-17999)
@@ -226,8 +216,9 @@ public class DateTimeUtils {
     }
 
     /**
-     * Calculates the number of years for the given number of days. This depends
-     * on a 400 year period.
+     * Calculates the number of years for the given number of days. This depends on a 400 year
+     * period.
+     *
      * @param days days since the beginning of the 400 year period
      * @return (number of year, days in year)
      */
@@ -242,16 +233,16 @@ public class DateTimeUtils {
     }
 
     /**
-     * Return the number of days since the start of 400 year period.
-     * The second year of a 400 year period (year 1) starts on day 365.
+     * Return the number of days since the start of 400 year period. The second year of a 400 year
+     * period (year 1) starts on day 365.
      */
     private static int yearBoundary(int year) {
         return year * 365 + ((year / 4) - (year / 100) + (year / 400));
     }
 
     /**
-     * Returns the month value for the given date. The date is expressed in days
-     * since 1.1.1970. January is month 1.
+     * Returns the month value for the given date. The date is expressed in days since 1.1.1970.
+     * January is month 1.
      */
     public static int getMonth(int date) {
         Tuple2<Integer, Integer> entry = getYearAndDayInYear(date);
@@ -294,8 +285,8 @@ public class DateTimeUtils {
     }
 
     /**
-     * Returns the 'day of month' value for the given date. The date is expressed in days
-     * since 1.1.1970.
+     * Returns the 'day of month' value for the given date. The date is expressed in days since
+     * 1.1.1970.
      */
     public static int getDayOfMonth(int date) {
         Tuple2<Integer, Integer> entry = getYearAndDayInYear(date);

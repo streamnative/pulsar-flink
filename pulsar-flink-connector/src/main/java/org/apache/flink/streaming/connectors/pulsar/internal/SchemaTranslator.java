@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -35,22 +39,23 @@ import org.apache.pulsar.common.schema.SchemaInfo;
 
 import java.io.Serializable;
 
-/**
- * schema translator.
- */
+/** schema translator. */
 public abstract class SchemaTranslator implements Serializable {
     private static final long serialVersionUID = 4491277247723885491L;
 
-    public abstract SchemaInfo tableSchemaToPulsarSchema(TableSchema schema) throws IncompatibleSchemaException;
+    public abstract SchemaInfo tableSchemaToPulsarSchema(TableSchema schema)
+            throws IncompatibleSchemaException;
 
-    public abstract TableSchema pulsarSchemaToTableSchema(SchemaInfo pulsarSchema) throws IncompatibleSchemaException;
+    public abstract TableSchema pulsarSchemaToTableSchema(SchemaInfo pulsarSchema)
+            throws IncompatibleSchemaException;
 
     public abstract FieldsDataType pulsarSchemaToFieldsDataType(SchemaInfo pulsarSchema)
             throws IncompatibleSchemaException;
 
     public abstract DataType schemaInfo2SqlType(SchemaInfo si) throws IncompatibleSchemaException;
 
-    public static Schema atomicType2PulsarSchema(DataType flinkType) throws IncompatibleSchemaException {
+    public static Schema atomicType2PulsarSchema(DataType flinkType)
+            throws IncompatibleSchemaException {
         LogicalTypeRoot type = flinkType.getLogicalType().getTypeRoot();
         switch (type) {
             case BOOLEAN:
@@ -81,7 +86,8 @@ public abstract class SchemaTranslator implements Serializable {
                 return ShortSchema.of();
             default:
                 throw new IncompatibleSchemaException(
-                        String.format("%s is not supported by Pulsar yet", flinkType.toString()), null);
+                        String.format("%s is not supported by Pulsar yet", flinkType.toString()),
+                        null);
         }
     }
 }

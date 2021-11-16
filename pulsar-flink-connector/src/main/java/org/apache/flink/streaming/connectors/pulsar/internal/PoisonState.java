@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -14,9 +18,7 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
-/**
- * A sign state that used to stop fetcher earlier.
- */
+/** A sign state that used to stop fetcher earlier. */
 public class PoisonState extends PulsarTopicState {
 
     static final PoisonState INSTANCE = new PoisonState();

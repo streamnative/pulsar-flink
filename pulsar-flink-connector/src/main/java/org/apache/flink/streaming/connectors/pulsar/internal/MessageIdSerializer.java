@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -24,9 +28,7 @@ import org.apache.pulsar.client.api.MessageId;
 
 import java.io.IOException;
 
-/**
- * MessageId Serializer for flink state.
- */
+/** MessageId Serializer for flink state. */
 public class MessageIdSerializer extends TypeSerializer<MessageId> {
     private static final long serialVersionUID = 3244135548110720111L;
 
@@ -112,11 +114,10 @@ public class MessageIdSerializer extends TypeSerializer<MessageId> {
 
     // ------------------------------------------------------------------------
 
-    /**
-     * Serializer configuration snapshot for compatibility and format evolution.
-     */
+    /** Serializer configuration snapshot for compatibility and format evolution. */
     @SuppressWarnings("WeakerAccess")
-    public static final class MessageIdSerializerSnapshot extends SimpleTypeSerializerSnapshot<MessageId> {
+    public static final class MessageIdSerializerSnapshot
+            extends SimpleTypeSerializerSnapshot<MessageId> {
 
         public MessageIdSerializerSnapshot() {
             super(() -> INSTANCE);

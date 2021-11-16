@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -15,18 +19,14 @@
 package org.apache.flink.streaming.connectors.pulsar;
 
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.connector.pulsar.source.BrokerPartition;
-import org.apache.flink.connector.pulsar.source.StartOffsetInitializer;
-import org.apache.flink.connector.pulsar.source.StopCondition;
-import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
-import org.apache.flink.connector.pulsar.source.util.PulsarAdminUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
-import org.apache.flink.streaming.connectors.pulsar.internal.TopicRange;
 import org.apache.flink.streaming.util.TestStreamEnvironment;
 import org.apache.flink.util.TestLogger;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdmin;
+import org.apache.pulsar.client.api.Authentication;
+import org.apache.pulsar.client.api.AuthenticationFactory;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.PulsarClient;
@@ -37,6 +37,7 @@ import org.apache.pulsar.client.api.SubscriptionType;
 import org.apache.pulsar.client.api.TypedMessageBuilder;
 import org.apache.pulsar.client.api.schema.SchemaDefinition;
 import org.apache.pulsar.client.impl.ClientBuilderImpl;
+import org.apache.pulsar.client.impl.auth.AuthenticationDisabled;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.client.impl.conf.ConsumerConfigurationData;
 import org.apache.pulsar.common.naming.TopicName;
@@ -53,20 +54,15 @@ import org.testcontainers.utility.DockerImageName;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import static java.time.temporal.ChronoUnit.SECONDS;
 import static org.testcontainers.containers.PulsarContainer.BROKER_HTTP_PORT;
 
-/**
- * Start / stop a Pulsar cluster.
- */
+/** Start / stop a Pulsar cluster. */
 @Slf4j
 public abstract class PulsarTestBase extends TestLogger {
 
@@ -80,9 +76,11 @@ public abstract class PulsarTestBase extends TestLogger {
 
     protected static Configuration configuration = new Configuration();
 
-    protected static ClientConfigurationData clientConfigurationData = new ClientConfigurationData();
+    protected static ClientConfigurationData clientConfigurationData =
+            new ClientConfigurationData();
 
-    protected static ConsumerConfigurationData<byte[]> consumerConfigurationData = new ConsumerConfigurationData<>();
+    protected static ConsumerConfigurationData<byte[]> consumerConfigurationData =
+            new ConsumerConfigurationData<>();
 
     protected static PulsarAdmin pulsarAdmin;
 
@@ -108,16 +106,19 @@ public abstract class PulsarTestBase extends TestLogger {
         if (StringUtils.isNotBlank(adminUrl) && StringUtils.isNotBlank(serviceUrl)) {
             log.info("    Use extend Pulsar Service ");
         } else {
-            final String pulsarImage = System.getProperty("pulsar.systemtest.image", "apachepulsar/pulsar:2.8.0");
-            DockerImageName pulsar = DockerImageName.parse(pulsarImage)
-                    .asCompatibleSubstituteFor("apachepulsar/pulsar");
+            final String pulsarImage =
+                    System.getProperty("pulsar.systemtest.image", "apachepulsar/pulsar:2.8.0");
+            DockerImageName pulsar =
+                    DockerImageName.parse(pulsarImage)
+                            .asCompatibleSubstituteFor("apachepulsar/pulsar");
             pulsarService = new PulsarContainer(pulsar);
             pulsarService.addExposedPort(2181);
-            pulsarService.waitingFor(new HttpWaitStrategy()
-                    .forPort(BROKER_HTTP_PORT)
-                    .forStatusCode(200)
-                    .forPath("/admin/v2/namespaces/public/default")
-                    .withStartupTimeout(Duration.of(40, SECONDS)));
+            pulsarService.waitingFor(
+                    new HttpWaitStrategy()
+                            .forPort(BROKER_HTTP_PORT)
+                            .forStatusCode(200)
+                            .forPath("/admin/v2/namespaces/public/default")
+                            .withStartupTimeout(Duration.of(40, SECONDS)));
             pulsarService.start();
             pulsarService.followOutput(new Slf4jLogConsumer(log));
             serviceUrl = pulsarService.getPulsarBrokerUrl();
@@ -159,18 +160,15 @@ public abstract class PulsarTestBase extends TestLogger {
     }
 
     public static <T> List<MessageId> sendTypedMessages(
-            String topic,
-            SchemaType type,
-            List<T> messages,
-            Optional<Integer> partition) throws PulsarClientException {
+            String topic, SchemaType type, List<T> messages, Optional<Integer> partition)
+            throws PulsarClientException {
 
         return sendTypedMessages(topic, type, messages, partition, null);
     }
 
-    public static <T> Producer<T> getProducer(String topic,
-                                              SchemaType type,
-                                              Optional<Integer> partition,
-                                              Class<T> tClass) throws PulsarClientException {
+    public static <T> Producer<T> getProducer(
+            String topic, SchemaType type, Optional<Integer> partition, Class<T> tClass)
+            throws PulsarClientException {
         String topicName;
         if (partition.isPresent()) {
             topicName = topic + PulsarOptions.PARTITION_SUFFIX + partition.get();
@@ -178,62 +176,66 @@ public abstract class PulsarTestBase extends TestLogger {
             topicName = topic;
         }
 
-        Producer producer = null;
+        Producer producer;
 
         PulsarClient client = PulsarClient.builder().serviceUrl(getServiceUrl()).build();
         switch (type) {
             case BOOLEAN:
-                producer = (Producer<T>) client.newProducer(Schema.BOOL).topic(topicName).create();
+                producer = client.newProducer(Schema.BOOL).topic(topicName).create();
                 break;
             case BYTES:
-                producer = (Producer<T>) client.newProducer(Schema.BYTES).topic(topicName).create();
+                producer = client.newProducer(Schema.BYTES).topic(topicName).create();
                 break;
             case LOCAL_DATE:
-                producer = (Producer<T>) client.newProducer(Schema.LOCAL_DATE).topic(topicName).create();
+                producer = client.newProducer(Schema.LOCAL_DATE).topic(topicName).create();
                 break;
             case DATE:
-                producer = (Producer<T>) client.newProducer(Schema.DATE).topic(topicName).create();
+                producer = client.newProducer(Schema.DATE).topic(topicName).create();
                 break;
             case STRING:
-                producer = (Producer<T>) client.newProducer(Schema.STRING).topic(topicName).create();
+                producer = client.newProducer(Schema.STRING).topic(topicName).create();
                 break;
             case TIMESTAMP:
-                producer = (Producer<T>) client.newProducer(Schema.TIMESTAMP).topic(topicName).create();
+                producer = client.newProducer(Schema.TIMESTAMP).topic(topicName).create();
                 break;
             case LOCAL_DATE_TIME:
-                producer = (Producer<T>) client.newProducer(Schema.LOCAL_DATE_TIME).topic(topicName).create();
+                producer = client.newProducer(Schema.LOCAL_DATE_TIME).topic(topicName).create();
                 break;
             case INT8:
-                producer = (Producer<T>) client.newProducer(Schema.INT8).topic(topicName).create();
+                producer = client.newProducer(Schema.INT8).topic(topicName).create();
                 break;
             case DOUBLE:
-                producer = (Producer<T>) client.newProducer(Schema.DOUBLE).topic(topicName).create();
+                producer = client.newProducer(Schema.DOUBLE).topic(topicName).create();
                 break;
             case FLOAT:
-                producer = (Producer<T>) client.newProducer(Schema.FLOAT).topic(topicName).create();
+                producer = client.newProducer(Schema.FLOAT).topic(topicName).create();
                 break;
             case INT32:
-                producer = (Producer<T>) client.newProducer(Schema.INT32).topic(topicName).create();
+                producer = client.newProducer(Schema.INT32).topic(topicName).create();
                 break;
             case INT16:
-                producer = (Producer<T>) client.newProducer(Schema.INT16).topic(topicName).create();
+                producer = client.newProducer(Schema.INT16).topic(topicName).create();
                 break;
             case INT64:
-                producer = (Producer<T>) client.newProducer(Schema.INT64).topic(topicName).create();
+                producer = client.newProducer(Schema.INT64).topic(topicName).create();
                 break;
             case AVRO:
                 SchemaDefinition<Object> schemaDefinition =
-                        SchemaDefinition.builder().withPojo(tClass).withJSR310ConversionEnabled(true).build();
+                        SchemaDefinition.builder()
+                                .withPojo(tClass)
+                                .withJSR310ConversionEnabled(true)
+                                .build();
                 producer =
-                        (Producer<T>) client.newProducer(Schema.AVRO(schemaDefinition)).topic(topicName).create();
+                        client.newProducer(Schema.AVRO(schemaDefinition)).topic(topicName).create();
                 break;
             case JSON:
-                producer = (Producer<T>) client.newProducer(Schema.JSON(tClass)).topic(topicName).create();
+                producer = client.newProducer(Schema.JSON(tClass)).topic(topicName).create();
                 break;
 
             default:
                 throw new NotImplementedException("Unsupported type " + type);
         }
+
         return producer;
     }
 
@@ -242,7 +244,8 @@ public abstract class PulsarTestBase extends TestLogger {
             SchemaType type,
             List<T> messages,
             Optional<Integer> partition,
-            Class<T> tClass) throws PulsarClientException {
+            Class<T> tClass)
+            throws PulsarClientException {
 
         Producer<T> producer = getProducer(topic, type, partition, tClass);
         List<MessageId> mids = new ArrayList<>();
@@ -256,34 +259,42 @@ public abstract class PulsarTestBase extends TestLogger {
         return mids;
     }
 
-    public static <T> List<MessageId> sendTypedMessagesWithMetadata(String topic,
-                                                                    SchemaType type,
-                                                                    List<T> messages,
-                                                                    Optional<Integer> partition,
-                                                                    Class<T> tClass,
-                                                                    List<Long> eventTimes,
-                                                                    List<Long> sequenceIds,
-                                                                    List<Map<String, String>> properties,
-                                                                    List<String> keys
-    ) throws PulsarClientException {
+    public static <T> List<MessageId> sendTypedMessagesWithMetadata(
+            String topic,
+            SchemaType type,
+            List<T> messages,
+            Optional<Integer> partition,
+            Class<T> tClass,
+            List<Long> eventTimes,
+            List<Long> sequenceIds,
+            List<Map<String, String>> properties,
+            List<String> keys)
+            throws PulsarClientException {
         Producer<T> producer = getProducer(topic, type, partition, tClass);
         List<MessageId> mids = new ArrayList<>();
         for (int i = 0; i < messages.size(); i++) {
-            MessageId mid = sendMessageInternal(producer, messages.get(i),
-                    eventTimes.get(i), sequenceIds.get(i), properties.get(i), keys.get(i));
+            MessageId mid =
+                    sendMessageInternal(
+                            producer,
+                            messages.get(i),
+                            eventTimes.get(i),
+                            sequenceIds.get(i),
+                            properties.get(i),
+                            keys.get(i));
             log.info("Sent {} of mid: {}", messages.get(i).toString(), mid.toString());
             mids.add(mid);
         }
         return mids;
     }
 
-    private static <T> MessageId sendMessageInternal(Producer<T> producer,
-                                                     T message,
-                                                     Long eventTime,
-                                                     Long sequenceId,
-                                                     Map<String, String> properties,
-                                                     String key
-    ) throws PulsarClientException {
+    private static <T> MessageId sendMessageInternal(
+            Producer<T> producer,
+            T message,
+            Long eventTime,
+            Long sequenceId,
+            Map<String, String> properties,
+            String key)
+            throws PulsarClientException {
         TypedMessageBuilder<T> mb = producer.newMessage().value(message);
         if (eventTime != null) {
             mb = mb.eventTime(eventTime);
@@ -304,10 +315,23 @@ public abstract class PulsarTestBase extends TestLogger {
 
     public static PulsarAdmin getPulsarAdmin() {
         try {
-            return PulsarAdminUtils.newAdminFromConf(adminUrl, clientConfigurationData);
+            return PulsarAdmin.builder()
+                    .serviceHttpUrl(adminUrl)
+                    .authentication(getAuth(clientConfigurationData))
+                    .build();
         } catch (PulsarClientException e) {
             throw new IllegalStateException("Cannot initialize pulsar admin", e);
         }
+    }
+
+    private static Authentication getAuth(ClientConfigurationData conf)
+            throws PulsarClientException {
+        if (!StringUtils.isBlank(conf.getAuthPluginClassName())
+                && !StringUtils.isBlank(conf.getAuthParams())) {
+            return AuthenticationFactory.create(
+                    conf.getAuthPluginClassName(), conf.getAuthParams());
+        }
+        return AuthenticationDisabled.INSTANCE;
     }
 
     public static PulsarClient getPulsarClient() {
@@ -340,30 +364,6 @@ public abstract class PulsarTestBase extends TestLogger {
         } else {
             pulsarAdmin.topics().delete(topic);
         }
-    }
-
-    public static List<BrokerPartition> getPartitionsForTopic(String topic) throws Exception {
-        return pulsarClient.getPartitionsForTopic(topic).get()
-                .stream()
-                .map(pi -> new BrokerPartition(new TopicRange(pi, BrokerPartition.FULL_RANGE)))
-                .collect(Collectors.toList());
-    }
-
-    public static Map<Integer, Map<String, PulsarPartitionSplit>> getSplitsByOwners(
-            final Collection<String> topics,
-            final int numSubtasks) throws Exception {
-        final Map<Integer, Map<String, PulsarPartitionSplit>> splitsByOwners = new HashMap<>();
-        for (String topic : topics) {
-            getPartitionsForTopic(topic).forEach(partition -> {
-                int ownerReader = Math.abs(partition.hashCode()) % numSubtasks;
-                PulsarPartitionSplit split = new PulsarPartitionSplit(
-                        partition, StartOffsetInitializer.earliest(), StopCondition.stopAfterLast());
-                splitsByOwners
-                        .computeIfAbsent(ownerReader, r -> new HashMap<>())
-                        .put(partition.toString(), split);
-            });
-        }
-        return splitsByOwners;
     }
 
     public static String newTopic() {

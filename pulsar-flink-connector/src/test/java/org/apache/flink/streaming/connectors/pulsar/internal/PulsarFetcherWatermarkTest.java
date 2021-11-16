@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -50,30 +54,24 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-/**
- * Tests for the watermarking behaviour of {@link PulsarFetcher}.
- */
+/** Tests for the watermarking behaviour of {@link PulsarFetcher}. */
 @SuppressWarnings("serial")
 @RunWith(Enclosed.class)
 public class PulsarFetcherWatermarkTest {
-    /**
-     * Tests with watermark generators that have a periodic nature.
-     */
+    /** Tests with watermark generators that have a periodic nature. */
     @RunWith(Parameterized.class)
     public static class PeriodicWatermarksSuite {
+
+        @Parameterized.Parameter public WatermarkStrategy<Long> testWmStrategy;
 
         @Parameterized.Parameters
         public static Collection<WatermarkStrategy<Long>> getParams() {
             return Arrays.asList(
-                    new AssignerWithPeriodicWatermarksAdapter.Strategy<>(new PeriodicTestExtractor()),
-                    WatermarkStrategy
-                            .forGenerator((ctx) -> new PeriodicTestWatermarkGenerator())
-                            .withTimestampAssigner((event, previousTimestamp) -> event)
-            );
+                    new AssignerWithPeriodicWatermarksAdapter.Strategy<>(
+                            new PeriodicTestExtractor()),
+                    WatermarkStrategy.forGenerator((ctx) -> new PeriodicTestWatermarkGenerator())
+                            .withTimestampAssigner((event, previousTimestamp) -> event));
         }
-
-        @Parameterized.Parameter
-        public WatermarkStrategy<Long> testWmStrategy;
 
         @Test
         public void testPeriodicWatermarks() throws Exception {
@@ -87,19 +85,17 @@ public class PulsarFetcherWatermarkTest {
 
             TestProcessingTimeService processingTimeService = new TestProcessingTimeService();
 
-            TestFetcher<Long> fetcher = new TestFetcher<>(
-                    sourceContext,
-                    offset,
-                    new SerializedValue<>(testWmStrategy),
-                    processingTimeService,
-                    10);
+            TestFetcher<Long> fetcher =
+                    new TestFetcher<>(
+                            sourceContext,
+                            offset,
+                            new SerializedValue<>(testWmStrategy),
+                            processingTimeService,
+                            10);
 
-            final PulsarTopicState<Long> part1 =
-                    fetcher.subscribedPartitionStates.get(0);
-            final PulsarTopicState<Long> part2 =
-                    fetcher.subscribedPartitionStates.get(1);
-            final PulsarTopicState<Long> part3 =
-                    fetcher.subscribedPartitionStates.get(2);
+            final PulsarTopicState<Long> part1 = fetcher.subscribedPartitionStates.get(0);
+            final PulsarTopicState<Long> part2 = fetcher.subscribedPartitionStates.get(1);
+            final PulsarTopicState<Long> part3 = fetcher.subscribedPartitionStates.get(2);
 
             // elements generate a watermark if the timestamp is a multiple of three.
 
@@ -124,7 +120,8 @@ public class PulsarFetcherWatermarkTest {
 
             processingTimeService.setCurrentTime(10);
 
-            // now, we should have a watermark (this blocks until the periodic thread emitted the watermark)
+            // now, we should have a watermark (this blocks until the periodic thread emitted the
+            // watermark)
             assertEquals(3L, sourceContext.getLatestWatermark().getTimestamp());
 
             // advance partition 3
@@ -158,19 +155,21 @@ public class PulsarFetcherWatermarkTest {
         @Test
         public void testSkipCorruptedRecordWithPeriodicWatermarks() throws Exception {
             String testTopic = "tp";
-            Map<TopicRange, MessageId> offset = Collections.singletonMap(new TopicRange(topicName(testTopic, 1)),
-                    MessageId.latest);
+            Map<TopicRange, MessageId> offset =
+                    Collections.singletonMap(
+                            new TopicRange(topicName(testTopic, 1)), MessageId.latest);
 
             TestSourceContext<Long> sourceContext = new TestSourceContext<>();
 
             TestProcessingTimeService processingTimeProvider = new TestProcessingTimeService();
 
-            TestFetcher<Long> fetcher = new TestFetcher<>(
-                    sourceContext,
-                    offset,
-                    new SerializedValue<>(testWmStrategy),
-                    processingTimeProvider,
-                    10);
+            TestFetcher<Long> fetcher =
+                    new TestFetcher<>(
+                            sourceContext,
+                            offset,
+                            new SerializedValue<>(testWmStrategy),
+                            processingTimeProvider,
+                            10);
 
             final PulsarTopicState<Long> partitionStateHolder =
                     fetcher.subscribedPartitionStates.get(0);
@@ -190,10 +189,7 @@ public class PulsarFetcherWatermarkTest {
 
             // emit no records
             fetcher.emitRecordsWithTimestamps(
-                    null,
-                    partitionStateHolder,
-                    dummyMessageId(4),
-                    Long.MIN_VALUE);
+                    null, partitionStateHolder, dummyMessageId(4), Long.MIN_VALUE);
 
             // no elements should have been collected
             assertEquals(3L, sourceContext.getLatestElement().getValue().longValue());
@@ -207,7 +203,8 @@ public class PulsarFetcherWatermarkTest {
         }
 
         @Test
-        public void testPeriodicWatermarksWithNoSubscribedPartitionsShouldYieldNoWatermarks() throws Exception {
+        public void testPeriodicWatermarksWithNoSubscribedPartitionsShouldYieldNoWatermarks()
+                throws Exception {
             final String testTopic = "tp";
             Map<TopicRange, MessageId> offset = new HashMap<>();
 
@@ -215,22 +212,25 @@ public class PulsarFetcherWatermarkTest {
 
             TestProcessingTimeService processingTimeProvider = new TestProcessingTimeService();
 
-            TestFetcher<Long> fetcher = new TestFetcher<>(
-                    sourceContext,
-                    offset,
-                    new SerializedValue<>(testWmStrategy),
-                    processingTimeProvider,
-                    10);
+            TestFetcher<Long> fetcher =
+                    new TestFetcher<>(
+                            sourceContext,
+                            offset,
+                            new SerializedValue<>(testWmStrategy),
+                            processingTimeProvider,
+                            10);
 
             processingTimeProvider.setCurrentTime(10);
-            // no partitions; when the periodic watermark emitter fires, no watermark should be emitted
+            // no partitions; when the periodic watermark emitter fires, no watermark should be
+            // emitted
             assertFalse(sourceContext.hasWatermark());
 
             // counter-test that when the fetcher does actually have partitions,
             // when the periodic watermark emitter fires again, a watermark really is emitted
             new TopicRange(topicName(testTopic, 1));
-            fetcher.addDiscoveredTopics(Collections.singletonList(
-                    new TopicRange(topicName(testTopic, 1))).stream().collect(Collectors.toSet()));
+            fetcher.addDiscoveredTopics(
+                    Collections.singletonList(new TopicRange(topicName(testTopic, 1))).stream()
+                            .collect(Collectors.toSet()));
             emitRecord(fetcher, 100L, fetcher.subscribedPartitionStates.get(0), dummyMessageId(3));
             processingTimeProvider.setCurrentTime(20);
             assertEquals(100, sourceContext.getLatestWatermark().getTimestamp());
@@ -251,7 +251,8 @@ public class PulsarFetcherWatermarkTest {
                 Map<TopicRange, MessageId> assignedPartitionsWithStartOffsets,
                 SerializedValue<WatermarkStrategy<T>> watermarkStrategy,
                 ProcessingTimeService processingTimeProvider,
-                long autoWatermarkInterval) throws Exception {
+                long autoWatermarkInterval)
+                throws Exception {
             super(
                     sourceContext,
                     assignedPartitionsWithStartOffsets,
@@ -259,9 +260,12 @@ public class PulsarFetcherWatermarkTest {
                     processingTimeProvider,
                     autoWatermarkInterval,
                     TestFetcher.class.getClassLoader(),
-                    null, null,
-                    null, 0,
-                    null, null,
+                    null,
+                    null,
+                    null,
+                    0,
+                    null,
+                    null,
                     new UnregisteredMetricsGroup(),
                     false);
         }
@@ -277,39 +281,36 @@ public class PulsarFetcherWatermarkTest {
 
         @Override
         protected void doCommitOffsetToPulsar(
-                Map<TopicRange, MessageId> offset,
-                PulsarCommitCallback offsetCommitCallback)
+                Map<TopicRange, MessageId> offset, PulsarCommitCallback offsetCommitCallback)
                 throws InterruptedException {
             throw new UnsupportedOperationException();
         }
     }
 
-    /**
-     * Tests with watermark generators that have a punctuated nature.
-     */
+    /** Tests with watermark generators that have a punctuated nature. */
     public static class PunctuatedWatermarksSuite {
 
         @Test
         public void testSkipCorruptedRecordWithPunctuatedWatermarks() throws Exception {
             final String testTopic = "tp";
             Map<TopicRange, MessageId> offset = new HashMap<>();
-            offset.put(
-                    new TopicRange(topicName(testTopic, 1)),
-                    MessageId.latest);
+            offset.put(new TopicRange(topicName(testTopic, 1)), MessageId.latest);
 
             TestSourceContext<Long> sourceContext = new TestSourceContext<>();
 
             TestProcessingTimeService processingTimeProvider = new TestProcessingTimeService();
 
             AssignerWithPunctuatedWatermarksAdapter.Strategy<Long> testWmStrategy =
-                    new AssignerWithPunctuatedWatermarksAdapter.Strategy<>(new PunctuatedTestExtractor());
+                    new AssignerWithPunctuatedWatermarksAdapter.Strategy<>(
+                            new PunctuatedTestExtractor());
 
-            TestFetcher<Long> fetcher = new TestFetcher<>(
-                    sourceContext,
-                    offset,
-                    new SerializedValue<>(testWmStrategy),
-                    processingTimeProvider,
-                    0);
+            TestFetcher<Long> fetcher =
+                    new TestFetcher<>(
+                            sourceContext,
+                            offset,
+                            new SerializedValue<>(testWmStrategy),
+                            processingTimeProvider,
+                            0);
 
             final PulsarTopicState<Long> partitionStateHolder =
                     fetcher.subscribedPartitionStates.get(0);
@@ -339,36 +340,29 @@ public class PulsarFetcherWatermarkTest {
         public void testPunctuatedWatermarks() throws Exception {
             final String testTopic = "tp";
             Map<TopicRange, MessageId> offset = new HashMap<>();
-            offset.put(
-                    new TopicRange(topicName(testTopic, 7)),
-                    MessageId.latest);
-            offset.put(
-                    new TopicRange(topicName(testTopic, 13)),
-                    MessageId.latest);
-            offset.put(
-                    new TopicRange(topicName(testTopic, 21)),
-                    MessageId.latest);
+            offset.put(new TopicRange(topicName(testTopic, 7)), MessageId.latest);
+            offset.put(new TopicRange(topicName(testTopic, 13)), MessageId.latest);
+            offset.put(new TopicRange(topicName(testTopic, 21)), MessageId.latest);
 
             TestSourceContext<Long> sourceContext = new TestSourceContext<>();
 
             TestProcessingTimeService processingTimeProvider = new TestProcessingTimeService();
 
             AssignerWithPunctuatedWatermarksAdapter.Strategy<Long> testWmStrategy =
-                    new AssignerWithPunctuatedWatermarksAdapter.Strategy<>(new PunctuatedTestExtractor());
+                    new AssignerWithPunctuatedWatermarksAdapter.Strategy<>(
+                            new PunctuatedTestExtractor());
 
-            TestFetcher<Long> fetcher = new TestFetcher<>(
-                    sourceContext,
-                    offset,
-                    new SerializedValue<>(testWmStrategy),
-                    processingTimeProvider,
-                    0);
+            TestFetcher<Long> fetcher =
+                    new TestFetcher<>(
+                            sourceContext,
+                            offset,
+                            new SerializedValue<>(testWmStrategy),
+                            processingTimeProvider,
+                            0);
 
-            final PulsarTopicState<Long> part1 =
-                    fetcher.subscribedPartitionStates.get(0);
-            final PulsarTopicState<Long> part2 =
-                    fetcher.subscribedPartitionStates.get(1);
-            final PulsarTopicState<Long> part3 =
-                    fetcher.subscribedPartitionStates.get(2);
+            final PulsarTopicState<Long> part1 = fetcher.subscribedPartitionStates.get(0);
+            final PulsarTopicState<Long> part2 = fetcher.subscribedPartitionStates.get(1);
+            final PulsarTopicState<Long> part3 = fetcher.subscribedPartitionStates.get(2);
 
             // elements generate a watermark if the timestamp is a multiple of three
 
@@ -429,11 +423,7 @@ public class PulsarFetcherWatermarkTest {
             PulsarTopicState<T> partitionState,
             MessageId offset) {
 
-        fetcher.emitRecordsWithTimestamps(
-                record,
-                partitionState,
-                offset,
-                Long.MIN_VALUE);
+        fetcher.emitRecordsWithTimestamps(record, partitionState, offset, Long.MIN_VALUE);
     }
 
     @SuppressWarnings("deprecation")
@@ -474,8 +464,7 @@ public class PulsarFetcherWatermarkTest {
         private volatile long maxTimestamp = Long.MIN_VALUE;
 
         @Override
-        public void onEvent(
-                Long event, long eventTimestamp, WatermarkOutput output) {
+        public void onEvent(Long event, long eventTimestamp, WatermarkOutput output) {
             maxTimestamp = Math.max(maxTimestamp, event);
         }
 

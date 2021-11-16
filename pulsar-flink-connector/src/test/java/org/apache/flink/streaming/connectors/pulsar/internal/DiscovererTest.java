@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -20,7 +24,6 @@ import org.apache.flink.util.TestLogger;
 import org.apache.flink.shaded.guava18.com.google.common.collect.Sets;
 
 import org.apache.pulsar.common.naming.TopicName;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -37,9 +40,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-/**
- * Unit tests on pulsar topic discoverer.
- */
+/** Unit tests on pulsar topic discoverer. */
 @RunWith(Parameterized.class)
 public class DiscovererTest extends TestLogger {
 
@@ -55,8 +56,8 @@ public class DiscovererTest extends TestLogger {
     @Parameterized.Parameters(name = "params = {0}")
     public static Collection<Map<String, String>[]> pattern() {
         return Arrays.asList(
-                new Map[]{Collections.singletonMap("topic", TEST_TOPIC)},
-                new Map[]{Collections.singletonMap("topicspattern", TEST_TOPIC_PATTERN)});
+                new Map[] {Collections.singletonMap("topic", TEST_TOPIC)},
+                new Map[] {Collections.singletonMap("topicspattern", TEST_TOPIC_PATTERN)});
     }
 
     String topicName(String topic, int partition) {
@@ -66,24 +67,31 @@ public class DiscovererTest extends TestLogger {
     @Test
     public void testPartitionEqualConsumerNumber() {
         try {
-            Set<TopicRange> mockAllTopics = Sets.newHashSet(
-                    new TopicRange(topicName(TEST_TOPIC, 0)),
-                    new TopicRange(topicName(TEST_TOPIC, 1)),
-                    new TopicRange(topicName(TEST_TOPIC, 2)),
-                    new TopicRange(topicName(TEST_TOPIC, 3)));
+            Set<TopicRange> mockAllTopics =
+                    Sets.newHashSet(
+                            new TopicRange(topicName(TEST_TOPIC, 0)),
+                            new TopicRange(topicName(TEST_TOPIC, 1)),
+                            new TopicRange(topicName(TEST_TOPIC, 2)),
+                            new TopicRange(topicName(TEST_TOPIC, 3)));
 
             int numSubTasks = mockAllTopics.size();
 
             for (int i = 0; i < numSubTasks; i++) {
-                TestMetadataReader discoverer = new TestMetadataReader(
-                        params, i, numSubTasks,
-                        TestMetadataReader.createMockGetAllTopicsSequenceFromFixedReturn(mockAllTopics));
+                TestMetadataReader discoverer =
+                        new TestMetadataReader(
+                                params,
+                                i,
+                                numSubTasks,
+                                TestMetadataReader.createMockGetAllTopicsSequenceFromFixedReturn(
+                                        mockAllTopics));
 
                 Set<TopicRange> initials = discoverer.discoverTopicChanges();
                 assertEquals(1, initials.size());
                 assertTrue(mockAllTopics.containsAll(initials));
-                Assert.assertEquals(i,
-                        TestMetadataReader.getExpectedSubtaskIndex(initials.iterator().next(), numSubTasks));
+                assertEquals(
+                        i,
+                        TestMetadataReader.getExpectedSubtaskIndex(
+                                initials.iterator().next(), numSubTasks));
 
                 Set<TopicRange> second = discoverer.discoverTopicChanges();
                 Set<TopicRange> third = discoverer.discoverTopicChanges();
@@ -112,9 +120,13 @@ public class DiscovererTest extends TestLogger {
             int maxPartitionsPerTask = mockAllTopics.size() / numTasks + 1;
 
             for (int i = 0; i < numTasks; i++) {
-                TestMetadataReader discoverer = new TestMetadataReader(
-                        params, i, numTasks,
-                        TestMetadataReader.createMockGetAllTopicsSequenceFromFixedReturn(mockAllTopics));
+                TestMetadataReader discoverer =
+                        new TestMetadataReader(
+                                params,
+                                i,
+                                numTasks,
+                                TestMetadataReader.createMockGetAllTopicsSequenceFromFixedReturn(
+                                        mockAllTopics));
 
                 Set<TopicRange> initials = discoverer.discoverTopicChanges();
                 int isize = initials.size();
@@ -122,7 +134,7 @@ public class DiscovererTest extends TestLogger {
 
                 for (TopicRange initial : initials) {
                     assertTrue(allTopics.contains(initial));
-                    Assert.assertEquals(TestMetadataReader.getExpectedSubtaskIndex(initial, numTasks), i);
+                    assertEquals(TestMetadataReader.getExpectedSubtaskIndex(initial, numTasks), i);
                     allTopics.remove(initial);
                 }
 
@@ -153,9 +165,13 @@ public class DiscovererTest extends TestLogger {
             int numTasks = 2 * mockAllTopics.size();
 
             for (int i = 0; i < numTasks; i++) {
-                TestMetadataReader discoverer = new TestMetadataReader(
-                        params, i, numTasks,
-                        TestMetadataReader.createMockGetAllTopicsSequenceFromFixedReturn(mockAllTopics));
+                TestMetadataReader discoverer =
+                        new TestMetadataReader(
+                                params,
+                                i,
+                                numTasks,
+                                TestMetadataReader.createMockGetAllTopicsSequenceFromFixedReturn(
+                                        mockAllTopics));
 
                 Set<TopicRange> initials = discoverer.discoverTopicChanges();
                 int isize = initials.size();
@@ -163,7 +179,7 @@ public class DiscovererTest extends TestLogger {
 
                 for (TopicRange initial : initials) {
                     assertTrue(allTopics.contains(initial));
-                    Assert.assertEquals(TestMetadataReader.getExpectedSubtaskIndex(initial, numTasks), i);
+                    assertEquals(TestMetadataReader.getExpectedSubtaskIndex(initial, numTasks), i);
                     allTopics.remove(initial);
                 }
 
@@ -206,41 +222,59 @@ public class DiscovererTest extends TestLogger {
             int minAll = allTopics.size() / numTasks;
             int maxAll = allTopics.size() / numTasks + 1;
 
-            TestMetadataReader discover1 = new TestMetadataReader(params, 0, numTasks,
-                    TestMetadataReader.createMockGetAllTopicsSequenceFromTwoReturns(mockGet));
+            TestMetadataReader discover1 =
+                    new TestMetadataReader(
+                            params,
+                            0,
+                            numTasks,
+                            TestMetadataReader.createMockGetAllTopicsSequenceFromTwoReturns(
+                                    mockGet));
 
-            TestMetadataReader discover2 = new TestMetadataReader(params, 1, numTasks,
-                    TestMetadataReader.createMockGetAllTopicsSequenceFromTwoReturns(mockGet));
+            TestMetadataReader discover2 =
+                    new TestMetadataReader(
+                            params,
+                            1,
+                            numTasks,
+                            TestMetadataReader.createMockGetAllTopicsSequenceFromTwoReturns(
+                                    mockGet));
 
-            TestMetadataReader discover3 = new TestMetadataReader(params, 2, numTasks,
-                    TestMetadataReader.createMockGetAllTopicsSequenceFromTwoReturns(mockGet));
+            TestMetadataReader discover3 =
+                    new TestMetadataReader(
+                            params,
+                            2,
+                            numTasks,
+                            TestMetadataReader.createMockGetAllTopicsSequenceFromTwoReturns(
+                                    mockGet));
 
             Set<TopicRange> initials1 = discover1.discoverTopicChanges();
             Set<TopicRange> initials2 = discover2.discoverTopicChanges();
             Set<TopicRange> initials3 = discover3.discoverTopicChanges();
 
-            assertTrue(initials1.size() >= minInitialPartitionsPerConsumer &&
-                    initials1.size() <= maxInitialPartitionsPerConsumer);
-            assertTrue(initials2.size() >= minInitialPartitionsPerConsumer &&
-                    initials2.size() <= maxInitialPartitionsPerConsumer);
-            assertTrue(initials3.size() >= minInitialPartitionsPerConsumer &&
-                    initials3.size() <= maxInitialPartitionsPerConsumer);
+            assertTrue(
+                    initials1.size() >= minInitialPartitionsPerConsumer
+                            && initials1.size() <= maxInitialPartitionsPerConsumer);
+            assertTrue(
+                    initials2.size() >= minInitialPartitionsPerConsumer
+                            && initials2.size() <= maxInitialPartitionsPerConsumer);
+            assertTrue(
+                    initials3.size() >= minInitialPartitionsPerConsumer
+                            && initials3.size() <= maxInitialPartitionsPerConsumer);
 
             for (TopicRange tp : initials1) {
                 assertTrue(initialAll.contains(tp));
-                Assert.assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 0);
+                assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 0);
                 initialAll.remove(tp);
             }
 
             for (TopicRange tp : initials2) {
                 assertTrue(initialAll.contains(tp));
-                Assert.assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 1);
+                assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 1);
                 initialAll.remove(tp);
             }
 
             for (TopicRange tp : initials3) {
                 assertTrue(initialAll.contains(tp));
-                Assert.assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 2);
+                assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 2);
                 initialAll.remove(tp);
             }
 
@@ -254,46 +288,49 @@ public class DiscovererTest extends TestLogger {
             assertTrue(Collections.disjoint(seconds2, initials2));
             assertTrue(Collections.disjoint(seconds3, initials3));
 
-            assertTrue(initials1.size() + seconds1.size() >= minAll
-                    && initials1.size() + seconds1.size() <= maxAll);
-            assertTrue(initials2.size() + seconds2.size() >= minAll
-                    && initials2.size() + seconds2.size() <= maxAll);
-            assertTrue(initials3.size() + seconds3.size() >= minAll
-                    && initials3.size() + seconds3.size() <= maxAll);
+            assertTrue(
+                    initials1.size() + seconds1.size() >= minAll
+                            && initials1.size() + seconds1.size() <= maxAll);
+            assertTrue(
+                    initials2.size() + seconds2.size() >= minAll
+                            && initials2.size() + seconds2.size() <= maxAll);
+            assertTrue(
+                    initials3.size() + seconds3.size() >= minAll
+                            && initials3.size() + seconds3.size() <= maxAll);
 
             for (TopicRange tp : initials1) {
                 assertTrue(allTopics.contains(tp));
-                Assert.assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 0);
+                assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 0);
                 allTopics.remove(tp);
             }
 
             for (TopicRange tp : initials2) {
                 assertTrue(allTopics.contains(tp));
-                Assert.assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 1);
+                assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 1);
                 allTopics.remove(tp);
             }
 
             for (TopicRange tp : initials3) {
                 assertTrue(allTopics.contains(tp));
-                Assert.assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 2);
+                assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 2);
                 allTopics.remove(tp);
             }
 
             for (TopicRange tp : seconds1) {
                 assertTrue(allTopics.contains(tp));
-                Assert.assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 0);
+                assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 0);
                 allTopics.remove(tp);
             }
 
             for (TopicRange tp : seconds2) {
                 assertTrue(allTopics.contains(tp));
-                Assert.assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 1);
+                assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 1);
                 allTopics.remove(tp);
             }
 
             for (TopicRange tp : seconds3) {
                 assertTrue(allTopics.contains(tp));
-                Assert.assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 2);
+                assertEquals(TestMetadataReader.getExpectedSubtaskIndex(tp, numTasks), 2);
                 allTopics.remove(tp);
             }
 
@@ -305,4 +342,3 @@ public class DiscovererTest extends TestLogger {
         }
     }
 }
-

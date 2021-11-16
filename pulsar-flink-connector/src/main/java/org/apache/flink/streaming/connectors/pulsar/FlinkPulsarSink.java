@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -15,8 +19,8 @@
 package org.apache.flink.streaming.connectors.pulsar;
 
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarClientUtils;
+import org.apache.flink.streaming.connectors.pulsar.serialization.PulsarSerializationSchema;
 import org.apache.flink.streaming.connectors.pulsar.table.PulsarSinkSemantic;
-import org.apache.flink.streaming.util.serialization.PulsarSerializationSchema;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.MessageId;
@@ -52,7 +56,14 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
             MessageRouter messageRouter,
             PulsarSinkSemantic semantic) {
 
-        super(adminUrl, defaultTopicName, clientConf, properties, serializationSchema, messageRouter, semantic);
+        super(
+                adminUrl,
+                defaultTopicName,
+                clientConf,
+                properties,
+                serializationSchema,
+                messageRouter,
+                semantic);
         this.serializationSchema = serializationSchema;
     }
 
@@ -63,7 +74,14 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
             Properties properties,
             PulsarSerializationSchema serializationSchema,
             PulsarSinkSemantic semantic) {
-        this(adminUrl, defaultTopicName, clientConf, properties, serializationSchema, null, semantic);
+        this(
+                adminUrl,
+                defaultTopicName,
+                clientConf,
+                properties,
+                serializationSchema,
+                null,
+                semantic);
     }
 
     public FlinkPulsarSink(
@@ -72,7 +90,13 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
             ClientConfigurationData clientConf,
             Properties properties,
             PulsarSerializationSchema serializationSchema) {
-        this(adminUrl, defaultTopicName, clientConf, properties, serializationSchema, PulsarSinkSemantic.AT_LEAST_ONCE);
+        this(
+                adminUrl,
+                defaultTopicName,
+                clientConf,
+                properties,
+                serializationSchema,
+                PulsarSinkSemantic.AT_LEAST_ONCE);
     }
 
     public FlinkPulsarSink(
@@ -87,20 +111,22 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
                 PulsarClientUtils.newClientConf(checkNotNull(serviceUrl), properties),
                 properties,
                 serializationSchema,
-                PulsarSinkSemantic.AT_LEAST_ONCE
-        );
+                PulsarSinkSemantic.AT_LEAST_ONCE);
     }
 
     @Override
-    public void invoke(PulsarTransactionState<T> transactionState, T value, Context context) throws Exception {
+    public void invoke(PulsarTransactionState<T> transactionState, T value, Context context)
+            throws Exception {
         checkErroneous();
         initializeSendCallback();
 
         final Optional<String> targetTopic = serializationSchema.getTargetTopic(value);
         String topic = targetTopic.orElse(defaultTopic);
 
-        TypedMessageBuilder<T> mb = transactionState.isTransactional() ?
-                getProducer(topic).newMessage(transactionState.getTransaction()) : getProducer(topic).newMessage();
+        TypedMessageBuilder<T> mb =
+                transactionState.isTransactional()
+                        ? getProducer(topic).newMessage(transactionState.getTransaction())
+                        : getProducer(topic).newMessage();
         serializationSchema.serialize(value, mb);
 
         if (flushOnCheckpoint) {
@@ -111,12 +137,14 @@ public class FlinkPulsarSink<T> extends FlinkPulsarSinkBase<T> {
 
         CompletableFuture<MessageId> messageIdFuture = mb.sendAsync();
         if (transactionState.isTransactional()) {
-            // in transactional mode, we must sleep some time because pulsar have some bug can result data disorder.
+            // in transactional mode, we must sleep some time because pulsar have some bug can
+            // result data disorder.
             // if pulsar-client fix this bug, we can safely remove this.
             Thread.sleep(10);
             TxnID transactionalId = transactionState.transactionalId;
             List<CompletableFuture<MessageId>> futureList;
-            tid2FuturesMap.computeIfAbsent(transactionalId, key -> new ArrayList<>())
+            tid2FuturesMap
+                    .computeIfAbsent(transactionalId, key -> new ArrayList<>())
                     .add(messageIdFuture);
             log.debug("message {} is invoke in txn {}", value, transactionState.transactionalId);
         }

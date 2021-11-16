@@ -1,7 +1,11 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -33,8 +37,8 @@ import java.util.List;
  * @param <T>
  */
 @Slf4j
-public class FailingIdentityMapper<T> extends RichMapFunction<T, T> implements
-        ListCheckpointed<Integer>, CheckpointListener, Runnable {
+public class FailingIdentityMapper<T> extends RichMapFunction<T, T>
+        implements ListCheckpointed<Integer>, CheckpointListener, Runnable {
 
     private static final Logger LOG = LoggerFactory.getLogger(FailingIdentityMapper.class);
 
@@ -106,7 +110,8 @@ public class FailingIdentityMapper<T> extends RichMapFunction<T, T> implements
     @Override
     public void restoreState(List<Integer> state) throws Exception {
         if (state.isEmpty() || state.size() > 1) {
-            throw new RuntimeException("Test failed due to unexpected recovered state size " + state.size());
+            throw new IllegalArgumentException(
+                    "Test failed due to unexpected recovered state size " + state.size());
         }
         this.numElementsTotal = state.get(0);
     }
@@ -119,9 +124,11 @@ public class FailingIdentityMapper<T> extends RichMapFunction<T, T> implements
             } catch (InterruptedException e) {
                 // ignore
             }
-            LOG.info("============================> Failing mapper  {}: count={}, totalCount={}",
+            LOG.info(
+                    "============================> Failing mapper  {}: count={}, totalCount={}",
                     getRuntimeContext().getIndexOfThisSubtask(),
-                    numElementsThisTime, numElementsTotal);
+                    numElementsThisTime,
+                    numElementsTotal);
         }
     }
 }

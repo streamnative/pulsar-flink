@@ -236,6 +236,9 @@ public class PulsarDynamicTableSource
             case SPECIFIC_OFFSETS:
                 source.setStartFromSpecificOffsets(startupOptions.specificOffsets);
                 break;
+            case TIMESTAMP:
+                source.setStartFromTimestamp(startupOptions.startupTimestampMills);
+                break;
             case EXTERNAL_SUBSCRIPTION:
                 MessageId subscriptionPosition = MessageId.latest;
                 if (CONNECTOR_STARTUP_MODE_VALUE_EARLIEST.equals(
@@ -244,6 +247,7 @@ public class PulsarDynamicTableSource
                 }
                 source.setStartFromSubscription(
                         startupOptions.externalSubscriptionName, subscriptionPosition);
+                break;
         }
         return SourceFunctionProvider.of(source, false);
     }

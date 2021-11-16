@@ -148,6 +148,8 @@ public class PulsarFetcher<T> {
     /** The metric group which all metrics for the source should be registered to. */
     private final MetricGroup consumerMetricGroup;
 
+    private final long startConsumeTimestamp;
+
     public PulsarFetcher(
             SourceContext<T> sourceContext,
             Map<TopicRange, MessageId> seedTopicsWithInitialOffsets,
@@ -180,7 +182,8 @@ public class PulsarFetcher<T> {
                 deserializer,
                 metadataReader,
                 consumerMetricGroup,
-                useMetrics);
+                useMetrics,
+                -1);
     }
 
     public PulsarFetcher(
@@ -199,7 +202,8 @@ public class PulsarFetcher<T> {
             PulsarDeserializationSchema<T> deserializer,
             PulsarMetadataReader metadataReader,
             MetricGroup consumerMetricGroup,
-            boolean useMetrics)
+            boolean useMetrics,
+            long startConsumeTimestamp)
             throws Exception {
 
         this.sourceContext = sourceContext;
@@ -272,6 +276,8 @@ public class PulsarFetcher<T> {
 
             periodicEmitter.start();
         }
+
+        this.startConsumeTimestamp = startConsumeTimestamp;
     }
 
     public void runFetchLoop() throws Exception {
@@ -567,7 +573,8 @@ public class PulsarFetcher<T> {
                 exceptionProxy,
                 failOnDataLoss,
                 useEarliestWhenDataLoss,
-                excludeStartMessageIds.contains(state.getTopicRange()));
+                excludeStartMessageIds.contains(state.getTopicRange()),
+                startConsumeTimestamp);
     }
 
     /**

@@ -180,7 +180,7 @@ public class PulsarFetcher<T> {
                 metadataReader,
                 consumerMetricGroup,
                 useMetrics,
-            -1
+                -1
         );
     }
 

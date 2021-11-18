@@ -101,7 +101,7 @@ public class PulsarSinkExactlyOnceTest extends PulsarTestBaseWithFlink {
         this.harness.snapshot(2L, 5L);
         this.harness.notifyOfCompletedCheckpoint(2L);
         this.harness.notifyOfCompletedCheckpoint(1L);
-        this.assertExactlyOnce(Arrays.asList("42", "43", "44"));
+        assertEquals(Arrays.asList("42", "43", "44"), getActualValues(3));
     }
 
     @Test
@@ -114,7 +114,7 @@ public class PulsarSinkExactlyOnceTest extends PulsarTestBaseWithFlink {
         this.harness.processElement("44", 4L);
         this.harness.snapshot(2L, 5L);
         this.harness.notifyOfCompletedCheckpoint(1L);
-        this.assertExactlyOnce(Arrays.asList("42", "43"));
+        assertEquals(Arrays.asList("42", "43"), getActualValues(2));
     }
 
     @Test
@@ -135,7 +135,7 @@ public class PulsarSinkExactlyOnceTest extends PulsarTestBaseWithFlink {
         this.closeTestHarness();
         this.setUpTestHarness();
         this.harness.initializeState(snapshot);
-        this.assertExactlyOnce(Arrays.asList("42", "43"));
+        assertEquals(Arrays.asList("42", "43"), getActualValues(2));
     }
 
     @Test
@@ -158,18 +158,14 @@ public class PulsarSinkExactlyOnceTest extends PulsarTestBaseWithFlink {
         this.sinkFunction.setWritable(true);
         this.setUpTestHarness();
         this.harness.initializeState(snapshot);
-        this.assertExactlyOnce(Arrays.asList("42", "43"));
+        assertEquals(Arrays.asList("42", "43"), getActualValues(2));
         this.closeTestHarness();
     }
 
-    private void assertExactlyOnce(List<String> expectedValues) throws Exception {
-
-        final List<String> actualValues =
-                consumeMessage(topic, Schema.STRING, expectedValues.size(), 2000);
-
+    private List<String> getActualValues(int expectedSize) throws Exception {
+        final List<String> actualValues = consumeMessage(topic, Schema.STRING, expectedSize, 2000);
         Collections.sort(actualValues);
-        Collections.sort(expectedValues);
-        assertEquals(expectedValues, actualValues);
+        return actualValues;
     }
 
     public <T> List<T> consumeMessage(String topic, Schema<T> schema, int count, int timeout)

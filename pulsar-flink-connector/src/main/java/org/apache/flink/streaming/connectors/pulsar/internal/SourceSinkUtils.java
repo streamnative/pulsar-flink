@@ -239,9 +239,7 @@ public class SourceSinkUtils {
         if (!readerConf.containsKey(key)) {
             key = CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_HYPHEN, key);
         }
-        String failOnDataLossVal = readerConf
-                .getOrDefault(key, "false")
-                .toString();
+        String failOnDataLossVal = readerConf.getOrDefault(key, "false").toString();
         final boolean value = Boolean.parseBoolean(failOnDataLossVal);
         readerConf.remove(key);
         return value;

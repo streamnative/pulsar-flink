@@ -71,8 +71,8 @@ public class PulsarClientUtils {
         return clientConf;
     }
 
-    public static ClientConfigurationData newSqlClientConf(String serviceUrl,
-                                                          Properties properties) {
+    public static ClientConfigurationData newSqlClientConf(
+            String serviceUrl, Properties properties) {
         Map<String, Object> clientConfData = getClientParams(Maps.fromProperties(properties));
         ClientConfigurationData clientConf = new ClientConfigurationData();
         clientConf =

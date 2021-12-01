@@ -56,7 +56,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -117,7 +116,7 @@ public class PulsarDeserializer implements PulsarDeserializationSchema<Row>{
 
                 case JSON:
                     FieldsDataType fdt = (FieldsDataType) rootDataType;
-                    BiFunction<JsonFactory, String, JsonParser> createParser =
+                    JacksonRecordParser.BiFunction<JsonFactory, String, JsonParser> createParser =
                             (jsonFactory, s) -> {
                                 try {
                                     return jsonFactory.createParser(s);

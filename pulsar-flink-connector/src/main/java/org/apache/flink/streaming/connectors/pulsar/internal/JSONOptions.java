@@ -27,7 +27,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 
 /**
  * Various options for decoding a JSON record.
@@ -48,7 +47,6 @@ public class JSONOptions implements Serializable {
     private final String columnNameOfCorruptRecord;
     private final boolean dropFieldIfAllNull;
     private final ConcurrentHashMap<String, TimeZone> computedTimeZones;
-    private final Function<String, TimeZone> computeTimeZone;
     private final TimeZone timeZone;
     private final FastDateFormat dateFormat;
     private final FastDateFormat timestampFormat;
@@ -125,7 +123,6 @@ public class JSONOptions implements Serializable {
         }
 
         this.computedTimeZones = new ConcurrentHashMap<>();
-        this.computeTimeZone = timezoneId -> TimeZone.getTimeZone(timezoneId);
 
         this.timeZone = getTimeZone(parameters.getOrDefault("timezone", defaultTimeZoneId));
 
@@ -139,8 +136,8 @@ public class JSONOptions implements Serializable {
         return enc;
     }
 
-    private TimeZone getTimeZone(String timeZoneeId) {
-        return computedTimeZones.computeIfAbsent(timeZoneeId, computeTimeZone);
+    private TimeZone getTimeZone(String timeZoneId) {
+        return computedTimeZones.computeIfAbsent(timeZoneId, TimeZone::getTimeZone);
     }
 
     /** Sets config options on a Jackson [[JsonFactory]]. */

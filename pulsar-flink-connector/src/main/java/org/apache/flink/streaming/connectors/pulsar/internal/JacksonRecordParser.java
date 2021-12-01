@@ -30,19 +30,18 @@ import org.apache.pulsar.shade.com.fasterxml.jackson.core.JsonToken;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
 /**
  * JSON record parser.
  */
 @Slf4j
-public class JacksonRecordParser {
+public class JacksonRecordParser implements Serializable{
 
     private final DataType schema;
 
@@ -558,7 +557,7 @@ public class JacksonRecordParser {
         }
     }
 
-    interface PartialFunc {
+    interface PartialFunc extends Serializable{
         boolean isDefinedAt(JsonToken token);
 
         Object apply(JsonToken token);
@@ -579,11 +578,19 @@ public class JacksonRecordParser {
         }
     }
 
-    interface BiFunctionWithException<T, U, R> {
+    interface Function<T, R> extends Serializable{
+        R apply(T t);
+    }
+
+    interface BiFunction<T, U, R> extends Serializable{
+        R apply(T t, U u);
+    }
+
+    interface BiFunctionWithException<T, U, R> extends Serializable{
         R apply(T t, U u) throws BadRecordException;
     }
 
-    static class FailureSafeRecordParser {
+    static class FailureSafeRecordParser implements Serializable {
         private final BiFunctionWithException<String, Row, Row> rawParser;
         private final ParseMode mode;
         private final FieldsDataType schema;

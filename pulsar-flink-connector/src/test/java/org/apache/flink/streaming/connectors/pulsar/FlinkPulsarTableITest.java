@@ -142,7 +142,76 @@ public class FlinkPulsarTableITest extends PulsarTestBaseWithFlink {
         try {
             see.execute("test struct in avro");
         } catch (Exception e) {
+        }
+        SingletonStreamSink.compareWithList(
+                fooList.subList(0, fooList.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
+    }
 
+    @Test
+    public void testStructTypesInJson() throws Exception {
+        StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
+        see.setParallelism(1);
+        StreamTableEnvironment tEnv = StreamTableEnvironment.create(see);
+
+        String table = newTopic() + "_json";
+
+        sendTypedMessages(table, SchemaType.JSON, fooList, Optional.empty(), SchemaData.Foo.class);
+
+        tEnv
+                .connect(getPulsarDescriptor(table))
+                .inAppendMode()
+                .registerTableSource(table);
+
+        Table t = tEnv.scan(table).select("i, f, bar");
+        tEnv.toAppendStream(t, t.getSchema().toRowType())
+                .map(new FailingIdentityMapper<Row>(fooList.size()))
+                .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
+
+        try {
+            see.execute("test struct in json");
+        } catch (Exception ignore) {
+        }
+        SingletonStreamSink.compareWithList(
+                fooList.subList(0, fooList.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));
+    }
+
+    @Test
+    public void testStructTypesInJsonBySql() throws Exception {
+        StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
+        see.setParallelism(1);
+        StreamTableEnvironment tEnv = StreamTableEnvironment.create(see);
+
+        String tableName = "topic_1_sql";
+        sendTypedMessages(tableName, SchemaType.JSON, fooList, Optional.empty(), SchemaData.Foo.class);
+
+        String createSql = "create table `" + tableName + "`(\n" +
+                "`b` BOOLEAN,\n" +
+                "`s` STRING\n" +
+                ") with (\n" +
+                "'connector.type' ='pulsar',\n" +
+                "'connector.topic' ='persistent://public/default/" + tableName + "',\n" +
+                "'connector.service-url' ='" + serviceUrl + "',\n" +
+                "'connector.admin-url' ='" + adminUrl + "',\n" +
+                "'connector.startup-mode' ='earliest',\n" +
+                "'connector.properties.0.key' ='pulsar.reader.readerName',\n" +
+                "'connector.properties.0.value' ='testStructTypesInJsonBySql',\n" +
+                "'connector.properties.1.key' ='partitiondiscoveryintervalmillis',\n" +
+                "'connector.properties.1.value' = '5000',\n" +
+                "'format.derive-schema' ='true',\n" +
+                "'format.ignore-parse-errors' ='true',\n" +
+                "'update-mode' ='append'\n" +
+                ")";
+        tEnv.sqlUpdate(createSql);
+
+        String querySql = "select i,f,bar from " + tableName;
+        Table table = tEnv.sqlQuery(querySql);
+        tEnv.toAppendStream(table, table.getSchema().toRowType())
+                .map(new FailingIdentityMapper<Row>(fooList.size()))
+                .addSink(new SingletonStreamSink.StringSink<>()).setParallelism(1);
+
+        try {
+            see.execute("test struct in json by sql");
+        } catch (Exception ignore) {
         }
         SingletonStreamSink.compareWithList(
                 fooList.subList(0, fooList.size() - 1).stream().map(Objects::toString).collect(Collectors.toList()));

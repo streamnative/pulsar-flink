@@ -39,7 +39,7 @@ public class PulsarValidator extends ConnectorDescriptorValidator {
     public static final String CONNECTOR_STARTUP_MODE_VALUE_EARLIEST = "earliest";
     public static final String CONNECTOR_STARTUP_MODE_VALUE_LATEST = "latest";
     public static final String CONNECTOR_STARTUP_MODE_VALUE_SPECIFIC_OFFSETS = "specific-offsets";
-    public static final String CONNECTOR_STARTUP_MODE_VALUE_EXETERNAL_SUB = "external-subscription";
+    public static final String CONNECTOR_STARTUP_MODE_VALUE_EXTERNAL_SUB = "external-subscription";
     public static final String CONNECTOR_SPECIFIC_OFFSETS = "connector.specific-offsets";
     public static final String CONNECTOR_SPECIFIC_OFFSETS_PARTITION = "partition";
     public static final String CONNECTOR_SPECIFIC_OFFSETS_OFFSET = "offset";
@@ -121,6 +121,8 @@ public class PulsarValidator extends ConnectorDescriptorValidator {
                 return CONNECTOR_STARTUP_MODE_VALUE_LATEST;
             case SPECIFIC_OFFSETS:
                 return CONNECTOR_STARTUP_MODE_VALUE_SPECIFIC_OFFSETS;
+            case EXTERNAL_SUBSCRIPTION:
+                return CONNECTOR_STARTUP_MODE_VALUE_EXTERNAL_SUB;
         }
         throw new IllegalArgumentException("Invalid startup mode.");
     }

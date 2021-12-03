@@ -18,10 +18,10 @@ import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.common.typeutils.base.StringSerializer;
 import org.apache.flink.runtime.checkpoint.OperatorSubtaskState;
 import org.apache.flink.streaming.api.operators.StreamSink;
-import org.apache.flink.streaming.connectors.pulsar.serialization.PulsarSerializationSchema;
-import org.apache.flink.streaming.connectors.pulsar.serialization.PulsarSerializationSchemaWrapper;
 import org.apache.flink.streaming.connectors.pulsar.table.PulsarSinkSemantic;
 import org.apache.flink.streaming.util.OneInputStreamOperatorTestHarness;
+import org.apache.flink.streaming.util.serialization.PulsarSerializationSchema;
+import org.apache.flink.streaming.util.serialization.PulsarSerializationSchemaWrapper;
 import org.apache.flink.table.api.DataTypes;
 
 import org.apache.commons.io.IOUtils;

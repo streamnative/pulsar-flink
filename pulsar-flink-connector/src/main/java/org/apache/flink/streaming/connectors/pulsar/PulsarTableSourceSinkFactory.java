@@ -289,7 +289,7 @@ public class PulsarTableSourceSinkFactory
                             });
                             return StartupMode.SPECIFIC_OFFSETS;
 
-                        case PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_EXETERNAL_SUB:
+                        case PulsarValidator.CONNECTOR_STARTUP_MODE_VALUE_EXTERNAL_SUB:
                             subName.add(descriptorProperties.getString(CONNECTOR_EXTERNAL_SUB_NAME));
                             return StartupMode.EXTERNAL_SUBSCRIPTION;
 

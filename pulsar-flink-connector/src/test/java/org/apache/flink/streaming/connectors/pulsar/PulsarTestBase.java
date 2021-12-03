@@ -46,6 +46,7 @@ import org.apache.pulsar.shade.org.apache.commons.lang3.RandomStringUtils;
 import org.apache.pulsar.shade.org.apache.commons.lang3.StringUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.PulsarContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
@@ -112,6 +113,10 @@ public abstract class PulsarTestBase extends TestLogger {
             DockerImageName pulsar = DockerImageName.parse(pulsarImage)
                     .asCompatibleSubstituteFor("apachepulsar/pulsar");
             pulsarService = new PulsarContainer(pulsar);
+            pulsarService.withClasspathResourceMapping(
+                    "pulsar/txnStandalone.conf",
+                    "/pulsar/conf/standalone.conf",
+                    BindMode.READ_ONLY);
             pulsarService.addExposedPort(2181);
             pulsarService.waitingFor(new HttpWaitStrategy()
                     .forPort(BROKER_HTTP_PORT)

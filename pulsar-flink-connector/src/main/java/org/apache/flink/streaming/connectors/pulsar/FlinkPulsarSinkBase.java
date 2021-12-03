@@ -301,6 +301,7 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
         checkErroneous();
         producerClose();
         checkErroneous();
+        super.close();
     }
 
     protected Producer<T> getProducer(String topic) {
@@ -357,7 +358,7 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
             }
         }
 
-        if (transaction.isTransactional()) {
+        if (transaction != null && transaction.isTransactional()) {
             // we check the future was completed and add the messageId to list for persistence.
             List<CompletableFuture<MessageId>> futureList = tid2FuturesMap.get(transaction.transactionalId);
             for (CompletableFuture<MessageId> future : futureList) {
@@ -502,6 +503,14 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
                 // abort the transaction again, then Pulsar will throw a duplicate operation error,
                 // we catch the error without doing anything to deal with it
                 log.debug("transaction {} is already committed...", transaction.transactionalId);
+            } catch (
+                    TransactionCoordinatorClientException.TransactionNotFoundException
+                            notFoundException) {
+                // In some cases, the transaction has been committed or aborted before the recovery,
+                // but Flink has not yet sensed it. When flink recover this job, it will commit or
+                // abort the transaction again, then Pulsar will throw a duplicate operation error,
+                // we catch the error without doing anything to deal with it
+                log.debug("transaction {} is not found...", transaction.transactionalId);
             } catch (TransactionCoordinatorClientException e) {
                 throw new RuntimeException(e);
             }
@@ -525,6 +534,14 @@ abstract class FlinkPulsarSinkBase<T> extends TwoPhaseCommitSinkFunction<T, Flin
                 // abort the transaction again, then Pulsar will throw a duplicate operation error,
                 // we catch the error without doing anything to deal with it
                 log.debug("transaction {} is already aborted...", transaction.transactionalId);
+            } catch (
+                    TransactionCoordinatorClientException.TransactionNotFoundException
+                            notFoundException) {
+                // In some cases, the transaction has been committed or aborted before the recovery,
+                // but Flink has not yet sensed it. When flink recover this job, it will commit or
+                // abort the transaction again, then Pulsar will throw a duplicate operation error,
+                // we catch the error without doing anything to deal with it
+                log.debug("transaction {} is not found...", transaction.transactionalId);
             } catch (TransactionCoordinatorClientException e) {
                 throw new RuntimeException(e);
             }

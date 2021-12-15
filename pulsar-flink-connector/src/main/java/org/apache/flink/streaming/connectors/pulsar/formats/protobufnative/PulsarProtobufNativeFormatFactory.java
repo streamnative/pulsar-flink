@@ -40,6 +40,8 @@ import com.google.protobuf.Descriptors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.impl.schema.generic.GenericProtobufNativeSchema;
+import org.apache.pulsar.common.naming.NamespaceName;
+import org.apache.pulsar.common.naming.TopicDomain;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.schema.SchemaInfo;
 
@@ -113,7 +115,9 @@ public class PulsarProtobufNativeFormatFactory implements DeserializationFormatF
         } else {
             String database = context.getObjectIdentifier().getDatabaseName();
             String objectName = context.getObjectIdentifier().getObjectName();
-            topic = TopicName.get(database + "/" + objectName).toString();
+            NamespaceName ns = NamespaceName.get(database);
+            TopicName fullName = TopicName.get(TopicDomain.persistent.toString(), ns, objectName);
+            topic = fullName.toString();
         }
         return topic;
     }
@@ -129,8 +133,7 @@ public class PulsarProtobufNativeFormatFactory implements DeserializationFormatF
      */
     private boolean isGenericTable(DynamicTableFactory.Context context) {
         final String isGeneric = context.getCatalogTable().getOptions().get(GENERIC.key());
-        return !StringUtils.isNullOrWhitespaceOnly(isGeneric)
-                && Boolean.TRUE.toString().equals(isGeneric);
+        return !StringUtils.isNullOrWhitespaceOnly(isGeneric) && Boolean.parseBoolean(isGeneric);
     }
 
     private void validateTopic(Map<String, String> tableConf) {

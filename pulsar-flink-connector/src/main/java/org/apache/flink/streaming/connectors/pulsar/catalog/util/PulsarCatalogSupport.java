@@ -283,7 +283,6 @@ public class PulsarCatalogSupport {
 
         NamespaceName ns = NamespaceName.get(database);
         TopicName fullName = TopicName.get(TopicDomain.persistent.toString(), ns, topic);
-
         return fullName.toString();
     }
 

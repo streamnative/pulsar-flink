@@ -96,6 +96,8 @@ under the License.
 							<goal>shade</goal>
 						</goals>
 						<configuration>
+							<shadedArtifactAttached>true</shadedArtifactAttached>
+							<shadedClassifierName>jar-with-dependencies</shadedClassifierName>
 							<createDependencyReducedPom>false</createDependencyReducedPom>
 							<promoteTransitiveDependencies>true</promoteTransitiveDependencies>
 							<minimizeJar>false</minimizeJar>
@@ -107,6 +109,7 @@ under the License.
 									<include>org.apache.pulsar:*</include>
 									<include>org.bouncycastle*:*</include>
 									<include>org.bouncycastle*:*</include>
+									<include>com.google.protobuf:*</include>
 									<include>javax.*:*</include>
 									<include>org.lz4*:*</include>
 									<include>org.slf4j:jul-to-slf4j</include>

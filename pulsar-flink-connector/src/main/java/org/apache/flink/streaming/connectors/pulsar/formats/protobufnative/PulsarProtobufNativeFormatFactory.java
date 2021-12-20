@@ -24,7 +24,6 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarClientUtils;
 import org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions;
-import org.apache.flink.table.catalog.ObjectIdentifier;
 import org.apache.flink.table.connector.ChangelogMode;
 import org.apache.flink.table.connector.format.DecodingFormat;
 import org.apache.flink.table.connector.source.DynamicTableSource;
@@ -41,6 +40,8 @@ import com.google.protobuf.Descriptors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.impl.schema.generic.GenericProtobufNativeSchema;
+import org.apache.pulsar.common.naming.NamespaceName;
+import org.apache.pulsar.common.naming.TopicDomain;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.schema.SchemaInfo;
 
@@ -50,6 +51,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.ADMIN_URL;
+import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.GENERIC;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.TOPIC;
 import static org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions.TOPIC_PATTERN;
 
@@ -105,15 +107,33 @@ public class PulsarProtobufNativeFormatFactory implements DeserializationFormatF
     }
 
     private String extractTopicName(DynamicTableFactory.Context context) {
-
         validateTopic(context.getCatalogTable().getOptions());
-        String topic = context.getCatalogTable().getOptions().get(TOPIC.key());
-        // Maybe catalog mode
-        if (StringUtils.isNullOrWhitespaceOnly(topic)) {
-            final ObjectIdentifier table = context.getObjectIdentifier();
-            topic = TopicName.get(table.getDatabaseName() + "/" + table.getObjectName()).toString();
+
+        String topic;
+        if (isGenericTable(context)) {
+            topic = context.getCatalogTable().getOptions().get(TOPIC.key());
+        } else {
+            String database = context.getObjectIdentifier().getDatabaseName();
+            String objectName = context.getObjectIdentifier().getObjectName();
+            NamespaceName ns = NamespaceName.get(database);
+            TopicName fullName = TopicName.get(TopicDomain.persistent.toString(), ns, objectName);
+            topic = fullName.toString();
         }
         return topic;
+    }
+
+    /**
+     * Check if the table is an generic table. A generic table is defined as created using "CREATE
+     * TABLE". If the table is generic, when getting the table from catalog there will be an GENERIC
+     * option set to True
+     *
+     * @param context
+     * @return true if the topic is created by "CREATE TABLE" , false if the table is directly
+     *     mapped from pulsar topic
+     */
+    private boolean isGenericTable(DynamicTableFactory.Context context) {
+        final String isGeneric = context.getCatalogTable().getOptions().get(GENERIC.key());
+        return !StringUtils.isNullOrWhitespaceOnly(isGeneric) && Boolean.parseBoolean(isGeneric);
     }
 
     private void validateTopic(Map<String, String> tableConf) {

@@ -88,14 +88,6 @@ public class AtomicRowDataDeserializationSchema implements DeserializationSchema
 
     @Override
     public TypeInformation<RowData> getProducedType() {
-        /*      DataType dataType = TypeConversions.fromClassToDataType(clazz).
-                orElseThrow(() -> new IllegalStateException(clazz.getCanonicalName() + "cant cast to flink dataType"));
-        RowType.RowField rowField = new RowType.RowField("value", dataType.getLogicalType());
-        List<RowType.RowField> fields = Collections.singletonList(rowField);
-        return (TypeInformation<Row>) TypeConversions.fromDataTypeToLegacyInfo(TypeConversions.fromLogicalToDataType(new RowType(fields)));*/
-
-        // return (TypeInformation<Row>) TypeConversions.fromDataTypeToLegacyInfo(dataType);
-
         List<DataTypes.Field> mainSchema = new ArrayList<>();
         DataType dataType =
                 TypeConversions.fromClassToDataType(clazz)

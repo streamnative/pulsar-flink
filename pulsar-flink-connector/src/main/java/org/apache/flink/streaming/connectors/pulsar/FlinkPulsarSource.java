@@ -58,11 +58,13 @@ import org.apache.flink.streaming.connectors.pulsar.internal.TopicRange;
 import org.apache.flink.streaming.connectors.pulsar.internal.TopicSubscription;
 import org.apache.flink.streaming.connectors.pulsar.internal.TopicSubscriptionSerializer;
 import org.apache.flink.streaming.connectors.pulsar.serialization.PulsarDeserializationSchema;
+import org.apache.flink.streaming.connectors.pulsar.table.PulsarTableOptions;
 import org.apache.flink.streaming.runtime.operators.util.AssignerWithPeriodicWatermarksAdapter;
 import org.apache.flink.streaming.runtime.operators.util.AssignerWithPunctuatedWatermarksAdapter;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
 import org.apache.flink.util.ExceptionUtils;
 import org.apache.flink.util.SerializedValue;
+import org.apache.flink.util.TimeUtils;
 
 import org.apache.flink.shaded.guava18.com.google.common.collect.Sets;
 
@@ -73,6 +75,7 @@ import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.shade.com.google.common.collect.Maps;
 import org.apache.pulsar.shade.org.apache.commons.lang3.StringUtils;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -85,6 +88,9 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -238,6 +244,12 @@ public class FlinkPulsarSource<T> extends RichParallelSourceFunction<T>
 
     private long startupOffsetsTimestamp = -1L;
 
+    private boolean enableOffsetAutoCommit;
+
+    private Duration offsetAutoCommitInterval;
+
+    private ScheduledExecutorService offsetCommitScheduler;
+
     public FlinkPulsarSource(
             String adminUrl,
             ClientConfigurationData clientConf,
@@ -264,6 +276,22 @@ public class FlinkPulsarSource<T> extends RichParallelSourceFunction<T>
         }
         this.oldStateVersion =
                 SourceSinkUtils.getOldStateVersion(caseInsensitiveParams, oldStateVersion);
+
+        this.enableOffsetAutoCommit =
+                Boolean.parseBoolean(
+                        properties
+                                .getOrDefault(
+                                        PulsarTableOptions.ENABLE_OFFSET_AUTO_COMMIT.key(), "true")
+                                .toString());
+        if (enableOffsetAutoCommit) {
+            this.offsetAutoCommitInterval =
+                    TimeUtils.parseDuration(
+                            properties
+                                    .getOrDefault(
+                                            PulsarTableOptions.OFFSET_AUTO_COMMIT_INTERVAL.key(),
+                                            "60 s")
+                                    .toString());
+        }
     }
 
     public FlinkPulsarSource(
@@ -551,6 +579,27 @@ public class FlinkPulsarSource<T> extends RichParallelSourceFunction<T>
                         ownedTopicStarts);
             }
         }
+
+        if (!((StreamingRuntimeContext) getRuntimeContext()).isCheckpointingEnabled()
+                && enableOffsetAutoCommit) {
+            this.offsetCommitScheduler = Executors.newScheduledThreadPool(1);
+            this.offsetCommitScheduler.scheduleAtFixedRate(
+                    () -> {
+                        if (pulsarFetcher != null) {
+                            Map<TopicRange, MessageId> consumedOffsets =
+                                    pulsarFetcher.snapshotCurrentState();
+                            try {
+                                pulsarFetcher.commitOffsetToPulsar(
+                                        consumedOffsets, offsetCommitCallback);
+                            } catch (InterruptedException e) {
+
+                            }
+                        }
+                    },
+                    0,
+                    offsetAutoCommitInterval != null ? offsetAutoCommitInterval.getSeconds() : 60,
+                    TimeUnit.SECONDS);
+        }
     }
 
     protected String getSubscriptionName() {
@@ -740,6 +789,10 @@ public class FlinkPulsarSource<T> extends RichParallelSourceFunction<T>
             } catch (Exception e) {
                 exception = e;
             }
+        }
+
+        if (offsetCommitScheduler != null) {
+            offsetCommitScheduler.shutdown();
         }
 
         try {

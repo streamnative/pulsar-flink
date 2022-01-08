@@ -14,13 +14,11 @@
 
 package org.apache.flink.streaming.connectors.pulsar;
 
-import lombok.extern.slf4j.Slf4j;
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.java.ClosureCleaner;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.state.FunctionInitializationContext;
 import org.apache.flink.runtime.state.FunctionSnapshotContext;
-import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
 import org.apache.flink.streaming.api.checkpoint.CheckpointedFunction;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
@@ -30,6 +28,10 @@ import org.apache.flink.streaming.connectors.pulsar.internal.SchemaUtils;
 import org.apache.flink.streaming.connectors.pulsar.internal.SourceSinkUtils;
 import org.apache.flink.util.ExceptionUtils;
 import org.apache.flink.util.SerializableObject;
+
+import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
+
+import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.Producer;

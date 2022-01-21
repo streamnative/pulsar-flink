@@ -91,7 +91,7 @@ abstract class FlinkPulsarSinkBase<T> extends RichSinkFunction<T> implements Che
 
     protected final TopicKeyExtractor<T> topicKeyExtractor;
 
-    private final transient AtomicReference<Throwable> failedWrite = new AtomicReference<>();
+    protected final AtomicReference<Throwable> failedWrite = new AtomicReference<>();
 
     protected transient PulsarAdmin admin;
 

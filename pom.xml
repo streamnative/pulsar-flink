@@ -30,7 +30,7 @@ under the License.
 
 	<groupId>io.streamnative.connectors</groupId>
 	<artifactId>pulsar-flink-parent</artifactId>
-	<version>1.13.1.0</version>
+	<version>1.13.3.0</version>
 
 	<name>StreamNative :: Pulsar Flink Connector :: Root</name>
 	<packaging>pom</packaging>
@@ -91,8 +91,11 @@ under the License.
 		<slf4j.version>1.7.15</slf4j.version>
 
 		<!-- Protobuf support -->
-		<protobuf.version>3.11.4</protobuf.version>
+		<protobuf.version>3.16.1</protobuf.version>
 		<flink-protobuf.version>2.7.6</flink-protobuf.version>
+		<protobuf-plugin.version>3.11.4</protobuf-plugin.version>
+
+		<jaxb.version>2.3.0</jaxb.version>
 
 		<!-- Default scala versions, must be overwritten by build profiles, so we set something
 		invalid here -->

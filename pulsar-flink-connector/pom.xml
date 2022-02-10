@@ -84,6 +84,11 @@ under the License.
 			<version>${flink.version}</version>
 			<scope>provided</scope>
 		</dependency>
+		<dependency>
+			<groupId>javax.xml.bind</groupId>
+			<artifactId>jaxb-api</artifactId>
+			<version>${jaxb.version}</version>
+		</dependency>
 
 		<!-- Test dependencies -->
 		<dependency>
@@ -234,7 +239,7 @@ under the License.
 			<plugin>
 				<groupId>com.github.os72</groupId>
 				<artifactId>protoc-jar-maven-plugin</artifactId>
-				<version>${protobuf.version}</version>
+				<version>${protobuf-plugin.version}</version>
 				<executions>
 					<execution>
 						<id>generate-protobuf-test-sources</id>

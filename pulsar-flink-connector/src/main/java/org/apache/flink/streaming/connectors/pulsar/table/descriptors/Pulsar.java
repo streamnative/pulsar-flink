@@ -20,7 +20,7 @@ package org.apache.flink.streaming.connectors.pulsar.table.descriptors;
 
 import org.apache.flink.streaming.connectors.pulsar.config.StartupMode;
 import org.apache.flink.streaming.connectors.pulsar.internal.PulsarOptions;
-import org.apache.flink.table.descriptors.ConnectorDescriptor;
+import org.apache.flink.table.descriptors.Descriptor;
 import org.apache.flink.table.descriptors.DescriptorProperties;
 import org.apache.flink.util.Preconditions;
 
@@ -46,11 +46,10 @@ import static org.apache.flink.streaming.connectors.pulsar.table.descriptors.Pul
 import static org.apache.flink.streaming.connectors.pulsar.table.descriptors.PulsarValidator.CONNECTOR_SPECIFIC_OFFSETS_PARTITION;
 import static org.apache.flink.streaming.connectors.pulsar.table.descriptors.PulsarValidator.CONNECTOR_STARTUP_MODE;
 import static org.apache.flink.streaming.connectors.pulsar.table.descriptors.PulsarValidator.CONNECTOR_TOPIC;
-import static org.apache.flink.streaming.connectors.pulsar.table.descriptors.PulsarValidator.CONNECTOR_TYPE_VALUE_PULSAR;
 import static org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CONNECTOR;
 
-/** Pulsar {@ConnectorDescriptor}. */
-public class Pulsar extends ConnectorDescriptor {
+/** Pulsar {@Descriptor}. */
+public class Pulsar implements Descriptor {
 
     private String topic;
 
@@ -72,9 +71,7 @@ public class Pulsar extends ConnectorDescriptor {
 
     private String subscriptionPosition;
 
-    public Pulsar() {
-        super(CONNECTOR_TYPE_VALUE_PULSAR, 1, true);
-    }
+    public Pulsar() {}
 
     public Pulsar urls(String serviceUrl, String adminUrl) {
         Preconditions.checkNotNull(serviceUrl);
@@ -173,7 +170,7 @@ public class Pulsar extends ConnectorDescriptor {
     }
 
     @Override
-    protected Map<String, String> toConnectorProperties() {
+    public Map<String, String> toProperties() {
         final DescriptorProperties properties = new DescriptorProperties();
 
         if (serviceUrl != null) {

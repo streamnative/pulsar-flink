@@ -33,8 +33,8 @@ import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.apache.pulsar.client.api.schema.GenericSchema;
+import org.apache.pulsar.client.impl.schema.KeyValueSchemaInfo;
 import org.apache.pulsar.client.impl.schema.SchemaInfoImpl;
-import org.apache.pulsar.client.internal.DefaultImplementation;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.protocol.schema.PostSchemaPayload;
 import org.apache.pulsar.common.schema.SchemaInfo;
@@ -42,6 +42,7 @@ import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.shade.org.apache.avro.Schema;
 import org.apache.pulsar.shade.org.apache.commons.lang3.StringUtils;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
@@ -133,8 +134,13 @@ public class SchemaUtils {
             return null;
         }
         if (schemaInfo.getType() == SchemaType.KEY_VALUE) {
-            return DefaultImplementation.convertKeyValueSchemaInfoDataToString(
-                    DefaultImplementation.decodeKeyValueSchemaInfo(schemaInfo));
+            try {
+                return org.apache.pulsar.client.impl.schema.SchemaUtils
+                        .convertKeyValueSchemaInfoDataToString(
+                                KeyValueSchemaInfo.decodeKeyValueSchemaInfo(schemaInfo));
+            } catch (IOException e) {
+                throw new RuntimeException("failed to convert KeyValueSchema into string");
+            }
         }
         return new String(schemaData, StandardCharsets.UTF_8);
     }

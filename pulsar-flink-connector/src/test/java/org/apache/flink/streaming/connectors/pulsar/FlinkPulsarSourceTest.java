@@ -59,8 +59,8 @@ import org.apache.flink.util.TestLogger;
 import org.apache.flink.util.function.SupplierWithException;
 import org.apache.flink.util.function.ThrowingRunnable;
 
-import org.apache.flink.shaded.guava18.com.google.common.collect.ImmutableMap;
-import org.apache.flink.shaded.guava18.com.google.common.collect.Sets;
+import org.apache.flink.shaded.guava30.com.google.common.collect.ImmutableMap;
+import org.apache.flink.shaded.guava30.com.google.common.collect.Sets;
 
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.MessageId;
@@ -80,6 +80,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalLong;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -987,6 +988,11 @@ public class FlinkPulsarSourceTest extends TestLogger {
         @Override
         public boolean isRestored() {
             return isRestored;
+        }
+
+        @Override
+        public OptionalLong getRestoredCheckpointId() {
+            throw new UnsupportedOperationException();
         }
 
         @Override

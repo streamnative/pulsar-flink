@@ -21,7 +21,7 @@ package org.apache.flink.streaming.connectors.pulsar.internal;
 import org.apache.flink.streaming.connectors.pulsar.testutils.TestMetadataReader;
 import org.apache.flink.util.TestLogger;
 
-import org.apache.flink.shaded.guava18.com.google.common.collect.Sets;
+import org.apache.flink.shaded.guava30.com.google.common.collect.Sets;
 
 import org.apache.pulsar.common.naming.TopicName;
 import org.junit.Test;

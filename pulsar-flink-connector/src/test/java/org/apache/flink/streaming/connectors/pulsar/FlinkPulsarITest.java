@@ -30,7 +30,7 @@ import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.formats.common.TimestampFormat;
-import org.apache.flink.formats.json.JsonOptions;
+import org.apache.flink.formats.json.JsonFormatOptions;
 import org.apache.flink.formats.json.JsonRowDataDeserializationSchema;
 import org.apache.flink.formats.json.JsonRowDataSerializationSchema;
 import org.apache.flink.runtime.client.JobCancellationException;
@@ -79,8 +79,8 @@ import org.apache.flink.types.RowKind;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.ExceptionUtils;
 
-import org.apache.flink.shaded.guava18.com.google.common.collect.Iterables;
-import org.apache.flink.shaded.guava18.com.google.common.collect.Sets;
+import org.apache.flink.shaded.guava30.com.google.common.collect.Iterables;
+import org.apache.flink.shaded.guava30.com.google.common.collect.Sets;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdmin;
@@ -1254,7 +1254,7 @@ public class FlinkPulsarITest extends PulsarTestBaseWithFlink {
 
     public static SerializationSchema<RowData> getJsonSerializationSchema(RowType rowType) {
         return new JsonRowDataSerializationSchema(
-                rowType, TimestampFormat.ISO_8601, JsonOptions.MapNullKeyMode.DROP, "", true);
+                rowType, TimestampFormat.ISO_8601, JsonFormatOptions.MapNullKeyMode.DROP, "", true);
     }
 
     private class AssertSink extends FlinkPulsarSink<RowData> {

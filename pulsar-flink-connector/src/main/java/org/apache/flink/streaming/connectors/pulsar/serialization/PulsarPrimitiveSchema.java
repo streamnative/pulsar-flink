@@ -51,7 +51,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import static org.apache.flink.shaded.guava18.com.google.common.base.Preconditions.checkArgument;
+import static org.apache.flink.shaded.guava30.com.google.common.base.Preconditions.checkArgument;
 
 /** pulsar primitive deserialization. */
 public class PulsarPrimitiveSchema<T>

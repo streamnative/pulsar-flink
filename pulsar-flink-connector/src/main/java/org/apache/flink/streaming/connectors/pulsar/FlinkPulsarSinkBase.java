@@ -41,7 +41,7 @@ import org.apache.flink.streaming.connectors.pulsar.table.PulsarSinkSemantic;
 import org.apache.flink.util.ExceptionUtils;
 import org.apache.flink.util.SerializableObject;
 
-import org.apache.flink.shaded.guava18.com.google.common.collect.Maps;
+import org.apache.flink.shaded.guava30.com.google.common.collect.Maps;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.admin.PulsarAdmin;

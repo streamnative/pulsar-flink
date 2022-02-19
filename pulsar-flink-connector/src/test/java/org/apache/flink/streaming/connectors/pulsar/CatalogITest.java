@@ -24,7 +24,6 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.CoreOptions;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.pulsar.catalog.PulsarCatalog;
-import org.apache.flink.streaming.connectors.pulsar.testutils.EnvironmentFileUtil;
 import org.apache.flink.streaming.connectors.pulsar.testutils.FailingIdentityMapper;
 import org.apache.flink.streaming.connectors.pulsar.testutils.SingletonStreamSink;
 import org.apache.flink.table.api.EnvironmentSettings;
@@ -33,13 +32,12 @@ import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 import org.apache.flink.table.catalog.Catalog;
-import org.apache.flink.table.client.config.Environment;
 import org.apache.flink.table.client.gateway.context.DefaultContext;
 import org.apache.flink.table.client.gateway.context.ExecutionContext;
 import org.apache.flink.table.client.gateway.context.SessionContext;
 
-import org.apache.flink.shaded.guava18.com.google.common.collect.Iterables;
-import org.apache.flink.shaded.guava18.com.google.common.collect.Sets;
+import org.apache.flink.shaded.guava30.com.google.common.collect.Iterables;
+import org.apache.flink.shaded.guava30.com.google.common.collect.Sets;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.pulsar.client.admin.PulsarAdmin;
@@ -597,11 +595,12 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
     private ExecutionContext createExecutionContext(String file, Map<String, String> replaceVars)
             throws Exception {
-        final Environment env = EnvironmentFileUtil.parseModified(file, replaceVars);
+        // The Environment is removed for Flink 1.14 which may cause the test to fail
+        // final Environment env = EnvironmentFileUtil.parseModified(file, replaceVars);
 
         DefaultContext defaultContext =
                 new DefaultContext(
-                        env,
+                        // env,
                         new ArrayList<>(),
                         clusterClient.getFlinkConfiguration(),
                         Collections.singletonList(new DefaultCLI()));

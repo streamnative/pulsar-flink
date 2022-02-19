@@ -20,9 +20,9 @@ package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import org.apache.flink.annotation.VisibleForTesting;
 
-import org.apache.flink.shaded.guava18.com.google.common.cache.Cache;
-import org.apache.flink.shaded.guava18.com.google.common.cache.CacheBuilder;
-import org.apache.flink.shaded.guava18.com.google.common.cache.RemovalListener;
+import org.apache.flink.shaded.guava30.com.google.common.cache.Cache;
+import org.apache.flink.shaded.guava30.com.google.common.cache.CacheBuilder;
+import org.apache.flink.shaded.guava30.com.google.common.cache.RemovalListener;
 
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;

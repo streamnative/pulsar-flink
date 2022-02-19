@@ -47,7 +47,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-import static org.apache.flink.shaded.guava18.com.google.common.base.Preconditions.checkArgument;
+import static org.apache.flink.shaded.guava30.com.google.common.base.Preconditions.checkArgument;
 
 /** A specific Serializer for {@link PulsarDynamicTableSink}. */
 class DynamicPulsarSerializationSchema

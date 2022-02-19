@@ -25,7 +25,7 @@ import org.apache.flink.formats.avro.AvroRowDataDeserializationSchema;
 import org.apache.flink.formats.avro.AvroRowDataSerializationSchema;
 import org.apache.flink.formats.avro.typeutils.AvroSchemaConverter;
 import org.apache.flink.formats.common.TimestampFormat;
-import org.apache.flink.formats.json.JsonOptions;
+import org.apache.flink.formats.json.JsonFormatOptions;
 import org.apache.flink.formats.json.JsonRowDataDeserializationSchema;
 import org.apache.flink.formats.json.JsonRowDataSerializationSchema;
 import org.apache.flink.formats.protobuf.PbRowTypeInformation;
@@ -168,7 +168,7 @@ public class RowDataDerSerializationSchemaTest extends PulsarTestBase {
                 new JsonRowDataSerializationSchema(
                         rowType,
                         TimestampFormat.ISO_8601,
-                        JsonOptions.MapNullKeyMode.DROP,
+                        JsonFormatOptions.MapNullKeyMode.DROP,
                         "",
                         true);
         serializationSchema.open(null);

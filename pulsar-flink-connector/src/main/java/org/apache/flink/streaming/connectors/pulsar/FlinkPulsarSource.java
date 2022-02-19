@@ -64,7 +64,7 @@ import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
 import org.apache.flink.util.ExceptionUtils;
 import org.apache.flink.util.SerializedValue;
 
-import org.apache.flink.shaded.guava18.com.google.common.collect.Sets;
+import org.apache.flink.shaded.guava30.com.google.common.collect.Sets;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.MessageId;

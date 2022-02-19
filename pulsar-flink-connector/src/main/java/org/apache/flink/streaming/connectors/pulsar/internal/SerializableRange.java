@@ -18,8 +18,8 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
-import org.apache.flink.shaded.guava18.com.google.common.base.MoreObjects;
-import org.apache.flink.shaded.guava18.com.google.common.collect.ComparisonChain;
+import org.apache.flink.shaded.guava30.com.google.common.base.MoreObjects;
+import org.apache.flink.shaded.guava30.com.google.common.collect.ComparisonChain;
 
 import org.apache.pulsar.client.api.Range;
 

@@ -40,4 +40,9 @@ public class SourceContextWatermarkOutputAdapter<T> implements WatermarkOutput {
     public void markIdle() {
         sourceContext.markAsTemporarilyIdle();
     }
+
+    @Override
+    public void markActive() {
+        // do nothing
+    }
 }

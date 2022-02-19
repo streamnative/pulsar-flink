@@ -26,7 +26,7 @@ under the License.
 	<parent>
 		<groupId>io.streamnative.connectors</groupId>
 		<artifactId>pulsar-flink-parent</artifactId>
-		<version>1.13.1.0</version>
+		<version>1.14.3.0</version>
 	</parent>
 
 	<artifactId>pulsar-flink-connector_${scala.binary.version}</artifactId>
@@ -68,7 +68,7 @@ under the License.
 
 		<dependency>
 			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-table-runtime-blink_${scala.binary.version}</artifactId>
+			<artifactId>flink-table-runtime_${scala.binary.version}</artifactId>
 			<version>${flink.version}</version>
 			<scope>provided</scope>
 		</dependency>
@@ -88,7 +88,7 @@ under the License.
 		<!-- Test dependencies -->
 		<dependency>
 			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-metrics-jmx_${scala.binary.version}</artifactId>
+			<artifactId>flink-metrics-jmx</artifactId>
 			<version>${flink.version}</version>
 			<scope>test</scope>
 		</dependency>
@@ -135,7 +135,7 @@ under the License.
 		</dependency>
 		<dependency>
 			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-runtime_${scala.binary.version}</artifactId>
+			<artifactId>flink-runtime</artifactId>
 			<version>${flink.version}</version>
 			<type>test-jar</type>
 			<scope>test</scope>
@@ -171,7 +171,7 @@ under the License.
 		</dependency>
 		<dependency>
 			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-table-planner-blink_${scala.binary.version}</artifactId>
+			<artifactId>flink-table-planner_${scala.binary.version}</artifactId>
 			<version>${flink.version}</version>
 			<type>test-jar</type>
 			<scope>test</scope>

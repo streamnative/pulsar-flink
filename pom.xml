@@ -95,8 +95,6 @@ under the License.
 		<flink-protobuf.version>2.7.6</flink-protobuf.version>
 		<protobuf-plugin.version>3.11.4</protobuf-plugin.version>
 
-		<jaxb.version>2.3.0</jaxb.version>
-
 		<!-- Default scala versions, must be overwritten by build profiles, so we set something
 		invalid here -->
 		<scala.version>2.11.12</scala.version>

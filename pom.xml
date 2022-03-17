@@ -84,7 +84,7 @@ under the License.
 		<testRetryCount>3</testRetryCount>
 
 		<!-- Use latest Pulsar version -->
-		<pulsar.version>2.8.3</pulsar.version>
+		<pulsar.version>2.8.2</pulsar.version>
 		<flink.version>1.14.3</flink.version>
 		<lombok.version>1.18.22</lombok.version>
 		<!-- Keep track the slf4j version with flink -->

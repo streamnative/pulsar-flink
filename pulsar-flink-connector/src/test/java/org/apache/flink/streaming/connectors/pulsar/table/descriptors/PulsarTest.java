@@ -83,8 +83,6 @@ public class PulsarTest extends DescriptorTestBase {
     @Override
     public List<Map<String, String>> properties() {
         final Map<String, String> props1 = new HashMap<>();
-        props1.put("connector.property-version", "1");
-        props1.put("connector.type", "pulsar");
         props1.put("connector.topic", "WhateverTopic");
         props1.put("connector.startup-mode", "earliest");
         props1.put("connector.service-url", serviceUrl);
@@ -92,8 +90,6 @@ public class PulsarTest extends DescriptorTestBase {
         props1.put("connector.use-extend-field", "true");
 
         final Map<String, String> props2 = new HashMap<>();
-        props2.put("connector.property-version", "1");
-        props2.put("connector.type", "pulsar");
         props2.put("connector.topic", "MyTable");
         props2.put("connector.startup-mode", "specific-offsets");
         props2.put("connector.specific-offsets.0.partition", "0");
@@ -103,8 +99,6 @@ public class PulsarTest extends DescriptorTestBase {
         props2.put("connector.use-extend-field", "true");
 
         final Map<String, String> props3 = new HashMap<>();
-        props3.put("connector.property-version", "1");
-        props3.put("connector.type", "pulsar");
         props3.put("connector.topic", "MyTable");
         props3.put("connector.startup-mode", "specific-offsets");
         props3.put("connector.specific-offsets.0.partition", "0");
@@ -116,8 +110,6 @@ public class PulsarTest extends DescriptorTestBase {
         props3.put("connector.use-extend-field", "true");
 
         final Map<String, String> props4 = new HashMap<>();
-        props4.put("connector.property-version", "1");
-        props4.put("connector.type", "pulsar");
         props4.put("connector.topic", "MyTable");
         props4.put("connector.startup-mode", "latest");
         props4.put("connector.service-url", serviceUrl);

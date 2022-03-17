@@ -32,6 +32,7 @@ import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 import org.apache.flink.table.catalog.Catalog;
+import org.apache.flink.table.catalog.GenericInMemoryCatalog;
 import org.apache.flink.table.client.gateway.context.DefaultContext;
 import org.apache.flink.table.client.gateway.context.ExecutionContext;
 import org.apache.flink.table.client.gateway.context.SessionContext;
@@ -60,11 +61,10 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -81,9 +81,15 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CatalogITest.class);
 
-    private static final String CATALOGS_ENVIRONMENT_FILE = "test-sql-client-pulsar-catalog.yaml";
-    private static final String CATALOGS_ENVIRONMENT_FILE_START =
-            "test-sql-client-pulsar-start-catalog.yaml";
+    private static final String INMEMORY_CATALOG = "inmemorycatalog";
+    private static final String PULSAR_CATALOG1 = "pulsarcatalog1";
+    private static final String PULSAR_CATALOG2 = "pulsarcatalog2";
+
+    private static final String INMEMORY_DB = "mydatabase";
+    private static final String PULSAR1_DB = "public/default";
+    private static final String PULSAR2_DB = "tn/ns";
+
+    private static final String FLINK_TENANT = "__flink_catalog";
 
     private static ClusterClient<?> clusterClient;
 
@@ -96,33 +102,28 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
     @Test(timeout = 40 * 1000L)
     public void testCatalogs() throws Exception {
-        String inmemoryCatalog = "inmemorycatalog";
-        String pulsarCatalog1 = "pulsarcatalog1";
-        String pulsarCatalog2 = "pulsarcatalog2";
-
-        ExecutionContext context =
-                createExecutionContext(CATALOGS_ENVIRONMENT_FILE, getStreamingConfs());
+        ExecutionContext context = createExecutionContext();
         TableEnvironment tableEnv = context.getTableEnvironment();
+        registerCatalogs(tableEnv);
 
-        assertEquals(tableEnv.getCurrentCatalog(), inmemoryCatalog);
-        assertEquals(tableEnv.getCurrentDatabase(), "mydatabase");
+        assertEquals(tableEnv.getCurrentCatalog(), INMEMORY_CATALOG);
+        assertEquals(tableEnv.getCurrentDatabase(), INMEMORY_DB);
 
-        Catalog catalog = tableEnv.getCatalog(pulsarCatalog1).orElse(null);
+        Catalog catalog = tableEnv.getCatalog(PULSAR_CATALOG1).orElse(null);
         assertNotNull(catalog);
         assertTrue(catalog instanceof PulsarCatalog);
-        tableEnv.useCatalog(pulsarCatalog1);
-        assertEquals(tableEnv.getCurrentDatabase(), "public/default");
+        tableEnv.useCatalog(PULSAR_CATALOG1);
+        assertEquals(tableEnv.getCurrentDatabase(), PULSAR1_DB);
 
-        catalog = tableEnv.getCatalog(pulsarCatalog2).orElse(null);
+        catalog = tableEnv.getCatalog(PULSAR_CATALOG2).orElse(null);
         assertNotNull(catalog);
         assertTrue(catalog instanceof PulsarCatalog);
-        tableEnv.useCatalog(pulsarCatalog2);
-        assertEquals(tableEnv.getCurrentDatabase(), "tn/ns");
+        tableEnv.useCatalog(PULSAR_CATALOG2);
+        assertEquals(tableEnv.getCurrentDatabase(), PULSAR2_DB);
     }
 
     @Test(timeout = 40 * 1000L)
     public void testDatabases() throws Exception {
-        String pulsarCatalog1 = "pulsarcatalog1";
         List<String> namespaces = Arrays.asList("tn1/ns1", "tn1/ns2");
         List<String> topics = Arrays.asList("tp1", "tp2");
         List<String> topicsFullName =
@@ -131,12 +132,12 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         List<String> partitionedTopicsFullName =
                 partitionedTopics.stream().map(a -> "tn1/ns1/" + a).collect(Collectors.toList());
 
-        ExecutionContext context =
-                createExecutionContext(CATALOGS_ENVIRONMENT_FILE, getStreamingConfs());
+        ExecutionContext context = createExecutionContext();
         TableEnvironment tableEnv = context.getTableEnvironment();
+        registerCatalogs(tableEnv);
 
-        tableEnv.useCatalog(pulsarCatalog1);
-        assertEquals(tableEnv.getCurrentDatabase(), "public/default");
+        tableEnv.useCatalog(PULSAR_CATALOG1);
+        assertEquals(tableEnv.getCurrentDatabase(), PULSAR1_DB);
 
         try (PulsarAdmin admin = PulsarAdmin.builder().serviceHttpUrl(getAdminUrl()).build()) {
             admin.tenants()
@@ -162,9 +163,19 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
             tableEnv.useDatabase("tn1/ns1");
 
+            List<String> topicsInPulsar = admin.topics().getList("tn1/ns1");
+            String[] tables = tableEnv.listTables();
+
+            Set<String> tableSet = Sets.newHashSet(tableEnv.listTables());
+            // Pulsar 2.9 introduce TXN support and will create internal topic automatically
+            // So we remove the system topic for now to clear the comparison
+            // A better approach would be let the PulsarCatalog ignore any internal topic
+            // TODO (nlu): let pulsar catalog ignore system owned topic
+            tableSet.remove("__transaction_buffer_snapshot");
+
             assertTrue(
                     Sets.symmetricDifference(
-                                    Sets.newHashSet(tableEnv.listTables()),
+                                    tableSet,
                                     Sets.newHashSet(Iterables.concat(topics, partitionedTopics)))
                             .isEmpty());
 
@@ -190,17 +201,15 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
     @Test(timeout = 40 * 1000L)
     public void testTableReadStartFromLatestByDefault() throws Exception {
-        String pulsarCatalog1 = "pulsarcatalog1";
-
         String tableName = newTopic();
 
         sendTypedMessages(tableName, SchemaType.INT32, INTEGER_LIST, Optional.empty());
 
-        ExecutionContext context =
-                createExecutionContext(CATALOGS_ENVIRONMENT_FILE, getStreamingConfs());
+        ExecutionContext context = createExecutionContext();
         TableEnvironment tableEnv = context.getTableEnvironment();
+        registerCatalogs(tableEnv);
 
-        tableEnv.useCatalog(pulsarCatalog1);
+        tableEnv.useCatalog(PULSAR_CATALOG1);
         Thread.sleep(2000);
 
         Table t =
@@ -249,11 +258,11 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
 
         sendTypedMessages(tableName, SchemaType.INT32, INTEGER_LIST, Optional.empty());
 
-        Map<String, String> conf = getStreamingConfs();
-        ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
+        ExecutionContext context = createExecutionContext();
         TableEnvironment tableEnv = context.getTableEnvironment();
+        registerCatalogs(tableEnv);
 
-        tableEnv.useCatalog("pulsarcatalog1");
+        tableEnv.useCatalog(PULSAR_CATALOG1);
         tableEnv.getConfig()
                 .getConfiguration()
                 .setString("table.dynamic-table-options.enabled", "true");
@@ -308,11 +317,11 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         String sinkTableName = TopicName.get(sinkTopic).getLocalName();
         getPulsarAdmin().schemas().createSchema(sinkTopic, Schema.INT32.getSchemaInfo());
 
-        Map<String, String> conf = getStreamingConfs();
-        ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
+        ExecutionContext context = createExecutionContext();
         TableEnvironment tableEnv = context.getTableEnvironment();
+        registerCatalogs(tableEnv);
 
-        tableEnv.useCatalog("pulsarcatalog1");
+        tableEnv.useCatalog(PULSAR_CATALOG1);
         tableEnv.getConfig()
                 .getConfiguration()
                 .setString("table.dynamic-table-options.enabled", "true");
@@ -336,18 +345,14 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         String databaseName = newDatabaseName();
         String tableSinkTopic = newTopic("tableSink");
         String tableSinkName = TopicName.get(tableSinkTopic).getLocalName();
-        String pulsarCatalog1 = "pulsarcatalog3";
 
-        Map<String, String> conf = getStreamingConfs();
-        conf.put("$VAR_STARTING", "earliest");
-        conf.put("$VAR_FORMAT", "avro");
-
-        ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
+        ExecutionContext context = createExecutionContext();
         TableEnvironment tableEnv = context.getTableEnvironment();
         tableEnv.getConfig()
                 .addConfiguration(new Configuration().set(CoreOptions.DEFAULT_PARALLELISM, 1));
+        registerCatalogs(tableEnv);
 
-        tableEnv.useCatalog(pulsarCatalog1);
+        tableEnv.useCatalog(PULSAR_CATALOG1);
 
         String dbDDL = "CREATE DATABASE " + databaseName;
         tableEnv.executeSql(dbDDL).print();
@@ -448,15 +453,11 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         String databaseName = newDatabaseName();
         String tableSinkTopic = newTopic("tableSink");
         String tableSinkName = TopicName.get(tableSinkTopic).getLocalName();
-        String pulsarCatalog1 = "pulsarcatalog3";
 
-        Map<String, String> conf = getStreamingConfs();
-        conf.put("$VAR_STARTING", "earliest");
-        conf.put("$VAR_FORMAT", "json");
-
-        ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
+        ExecutionContext context = createExecutionContext();
         TableEnvironment tableEnv = context.getTableEnvironment();
-        tableEnv.useCatalog(pulsarCatalog1);
+        registerCatalogs(tableEnv);
+        tableEnv.useCatalog(PULSAR_CATALOG1);
 
         String dbDDL = "CREATE DATABASE " + databaseName;
         tableEnv.executeSql(dbDDL).print();
@@ -499,15 +500,11 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         String databaseName = newDatabaseName();
         String tableSinkTopic = newTopic("tableSink");
         String tableSinkName = TopicName.get(tableSinkTopic).getLocalName();
-        String pulsarCatalog1 = "pulsarcatalog3";
 
-        Map<String, String> conf = getStreamingConfs();
-        conf.put("$VAR_STARTING", "earliest");
-        conf.put("$VAR_FORMAT", "json");
-
-        ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
+        ExecutionContext context = createExecutionContext();
         TableEnvironment tableEnv = context.getTableEnvironment();
-        tableEnv.useCatalog(pulsarCatalog1);
+        registerCatalogs(tableEnv);
+        tableEnv.useCatalog(PULSAR_CATALOG1);
 
         String dbDDL = "CREATE DATABASE " + databaseName;
         tableEnv.executeSql(dbDDL).print();
@@ -568,11 +565,10 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         sendTypedMessages(tp, SchemaType.INT32, INTEGER_LIST, Optional.empty());
         sendTypedMessages(tableSink, SchemaType.INT32, Arrays.asList(-1), Optional.empty());
 
-        Map<String, String> conf = getStreamingConfs();
-        ExecutionContext context = createExecutionContext(CATALOGS_ENVIRONMENT_FILE_START, conf);
+        ExecutionContext context = createExecutionContext();
         TableEnvironment tableEnv = context.getTableEnvironment();
-
-        tableEnv.useCatalog("pulsarcatalog1");
+        registerCatalogs(tableEnv);
+        tableEnv.useCatalog(PULSAR_CATALOG1);
         tableEnv.getConfig()
                 .getConfiguration()
                 .setString("table.dynamic-table-options.enabled", "true");
@@ -593,14 +589,9 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         assertEquals(expectedOutput, result);
     }
 
-    private ExecutionContext createExecutionContext(String file, Map<String, String> replaceVars)
-            throws Exception {
-        // The Environment is removed for Flink 1.14 which may cause the test to fail
-        // final Environment env = EnvironmentFileUtil.parseModified(file, replaceVars);
-
+    private ExecutionContext createExecutionContext() throws Exception {
         DefaultContext defaultContext =
                 new DefaultContext(
-                        // env,
                         new ArrayList<>(),
                         clusterClient.getFlinkConfiguration(),
                         Collections.singletonList(new DefaultCLI()));
@@ -608,15 +599,33 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
         return sessionContext.getExecutionContext();
     }
 
-    private Map<String, String> getStreamingConfs() {
-        Map<String, String> replaceVars = new HashMap<>();
-        replaceVars.put("$VAR_EXECUTION_TYPE", "streaming");
-        replaceVars.put("$VAR_RESULT_MODE", "changelog");
-        replaceVars.put("$VAR_UPDATE_MODE", "update-mode: append");
-        replaceVars.put("$VAR_MAX_ROWS", "100");
-        replaceVars.put("$VAR_SERVICEURL", getServiceUrl());
-        replaceVars.put("$VAR_ADMINURL", getAdminUrl());
-        return replaceVars;
+    private void registerCatalogs(TableEnvironment tableEnvironment) {
+        tableEnvironment.registerCatalog(
+                INMEMORY_CATALOG, new GenericInMemoryCatalog(INMEMORY_CATALOG, INMEMORY_DB));
+
+        tableEnvironment.registerCatalog(
+                PULSAR_CATALOG1,
+                new PulsarCatalog(
+                        PULSAR_CATALOG1,
+                        getAdminUrl(),
+                        getServiceUrl(),
+                        PULSAR1_DB,
+                        FLINK_TENANT,
+                        null,
+                        null));
+
+        tableEnvironment.registerCatalog(
+                PULSAR_CATALOG2,
+                new PulsarCatalog(
+                        PULSAR_CATALOG2,
+                        getAdminUrl(),
+                        getServiceUrl(),
+                        PULSAR2_DB,
+                        FLINK_TENANT,
+                        null,
+                        null));
+
+        tableEnvironment.useCatalog(INMEMORY_CATALOG);
     }
 
     private String newDatabaseName() {

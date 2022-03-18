@@ -26,7 +26,7 @@ under the License.
 	<parent>
 		<groupId>io.streamnative.connectors</groupId>
 		<artifactId>pulsar-flink-parent</artifactId>
-		<version>1.14.3.0-rc7</version>
+		<version>1.14.3.0-rc8</version>
 	</parent>
 
 	<artifactId>pulsar-flink-sql-connector_${scala.binary.version}</artifactId>

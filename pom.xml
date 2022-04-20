@@ -447,6 +447,7 @@ under the License.
 						<exclude>**/.*/**</exclude>
 						<exclude>**/*.prefs</exclude>
 						<exclude>**/*.log</exclude>
+						<exclude>**/*.json</exclude>
 
 						<!-- the licenses that are re-bundled -->
 						<exclude>LICENSE*</exclude>

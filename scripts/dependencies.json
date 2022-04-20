@@ -1,0 +1,13 @@
+[
+  {
+    "name": "pulsar_flink",
+    "dependencies": [
+      {
+        "repo_owner": "streamnative",
+        "repo_name": "streamnative-sql-gateway",
+        "tag": "0.6.2-SNAPSHOT"
+      }
+    ]
+  }
+]
+

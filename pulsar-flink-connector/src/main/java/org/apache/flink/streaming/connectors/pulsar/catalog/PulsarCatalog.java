@@ -70,6 +70,8 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
 
     private final String authParams;
 
+    private final String tlsTrustCertsFilePath;
+
     private final String tenant;
 
     private PulsarCatalogSupport catalogSupport;
@@ -85,13 +87,15 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
             String database,
             String tenant,
             @Nullable String authPlugin,
-            @Nullable String authParams) {
+            @Nullable String authParams,
+            @Nullable String tlsTrustCertsFilePath) {
         super(catalogName, database);
         this.adminUrl = adminUrl;
         this.serviceUrl = serviceUrl;
         this.authPlugin = authPlugin;
         this.authParams = authParams;
         this.tenant = tenant;
+        this.tlsTrustCertsFilePath = tlsTrustCertsFilePath;
 
         log.info("Created Pulsar Catalog {}", catalogName);
     }
@@ -108,6 +112,7 @@ public class PulsarCatalog extends GenericInMemoryCatalog {
                 final ClientConfigurationData clientConf = new ClientConfigurationData();
                 clientConf.setAuthPluginClassName(this.authPlugin);
                 clientConf.setAuthParams(this.authParams);
+                clientConf.setTlsTrustCertsFilePath(this.tlsTrustCertsFilePath);
                 clientConf.setServiceUrl(serviceUrl);
                 catalogSupport =
                         new PulsarCatalogSupport(

@@ -73,6 +73,11 @@ public final class PulsarCatalogFactoryOptions {
             ConfigOptions.key("pulsar-version")
                     .stringType()
                     .defaultValue(PulsarVersion.getVersion());
+    public static final ConfigOption<String> TLS_TRUSTCERTS_FILE_PATH =
+            ConfigOptions.key("catalog-tls-trustcerts-filepath")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription("tls trust certs file path config");
 
     private PulsarCatalogFactoryOptions() {}
 }

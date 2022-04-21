@@ -41,6 +41,7 @@ import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.shade.com.google.common.collect.Iterables;
 import org.apache.pulsar.shade.com.google.common.collect.Sets;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -269,7 +270,7 @@ public class PulsarMetadataReader implements AutoCloseable {
     }
 
     public void uploadSchema(String topicName, SchemaInfo schemaInfo)
-            throws IncompatibleSchemaException {
+            throws IncompatibleSchemaException, IOException {
         SchemaUtils.uploadPulsarSchema(admin, topicName, schemaInfo);
     }
 

@@ -42,18 +42,21 @@ import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.shade.org.apache.avro.Schema;
 import org.apache.pulsar.shade.org.apache.commons.lang3.StringUtils;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 
 import static org.apache.avro.Schema.Type.RECORD;
+import static org.apache.pulsar.client.impl.schema.SchemaUtils.convertKeyValueSchemaInfoDataToString;
 import static org.apache.pulsar.shade.com.google.common.base.Preconditions.checkNotNull;
 
 /** Various utilities to working with Pulsar Schema and Flink type system. */
 @Slf4j
 public class SchemaUtils {
 
-    public static void uploadPulsarSchema(PulsarAdmin admin, String topic, SchemaInfo schemaInfo) {
+    public static void uploadPulsarSchema(PulsarAdmin admin, String topic, SchemaInfo schemaInfo)
+            throws IOException {
         checkNotNull(schemaInfo);
 
         SchemaInfo existingSchema;
@@ -127,14 +130,15 @@ public class SchemaUtils {
                 && Arrays.equals(existingSchema.getSchema(), schemaInfo.getSchema());
     }
 
-    private static String getSchemaString(SchemaInfo schemaInfo) {
+    private static String getSchemaString(SchemaInfo schemaInfo) throws IOException {
         final byte[] schemaData = schemaInfo.getSchema();
         if (null == schemaData) {
             return null;
         }
         if (schemaInfo.getType() == SchemaType.KEY_VALUE) {
-            return DefaultImplementation.convertKeyValueSchemaInfoDataToString(
-                    DefaultImplementation.decodeKeyValueSchemaInfo(schemaInfo));
+            return convertKeyValueSchemaInfoDataToString(
+                    DefaultImplementation.getDefaultImplementation()
+                            .decodeKeyValueSchemaInfo(schemaInfo));
         }
         return new String(schemaData, StandardCharsets.UTF_8);
     }

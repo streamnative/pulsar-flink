@@ -30,4 +30,4 @@ jobs:
 
       - name: Run check and test
         run: |
-          mvn -B -ntp clean install
+          mvn -Dmaven=3.6.3 -B -ntp clean install

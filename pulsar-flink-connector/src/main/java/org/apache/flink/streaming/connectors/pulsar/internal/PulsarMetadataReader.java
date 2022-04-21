@@ -41,6 +41,7 @@ import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.shade.com.google.common.collect.Iterables;
 import org.apache.pulsar.shade.com.google.common.collect.Sets;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -65,6 +66,8 @@ import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOption
  */
 @Slf4j
 public class PulsarMetadataReader implements AutoCloseable {
+
+    private static final String TRANSACTION_SYSTEM_TOPIC_PREFIX = "__transaction_buffer_snapshot";
 
     @Getter private final String adminUrl;
 
@@ -221,6 +224,7 @@ public class PulsarMetadataReader implements AutoCloseable {
         Stream.of(partitionedTopics, nonPartitionedTopics).forEach(allTopics::addAll);
         return allTopics.stream()
                 .map(t -> TopicName.get(t).getLocalName())
+                .filter(topic -> !topic.startsWith(TRANSACTION_SYSTEM_TOPIC_PREFIX))
                 .collect(Collectors.toList());
     }
 
@@ -241,17 +245,6 @@ public class PulsarMetadataReader implements AutoCloseable {
         try {
             PartitionedTopicInternalStats partitionedInternalStats =
                     admin.topics().getPartitionedInternalStats(topicName);
-            final Optional<PersistentTopicInternalStats> any =
-                    partitionedInternalStats.partitions.entrySet().stream()
-                            .map(Map.Entry::getValue)
-                            .filter(p -> !p.cursors.isEmpty())
-                            .findAny();
-            if (any.isPresent()) {
-                throw new IllegalStateException(
-                        String.format(
-                                "The topic[%s] cannot be deleted because there are subscribers",
-                                topicName));
-            }
             admin.topics().deletePartitionedTopic(topicName, true);
         } catch (PulsarAdminException.NotFoundException e) {
             log.warn("topic<{}> is not exit, try delete force it", topicName);
@@ -269,7 +262,7 @@ public class PulsarMetadataReader implements AutoCloseable {
     }
 
     public void uploadSchema(String topicName, SchemaInfo schemaInfo)
-            throws IncompatibleSchemaException {
+            throws IncompatibleSchemaException, IOException {
         SchemaUtils.uploadPulsarSchema(admin, topicName, schemaInfo);
     }
 

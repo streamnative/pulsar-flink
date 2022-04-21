@@ -33,8 +33,8 @@ import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.apache.pulsar.client.api.schema.GenericSchema;
-import org.apache.pulsar.client.impl.schema.KeyValueSchemaInfo;
 import org.apache.pulsar.client.impl.schema.SchemaInfoImpl;
+import org.apache.pulsar.client.internal.DefaultImplementation;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.protocol.schema.PostSchemaPayload;
 import org.apache.pulsar.common.schema.SchemaInfo;
@@ -48,13 +48,15 @@ import java.util.Arrays;
 import java.util.Collections;
 
 import static org.apache.avro.Schema.Type.RECORD;
+import static org.apache.pulsar.client.impl.schema.SchemaUtils.convertKeyValueSchemaInfoDataToString;
 import static org.apache.pulsar.shade.com.google.common.base.Preconditions.checkNotNull;
 
 /** Various utilities to working with Pulsar Schema and Flink type system. */
 @Slf4j
 public class SchemaUtils {
 
-    public static void uploadPulsarSchema(PulsarAdmin admin, String topic, SchemaInfo schemaInfo) {
+    public static void uploadPulsarSchema(PulsarAdmin admin, String topic, SchemaInfo schemaInfo)
+            throws IOException {
         checkNotNull(schemaInfo);
 
         SchemaInfo existingSchema;
@@ -128,16 +130,16 @@ public class SchemaUtils {
                 && Arrays.equals(existingSchema.getSchema(), schemaInfo.getSchema());
     }
 
-    private static String getSchemaString(SchemaInfo schemaInfo) {
+    private static String getSchemaString(SchemaInfo schemaInfo) throws IOException {
         final byte[] schemaData = schemaInfo.getSchema();
         if (null == schemaData) {
             return null;
         }
         if (schemaInfo.getType() == SchemaType.KEY_VALUE) {
             try {
-                return org.apache.pulsar.client.impl.schema.SchemaUtils
-                        .convertKeyValueSchemaInfoDataToString(
-                                KeyValueSchemaInfo.decodeKeyValueSchemaInfo(schemaInfo));
+                return convertKeyValueSchemaInfoDataToString(
+                        DefaultImplementation.getDefaultImplementation()
+                                .decodeKeyValueSchemaInfo(schemaInfo));
             } catch (IOException e) {
                 throw new RuntimeException("failed to convert KeyValueSchema into string");
             }

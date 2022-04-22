@@ -67,6 +67,8 @@ import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOption
 @Slf4j
 public class PulsarMetadataReader implements AutoCloseable {
 
+    private static final String TRANSACTION_SYSTEM_TOPIC_PREFIX = "__transaction_buffer_snapshot";
+
     @Getter private final String adminUrl;
 
     @Getter private final ClientConfigurationData clientConf;
@@ -222,6 +224,7 @@ public class PulsarMetadataReader implements AutoCloseable {
         Stream.of(partitionedTopics, nonPartitionedTopics).forEach(allTopics::addAll);
         return allTopics.stream()
                 .map(t -> TopicName.get(t).getLocalName())
+                .filter(topic -> !topic.startsWith(TRANSACTION_SYSTEM_TOPIC_PREFIX))
                 .collect(Collectors.toList());
     }
 

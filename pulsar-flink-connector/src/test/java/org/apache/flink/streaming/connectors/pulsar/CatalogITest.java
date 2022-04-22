@@ -67,6 +67,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -163,12 +164,9 @@ public class CatalogITest extends PulsarTestBaseWithFlink {
             assertTrue(Sets.newHashSet(tableEnv.listDatabases()).containsAll(namespaces));
 
             tableEnv.useDatabase("tn1/ns1");
-
-            assertTrue(
-                    Sets.symmetricDifference(
-                                    Sets.newHashSet(tableEnv.listTables()),
-                                    Sets.newHashSet(Iterables.concat(topics, partitionedTopics)))
-                            .isEmpty());
+            Set<String> actualTables = Sets.newHashSet(tableEnv.listTables());
+            Set<String> expectTables = Sets.newHashSet(Iterables.concat(topics, partitionedTopics));
+            assertTrue(Sets.symmetricDifference(actualTables, expectTables).isEmpty());
 
         } finally {
             try {

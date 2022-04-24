@@ -75,13 +75,10 @@ public class PulsarTransactionalSinkTest {
     public static void prepare() throws Exception {
         log.info("    Starting PulsarTestBase ");
 
-        final String pulsarImage =
-                System.getProperty("pulsar.systemtest.image", "apachepulsar/pulsar:2.10.0");
-        DockerImageName pulsar =
-                DockerImageName.parse(pulsarImage).asCompatibleSubstituteFor("apachepulsar/pulsar");
+        DockerImageName pulsar = DockerImageName.parse("apachepulsar/pulsar:2.10.0");
         pulsarService = new PulsarContainer(pulsar);
         pulsarService.withClasspathResourceMapping(
-                "docker/bootstrap.sh", "/pulsar/bin/bootstrap.sh", BindMode.READ_ONLY);
+                "docker/bootstrap.sh", "/pulsar/bin/bootstrap.sh", BindMode.READ_WRITE);
         pulsarService.waitingFor(
                 new HttpWaitStrategy()
                         .forPort(BROKER_HTTP_PORT)

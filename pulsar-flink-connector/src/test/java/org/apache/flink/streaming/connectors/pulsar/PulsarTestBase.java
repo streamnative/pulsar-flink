@@ -108,14 +108,10 @@ public abstract class PulsarTestBase extends TestLogger {
             log.info("    Use extend Pulsar Service ");
         } else {
             // TODO change the pulsar image to use here
-            final String pulsarImage =
-                    System.getProperty("pulsar.systemtest.image", "apachepulsar/pulsar:2.10.0");
-            DockerImageName pulsar =
-                    DockerImageName.parse(pulsarImage)
-                            .asCompatibleSubstituteFor("apachepulsar/pulsar");
+            DockerImageName pulsar = DockerImageName.parse("apachepulsar/pulsar:2.10.0");
             pulsarService = new PulsarContainer(pulsar);
             pulsarService.withClasspathResourceMapping(
-                    "docker/bootstrap.sh", "/pulsar/bin/bootstrap.sh", BindMode.READ_ONLY);
+                    "docker/bootstrap.sh", "/pulsar/bin/bootstrap.sh", BindMode.READ_WRITE);
             pulsarService.addExposedPort(2181);
             pulsarService.waitingFor(
                     new HttpWaitStrategy()

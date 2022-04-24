@@ -68,15 +68,12 @@ public class PulsarAuthTest {
     @BeforeClass
     public static void prepare() throws Exception {
         log.info("    Starting PulsarTestBase ");
-        final String pulsarImage =
-                System.getProperty("pulsar.systemtest.image", "apachepulsar/pulsar:2.10.0");
-        DockerImageName pulsar =
-                DockerImageName.parse(pulsarImage).asCompatibleSubstituteFor("apachepulsar/pulsar");
+        DockerImageName pulsar = DockerImageName.parse("apachepulsar/pulsar:2.10.0");
         pulsarService = new PulsarContainer(pulsar);
         pulsarService.withClasspathResourceMapping(
-                "docker/auth-bootstrap.sh", "/pulsar/bin/bootstrap.sh", BindMode.READ_ONLY);
+                "docker/auth-bootstrap.sh", "/pulsar/bin/bootstrap.sh", BindMode.READ_WRITE);
         pulsarService.withClasspathResourceMapping(
-                "pulsar/auth-client.conf", "/pulsar/conf/client.conf", BindMode.READ_ONLY);
+                "pulsar/auth-client.conf", "/pulsar/conf/client.conf", BindMode.READ_WRITE);
         pulsarService.waitingFor(
                 new HttpWaitStrategy()
                         .forPort(BROKER_HTTP_PORT)

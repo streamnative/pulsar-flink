@@ -21,7 +21,7 @@
   <parent>
     <groupId>io.streamnative.connectors</groupId>
     <artifactId>pulsar-flink-parent</artifactId>
-    <version>release-1.13.6.1-rc6</version>
+    <version>1.13.6.1-rc6</version>
   </parent>
 
   <artifactId>pulsar-flink-connector_2.11</artifactId>

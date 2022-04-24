@@ -107,16 +107,15 @@ public abstract class PulsarTestBase extends TestLogger {
         if (StringUtils.isNotBlank(adminUrl) && StringUtils.isNotBlank(serviceUrl)) {
             log.info("    Use extend Pulsar Service ");
         } else {
+            // TODO change the pulsar image to use here
             final String pulsarImage =
-                    System.getProperty("pulsar.systemtest.image", "apachepulsar/pulsar:2.8.0");
+                    System.getProperty("pulsar.systemtest.image", "apachepulsar/pulsar:2.10.0");
             DockerImageName pulsar =
                     DockerImageName.parse(pulsarImage)
                             .asCompatibleSubstituteFor("apachepulsar/pulsar");
             pulsarService = new PulsarContainer(pulsar);
             pulsarService.withClasspathResourceMapping(
-                    "pulsar/txnStandalone.conf",
-                    "/pulsar/conf/standalone.conf",
-                    BindMode.READ_ONLY);
+                    "docker/bootstrap.sh", "/pulsar/bin/bootstrap.sh", BindMode.READ_ONLY);
             pulsarService.addExposedPort(2181);
             pulsarService.waitingFor(
                     new HttpWaitStrategy()
@@ -124,6 +123,7 @@ public abstract class PulsarTestBase extends TestLogger {
                             .forStatusCode(200)
                             .forPath("/admin/v2/namespaces/public/default")
                             .withStartupTimeout(Duration.of(40, SECONDS)));
+            pulsarService.withCommand("/pulsar/bin/bootstrap.sh");
             pulsarService.start();
             pulsarService.followOutput(new Slf4jLogConsumer(log));
             serviceUrl = pulsarService.getPulsarBrokerUrl();

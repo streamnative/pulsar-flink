@@ -260,6 +260,19 @@ under the License.
 					</execution>
 				</executions>
 			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>flatten-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>flatten</id>
+						<phase>package</phase>
+						<goals>
+							<goal>flatten</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 </project>

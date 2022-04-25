@@ -50,3 +50,5 @@ logs/*
 **/dependency-reduced-pom.xml
 
 pom.xml.versionsBackup
+
+.flattened-pom.xml

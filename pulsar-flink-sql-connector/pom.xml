@@ -44,13 +44,13 @@ under the License.
 			<groupId>org.apache.pulsar</groupId>
 			<artifactId>pulsar-client-all</artifactId>
 		</dependency>
-
-		<!-- Bundled formats. -->
 		<dependency>
 			<groupId>io.streamnative.connectors</groupId>
 			<artifactId>flink-protobuf</artifactId>
 			<version>${flink-protobuf.version}</version>
 		</dependency>
+
+		<!-- Flink built-in formats. -->
 		<dependency>
 			<groupId>org.apache.flink</groupId>
 			<artifactId>flink-json</artifactId>
@@ -125,7 +125,7 @@ under the License.
 							<goal>shade</goal>
 						</goals>
 						<configuration>
-							<createDependencyReducedPom>false</createDependencyReducedPom>
+							<createDependencyReducedPom>true</createDependencyReducedPom>
 							<promoteTransitiveDependencies>true</promoteTransitiveDependencies>
 							<minimizeJar>false</minimizeJar>
 							<createSourcesJar>true</createSourcesJar>
@@ -160,6 +160,19 @@ under the License.
 									implementation="org.apache.maven.plugins.shade.resource.PluginXmlResourceTransformer"/>
 							</transformers>
 						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>flatten-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>flatten</id>
+						<phase>package</phase>
+						<goals>
+							<goal>flatten</goal>
+						</goals>
 					</execution>
 				</executions>
 			</plugin>

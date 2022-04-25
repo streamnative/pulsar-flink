@@ -20,12 +20,6 @@ under the License.
 <project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
 		xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 
-	<parent>
-		<groupId>org.apache</groupId>
-		<artifactId>apache</artifactId>
-		<version>23</version>
-	</parent>
-
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>io.streamnative.connectors</groupId>
@@ -126,6 +120,7 @@ under the License.
 		<nexus-staging-maven-plugin.version>1.6.8</nexus-staging-maven-plugin.version>
 		<maven-shade-plugin.version>3.2.4</maven-shade-plugin.version>
 		<maven-deploy-plugin.version>3.0.0-M1</maven-deploy-plugin.version>
+		<flatten-maven-plugin.version>1.2.7</flatten-maven-plugin.version>
 	</properties>
 
 	<dependencyManagement>
@@ -260,6 +255,13 @@ under the License.
 			</activation>
 			<build>
 				<plugins>
+					<plugin>
+						<artifactId>maven-deploy-plugin</artifactId>
+						<version>${maven-deploy-plugin.version}</version>
+						<configuration combine.self="override">
+							<skip>true</skip>
+						</configuration>
+					</plugin>
 					<!-- make sure we don't have any _2.10 or _2.11 dependencies when building
 					for Scala 2.12 -->
 					<plugin>
@@ -357,6 +359,20 @@ under the License.
 	</profiles>
 
 	<build>
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>org.codehaus.mojo</groupId>
+					<artifactId>flatten-maven-plugin</artifactId>
+					<version>${flatten-maven-plugin.version}</version>
+					<configuration>
+						<updatePomFile>true</updatePomFile>
+						<flattenMode>oss</flattenMode>
+						<embedBuildProfileDependencies>true</embedBuildProfileDependencies>
+					</configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
 		<plugins>
 			<!-- Generate root dir path -->
 			<plugin>
@@ -661,6 +677,27 @@ under the License.
 			<plugin>
 				<artifactId>maven-deploy-plugin</artifactId>
 				<version>${maven-deploy-plugin.version}</version>
+			</plugin>
+
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>flatten-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>flatten</id>
+						<phase>package</phase>
+						<goals>
+							<goal>flatten</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>flatten.clean</id>
+						<phase>clean</phase>
+						<goals>
+							<goal>clean</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>

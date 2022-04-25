@@ -30,6 +30,7 @@ under the License.
 	<packaging>pom</packaging>
 	<url>https://pulsar.apache.org</url>
 	<inceptionYear>2019</inceptionYear>
+	<description>Elastic data processing with Apache Pulsar and Apache Flink</description>
 
 	<licenses>
 		<license>
@@ -255,13 +256,6 @@ under the License.
 			</activation>
 			<build>
 				<plugins>
-					<plugin>
-						<artifactId>maven-deploy-plugin</artifactId>
-						<version>${maven-deploy-plugin.version}</version>
-						<configuration combine.self="override">
-							<skip>true</skip>
-						</configuration>
-					</plugin>
 					<!-- make sure we don't have any _2.10 or _2.11 dependencies when building
 					for Scala 2.12 -->
 					<plugin>
@@ -677,6 +671,9 @@ under the License.
 			<plugin>
 				<artifactId>maven-deploy-plugin</artifactId>
 				<version>${maven-deploy-plugin.version}</version>
+				<configuration combine.self="override">
+					<skip>true</skip>
+				</configuration>
 			</plugin>
 
 			<plugin>

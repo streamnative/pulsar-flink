@@ -31,6 +31,7 @@ under the License.
 
 	<artifactId>pulsar-flink-connector_${scala.binary.version}</artifactId>
 	<name>StreamNative :: Pulsar Flink Connector :: Stream</name>
+	<description>Elastic data processing with Apache Pulsar and Apache Flink</description>
 
 	<packaging>jar</packaging>
 
@@ -211,23 +212,6 @@ under the License.
 
 	<profiles>
 		<profile>
-			<id>scala-2.12</id>
-			<activation>
-				<activeByDefault>false</activeByDefault>
-			</activation>
-			<build>
-				<plugins>
-					<plugin>
-						<artifactId>maven-deploy-plugin</artifactId>
-						<version>${maven-deploy-plugin.version}</version>
-						<configuration combine.self="override">
-							<skip>false</skip>
-						</configuration>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
-		<profile>
 			<id>release</id>
 			<build>
 				<plugins>
@@ -301,6 +285,13 @@ under the License.
 						</goals>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<artifactId>maven-deploy-plugin</artifactId>
+				<version>${maven-deploy-plugin.version}</version>
+				<configuration combine.self="override">
+					<skip>false</skip>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>

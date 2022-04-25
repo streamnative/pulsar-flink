@@ -416,10 +416,9 @@ public class FlinkPulsarSourceTest extends TestLogger {
                 restoredNumPartitions >= numPartitions,
                 "invalid test case for Pulsar repartitioning; Pulsar only allows increasing partitions.");
 
-        List<TopicRange> startupTopics =
+        List<String> startupTopics =
                 IntStream.range(0, numPartitions)
                         .mapToObj(i -> topicName("test-topic", i))
-                        .map(TopicRange::new)
                         .collect(Collectors.toList());
 
         DummyFlinkPulsarSource<String>[] sources = new DummyFlinkPulsarSource[initialParallelism];
@@ -466,9 +465,9 @@ public class FlinkPulsarSourceTest extends TestLogger {
 
         // restore
 
-        List<TopicRange> restoredTopics = new ArrayList<>();
+        List<String> restoredTopics = new ArrayList<>();
         for (int i = 0; i < restoredNumPartitions; i++) {
-            restoredTopics.add(new TopicRange(topicName("testTopic", i)));
+            restoredTopics.add(topicName("testTopic", i));
         }
 
         DummyFlinkPulsarSource<String>[] restoredConsumers =
@@ -574,7 +573,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
         }
 
         @Override
-        public Set<TopicRange> getTopicPartitionsAll() throws PulsarAdminException {
+        public Set<String> getTopicPartitions() throws PulsarAdminException {
             return null;
         }
 
@@ -596,7 +595,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
     private static class DummyPartitionDiscoverer extends PulsarMetadataReader {
         private volatile boolean closed = false;
 
-        private static Set<TopicRange> allPartitions = Sets.newHashSet(new TopicRange("foo"));
+        private static Set<String> allPartitions = Sets.newHashSet("foo");
 
         public DummyPartitionDiscoverer() throws PulsarClientException {
             super(
@@ -609,7 +608,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
         }
 
         @Override
-        public Set<TopicRange> getTopicPartitionsAll() throws PulsarAdminException {
+        public Set<String> getTopicPartitions() throws PulsarAdminException {
             try {
                 checkState();
             } catch (ClosedException e) {

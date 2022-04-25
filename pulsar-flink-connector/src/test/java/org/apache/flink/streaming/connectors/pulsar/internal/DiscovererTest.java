@@ -67,12 +67,12 @@ public class DiscovererTest extends TestLogger {
     @Test
     public void testPartitionEqualConsumerNumber() {
         try {
-            Set<TopicRange> mockAllTopics =
+            Set<String> mockAllTopics =
                     Sets.newHashSet(
-                            new TopicRange(topicName(TEST_TOPIC, 0)),
-                            new TopicRange(topicName(TEST_TOPIC, 1)),
-                            new TopicRange(topicName(TEST_TOPIC, 2)),
-                            new TopicRange(topicName(TEST_TOPIC, 3)));
+                            topicName(TEST_TOPIC, 0),
+                            topicName(TEST_TOPIC, 1),
+                            topicName(TEST_TOPIC, 2),
+                            topicName(TEST_TOPIC, 3));
 
             int numSubTasks = mockAllTopics.size();
 
@@ -107,12 +107,12 @@ public class DiscovererTest extends TestLogger {
     @Test
     public void testPartitionGreaterThanConsumerNumber() {
         try {
-            Set<TopicRange> mockAllTopics = new HashSet<>();
-            Set<TopicRange> allTopics = new HashSet<>();
+            Set<String> mockAllTopics = new HashSet<>();
+            Set<String> allTopics = new HashSet<>();
             for (int i = 0; i < 10; i++) {
                 String topic = topicName(TEST_TOPIC, i);
-                mockAllTopics.add(new TopicRange(topic));
-                allTopics.add(new TopicRange(topic));
+                mockAllTopics.add(topic);
+                allTopics.add(topic);
             }
 
             int numTasks = 3;
@@ -154,12 +154,12 @@ public class DiscovererTest extends TestLogger {
     @Test
     public void testPartitionLessThanConsumerNumber() throws Exception {
         try {
-            Set<TopicRange> mockAllTopics = new HashSet<>();
-            Set<TopicRange> allTopics = new HashSet<>();
+            Set<String> mockAllTopics = new HashSet<>();
+            Set<String> allTopics = new HashSet<>();
             for (int i = 0; i <= 3; i++) {
                 String topic = topicName(TEST_TOPIC, i);
-                mockAllTopics.add(new TopicRange(topic));
-                allTopics.add(new TopicRange(topic));
+                mockAllTopics.add(topic);
+                allTopics.add(topic);
             }
 
             int numTasks = 2 * mockAllTopics.size();
@@ -199,23 +199,23 @@ public class DiscovererTest extends TestLogger {
     @Test
     public void testGrowingPartitions() {
         try {
-            Set<TopicRange> mockAllTopics = new HashSet<>();
-            Set<TopicRange> allTopics = new HashSet<>();
+            Set<String> mockAllTopics = new HashSet<>();
+            Set<String> allTopics = new HashSet<>();
             for (int i = 0; i <= 10; i++) {
                 String topic = topicName(TEST_TOPIC, i);
-                mockAllTopics.add(new TopicRange(topic));
-                allTopics.add(new TopicRange(topic));
+                mockAllTopics.add(topic);
+                allTopics.add(topic);
             }
 
-            Set<TopicRange> initial = new HashSet<>();
-            Set<TopicRange> initialAll = new HashSet<>();
+            Set<String> initial = new HashSet<>();
+            Set<String> initialAll = new HashSet<>();
             for (int i = 0; i <= 7; i++) {
                 String topic = topicName(TEST_TOPIC, i);
-                initial.add(new TopicRange(topic));
-                initialAll.add(new TopicRange(topic));
+                initial.add(topic);
+                initialAll.add(topic);
             }
 
-            List<Set<TopicRange>> mockGet = Arrays.asList(initial, mockAllTopics);
+            List<Set<String>> mockGet = Arrays.asList(initial, mockAllTopics);
             int numTasks = 3;
             int minInitialPartitionsPerConsumer = initial.size() / numTasks;
             int maxInitialPartitionsPerConsumer = initial.size() / numTasks + 1;

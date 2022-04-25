@@ -66,6 +66,10 @@ public class SerializableRange implements Externalizable, Comparable<Serializabl
         return new SerializableRange(fullRangeStart, fullRangeEnd);
     }
 
+    public boolean isFullRange() {
+        return range.getStart() == fullRangeStart && range.getEnd() == fullRangeEnd;
+    }
+
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeInt(range.getStart());

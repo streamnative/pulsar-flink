@@ -367,7 +367,7 @@ under the License.
 					<version>${flatten-maven-plugin.version}</version>
 					<configuration>
 						<updatePomFile>true</updatePomFile>
-						<flattenMode>oss</flattenMode>
+						<flattenMode>ossrh</flattenMode>
 						<embedBuildProfileDependencies>true</embedBuildProfileDependencies>
 					</configuration>
 				</plugin>

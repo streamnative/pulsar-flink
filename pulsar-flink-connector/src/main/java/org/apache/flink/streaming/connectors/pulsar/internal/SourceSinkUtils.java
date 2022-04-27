@@ -211,7 +211,7 @@ public class SourceSinkUtils {
      * @return task range
      */
     public static Range distributeRange(int countOfSubTasks, int indexOfSubTasks) {
-        int countOfKey = SerializableRange.fullRangeEnd + 1;
+        int countOfKey = SerializableRange.FULL_RANGE_END + 1;
         int part = countOfKey / countOfSubTasks;
         int remainder = countOfKey % countOfSubTasks;
 

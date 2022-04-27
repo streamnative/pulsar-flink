@@ -91,13 +91,14 @@ public class PulsarMetadataReaderTest extends PulsarTestBase {
         createNonPartitionTopic(nonPartitionTopic);
         assertFalse(pulsarMetadataReader.topicExists(nonPartitionTopic));
 
-        // non-persist topic it exit
+        // non-persist topic exist
         getPulsarAdmin().topics().createPartitionedTopic(nonPersistTopic, 1);
         assertTrue(pulsarMetadataReader.topicExists(nonPersistTopic));
     }
 
     @After
     public void clearTopic() throws PulsarAdminException {
+
         pulsarMetadataReader.deleteTopic(nonPartitionTopic);
         pulsarMetadataReader.deleteTopic(onePartitionTopic);
         pulsarMetadataReader.deleteTopic(nonPersistTopic);

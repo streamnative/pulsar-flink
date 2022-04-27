@@ -87,6 +87,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.collection.IsIn.isIn;
@@ -95,7 +96,6 @@ import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doThrow;
@@ -452,8 +452,13 @@ public class FlinkPulsarSourceTest extends TestLogger {
             globalSubscribedPartitions.putAll(subscribedPartitions);
         }
 
+        List<String> globalTopicPartitions =
+                globalSubscribedPartitions.keySet().stream()
+                        .map(TopicRange::getTopic)
+                        .collect(Collectors.toList());
+
         assertThat(globalSubscribedPartitions.values(), hasSize(numPartitions));
-        assertThat(startupTopics, everyItem(isIn(globalSubscribedPartitions.keySet())));
+        assertThat(startupTopics, everyItem(isIn(globalTopicPartitions)));
 
         OperatorSubtaskState[] state = new OperatorSubtaskState[initialParallelism];
 
@@ -515,8 +520,13 @@ public class FlinkPulsarSourceTest extends TestLogger {
             restoredGlobalSubscribedPartitions.putAll(subscribedPartitions);
         }
 
+        List<String> restoredGlobalTopicPartitions =
+                restoredGlobalSubscribedPartitions.keySet().stream()
+                        .map(TopicRange::getTopic)
+                        .collect(Collectors.toList());
+
         assertThat(restoredGlobalSubscribedPartitions.values(), hasSize(restoredNumPartitions));
-        assertThat(restoredTopics, everyItem(isIn(restoredGlobalSubscribedPartitions.keySet())));
+        assertThat(restoredTopics, everyItem(isIn(restoredGlobalTopicPartitions)));
     }
 
     private void testFailingSourceLifecycle(FlinkPulsarSource<String> source, Exception e)

@@ -16,7 +16,7 @@ name: Unit Tests Check
 on: pull_request
 jobs:
   unit-tests:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 120
 
     steps:

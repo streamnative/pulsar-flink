@@ -41,7 +41,6 @@ import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.shade.com.google.common.collect.Iterables;
 import org.apache.pulsar.shade.com.google.common.collect.Sets;
 
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -67,7 +66,8 @@ import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOption
 @Slf4j
 public class PulsarMetadataReader implements AutoCloseable {
 
-    private static final String TRANSACTION_SYSTEM_TOPIC_PREFIX = "__transaction_buffer_snapshot";
+    // system topics are not filtered out by default in Pulsar 2.10.0
+    private static final String SYSTEM_TOPIC_PREFIX = "__";
 
     @Getter private final String adminUrl;
 
@@ -224,7 +224,7 @@ public class PulsarMetadataReader implements AutoCloseable {
         Stream.of(partitionedTopics, nonPartitionedTopics).forEach(allTopics::addAll);
         return allTopics.stream()
                 .map(t -> TopicName.get(t).getLocalName())
-                .filter(topic -> !topic.startsWith(TRANSACTION_SYSTEM_TOPIC_PREFIX))
+                .filter(topic -> !topic.startsWith(SYSTEM_TOPIC_PREFIX))
                 .collect(Collectors.toList());
     }
 
@@ -262,7 +262,7 @@ public class PulsarMetadataReader implements AutoCloseable {
     }
 
     public void uploadSchema(String topicName, SchemaInfo schemaInfo)
-            throws IncompatibleSchemaException, IOException {
+            throws IncompatibleSchemaException {
         SchemaUtils.uploadPulsarSchema(admin, topicName, schemaInfo);
     }
 

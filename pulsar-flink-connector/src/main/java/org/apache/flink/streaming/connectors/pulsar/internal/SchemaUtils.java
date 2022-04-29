@@ -55,8 +55,7 @@ import static org.apache.pulsar.shade.com.google.common.base.Preconditions.check
 @Slf4j
 public class SchemaUtils {
 
-    public static void uploadPulsarSchema(PulsarAdmin admin, String topic, SchemaInfo schemaInfo)
-            throws IOException {
+    public static void uploadPulsarSchema(PulsarAdmin admin, String topic, SchemaInfo schemaInfo) {
         checkNotNull(schemaInfo);
 
         SchemaInfo existingSchema;
@@ -130,7 +129,7 @@ public class SchemaUtils {
                 && Arrays.equals(existingSchema.getSchema(), schemaInfo.getSchema());
     }
 
-    private static String getSchemaString(SchemaInfo schemaInfo) throws IOException {
+    private static String getSchemaString(SchemaInfo schemaInfo) {
         final byte[] schemaData = schemaInfo.getSchema();
         if (null == schemaData) {
             return null;

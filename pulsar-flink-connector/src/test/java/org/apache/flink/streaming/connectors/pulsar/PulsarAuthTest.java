@@ -74,7 +74,7 @@ public class PulsarAuthTest {
                 DockerImageName.parse(pulsarImage).asCompatibleSubstituteFor("apachepulsar/pulsar");
         pulsarService = new PulsarContainer(pulsar);
         pulsarService.withClasspathResourceMapping(
-                "docker/auth-bootstrap.sh", "/pulsar/bin/bootstrap.sh", BindMode.READ_ONLY);
+                "pulsar/auth-standalone.conf", "/pulsar/conf/standalone.conf", BindMode.READ_ONLY);
         pulsarService.withClasspathResourceMapping(
                 "pulsar/auth-client.conf", "/pulsar/conf/client.conf", BindMode.READ_ONLY);
         pulsarService.waitingFor(
@@ -83,7 +83,6 @@ public class PulsarAuthTest {
                         .forStatusCode(401)
                         .forPath("/admin/v2/namespaces/public/default")
                         .withStartupTimeout(Duration.of(40, SECONDS)));
-        pulsarService.withCommand("/pulsar/bin/bootstrap.sh");
         pulsarService.start();
         pulsarService.followOutput(new Slf4jLogConsumer(log));
         serviceUrl = pulsarService.getPulsarBrokerUrl();

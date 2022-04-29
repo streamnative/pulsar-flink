@@ -81,14 +81,13 @@ public class PulsarTransactionalSinkTest {
                 DockerImageName.parse(pulsarImage).asCompatibleSubstituteFor("apachepulsar/pulsar");
         pulsarService = new PulsarContainer(pulsar);
         pulsarService.withClasspathResourceMapping(
-                "docker/bootstrap.sh", "/pulsar/bin/bootstrap.sh", BindMode.READ_ONLY);
+                "pulsar/txnStandalone.conf", "/pulsar/conf/standalone.conf", BindMode.READ_ONLY);
         pulsarService.waitingFor(
                 new HttpWaitStrategy()
                         .forPort(BROKER_HTTP_PORT)
                         .forStatusCode(200)
                         .forPath("/admin/v2/namespaces/public/default")
                         .withStartupTimeout(Duration.of(40, SECONDS)));
-        pulsarService.withCommand("/pulsar/bin/bootstrap.sh");
         pulsarService.start();
         pulsarService.followOutput(new Slf4jLogConsumer(log));
         serviceUrl = pulsarService.getPulsarBrokerUrl();

@@ -62,6 +62,7 @@ public class PulsarClientUtils {
             clientConf.setAuthParams(properties.getProperty(PulsarOptions.AUTH_PARAMS_KEY));
             clientConf.setAuthPluginClassName(
                     properties.getProperty(PulsarOptions.AUTH_PLUGIN_CLASSNAME_KEY));
+            clientConf.setTlsTrustCertsFilePath(PulsarOptions.TLS_TRUSTCERTS_FILEPATH);
         }
         return clientConf;
     }

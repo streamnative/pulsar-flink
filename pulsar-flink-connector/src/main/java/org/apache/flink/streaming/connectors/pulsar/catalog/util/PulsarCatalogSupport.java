@@ -256,6 +256,14 @@ public class PulsarCatalogSupport {
                     authParams);
         }
 
+        String tlsTrustCertFilePath =
+                pulsarMetadataReader.getClientConf().getTlsTrustCertsFilePath();
+        if (tlsTrustCertFilePath != null && !tlsTrustCertFilePath.isEmpty()) {
+            enrichedTableOptions.put(
+                    PulsarTableOptions.PROPERTIES_PREFIX + PulsarOptions.TLS_TRUSTCERTS_FILEPATH,
+                    tlsTrustCertFilePath);
+        }
+
         if (tableOptions != null) {
             // table options could overwrite the default options provided above
             enrichedTableOptions.putAll(tableOptions);

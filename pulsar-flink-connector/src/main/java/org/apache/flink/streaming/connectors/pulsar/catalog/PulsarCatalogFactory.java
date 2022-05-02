@@ -36,6 +36,7 @@ import static org.apache.flink.streaming.connectors.pulsar.catalog.PulsarCatalog
 import static org.apache.flink.streaming.connectors.pulsar.catalog.PulsarCatalogFactoryOptions.IDENTIFIER;
 import static org.apache.flink.streaming.connectors.pulsar.catalog.PulsarCatalogFactoryOptions.PULSAR_VERSION;
 import static org.apache.flink.streaming.connectors.pulsar.catalog.PulsarCatalogFactoryOptions.SERVICE_URL;
+import static org.apache.flink.streaming.connectors.pulsar.catalog.PulsarCatalogFactoryOptions.TLS_TRUSTCERTS_FILE_PATH;
 
 /** Pulsar {@CatalogFactory}. */
 public class PulsarCatalogFactory implements CatalogFactory {
@@ -57,7 +58,8 @@ public class PulsarCatalogFactory implements CatalogFactory {
                 helper.getOptions().get(DEFAULT_DATABASE),
                 helper.getOptions().get(CATALOG_TENANT),
                 helper.getOptions().get(AUTH_PLUGIN),
-                helper.getOptions().get(AUTH_PARAMS));
+                helper.getOptions().get(AUTH_PARAMS),
+                helper.getOptions().get(TLS_TRUSTCERTS_FILE_PATH));
     }
 
     @Override
@@ -77,7 +79,7 @@ public class PulsarCatalogFactory implements CatalogFactory {
         options.add(AUTH_PARAMS);
         options.add(DEFAULT_PARTITIONS);
         options.add(PULSAR_VERSION);
-
+        options.add(TLS_TRUSTCERTS_FILE_PATH);
         // TODO: investigate if need to provide default table options
 
         return options;

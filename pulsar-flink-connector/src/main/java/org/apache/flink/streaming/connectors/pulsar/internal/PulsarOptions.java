@@ -98,4 +98,5 @@ public class PulsarOptions {
 
     public static final String AUTH_PARAMS_KEY = "auth-params";
     public static final String AUTH_PLUGIN_CLASSNAME_KEY = "auth-plugin-classname";
+    public static final String TLS_TRUSTCERTS_FILEPATH = "tls-trustcerts-filepath";
 }

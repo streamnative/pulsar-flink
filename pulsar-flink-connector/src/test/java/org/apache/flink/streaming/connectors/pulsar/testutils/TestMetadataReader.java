@@ -37,7 +37,7 @@ import static org.mockito.Mockito.when;
 /** Mock for metadata reader. */
 public class TestMetadataReader extends PulsarMetadataReader {
 
-    private final List<Set<TopicRange>> mockGetAllTopicsReturnSequence;
+    private final List<Set<String>> mockGetAllTopicsReturnSequence;
 
     private int getAllTopicsInvCount = 0;
 
@@ -45,7 +45,7 @@ public class TestMetadataReader extends PulsarMetadataReader {
             Map<String, String> caseInsensitiveParams,
             int indexOfThisSubtask,
             int numParallelSubtasks,
-            List<Set<TopicRange>> mockGetAllTopicsReturnSequence)
+            List<Set<String>> mockGetAllTopicsReturnSequence)
             throws PulsarClientException {
         super(
                 "http://localhost:8080",
@@ -57,24 +57,24 @@ public class TestMetadataReader extends PulsarMetadataReader {
         this.mockGetAllTopicsReturnSequence = mockGetAllTopicsReturnSequence;
     }
 
-    public Set<TopicRange> getTopicPartitionsAll() {
+    public Set<String> getTopicPartitions() {
         return mockGetAllTopicsReturnSequence.get(getAllTopicsInvCount++);
     }
 
-    public static List<Set<TopicRange>> createMockGetAllTopicsSequenceFromFixedReturn(
-            Set<TopicRange> fixed) {
-        List<Set<TopicRange>> mockSequence = mock(List.class);
-        when(mockSequence.get(anyInt())).thenAnswer((Answer<Set<TopicRange>>) invocation -> fixed);
+    public static List<Set<String>> createMockGetAllTopicsSequenceFromFixedReturn(
+            Set<String> fixed) {
+        List<Set<String>> mockSequence = mock(List.class);
+        when(mockSequence.get(anyInt())).thenAnswer((Answer<Set<String>>) invocation -> fixed);
 
         return mockSequence;
     }
 
-    public static List<Set<TopicRange>> createMockGetAllTopicsSequenceFromTwoReturns(
-            List<Set<TopicRange>> fixed) {
-        List<Set<TopicRange>> mockSequence = mock(List.class);
+    public static List<Set<String>> createMockGetAllTopicsSequenceFromTwoReturns(
+            List<Set<String>> fixed) {
+        List<Set<String>> mockSequence = mock(List.class);
 
-        when(mockSequence.get(0)).thenAnswer((Answer<Set<TopicRange>>) invocation -> fixed.get(0));
-        when(mockSequence.get(1)).thenAnswer((Answer<Set<TopicRange>>) invocation -> fixed.get(1));
+        when(mockSequence.get(0)).thenAnswer((Answer<Set<String>>) invocation -> fixed.get(0));
+        when(mockSequence.get(1)).thenAnswer((Answer<Set<String>>) invocation -> fixed.get(1));
 
         return mockSequence;
     }

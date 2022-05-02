@@ -88,6 +88,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.collection.IsIn.isIn;
@@ -96,7 +97,6 @@ import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doThrow;
@@ -417,10 +417,9 @@ public class FlinkPulsarSourceTest extends TestLogger {
                 restoredNumPartitions >= numPartitions,
                 "invalid test case for Pulsar repartitioning; Pulsar only allows increasing partitions.");
 
-        List<TopicRange> startupTopics =
+        List<String> startupTopics =
                 IntStream.range(0, numPartitions)
                         .mapToObj(i -> topicName("test-topic", i))
-                        .map(TopicRange::new)
                         .collect(Collectors.toList());
 
         DummyFlinkPulsarSource<String>[] sources = new DummyFlinkPulsarSource[initialParallelism];
@@ -454,8 +453,13 @@ public class FlinkPulsarSourceTest extends TestLogger {
             globalSubscribedPartitions.putAll(subscribedPartitions);
         }
 
+        List<String> globalTopicPartitions =
+                globalSubscribedPartitions.keySet().stream()
+                        .map(TopicRange::getTopic)
+                        .collect(Collectors.toList());
+
         assertThat(globalSubscribedPartitions.values(), hasSize(numPartitions));
-        assertThat(startupTopics, everyItem(isIn(globalSubscribedPartitions.keySet())));
+        assertThat(startupTopics, everyItem(isIn(globalTopicPartitions)));
 
         OperatorSubtaskState[] state = new OperatorSubtaskState[initialParallelism];
 
@@ -467,9 +471,9 @@ public class FlinkPulsarSourceTest extends TestLogger {
 
         // restore
 
-        List<TopicRange> restoredTopics = new ArrayList<>();
+        List<String> restoredTopics = new ArrayList<>();
         for (int i = 0; i < restoredNumPartitions; i++) {
-            restoredTopics.add(new TopicRange(topicName("testTopic", i)));
+            restoredTopics.add(topicName("testTopic", i));
         }
 
         DummyFlinkPulsarSource<String>[] restoredConsumers =
@@ -517,8 +521,13 @@ public class FlinkPulsarSourceTest extends TestLogger {
             restoredGlobalSubscribedPartitions.putAll(subscribedPartitions);
         }
 
+        List<String> restoredGlobalTopicPartitions =
+                restoredGlobalSubscribedPartitions.keySet().stream()
+                        .map(TopicRange::getTopic)
+                        .collect(Collectors.toList());
+
         assertThat(restoredGlobalSubscribedPartitions.values(), hasSize(restoredNumPartitions));
-        assertThat(restoredTopics, everyItem(isIn(restoredGlobalSubscribedPartitions.keySet())));
+        assertThat(restoredTopics, everyItem(isIn(restoredGlobalTopicPartitions)));
     }
 
     private void testFailingSourceLifecycle(FlinkPulsarSource<String> source, Exception e)
@@ -575,7 +584,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
         }
 
         @Override
-        public Set<TopicRange> getTopicPartitionsAll() throws PulsarAdminException {
+        public Set<String> getTopicPartitions() throws PulsarAdminException {
             return null;
         }
 
@@ -597,7 +606,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
     private static class DummyPartitionDiscoverer extends PulsarMetadataReader {
         private volatile boolean closed = false;
 
-        private static Set<TopicRange> allPartitions = Sets.newHashSet(new TopicRange("foo"));
+        private static Set<String> allPartitions = Sets.newHashSet("foo");
 
         public DummyPartitionDiscoverer() throws PulsarClientException {
             super(
@@ -610,7 +619,7 @@ public class FlinkPulsarSourceTest extends TestLogger {
         }
 
         @Override
-        public Set<TopicRange> getTopicPartitionsAll() throws PulsarAdminException {
+        public Set<String> getTopicPartitions() throws PulsarAdminException {
             try {
                 checkState();
             } catch (ClosedException e) {

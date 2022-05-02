@@ -39,7 +39,7 @@ public class NoSplitDivisionStrategy implements SplitDivisionStrategy {
     @Override
     public Collection<Range> getRanges(String topic, PulsarAdmin pulsarAdmin, SplitEnumeratorContext<PulsarPartitionSplit> context) throws PulsarAdminException {
         return Collections.singletonList(
-                Range.of(SerializableRange.fullRangeStart, SerializableRange.fullRangeEnd)
+                Range.of(SerializableRange.FULL_RANGE_START, SerializableRange.FULL_RANGE_END)
         );
     }
 

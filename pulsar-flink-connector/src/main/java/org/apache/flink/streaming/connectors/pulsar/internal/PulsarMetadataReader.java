@@ -142,7 +142,7 @@ public class PulsarMetadataReader implements AutoCloseable {
 
     public Set<TopicRange> discoverTopicChanges() throws PulsarAdminException, ClosedException {
         if (!closed) {
-            Set<TopicRange> currentTopics = getTopicPartitions();
+            Set<TopicRange> currentTopics = getTopicPartitionRanges();
             Set<TopicRange> addedTopics = Sets.difference(currentTopics, seenTopics);
             seenTopics = currentTopics;
             return addedTopics;
@@ -385,35 +385,53 @@ public class PulsarMetadataReader implements AutoCloseable {
                 return BytesSchema.of().getSchemaInfo();
             } else {
                 throw new RuntimeException(
-                        String.format("Failed to get schema information for %s", TopicName.get(topic).toString()), e);
+                    String.format("Failed to get schema information for %s", TopicName.get(topic).toString()), e);
             }
         }
     }
 
-    public Set<TopicRange> getTopicPartitions() throws PulsarAdminException {
-        Set<TopicRange> topics = getTopicPartitionsAll();
+    public SerializableRange getRange() {
+        return range;
+    }
+
+    /**
+     * Get all TopicRange that should be consumed by the subTask.
+     *
+     * @return set of topic ranges this subTask should consume
+     * @throws PulsarAdminException
+     */
+    public Set<TopicRange> getTopicPartitionRanges() throws PulsarAdminException {
+        Set<String> topics = getTopicPartitions();
         return topics.stream()
-                .filter(t -> SourceSinkUtils.belongsTo(t, numParallelSubtasks, indexOfThisSubtask))
+                .filter(
+                        t ->
+                                SourceSinkUtils.belongsTo(
+                                        t, range, numParallelSubtasks, indexOfThisSubtask))
+                .map(t -> new TopicRange(t, range.getPulsarRange()))
                 .collect(Collectors.toSet());
     }
 
     /**
-     * Get topic partitions all, If the topic does not exist, it is created automatically ont partition to topic.
+     * Get topic partitions all. If the topic does not exist, it is created automatically
      *
      * @return allTopicPartitions
      * @throws PulsarAdminException pulsarAdminException
      */
-    public Set<TopicRange> getTopicPartitionsAll() throws PulsarAdminException {
-        List<TopicRange> topics = getTopics();
-        HashSet<TopicRange> allTopics = new HashSet<>();
-        for (TopicRange topic : topics) {
+    public Set<String> getTopicPartitions() throws PulsarAdminException {
+        List<String> topics = getTopics();
+        HashSet<String> allTopics = new HashSet<>();
+        for (String topic : topics) {
             int partNum = 1;
             try {
-                partNum = admin.topics().getPartitionedTopicMetadata(topic.getTopic()).partitions;
+                partNum = admin.topics().getPartitionedTopicMetadata(topic).partitions;
             } catch (PulsarAdminException.NotFoundException e) {
-                log.info("topic<{}> is not exit, auto create <{}> partition to <{}>", topic.getTopic(), partNum, topic.getTopic());
+                log.info(
+                        "topic<{}> is not exit, auto create <{}> partition to <{}>",
+                        topic,
+                        partNum,
+                        topic);
                 try {
-                    createTopic(topic.getTopic(), partNum);
+                    createTopic(topic, partNum);
                 } catch (PulsarAdminException.ConflictException conflictException) {
                     // multi thread may cause concurrent creation
                 }
@@ -423,38 +441,33 @@ public class PulsarMetadataReader implements AutoCloseable {
                 allTopics.add(topic);
             } else {
                 for (int i = 0; i < partNum; i++) {
-                    final TopicRange topicRange =
-                        new TopicRange(topic.getTopic() + PulsarOptions.PARTITION_SUFFIX + i, topic.getPulsarRange());
-                    allTopics.add(topicRange);
+                    allTopics.add(topic + PulsarOptions.PARTITION_SUFFIX + i);
                 }
             }
         }
         return allTopics;
     }
 
-    public List<TopicRange> getTopics() throws PulsarAdminException {
+    private List<String> getTopics() throws PulsarAdminException {
         for (Map.Entry<String, String> e : caseInsensitiveParams.entrySet()) {
             if (PulsarOptions.TOPIC_OPTION_KEYS.contains(e.getKey())) {
-                String key = e.getKey();
-                if (key.equals("topic")) {
-                    String topic = TopicName.get(e.getValue()).toString();
-                    TopicRange topicRange = new TopicRange(topic, range.getPulsarRange());
-                    return Collections.singletonList(topicRange);
-                } else if (key.equals("topics")) {
-                    return Arrays.asList(e.getValue().split(",")).stream()
-                            .filter(s -> !s.isEmpty())
-                            .map(t -> TopicName.get(t).toString())
-                            .map(t -> new TopicRange(t, range.getPulsarRange()))
-                            .collect(Collectors.toList());
-                } else { // topicspattern
-                    return getTopicsWithPattern(e.getValue())
-                            .stream()
-                            .map(t -> new TopicRange(t, range.getPulsarRange()))
-                            .collect(Collectors.toList());
+                switch (e.getKey()) {
+                    case PulsarOptions.TOPIC_SINGLE_OPTION_KEY:
+                        return Collections.singletonList(TopicName.get(e.getValue()).toString());
+                    case PulsarOptions.TOPIC_MULTI_OPTION_KEY:
+                        return Arrays.asList(e.getValue().split(",")).stream()
+                                .filter(s -> !s.isEmpty())
+                                .map(t -> TopicName.get(t).toString())
+                                .collect(Collectors.toList());
+                    case PulsarOptions.TOPIC_PATTERN_OPTION_KEY:
+                        return getTopicsWithPattern(e.getValue());
+                    default:
+                        throw new IllegalArgumentException(
+                                "Unknown pulsar topic option: " + e.getKey());
                 }
             }
         }
-        return null;
+        return Collections.emptyList();
     }
 
     private List<String> getTopicsWithPattern(String topicsPattern) throws PulsarAdminException {
@@ -479,7 +492,6 @@ public class PulsarMetadataReader implements AutoCloseable {
      * Designate the close of the metadata reader.
      */
     public static class ClosedException extends Exception {
-
     }
 
     public MessageId getLastMessageId(String topic) {

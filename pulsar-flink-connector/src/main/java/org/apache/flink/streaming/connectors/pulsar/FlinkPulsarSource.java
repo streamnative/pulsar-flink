@@ -471,16 +471,36 @@ public class FlinkPulsarSource<T>
                     .filter(e -> !restoredState.containsKey(e.getKey()))
                     .forEach(e -> restoredState.put(e.getKey(), e.getValue()));
 
+            SerializableRange subTaskRange = metadataReader.getRange();
             restoredState.entrySet().stream()
-                    .filter(e -> SourceSinkUtils.belongsTo(e.getKey(), numParallelTasks, taskIndex))
-                    .forEach(e -> {
-                        ownedTopicStarts.put(e.getKey(), e.getValue());
-                        excludeStartMessageIds.add(e.getKey());
-                    });
+                    .filter(
+                            e ->
+                                    SourceSinkUtils.belongsTo(
+                                            e.getKey().getTopic(),
+                                            subTaskRange,
+                                            numParallelTasks,
+                                            taskIndex))
+                    .forEach(
+                            e -> {
+                                TopicRange tr =
+                                        new TopicRange(
+                                                e.getKey().getTopic(),
+                                                subTaskRange.getPulsarRange());
+                                ownedTopicStarts.put(tr, e.getValue());
+                                excludeStartMessageIds.add(e.getKey());
+                            });
 
-            Set<TopicRange> goneTopics = Sets.difference(restoredState.keySet(), allTopics).stream()
-                    .filter(k -> SourceSinkUtils.belongsTo(k, numParallelTasks, taskIndex))
-                    .collect(Collectors.toSet());
+            Set<TopicRange> goneTopics =
+                    Sets.difference(restoredState.keySet(), allTopics).stream()
+                            .filter(
+                                    k ->
+                                            SourceSinkUtils.belongsTo(
+                                                    k.getTopic(),
+                                                    subTaskRange,
+                                                    numParallelTasks,
+                                                    taskIndex))
+                            .map(k -> new TopicRange(k.getTopic(), subTaskRange.getPulsarRange()))
+                            .collect(Collectors.toSet());
 
             for (TopicRange goneTopic : goneTopics) {
                 log.warn(goneTopic + " is removed from subscription since " +
@@ -491,9 +511,9 @@ public class FlinkPulsarSource<T>
             log.info("Source {} will start reading {} topics in restored state {}",
                     taskIndex, ownedTopicStarts.size(), StringUtils.join(ownedTopicStarts.entrySet()));
         } else {
-            ownedTopicStarts.putAll(allTopicOffsets.entrySet().stream()
-                    .filter(e -> SourceSinkUtils.belongsTo(e.getKey(), numParallelTasks, taskIndex))
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+            ownedTopicStarts.putAll(
+                    allTopicOffsets.entrySet().stream()
+                            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
             if (ownedTopicStarts.isEmpty()) {
                 log.info("Source {} initially has no topics to read from.", taskIndex);
             } else {

@@ -17,6 +17,7 @@ package org.apache.flink.streaming.connectors.pulsar.internal;
 import org.apache.flink.shaded.guava18.com.google.common.base.MoreObjects;
 import org.apache.flink.shaded.guava18.com.google.common.collect.ComparisonChain;
 
+import org.apache.pulsar.client.api.KeySharedPolicy;
 import org.apache.pulsar.client.api.Range;
 
 import javax.validation.constraints.NotNull;
@@ -32,8 +33,8 @@ import java.util.Objects;
  */
 public class SerializableRange implements Externalizable, Comparable<SerializableRange> {
 
-    public static int fullRangeStart = 0;
-    public static int fullRangeEnd = 65535;
+    public static final int FULL_RANGE_START = 0;
+    public static final int FULL_RANGE_END = KeySharedPolicy.DEFAULT_HASH_RANGE_SIZE - 1;
 
     private Range range;
 
@@ -63,7 +64,11 @@ public class SerializableRange implements Externalizable, Comparable<Serializabl
     }
 
     public static SerializableRange ofFullRange() {
-        return new SerializableRange(fullRangeStart, fullRangeEnd);
+        return new SerializableRange(FULL_RANGE_START, FULL_RANGE_END);
+    }
+
+    public boolean isFullRange() {
+        return range.getStart() == FULL_RANGE_START && range.getEnd() == FULL_RANGE_END;
     }
 
     @Override

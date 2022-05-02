@@ -27,12 +27,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Objects;
 
-import static org.apache.flink.streaming.connectors.pulsar.internal.SerializableRange.fullRangeEnd;
-import static org.apache.flink.streaming.connectors.pulsar.internal.SerializableRange.fullRangeStart;
-
-/**
- * topic key_share range.
- */
+/** topic key_share range. */
 public class TopicRange implements Externalizable, Comparable<TopicRange> {
 
     private String topic;
@@ -46,7 +41,7 @@ public class TopicRange implements Externalizable, Comparable<TopicRange> {
 
     public TopicRange(String topic) {
         this.topic = topic;
-        this.range = SerializableRange.of(fullRangeStart, fullRangeEnd);
+        this.range = SerializableRange.ofFullRange();
     }
 
     public TopicRange(String topic, Range range) {
@@ -72,8 +67,7 @@ public class TopicRange implements Externalizable, Comparable<TopicRange> {
     }
 
     public boolean isFullRange() {
-        return range.getPulsarRange().getStart() == fullRangeStart &&
-                range.getPulsarRange().getEnd() == fullRangeEnd;
+        return range.isFullRange();
     }
 
     public void setTopic(String topic) {

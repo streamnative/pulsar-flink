@@ -16,11 +16,12 @@ package org.apache.flink.streaming.connectors.pulsar.internal;
 
 import org.apache.flink.api.java.tuple.Tuple2;
 
-import javax.xml.bind.DatatypeConverter;
-
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
@@ -61,7 +62,8 @@ public class DateTimeUtils {
                 return java.sql.Date.valueOf(s);
             }
         } else {
-            return DatatypeConverter.parseDateTime(s).getTime();
+            LocalDateTime ldt = LocalDateTime.parse(s, DateTimeFormatter.ISO_DATE_TIME);
+            return Date.from(ldt.toInstant(ZoneOffset.UTC));
         }
     }
 

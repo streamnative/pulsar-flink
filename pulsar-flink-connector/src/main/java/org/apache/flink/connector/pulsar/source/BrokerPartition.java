@@ -25,7 +25,7 @@ import java.util.Objects;
  * Represents pulsar's topic partition.
  */
 public class BrokerPartition extends AbstractPartition {
-    public static final Range FULL_RANGE = new Range(SerializableRange.fullRangeStart, SerializableRange.fullRangeEnd);
+    public static final Range FULL_RANGE = new Range(SerializableRange.FULL_RANGE_START, SerializableRange.FULL_RANGE_END);
     private TopicRange topicRange;
 
     public BrokerPartition(TopicRange topicRange) {

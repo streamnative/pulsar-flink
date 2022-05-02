@@ -53,7 +53,8 @@ public class SourceSinkTest extends TestLogger {
         //log.info(ranges.toString());
         Collections.sort(ranges, Comparator.comparingInt(Range::getStart));
         Assert.assertEquals(ranges.get(0).getStart(), 0);
-        Assert.assertEquals(ranges.get(ranges.size() - 1).getEnd(), SerializableRange.fullRangeEnd);
+        Assert.assertEquals(
+                ranges.get(ranges.size() - 1).getEnd(), SerializableRange.FULL_RANGE_END);
         for (int i = 1; i < ranges.size(); i++) {
             final Range range = ranges.get(i - 1);
             final Range currentRange = ranges.get(i);

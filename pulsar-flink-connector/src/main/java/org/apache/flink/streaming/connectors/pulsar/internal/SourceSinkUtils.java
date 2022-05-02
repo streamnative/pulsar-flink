@@ -72,19 +72,37 @@ public class SourceSinkUtils {
         return caseInsensitiveParams;
     }
 
-    public static boolean belongsTo(TopicRange topicRange, int numParallelSubtasks, int index) {
-        String topic = topicRange.getTopic();
-        if (topic.contains(PulsarOptions.PARTITION_SUFFIX)) {
-            int pos = topic.lastIndexOf(PulsarOptions.PARTITION_SUFFIX);
-            String topicPrefix = topic.substring(0, pos);
-            String topicPartitionIndex = topic.substring(pos + PulsarOptions.PARTITION_SUFFIX.length());
-            if (topicPartitionIndex.matches("0|[1-9]\\d*")) {
-                int startIndex = (topicPrefix.hashCode() * 31 & Integer.MAX_VALUE) % numParallelSubtasks;
-                return (startIndex + Integer.valueOf(topicPartitionIndex))
-                        % numParallelSubtasks == index;
+    /**
+     * Decide if a topic should be consumed by the subTask with given index and range. If the range
+     * is a full range, then the topic belongs to only one subTask If the range is not a full range,
+     * then the topic belongs to multiple subTasks with each of them be responsible for part of the
+     * range. This happens only when `enable-key-hash-range` is set.
+     *
+     * @param topic topic name
+     * @param range subTask's key range
+     * @param numParallelSubtasks total number of tasks
+     * @param index subTask's index
+     * @return
+     */
+    public static boolean belongsTo(
+            String topic, SerializableRange range, int numParallelSubtasks, int index) {
+        if (range.isFullRange()) {
+            if (topic.contains(PulsarOptions.PARTITION_SUFFIX)) {
+                int pos = topic.lastIndexOf(PulsarOptions.PARTITION_SUFFIX);
+                String topicPrefix = topic.substring(0, pos);
+                String topicPartitionIndex =
+                        topic.substring(pos + PulsarOptions.PARTITION_SUFFIX.length());
+                if (topicPartitionIndex.matches("0|[1-9]\\d*")) {
+                    int startIndex =
+                            (topicPrefix.hashCode() * 31 & Integer.MAX_VALUE) % numParallelSubtasks;
+                    return (startIndex + Integer.valueOf(topicPartitionIndex)) % numParallelSubtasks
+                            == index;
+                }
             }
+            return (topic.hashCode() * 31 & Integer.MAX_VALUE) % numParallelSubtasks == index;
+        } else {
+            return true;
         }
-        return (topic.hashCode() * 31 & Integer.MAX_VALUE) % numParallelSubtasks == index;
     }
 
     public static long getPartitionDiscoveryIntervalInMillis(Map<String, String> parameters) {
@@ -168,7 +186,7 @@ public class SourceSinkUtils {
      * @return task range
      */
     public static Range distributeRange(int countOfSubTasks, int indexOfSubTasks) {
-        int countOfKey = SerializableRange.fullRangeEnd + 1;
+        int countOfKey = SerializableRange.FULL_RANGE_END + 1;
         int part = countOfKey / countOfSubTasks;
         int remainder = countOfKey % countOfSubTasks;
 

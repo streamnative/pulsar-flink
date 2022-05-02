@@ -25,10 +25,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
+
+import static org.junit.Assert.assertEquals;
 
 public class PulsarMetadataReaderTest extends PulsarTestBase {
 
@@ -50,13 +50,13 @@ public class PulsarMetadataReaderTest extends PulsarTestBase {
 
         createNonPartitionTopic(nonPartitionTopic);
 
-        Set<TopicRange> topicPartitionsAll = pulsarMetadataReader.getTopicPartitionsAll();
-        List<TopicRange> topicRanges = topicPartitionsAll.stream().collect(Collectors.toList());
-        for (TopicRange topicRange : topicRanges) {
-            if (topicRange.getTopic().contains(nonPartitionTopic)) {
-                Assert.assertEquals(topicRange.getTopic(), nonPartitionTopic);
+        Set<String> topicPartitionsAll = pulsarMetadataReader.getTopicPartitions();
+        for (String topicPartition : topicPartitionsAll) {
+            if (topicPartition.contains(nonPartitionTopic)) {
+                assertEquals(topicPartition, nonPartitionTopic);
             } else {
-                Assert.assertEquals(topicRange.getTopic(), onePartitionTopic + PulsarOptions.PARTITION_SUFFIX + 0);
+                assertEquals(
+                        topicPartition, onePartitionTopic + PulsarOptions.PARTITION_SUFFIX + 0);
             }
         }
 

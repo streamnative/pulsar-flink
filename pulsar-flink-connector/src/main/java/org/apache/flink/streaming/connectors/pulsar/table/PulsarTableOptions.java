@@ -44,6 +44,7 @@ import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.MessageRouter;
 import org.apache.pulsar.client.impl.MessageIdImpl;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -244,6 +245,18 @@ public class PulsarTableOptions {
                     .mapType()
                     .defaultValue(Collections.emptyMap())
                     .withDescription("Optional pulsar config.");
+
+    public static final ConfigOption<Boolean> ENABLE_OFFSET_AUTO_COMMIT =
+            ConfigOptions.key("enable.auto.commit")
+                    .booleanType()
+                    .defaultValue(true)
+                    .withDescription("enable offset auto commit by pulsar connector");
+
+    public static final ConfigOption<Duration> OFFSET_AUTO_COMMIT_INTERVAL =
+            ConfigOptions.key("offset.auto.commit.interval")
+                    .durationType()
+                    .defaultValue(Duration.ofSeconds(60))
+                    .withDescription("offset auto commit interval for pulsar source.");
 
     // --------------------------------------------------------------------------------------------
     // Option enumerations

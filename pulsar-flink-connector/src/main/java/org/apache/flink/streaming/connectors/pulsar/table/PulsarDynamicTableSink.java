@@ -237,7 +237,7 @@ public class PulsarDynamicTableSink implements DynamicTableSink, SupportsWriting
             Properties properties,
             PulsarSerializationSchema<RowData> pulsarSerializer) {
         final ClientConfigurationData configurationData =
-                PulsarClientUtils.newClientConf(serviceUrl, properties);
+                PulsarClientUtils.newSqlClientConf(serviceUrl, properties);
         return new FlinkPulsarSink<RowData>(
                 adminUrl,
                 Optional.ofNullable(topic),

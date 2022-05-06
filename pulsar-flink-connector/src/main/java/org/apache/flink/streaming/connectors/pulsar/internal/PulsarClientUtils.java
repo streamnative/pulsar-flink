@@ -18,15 +18,20 @@
 
 package org.apache.flink.streaming.connectors.pulsar.internal;
 
+import org.apache.flink.shaded.curator4.com.google.common.collect.Maps;
+
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.Authentication;
 import org.apache.pulsar.client.api.AuthenticationFactory;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.auth.AuthenticationDisabled;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
+import org.apache.pulsar.client.impl.conf.ConfigurationDataUtils;
 import org.apache.pulsar.shade.org.apache.commons.lang3.StringUtils;
 
+import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 /** Utility to create Pulsar Admin Client from adminUrl and clientConfigurationData. */
 public class PulsarClientUtils {
@@ -64,5 +69,28 @@ public class PulsarClientUtils {
                     properties.getProperty(PulsarOptions.AUTH_PLUGIN_CLASSNAME_KEY));
         }
         return clientConf;
+    }
+
+    public static ClientConfigurationData newSqlClientConf(
+            String serviceUrl, Properties properties) {
+        Map<String, Object> clientConfData = getClientParams(Maps.fromProperties(properties));
+        ClientConfigurationData clientConf = new ClientConfigurationData();
+        clientConf =
+                ConfigurationDataUtils.loadData(
+                        clientConfData, clientConf, ClientConfigurationData.class);
+        clientConf.setServiceUrl(serviceUrl);
+        return clientConf;
+    }
+
+    public static Map<String, Object> getClientParams(Map<String, String> parameters) {
+        return parameters.keySet().stream()
+                .filter(k -> k.startsWith(PulsarOptions.PULSAR_CLIENT_OPTION_KEY_PREFIX))
+                .collect(
+                        Collectors.toMap(
+                                k ->
+                                        k.substring(
+                                                PulsarOptions.PULSAR_CLIENT_OPTION_KEY_PREFIX
+                                                        .length()),
+                                k -> parameters.get(k)));
     }
 }

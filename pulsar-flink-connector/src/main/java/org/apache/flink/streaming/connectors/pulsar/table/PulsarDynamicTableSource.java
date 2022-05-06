@@ -217,7 +217,7 @@ public class PulsarDynamicTableSource
                 createPulsarDeserialization(
                         keyDeserialization, valueDeserialization, producedTypeInfo);
         final ClientConfigurationData clientConfigurationData =
-                PulsarClientUtils.newClientConf(serviceUrl, properties);
+                PulsarClientUtils.newSqlClientConf(serviceUrl, properties);
         FlinkPulsarSource<RowData> source =
                 new FlinkPulsarSource<>(
                         adminUrl, clientConfigurationData, deserializationSchema, properties);

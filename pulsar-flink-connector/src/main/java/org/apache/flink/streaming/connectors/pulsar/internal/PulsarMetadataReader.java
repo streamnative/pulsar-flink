@@ -66,7 +66,10 @@ import static org.apache.flink.streaming.connectors.pulsar.internal.PulsarOption
 @Slf4j
 public class PulsarMetadataReader implements AutoCloseable {
 
+    // TODO upgrade after 2.10.1
     // system topics are not filtered out by default in Pulsar 2.10.0
+    // this filter is incomplete and should be replaced by SystemTopicNames class
+    // after 2.10.1 released.
     private static final String SYSTEM_TOPIC_PREFIX = "__";
 
     @Getter private final String adminUrl;

@@ -24,7 +24,7 @@ under the License.
 
 	<groupId>io.streamnative.connectors</groupId>
 	<artifactId>pulsar-flink-parent</artifactId>
-	<version>1.14.3.2-rc5</version>
+	<version>1.14.3.2-rc6</version>
 
 	<name>StreamNative :: Pulsar Flink Connector :: Root</name>
 	<packaging>pom</packaging>

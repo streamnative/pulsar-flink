@@ -163,11 +163,10 @@ public class FlinkPulsarSource<T> extends RichParallelSourceFunction<T>
     private String externalSubscriptionName;
 
     /**
-     * The subscription position to use when subscription does not exist (default is {@link
-     * MessageId#latest}); Only relevant when startup mode is {@link
-     * StartupMode#EXTERNAL_SUBSCRIPTION}.
+     * The subscription position to use when subscription does not exist; Only relevant when startup
+     * mode is {@link StartupMode#EXTERNAL_SUBSCRIPTION}.
      */
-    private MessageId subscriptionPosition = MessageId.latest;
+    private MessageId subscriptionPosition;
 
     // TODO: remove this when MessageId is serializable itself.
     // see: https://github.com/apache/pulsar/pull/6064

@@ -386,6 +386,9 @@ public class PulsarMetadataReader implements AutoCloseable {
             String subscriptionName = subscriptionNameFrom(topic);
             TopicStats topicStats = admin.topics().getStats(topic.getTopic());
             if (topicStats.getSubscriptions().containsKey(subscriptionName)) {
+                if (defaultPosition != null) {
+                    return defaultPosition;
+                }
                 SubscriptionStats subStats = topicStats.getSubscriptions().get(subscriptionName);
                 if (subStats.getConsumers().size() != 0) {
                     throw new IllegalStateException(
@@ -411,8 +414,10 @@ public class PulsarMetadataReader implements AutoCloseable {
                 }
             } else {
                 // create sub on topic
+                MessageId consumePosition =
+                        defaultPosition == null ? MessageId.latest : defaultPosition;
                 admin.topics()
-                        .createSubscription(topic.getTopic(), subscriptionName, defaultPosition);
+                        .createSubscription(topic.getTopic(), subscriptionName, consumePosition);
                 return defaultPosition;
             }
         } catch (PulsarAdminException | UnsupportedEncodingException e) {

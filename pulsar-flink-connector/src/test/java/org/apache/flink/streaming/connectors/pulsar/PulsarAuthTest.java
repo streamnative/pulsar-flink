@@ -69,7 +69,7 @@ public class PulsarAuthTest {
     public static void prepare() throws Exception {
         log.info("    Starting PulsarTestBase ");
         final String pulsarImage =
-                System.getProperty("pulsar.systemtest.image", "apachepulsar/pulsar:2.8.0");
+                System.getProperty("pulsar.systemtest.image", "apachepulsar/pulsar:2.10.0");
         DockerImageName pulsar =
                 DockerImageName.parse(pulsarImage).asCompatibleSubstituteFor("apachepulsar/pulsar");
         pulsarService = new PulsarContainer(pulsar);

@@ -251,7 +251,7 @@ under the License.
 			<plugin>
 				<groupId>com.github.os72</groupId>
 				<artifactId>protoc-jar-maven-plugin</artifactId>
-				<version>${protobuf.version}</version>
+				<version>${protobuf-plugin.version}</version>
 				<executions>
 					<execution>
 						<id>generate-protobuf-test-sources</id>

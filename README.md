@@ -4,6 +4,19 @@ The Pulsar Flink connector implements elastic data processing using [Apache Puls
 
 如果需要阅读中文文档,请点击[此处](docs/README_CN.md)。
 
+# Important Deprecation Plan
+
+This pulsar-flink source connector is build on `SourceFunction` API and is replaced by `Source` API in Flink 1.14. 
+Similarly, the sink connector has a newer version after Flink 1.14.
+
+Our team plan to deprecate in 2023 this repository and switch to the new connector implementation.
+
+We will continue to maintain and provide features/bug fixes for `release-1.13` and `release-1.14`
+branch which targets at Flink 1.13 and 1.14 respectively until at least 2022-12-31 . However once we fully migrate to the new connector, we will not maintain this legacy connector.
+
+For documentation on using the new connector, please go to []() for more details.
+
+
 # Prerequisites
 
 - Java 8 or higher version
@@ -20,15 +33,13 @@ We change our project [version definition](docs/connector-version-definition.md)
 
 | Flink version | Pulsar client version (or above) | Connector branch                                                                 |
 |:--------------|:---------------------------------|:---------------------------------------------------------------------------------|
-| 1.11.x        | 2.6.x                            | [`release-1.11`](https://github.com/streamnative/pulsar-flink/tree/release-1.11) |
-| 1.12.x        | 2.7.x                            | [`release-1.12`](https://github.com/streamnative/pulsar-flink/tree/release-1.12) |
 | 1.13.x        | 2.8.x                            | [`release-1.13`](https://github.com/streamnative/pulsar-flink/tree/release-1.13) |
-| 1.14.x        | 2.9.x                            | [`release-1.14`](https://github.com/streamnative/pulsar-flink/tree/release-1.14) |
+| 1.14.x        | 2.10.x                            | [`release-1.14`](https://github.com/streamnative/pulsar-flink/tree/release-1.14) |
 
 > **Note**  
 > Since Flink's API changed greatly through different versions, we mainly work on new features for the latest released flink version and fix bugs for old release.
 > 
-> The old release (prior 1.10.x) is no longer maintained. Users who used old flink is recommend to upgrade to 1.11.
+> The old release (prior 1.12.x) is no longer maintained. Users who used old flink is recommend to upgrade to at least 1.13.
 
 ## Version definitions
 

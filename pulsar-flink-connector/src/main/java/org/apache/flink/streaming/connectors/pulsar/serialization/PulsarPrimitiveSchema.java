@@ -77,7 +77,7 @@ public class PulsarPrimitiveSchema<T>
         pulsarPrimitives.put(Float.TYPE, FloatSchema.of());
         pulsarPrimitives.put(Double.class, DoubleSchema.of());
         pulsarPrimitives.put(Double.TYPE, DoubleSchema.of());
-        pulsarPrimitives.put(Byte[].class, BytesSchema.of());
+        pulsarPrimitives.put(byte[].class, BytesSchema.of());
         pulsarPrimitives.put(Date.class, DateSchema.of());
         pulsarPrimitives.put(Time.class, TimeSchema.of());
         pulsarPrimitives.put(Timestamp.class, TimestampSchema.of());

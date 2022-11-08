@@ -28,7 +28,6 @@ import org.apache.flink.table.planner.factories.TestValuesTableFactory;
 import org.apache.flink.types.Row;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -83,9 +82,7 @@ public class UpsertPulsarTableITCase extends PulsarTestBaseWithFlink {
         env.getConfig().setRestartStrategy(RestartStrategies.noRestart());
     }
 
-    /** The fix is in release-1.13. */
     @Test
-    @Ignore
     public void testAggregate() throws Exception {
         String topic = WORD_COUNT_TOPIC + "_" + format;
         createTestTopic(topic, 4);
@@ -411,7 +408,7 @@ public class UpsertPulsarTableITCase extends PulsarTestBaseWithFlink {
     private void wordFreqToUpsertPulsar(String wordCountTable) throws Exception {
         // ------------- test data ---------------
 
-        final List<String> expectedData = Arrays.asList("3,1", "2,1");
+        final List<String> expectedData = Arrays.asList("+[3,1]", "+[2,1]");
 
         // ------------- create table ---------------
 
